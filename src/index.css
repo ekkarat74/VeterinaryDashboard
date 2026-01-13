@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* ถ้าต้องการใช้ฟอนต์ภาษาไทยให้ดูดีขึ้น เพิ่มส่วนนี้ได้ครับ */
+@layer base {
+  html {
+    font-family: 'Inter', 'Sarabun', sans-serif;
+  }
+}
