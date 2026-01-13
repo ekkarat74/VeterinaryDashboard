@@ -229,6 +229,7 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
             <X className="w-5 h-5" />
           </button>
+          {/* ตัวอย่างปุ่มลบในตารางรายรายการ */}
         </div>
         
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -277,22 +278,45 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
                   </div>
 
                   {/* Coords */}
-                  <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">Latitude</label>
-                    <input type="text" placeholder="เช่น 13.7563" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                      value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} />
-                  </div>
-                  <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">Longitude</label>
-                    <input type="text" placeholder="เช่น 100.5018" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                      value={formData.long} onChange={e => setFormData({...formData, long: e.target.value})} />
-                  </div>
-                   <div className="md:col-span-2 flex items-end">
-                    <button type="button" onClick={handleGenerateCoords} className="w-full p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold border border-slate-300 transition-colors flex items-center justify-center gap-1">
+                  <div className="md:col-span-12">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
+                      <Navigation className="w-3 h-3 text-blue-500" /> 
+                      พิกัดภูมิศาสตร์ (Latitude, Longitude)
+                    </label>
+                    <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        placeholder="เช่น 13.609673, 100.465504" 
+                        className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                        // แสดงค่ารวมกันในช่องเดียว
+                        value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
+                        onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.includes(',')) {
+                        // ถ้ามีการใส่คอมม่า ให้แยกค่าทันที
+                          const [lat, lng] = value.split(',').map(s => s.trim());
+                          setFormData({ ...formData, lat, long: lng });
+                        } else {
+                        // ถ้ายังไม่ใส่คอมม่า ให้มองว่าเป็น lat ไปก่อน
+                        setFormData({ ...formData, lat: value });
+                        }
+                      }} 
+                      />
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    </div>
+    
+                    <button 
+                      type="button" 
+                      onClick={handleGenerateCoords} 
+                      className="px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold border border-slate-300 transition-colors flex items-center gap-1 shrink-0"
+                      >
                       <LocateFixed className="w-4 h-4" /> สุ่มพิกัด
                     </button>
                   </div>
-               </div>
+                  <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
+                </div>
+              </div>
             </div>
 
             {/* Section 2: Quantitative Data */}
@@ -479,42 +503,96 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
 };
 
 export default function VeterinaryDashboard() {
-  // State for Data
+  // 1. กำหนดค่าเริ่มต้นเป็น Array ว่าง เพื่อรอรับข้อมูลจาก Database
   const [reportData, setReportData] = useState([]);
   
-  // State for Filters
+  // URL ของ Backend (ต้องตรงกับที่ตั้งไว้ใน server.js)
+  const API_URL = 'http://localhost:5000/api/reports';
+
   const [selectedUnit, setSelectedUnit] = useState('ทั้งหมด');
   const [selectedDistrict, setSelectedDistrict] = useState('ทั้งหมด');
-
-  // State for UI
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Initialize Data
   useEffect(() => {
-    setReportData(generateInitialData());
-  }, []);
-
-  // Handler for adding new data
-  const handleAddNewData = (newRecord) => {
-    const formattedRecord = {
-      id: reportData.length + 1,
-      date: newRecord.date,
-      activity: newRecord.activity,
-      location: newRecord.location,
-      lat: newRecord.lat,
-      long: newRecord.long,
-      district: newRecord.district,
-      subdistrict: newRecord.subdistrict,
-      unit: newRecord.unit,
-      stats: {
-        vaccine: newRecord.vaccine,
-        sterilize: newRecord.sterilize,
-        register: newRecord.register,
-        microchip: newRecord.microchip
+    const fetchData = async () => {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+    
+        if (data && data.length > 0) {
+          setReportData(data);
+        } else {
+          setReportData([]); 
+        }
+      } catch (error) {
+        console.error("Fetch Error:", error);
+        setReportData([]); 
       }
     };
-    setReportData(prev => [...prev, formattedRecord]);
+    fetchData();
+  }, []);
+
+  // 3. แก้ไขฟังก์ชันบันทึกข้อมูล (POST ไปที่ MongoDB)
+  const handleAddNewData = async (newRecord) => {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: newRecord.date,
+          activity: newRecord.activity,
+          location: newRecord.location,
+          lat: parseFloat(newRecord.lat),
+          long: parseFloat(newRecord.long),
+          district: newRecord.district,
+          subdistrict: newRecord.subdistrict,
+          unit: newRecord.unit,
+          stats: {
+            vaccine: newRecord.vaccine,
+            sterilize: newRecord.sterilize,
+            register: newRecord.register,
+            microchip: newRecord.microchip
+          },
+          details: newRecord.details // ข้อมูลเชิงลึกแยกประเภทสุนัข/แมว
+        }),
+      });
+
+      if (response.ok) {
+        const savedRecord = await response.json();
+        // อัปเดต State หน้าจอทันทีด้วยข้อมูลที่ได้จาก DB
+        setReportData(prev => [savedRecord, ...prev]);
+        alert("✅ บันทึกข้อมูลลงฐานข้อมูลสำเร็จ!");
+      } else {
+        alert("❌ ไม่สามารถบันทึกข้อมูลได้");
+      }
+    } catch (error) {
+      console.error("Save Error:", error);
+      alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+    }
   };
+
+  const handleDeleteData = async (id) => {
+  if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?")) {
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // อัปเดต State โดยกรองข้อมูลที่ถูกลบทิ้งไป
+        setReportData(prev => prev.filter(item => item._id !== id));
+        alert("✅ ลบข้อมูลสำเร็จ");
+      } else {
+        alert("❌ ไม่สามารถลบข้อมูลได้");
+      }
+    } catch (error) {
+      console.error("Delete Error:", error);
+      alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+    }
+  }
+};
   
   // --- DATA PROCESSING ---
 
@@ -827,6 +905,51 @@ export default function VeterinaryDashboard() {
           </div>
 
         </div>
+        {/* --- ALL DATA TABLE WITH DELETE BUTTON --- */}
+<div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
+  <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+    <Database className="w-5 h-5 text-slate-600" />
+    รายการข้อมูลทั้งหมด
+  </h2>
+  <div className="overflow-x-auto">
+    <table className="min-w-full text-sm text-left">
+      <thead className="bg-slate-50 text-slate-500 font-semibold border-b">
+        <tr>
+          <th className="px-4 py-3">วันที่</th>
+          <th className="px-4 py-3">กิจกรรม/สถานที่</th>
+          <th className="px-4 py-3">เขต</th>
+          <th className="px-4 py-3 text-center">วัคซีน</th>
+          <th className="px-4 py-3 text-center">ทำหมัน</th>
+          <th className="px-4 py-3 text-center">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {filteredData.map((item) => (
+          <tr key={item._id} className="hover:bg-slate-50 transition-colors">
+            <td className="px-4 py-3 text-slate-600">{item.date}</td>
+            <td className="px-4 py-3">
+              <div className="font-bold text-slate-800">{item.activity}</div>
+              <div className="text-xs text-slate-400">{item.location}</div>
+            </td>
+            <td className="px-4 py-3 text-slate-600">{item.district}</td>
+            <td className="px-4 py-3 text-center font-semibold text-blue-600">{item.stats.vaccine}</td>
+            <td className="px-4 py-3 text-center font-semibold text-orange-600">{item.stats.sterilize}</td>
+            <td className="px-4 py-3 text-center">
+              {/* ปุ่มลบที่ถามถึง ใส่ตรงนี้ครับ */}
+              <button 
+                onClick={() => handleDeleteData(item._id)} 
+                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
+                title="ลบข้อมูล"
+              >
+                <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
       </main>
     </div>
   );
