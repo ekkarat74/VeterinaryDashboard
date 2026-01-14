@@ -3,11 +3,13 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { 
   Activity, Syringe, Scissors, FileText, MapPin, 
   Filter, Calendar, Database, Download, Users, 
   Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
-  Calculator, Navigation, LocateFixed
+  Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -32,16 +34,17 @@ const BANGKOK_DISTRICTS = [
 // --- INITIAL MOCK DATA GENERATOR ---
 const generateInitialData = () => {
   const baseData = [
-    { id: 1, date: '2023-10-15', activity: 'หน่วยเคลื่อนที่ชุมชนวัดไผ่ตัน', location: 'วัดไผ่ตัน', lat: 13.789, long: 100.54, district: 'พญาไท', subdistrict: 'สามเสนใน', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 120, sterilize: 15, register: 30, microchip: 25 } },
-    { id: 2, date: '2023-10-20', activity: 'ทำหมันสัญจร', location: 'โรงเรียนวัดธาตุทอง', lat: 13.719, long: 100.58, district: 'วัฒนา', subdistrict: 'พระโขนงเหนือ', unit: 'หน่วยกรงแมว', stats: { vaccine: 45, sterilize: 40, register: 10, microchip: 10 } },
-    { id: 3, date: '2023-11-05', activity: 'ผู้ว่าสัญจรเขตจตุจักร', location: 'สวนจตุจักร', lat: 13.80, long: 100.55, district: 'จตุจักร', subdistrict: 'จอมพล', unit: 'หน่วยผู้ว่า', stats: { vaccine: 300, sterilize: 50, register: 100, microchip: 120 } },
-    { id: 4, date: '2023-11-12', activity: 'ฉีดวัคซีนชุมชนคลองเตย', location: 'ชุมชนล็อก 1-2-3', lat: 13.70, long: 100.56, district: 'คลองเตย', subdistrict: 'คลองเตย', unit: 'หน่วยวัคซีน + ไมโครชิป', stats: { vaccine: 500, sterilize: 0, register: 200, microchip: 150 } },
-    { id: 5, date: '2023-12-01', activity: 'หน่วยเคลื่อนที่ดินแดง', location: 'ศาลาว่าการ กทม. 2', lat: 13.76, long: 100.55, district: 'ดินแดง', subdistrict: 'ดินแดง', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 150, sterilize: 25, register: 40, microchip: 30 } },
-    { id: 6, date: '2023-12-15', activity: 'หน่วยเคลื่อนที่บางรัก', location: 'วัดหัวลำโพง', lat: 13.73, long: 100.52, district: 'บางรัก', subdistrict: 'สี่พระยา', unit: 'หน่วยกรงแมว', stats: { vaccine: 60, sterilize: 35, register: 15, microchip: 20 } },
-    { id: 7, date: '2024-01-10', activity: 'ผู้ว่าสัญจรบางกะปิ', location: 'ตลาดบางกะปิ', lat: 13.76, long: 100.64, district: 'บางกะปิ', subdistrict: 'คลองจั่น', unit: 'หน่วยผู้ว่า', stats: { vaccine: 250, sterilize: 45, register: 80, microchip: 90 } },
-    { id: 8, date: '2024-01-25', activity: 'วัคซีนเชิงรุก', location: 'หมู่บ้านเสรี', lat: 13.74, long: 100.61, district: 'สวนหลวง', subdistrict: 'สวนหลวง', unit: 'หน่วยวัคซีน + ไมโครชิป', stats: { vaccine: 400, sterilize: 0, register: 150, microchip: 130 } },
-    { id: 9, date: '2024-02-05', activity: 'หน่วยสัตว์แพทย์ลาดพร้าว', location: 'วัดลาดพร้าว', lat: 13.80, long: 100.59, district: 'ลาดพร้าว', subdistrict: 'ลาดพร้าว', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 180, sterilize: 30, register: 50, microchip: 45 } },
-    { id: 10, date: '2024-02-20', activity: 'หน่วยกรงแมวห้วยขวาง', location: 'ตลาดห้วยขวาง', lat: 13.77, long: 100.57, district: 'ห้วยขวาง', subdistrict: 'ห้วยขวาง', unit: 'หน่วยกรงแมว', stats: { vaccine: 80, sterilize: 55, register: 20, microchip: 25 } },
+    // ลบ property activity ออกจากข้อมูลตัวอย่าง
+    { id: 1, date: '2023-10-15', location: 'วัดไผ่ตัน', lat: 13.789, long: 100.54, district: 'พญาไท', subdistrict: 'สามเสนใน', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 120, sterilize: 15, register: 30, microchip: 25 } },
+    { id: 2, date: '2023-10-20', location: 'โรงเรียนวัดธาตุทอง', lat: 13.719, long: 100.58, district: 'วัฒนา', subdistrict: 'พระโขนงเหนือ', unit: 'หน่วยกรงแมว', stats: { vaccine: 45, sterilize: 40, register: 10, microchip: 10 } },
+    { id: 3, date: '2023-11-05', location: 'สวนจตุจักร', lat: 13.80, long: 100.55, district: 'จตุจักร', subdistrict: 'จอมพล', unit: 'หน่วยผู้ว่า', stats: { vaccine: 300, sterilize: 50, register: 100, microchip: 120 } },
+    { id: 4, date: '2023-11-12', location: 'ชุมชนล็อก 1-2-3', lat: 13.70, long: 100.56, district: 'คลองเตย', subdistrict: 'คลองเตย', unit: 'หน่วยวัคซีน + ไมโครชิป', stats: { vaccine: 500, sterilize: 0, register: 200, microchip: 150 } },
+    { id: 5, date: '2023-12-01', location: 'ศาลาว่าการ กทม. 2', lat: 13.76, long: 100.55, district: 'ดินแดง', subdistrict: 'ดินแดง', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 150, sterilize: 25, register: 40, microchip: 30 } },
+    { id: 6, date: '2023-12-15', location: 'วัดหัวลำโพง', lat: 13.73, long: 100.52, district: 'บางรัก', subdistrict: 'สี่พระยา', unit: 'หน่วยกรงแมว', stats: { vaccine: 60, sterilize: 35, register: 15, microchip: 20 } },
+    { id: 7, date: '2024-01-10', location: 'ตลาดบางกะปิ', lat: 13.76, long: 100.64, district: 'บางกะปิ', subdistrict: 'คลองจั่น', unit: 'หน่วยผู้ว่า', stats: { vaccine: 250, sterilize: 45, register: 80, microchip: 90 } },
+    { id: 8, date: '2024-01-25', location: 'หมู่บ้านเสรี', lat: 13.74, long: 100.61, district: 'สวนหลวง', subdistrict: 'สวนหลวง', unit: 'หน่วยวัคซีน + ไมโครชิป', stats: { vaccine: 400, sterilize: 0, register: 150, microchip: 130 } },
+    { id: 9, date: '2024-02-05', location: 'วัดลาดพร้าว', lat: 13.80, long: 100.59, district: 'ลาดพร้าว', subdistrict: 'ลาดพร้าว', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 180, sterilize: 30, register: 50, microchip: 45 } },
+    { id: 10, date: '2024-02-20', location: 'ตลาดห้วยขวาง', lat: 13.77, long: 100.57, district: 'ห้วยขวาง', subdistrict: 'ห้วยขวาง', unit: 'หน่วยกรงแมว', stats: { vaccine: 80, sterilize: 55, register: 20, microchip: 25 } },
   ];
 
   const extraData = [];
@@ -51,7 +54,7 @@ const generateInitialData = () => {
     extraData.push({
       id: 11 + i,
       date: `2024-03-${Math.floor(Math.random() * 28) + 1}`,
-      activity: `หน่วยบริการ ${district} ครั้งที่ ${i+1}`,
+      // ลบ activity ออก
       location: `ชุมชนเขต${district}`,
       lat: 13.65 + Math.random() * 0.3,
       long: 100.40 + Math.random() * 0.4,
@@ -87,75 +90,118 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
   </div>
 );
 
-const SimulatedMap = ({ data }) => {
-  const minLat = 13.4;
-  const maxLat = 13.95;
-  const minLong = 100.3;
-  const maxLong = 100.95;
+// ฟังก์ชันช่วยเลือกสีจุดตามหน่วยงาน
+const getMarkerColor = (unit) => {
+  switch (unit) {
+    case 'หน่วยผู้ว่า': return '#a855f7'; // สีม่วง
+    case 'หน่วยสัตวแพทย์': return '#3b82f6'; // สีฟ้า
+    case 'หน่วยวัคซีน + ไมโครชิป': return '#22c55e'; // สีเขียว
+    case 'หน่วยกรงแมว': return '#f97316'; // สีส้ม
+    default: return '#64748b';
+  }
+};
 
-  const getX = (long) => ((long - minLong) / (maxLong - minLong)) * 100;
-  const getY = (lat) => 100 - ((lat - minLat) / (maxLat - minLat)) * 100;
+// Component แผนที่จริง (Leaflet)
+const LeafletMap = ({ data }) => {
+  const centerPosition = [13.7563, 100.5018];
 
   return (
-    <div className="relative w-full h-full bg-slate-50 rounded-lg overflow-hidden border border-slate-200 group">
-      <div className="absolute inset-0 opacity-20" 
-           style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-      
-      <svg className="absolute inset-0 w-full h-full text-slate-200 pointer-events-none" fill="currentColor">
-        <path d="M20,30 Q50,10 80,30 T90,60 T60,90 T20,80 Z" opacity="0.3" />
-        <path d="M40,40 Q60,40 70,50 T50,70 Z" opacity="0.2" className="text-slate-300" />
-      </svg>
+    <div className="relative w-full h-full z-0">
+      <MapContainer 
+        center={centerPosition} 
+        zoom={10} 
+        scrollWheelZoom={true} 
+        style={{ height: "100%", width: "100%", background: "#f8fafc" }}
+      >
+        <TileLayer
+          attribution='&copy; OpenStreetMap contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1.5 rounded-md shadow-sm border border-slate-100 text-xs font-semibold text-slate-600 z-10 flex items-center gap-2">
-        <MapPin className="w-3 h-3 text-red-500" />
-        พิกัดกิจกรรม (Simulated)
-      </div>
-
-      {data.map((item) => (
-        <div
-          key={item.id}
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 hover:scale-150 z-20"
-          style={{ left: `${getX(item.long)}%`, top: `${getY(item.lat)}%` }}
-        >
-          <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ring-1 ring-black/5
-            ${item.unit === 'หน่วยผู้ว่า' ? 'bg-purple-500' : 
-              item.unit === 'หน่วยสัตวแพทย์' ? 'bg-blue-500' : 
-              item.unit === 'หน่วยวัคซีน + ไมโครชิป' ? 'bg-green-500' : 'bg-orange-500'}`} 
-          />
-          <div className="opacity-0 hover:opacity-100 absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-56 bg-white text-slate-700 text-xs rounded-lg shadow-xl p-3 z-30 pointer-events-none border border-slate-100 transition-opacity">
-            <div className="font-bold text-sm text-slate-800 mb-1">{item.district}</div>
-            <div className="text-slate-500 mb-2">{item.location}</div>
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1 bg-slate-50 p-2 rounded border border-slate-100">
-              <span>💉 วัคซีน:</span> <span className="font-medium">{item.stats.vaccine}</span>
-              <span>✂️ ทำหมัน:</span> <span className="font-medium">{item.stats.sterilize}</span>
-            </div>
-            <div className="mt-1 text-[10px] text-right text-slate-400">{item.date}</div>
-          </div>
-        </div>
-      ))}
+        {data.map((item) => {
+          if (!item.lat || !item.long) return null;
+          return (
+            <CircleMarker
+              key={item._id || item.id}
+              center={[parseFloat(item.lat), parseFloat(item.long)]}
+              pathOptions={{ 
+                color: 'white', 
+                fillColor: getMarkerColor(item.unit), 
+                fillOpacity: 0.8, 
+                weight: 2 
+              }}
+              radius={8}
+            >
+              <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                {/* เปลี่ยนจากแสดง activity เป็น location */}
+                <span className="font-bold">{item.location}</span>
+              </Tooltip>
+              <Popup>
+                <div className="font-sans min-w-[150px]">
+                  {/* เปลี่ยนหัวข้อ Popup เป็นชื่อหน่วยงานแทน */}
+                  <h3 className="font-bold text-slate-800">{item.unit}</h3>
+                  <p className="text-xs text-slate-500 mb-2">📍 {item.location} ({item.district})</p>
+                  <div className="text-xs space-y-1">
+                    <div className="text-blue-600">💉 วัคซีน: {item.stats.vaccine}</div>
+                    <div className="text-orange-600">✂️ ทำหมัน: {item.stats.sterilize}</div>
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+      </MapContainer>
     </div>
   );
 };
 
 // --- UPDATED ADD DATA MODAL (Structured per requirements) ---
-const AddDataModal = ({ isOpen, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
+// --- UPDATED ADD/EDIT DATA MODAL ---
+const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
+  const defaultFormData = {
     date: new Date().toISOString().split('T')[0],
-    activity: '',
     location: '',
     district: BANGKOK_DISTRICTS[0],
     subdistrict: '',
     unit: UNIT_TYPES[0],
     lat: '',
     long: ''
-  });
+  };
 
-  // Detailed State Structure for Quantitative Data
-  const [breakdown, setBreakdown] = useState({
+  const defaultBreakdown = {
     dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', owned: '', community: '' },
     cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', owned: '', community: '' },
     other: { vaccine: '' }
-  });
+  };
+
+  const [formData, setFormData] = useState(defaultFormData);
+  const [breakdown, setBreakdown] = useState(defaultBreakdown);
+
+  // Effect: โหลดข้อมูลเดิมเมื่อเปิด Modal ในโหมดแก้ไข
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        // กรณีแก้ไข: โหลดข้อมูลเดิม
+        setFormData({
+            date: initialData.date,
+            location: initialData.location,
+            district: initialData.district,
+            subdistrict: initialData.subdistrict,
+            unit: initialData.unit,
+            lat: initialData.lat,
+            long: initialData.long
+        });
+        // โหลดข้อมูลตัวเลข (ถ้ามี details ให้ใช้ details ถ้าไม่มีให้ใช้ค่าว่าง)
+        if (initialData.details) {
+            setBreakdown(initialData.details);
+        }
+      } else {
+        // กรณีเพิ่มใหม่: ล้างค่าเป็น default
+        setFormData(defaultFormData);
+        setBreakdown(defaultBreakdown);
+      }
+    }
+  }, [isOpen, initialData]);
 
   // Calculate Totals automatically
   const totals = useMemo(() => {
@@ -170,9 +216,6 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
       sterilize: parse(dog.maleSterilize) + parse(dog.femaleSterilize) + parse(cat.maleSterilize) + parse(cat.femaleSterilize),
       register: parse(dog.register) + parse(cat.register),
       microchip: parse(dog.microchip) + parse(cat.microchip),
-      // Extra details for summary
-      dogTotal: parse(dog.vaccine) + parse(dog.register) + parse(dog.microchip) + parse(dog.maleSterilize) + parse(dog.femaleSterilize), // Rough activity count
-      catTotal: parse(cat.vaccine) + parse(cat.register) + parse(cat.microchip) + parse(cat.maleSterilize) + parse(cat.femaleSterilize),
     };
   }, [breakdown]);
 
@@ -183,33 +226,29 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
       ...prev,
       [type]: {
         ...prev[type],
-        [field]: value // Keep as string for input, parse when calculating
+        [field]: value 
       }
     }));
   };
 
-  const handleGenerateCoords = () => {
-    // Simulate getting coords for the district
-    const lat = (13.5 + Math.random() * 0.4).toFixed(6);
-    const long = (100.4 + Math.random() * 0.4).toFixed(6);
-    setFormData(prev => ({ ...prev, lat, long }));
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({
+    const dataPayload = {
       ...formData,
-      // Fallback lat/long if not generated
-      lat: formData.lat ? parseFloat(formData.lat) : 13.5 + Math.random() * 0.4,
-      long: formData.long ? parseFloat(formData.long) : 100.4 + Math.random() * 0.4,
-      // Aggregated stats for the dashboard charts
+      lat: formData.lat ? parseFloat(formData.lat) : 0,
+      long: formData.long ? parseFloat(formData.long) : 0,
       vaccine: totals.vaccine,
       sterilize: totals.sterilize,
       register: totals.register,
       microchip: totals.microchip,
-      // Store full breakdown for potential drill-down views
       details: breakdown 
-    });
+    };
+
+    if (initialData) {
+        onUpdate(initialData._id, dataPayload); // ส่ง ID ไปด้วยถ้าเป็นการแก้ไข
+    } else {
+        onSave(dataPayload); // ส่งข้อมูลใหม่ถ้าเป็นการเพิ่ม
+    }
     onClose();
   };
 
@@ -221,15 +260,16 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
         <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-700">
           <div>
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-green-400" />
-              บันทึกผลการปฏิบัติงานใหม่
+              {initialData ? <Edit className="w-5 h-5 text-yellow-400" /> : <Plus className="w-5 h-5 text-green-400" />}
+              {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
             </h3>
-            <p className="text-slate-400 text-xs mt-0.5">กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณแยกตามประเภทสัตว์</p>
+            <p className="text-slate-400 text-xs mt-0.5">
+                {initialData ? 'ปรับปรุงข้อมูลในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณแยกตามประเภทสัตว์'}
+            </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
             <X className="w-5 h-5" />
           </button>
-          {/* ตัวอย่างปุ่มลบในตารางรายรายการ */}
         </div>
         
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -254,11 +294,10 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
                     </select>
                   </div>
                   <div className="md:col-span-6">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">ชื่อกิจกรรม</label>
-                    <input required type="text" placeholder="ระบุชื่อกิจกรรม" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={formData.activity} onChange={e => setFormData({...formData, activity: e.target.value})} />
+                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
+                    <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
                   </div>
-                  
                   <div className="md:col-span-3">
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
                     <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -271,12 +310,6 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
                     <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                       value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
                   </div>
-                  <div className="md:col-span-6">
-                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
-                    <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                  </div>
-
                   {/* Coords */}
                   <div className="md:col-span-12">
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
@@ -289,34 +322,23 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
                         type="text" 
                         placeholder="เช่น 13.609673, 100.465504" 
                         className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                        // แสดงค่ารวมกันในช่องเดียว
                         value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
                         onChange={(e) => {
                         const value = e.target.value;
                         if (value.includes(',')) {
-                        // ถ้ามีการใส่คอมม่า ให้แยกค่าทันที
                           const [lat, lng] = value.split(',').map(s => s.trim());
                           setFormData({ ...formData, lat, long: lng });
                         } else {
-                        // ถ้ายังไม่ใส่คอมม่า ให้มองว่าเป็น lat ไปก่อน
-                        setFormData({ ...formData, lat: value });
+                          setFormData({ ...formData, lat: value });
                         }
                       }} 
                       />
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     </div>
-    
-                    <button 
-                      type="button" 
-                      onClick={handleGenerateCoords} 
-                      className="px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold border border-slate-300 transition-colors flex items-center gap-1 shrink-0"
-                      >
-                      <LocateFixed className="w-4 h-4" /> สุ่มพิกัด
-                    </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
-                </div>
-              </div>
+               </div>
+            </div>
             </div>
 
             {/* Section 2: Quantitative Data */}
@@ -426,19 +448,19 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
                       </div>
 
                       {/* Status */}
-                       <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100 bg-orange-50/50 -mx-4 px-4 pb-2 mt-2">
-                         <div className="col-span-2 text-xs font-bold text-slate-400 mb-1">สถานะสัตว์ (Animal Status)</div>
-                         <div>
+                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100 bg-orange-50/50 -mx-4 px-4 pb-2 mt-2">
+                          <div className="col-span-2 text-xs font-bold text-slate-400 mb-1">สถานะสัตว์ (Animal Status)</div>
+                          <div>
                             <label className="text-[10px] text-slate-500 font-semibold uppercase">มีเจ้าของ</label>
                             <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
                                value={breakdown.cat.owned} onChange={(e) => handleBreakdownChange('cat', 'owned', e.target.value)} />
-                         </div>
-                         <div>
+                          </div>
+                          <div>
                             <label className="text-[10px] text-slate-500 font-semibold uppercase">ชุมชน/จรจัด</label>
                             <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
                                value={breakdown.cat.community} onChange={(e) => handleBreakdownChange('cat', 'community', e.target.value)} />
-                         </div>
-                      </div>
+                          </div>
+                       </div>
                    </div>
                 </div>
 
@@ -493,10 +515,78 @@ const AddDataModal = ({ isOpen, onClose, onSave }) => {
           <div className="bg-white border-t border-slate-200 p-6 shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-base">
               <Save className="w-5 h-5" />
-              บันทึกข้อมูลเข้าระบบ
+              {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูลเข้าระบบ'}
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// --- NEW COMPONENT: CSV ACTION MODAL ---
+const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 relative animate-in zoom-in-95 duration-200">
+        
+        {/* Close Button */}
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <FileText className="w-6 h-6 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800">จัดการข้อมูล CSV</h3>
+          <p className="text-xs text-slate-500">เลือกดำเนินการกับไฟล์ข้อมูล</p>
+        </div>
+
+        <div className="space-y-3">
+          {/* Import Button */}
+          <div className="relative w-full group">
+            <button className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold rounded-xl transition-all">
+              <Upload className="w-5 h-5" />
+              <span>นำเข้าไฟล์ (Import)</span>
+            </button>
+            {/* Hidden Input Overlay */}
+            <input 
+              type="file" 
+              accept=".csv" 
+              onChange={(e) => {
+                onFileChange(e);
+                onClose(); // ปิด Modal เมื่อเลือกไฟล์เสร็จ
+              }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              title="คลิกเพื่อเลือกไฟล์ CSV"
+            />
+          </div>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-200"></div>
+            <span className="flex-shrink-0 mx-4 text-xs text-slate-400">หรือ</span>
+            <div className="flex-grow border-t border-slate-200"></div>
+          </div>
+
+          {/* Export Button */}
+          <button 
+            onClick={() => {
+              onExport();
+              onClose();
+            }}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-slate-100 hover:bg-green-500 hover:text-white text-slate-700 font-bold rounded-xl transition-all shadow-sm hover:shadow-md"
+          >
+            <Download className="w-5 h-5" />
+            <span>ส่งออกไฟล์ (Export)</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );
@@ -509,9 +599,29 @@ export default function VeterinaryDashboard() {
   // URL ของ Backend (ต้องตรงกับที่ตั้งไว้ใน server.js)
   const API_URL = 'http://localhost:5000/api/reports';
 
+  const [editingItem, setEditingItem] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState(''); // เก็บคำค้นหา (keyword)
+  const [searchDate, setSearchDate] = useState('');
+
+  const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
+  const [selectedMonth, setSelectedMonth] = useState('ทั้งหมด');
+
   const [selectedUnit, setSelectedUnit] = useState('ทั้งหมด');
   const [selectedDistrict, setSelectedDistrict] = useState('ทั้งหมด');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+
+  const THAI_MONTHS = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+
+  const availableYears = useMemo(() => {
+    const years = reportData.map(item => item.date.split('-')[0]); // ดึงปีจาก YYYY-MM-DD
+    return [...new Set(years)].sort().reverse(); // Unique และเรียงล่าสุดขึ้นก่อน
+  }, [reportData]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -542,7 +652,6 @@ export default function VeterinaryDashboard() {
         },
         body: JSON.stringify({
           date: newRecord.date,
-          activity: newRecord.activity,
           location: newRecord.location,
           lat: parseFloat(newRecord.lat),
           long: parseFloat(newRecord.long),
@@ -573,37 +682,211 @@ export default function VeterinaryDashboard() {
     }
   };
 
-  const handleDeleteData = async (id) => {
-  if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?")) {
+  const handleUpdateData = async (id, updatedRecord) => {
     try {
       const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedRecord),
+      });
+
+      if (response.ok) {
+        const savedRecord = await response.json();
+        // อัปเดตข้อมูลใน State โดยแทนที่รายการเดิมด้วยรายการใหม่
+        setReportData(prev => prev.map(item => item._id === id ? savedRecord : item));
+        alert("✅ แก้ไขข้อมูลสำเร็จ!");
+        setEditingItem(null); // เคลียร์สถานะการแก้ไข
+      } else {
+        alert("❌ ไม่สามารถแก้ไขข้อมูลได้");
+      }
+    } catch (error) {
+      console.error("Update Error:", error);
+      alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+    }
+  };
+
+  // Helper สำหรับเปิด Modal เพิ่มใหม่
+  const openAddModal = () => {
+    setEditingItem(null);
+    setIsModalOpen(true);
+  };
+
+  // Helper สำหรับเปิด Modal แก้ไข
+  const openEditModal = (item) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  // --------------------------------------------------------
+  // เริ่มก๊อปปี้ทับตั้งแต่ตรงนี้ (ภายใน function VeterinaryDashboard)
+  // --------------------------------------------------------
+
+  const handleDeleteData = async (id) => {
+    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?")) {
+      try {
+        const response = await fetch(`${API_URL}/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setReportData(prev => prev.filter(item => item._id !== id));
+          alert("✅ ลบข้อมูลสำเร็จ");
+        } else {
+          alert("❌ ไม่สามารถลบข้อมูลได้");
+        }
+      } catch (error) {
+        console.error("Delete Error:", error);
+        alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+      }
+    }
+  };
+
+  // --- ฟังก์ชันสำหรับลบข้อมูลทั้งหมด ---
+  const handleClearAllData = async () => {
+    const confirmed = window.confirm(
+      "⚠️ คำเตือน: คุณต้องการลบข้อมูลทั้งหมดในระบบใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้ ข้อมูลทั้งหมดจะหายไปถาวร"
+    );
+
+    if (!confirmed) return;
+
+    const doubleCheck = window.confirm("ยืนยันการลบข้อมูลทั้งหมด?");
+    if (!doubleCheck) return;
+
+    try {
+      const response = await fetch(API_URL, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // อัปเดต State โดยกรองข้อมูลที่ถูกลบทิ้งไป
-        setReportData(prev => prev.filter(item => item._id !== id));
-        alert("✅ ลบข้อมูลสำเร็จ");
+        setReportData([]);
+        alert("✅ ลบข้อมูลทั้งหมดเรียบร้อยแล้ว");
       } else {
         alert("❌ ไม่สามารถลบข้อมูลได้");
       }
     } catch (error) {
-      console.error("Delete Error:", error);
+      console.error("Clear All Error:", error);
       alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
     }
-  }
-};
+  };
+
+  // --- IMPORT CSV FUNCTION ---
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target.result;
+      const lines = text.split('\n');
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      if (lines.length < 2) {
+        alert("ไฟล์ CSV ว่างเปล่าหรือรูปแบบไม่ถูกต้อง");
+        return;
+      }
+
+      const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าหรือไม่?`);
+      if (!confirmImport) {
+        event.target.value = null;
+        return; 
+      }
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.trim().replace(/^"|"$/g, ''));
+
+        if (row.length >= 9) {
+          const newRecord = {
+            date: row[0],
+            location: row[1],
+            district: row[2] || 'พระนคร',
+            subdistrict: row[3] || '',
+            unit: row[4] || 'หน่วยสัตวแพทย์',
+            lat: 13.75 + (Math.random() * 0.2 - 0.1), 
+            long: 100.50 + (Math.random() * 0.2 - 0.1),
+            vaccine: parseInt(row[5]) || 0,
+            sterilize: parseInt(row[6]) || 0,
+            register: parseInt(row[7]) || 0,
+            microchip: parseInt(row[8]) || 0,
+            details: {
+                dog: { maleSterilize: 0, femaleSterilize: 0, vaccine: 0, register: 0, microchip: 0, owned: 0, community: 0 },
+                cat: { maleSterilize: 0, femaleSterilize: 0, vaccine: 0, register: 0, microchip: 0, owned: 0, community: 0 },
+                other: { vaccine: 0 }
+            }
+          };
+
+          await handleAddNewData(newRecord); 
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      alert(`นำเข้าข้อมูลเสร็จสิ้น!\nสำเร็จ: ${successCount} รายการ\nล้มเหลว/ข้าม: ${failCount} รายการ`);
+      event.target.value = null;
+    };
+    reader.readAsText(file);
+  };
+
+  const exportToCSV = () => {
+    const headers = ["Date", "Location", "District", "Subdistrict", "Unit", "Vaccine", "Sterilize", "Register", "Microchip"];
+    const csvRows = filteredData.map(item => [
+      item.date,
+      `"${item.location.replace(/"/g, '""')}"`,
+      item.district,
+      item.subdistrict,
+      item.unit,
+      item.stats.vaccine,
+      item.stats.sterilize,
+      item.stats.register,
+      item.stats.microchip
+    ].join(","));
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `report_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   // --- DATA PROCESSING ---
 
   // 1. Filter Data
   const filteredData = useMemo(() => {
     return reportData.filter(item => {
+      const lowerSearch = searchTerm.toLowerCase();
+      const textMatch = !searchTerm || 
+        item.location.toLowerCase().includes(lowerSearch) ||
+        item.district.includes(searchTerm) || 
+        item.subdistrict.includes(searchTerm);
+
+      let dateMatch = true;
+      if (searchDate) {
+        dateMatch = item.date === searchDate;
+      } else {
+        const [itemYear, itemMonth] = item.date.split('-');
+        const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === selectedYear;
+        const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
+        dateMatch = yearMatch && monthMatch;
+      }
+
       const unitMatch = selectedUnit === 'ทั้งหมด' || item.unit === selectedUnit;
       const districtMatch = selectedDistrict === 'ทั้งหมด' || item.district === selectedDistrict;
-      return unitMatch && districtMatch;
+
+      return textMatch && dateMatch && unitMatch && districtMatch;
     });
-  }, [reportData, selectedUnit, selectedDistrict]);
+  }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
 
   // 2. Calculate Totals (KPIs)
   const totals = useMemo(() => {
@@ -618,10 +901,21 @@ export default function VeterinaryDashboard() {
   // 3. Prepare Chart Data (Monthly Trend)
   const trendData = useMemo(() => {
     const grouped = filteredData.reduce((acc, curr) => {
-      const month = curr.date.substring(0, 7); // 2023-10
-      if (!acc[month]) acc[month] = { name: month, vaccine: 0, sterilize: 0, total: 0 };
+      const month = curr.date.substring(0, 7); 
+      if (!acc[month]) acc[month] = { 
+        name: month, 
+        vaccine: 0, 
+        sterilize: 0, 
+        register: 0, 
+        microchip: 0, 
+        total: 0 
+      };
+      
       acc[month].vaccine += curr.stats.vaccine;
       acc[month].sterilize += curr.stats.sterilize;
+      acc[month].register += curr.stats.register;
+      acc[month].microchip += curr.stats.microchip;
+      
       acc[month].total += (curr.stats.vaccine + curr.stats.sterilize);
       return acc;
     }, {});
@@ -643,11 +937,21 @@ export default function VeterinaryDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-12 selection:bg-blue-100">
       
-      {/* Modal */}
+      {/* Modal บันทึก/แก้ไขข้อมูล */}
       <AddDataModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onSave={handleAddNewData} 
+        onSave={handleAddNewData}
+        onUpdate={handleUpdateData}
+        initialData={editingItem}
+      />
+
+      {/* CsvActionModal */}
+      <CsvActionModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        onFileChange={handleFileUpload}
+        onExport={exportToCSV}
       />
 
       {/* --- HEADER --- */}
@@ -664,16 +968,20 @@ export default function VeterinaryDashboard() {
           </div>
           
           <div className="flex items-center space-x-3">
-             <div className="hidden lg:flex flex-col items-end mr-4">
-                <span className="text-xs font-semibold text-slate-400">อัปเดตข้อมูลล่าสุด</span>
-                <span className="text-sm font-bold text-slate-700">{new Date().toLocaleDateString('th-TH', { dateStyle: 'long'})}</span>
-             </div>
             <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              onClick={() => setIsCsvModalOpen(true)}
+              className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-sm"
+            >
+              <FileText className="w-4 h-4 text-slate-500" />
+              <span className="hidden sm:inline">จัดการข้อมูล CSV</span>
+            </button>
+
+            <button 
+              onClick={openAddModal}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-md hover:shadow-lg"
             >
               <Plus className="w-4 h-4" />
-              <span>บันทึกผลงานใหม่</span>
+              <span className="hidden sm:inline">บันทึกผลงานใหม่</span>
             </button>
           </div>
         </div>
@@ -682,43 +990,115 @@ export default function VeterinaryDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* --- FILTERS --- */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-slate-700 font-bold">
-            <div className="bg-blue-50 p-2 rounded-lg">
-              <Filter className="w-5 h-5 text-blue-600" />
-            </div>
-            <span>ตัวกรองข้อมูล :</span>
-          </div>
+        <div className="space-y-4">
           
-          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-            {/* Unit Filter */}
-            <div className="relative group">
-              <select 
-                value={selectedUnit}
-                onChange={(e) => setSelectedUnit(e.target.value)}
-                className="appearance-none w-full sm:w-64 bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-4 pr-10 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:bg-slate-100"
-              >
-                <option value="ทั้งหมด">ทุกหน่วยงาน</option>
-                {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                <ChevronDown className="w-4 h-4" />
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center">
+            {/* Search Input */}
+            <div className="relative flex-1 w-full">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-slate-400" />
               </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                placeholder="ค้นหากิจกรรม, สถานที่, หรือเขตพื้นที่..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
-            {/* District Filter */}
-            <div className="relative group">
-              <select 
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="appearance-none w-full sm:w-48 bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-4 pr-10 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:bg-slate-100"
-              >
-                <option value="ทั้งหมด">ทุกเขต (50 เขต)</option>
-                {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                <MapPin className="w-4 h-4" />
+            {/* Date Picker */}
+            <div className="relative w-full md:w-auto min-w-[200px]">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Calendar className="h-4 w-4 text-slate-500" />
               </div>
+              <input
+                type="date"
+                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchDate}
+                onChange={(e) => setSearchDate(e.target.value)}
+              />
+              {searchDate && (
+                <button 
+                  onClick={() => setSearchDate('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-red-500 hover:text-red-700 font-bold"
+                >
+                  ล้างค่า
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-slate-700 font-bold">
+              <div className="bg-blue-50 p-2 rounded-lg">
+                <Filter className="w-5 h-5 text-blue-600" />
+              </div>
+              <span>ตัวกรองละเอียด :</span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto">
+              
+              <div className="relative group">
+                <select 
+                  disabled={!!searchDate}
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className={`appearance-none w-full border border-slate-200 text-slate-700 py-2.5 px-4 pr-10 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer ${!!searchDate ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100'}`}
+                >
+                  <option value="ทั้งหมด">ทุกปี</option>
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                  <Calendar className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="relative group">
+                <select 
+                  disabled={!!searchDate}
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className={`appearance-none w-full border border-slate-200 text-slate-700 py-2.5 px-4 pr-10 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer ${!!searchDate ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100'}`}
+                >
+                  <option value="ทั้งหมด">ทุกเดือน</option>
+                  {THAI_MONTHS.map((m, index) => (
+                    <option key={index} value={index + 1}>{m}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="relative group">
+                <select 
+                  value={selectedUnit}
+                  onChange={(e) => setSelectedUnit(e.target.value)}
+                  className="appearance-none w-full bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-4 pr-10 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-100"
+                >
+                  <option value="ทั้งหมด">ทุกหน่วยงาน</option>
+                  {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="relative group">
+                <select 
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  className="appearance-none w-full bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-4 pr-10 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer hover:bg-slate-100"
+                >
+                  <option value="ทั้งหมด">ทุกเขต (50 เขต)</option>
+                  {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                  <MapPin className="w-4 h-4" />
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -780,7 +1160,16 @@ export default function VeterinaryDashboard() {
                       <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
                       <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="colorRegister" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorMicrochip" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
+                  
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} dy={10} />
                   <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
@@ -789,8 +1178,12 @@ export default function VeterinaryDashboard() {
                     itemStyle={{ padding: 0 }}
                   />
                   <Legend iconType="circle" />
+                  
                   <Area type="monotone" dataKey="vaccine" name="💉 วัคซีน" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorVaccine)" activeDot={{r: 6, strokeWidth: 0}} />
                   <Area type="monotone" dataKey="sterilize" name="✂️ ทำหมัน" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorSterilize)" activeDot={{r: 6, strokeWidth: 0}} />
+                  <Area type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorRegister)" activeDot={{r: 6, strokeWidth: 0}} />
+                  <Area type="monotone" dataKey="microchip" name="💾 ไมโครชิป" stroke="#a855f7" strokeWidth={3} fillOpacity={1} fill="url(#colorMicrochip)" activeDot={{r: 6, strokeWidth: 0}} />
+                
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -831,7 +1224,7 @@ export default function VeterinaryDashboard() {
               แผนที่แสดงความหนาแน่นกิจกรรม
             </h2>
             <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 relative shadow-inner bg-slate-50">
-              <SimulatedMap data={filteredData} />
+              <LeafletMap data={filteredData} />
               
               {/* Legend Overlay */}
               <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md p-3 rounded-lg shadow-lg border border-slate-100 text-xs space-y-2">
@@ -858,6 +1251,7 @@ export default function VeterinaryDashboard() {
                   <tr>
                     <th className="px-4 py-3 first:rounded-tl-lg">อันดับ</th>
                     <th className="px-4 py-3">เขต</th>
+                    <th className="px-4 py-3 w-1/4">หน่วยงานที่ลงพื้นที่</th> 
                     <th className="px-4 py-3 text-right">วัคซีน</th>
                     <th className="px-4 py-3 text-right">ทำหมัน</th>
                     <th className="px-4 py-3 text-right last:rounded-tr-lg">รวม (ตัว)</th>
@@ -866,12 +1260,22 @@ export default function VeterinaryDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {(() => {
                     const districtStats = filteredData.reduce((acc, curr) => {
-                      if (!acc[curr.district]) acc[curr.district] = { name: curr.district, total: 0, vac: 0, ster: 0 };
+                      if (!acc[curr.district]) {
+                        acc[curr.district] = { 
+                          name: curr.district, 
+                          total: 0, 
+                          vac: 0, 
+                          ster: 0,
+                          units: new Set()
+                        };
+                      }
                       acc[curr.district].vac += curr.stats.vaccine;
                       acc[curr.district].ster += curr.stats.sterilize;
                       acc[curr.district].total += (curr.stats.vaccine + curr.stats.sterilize);
+                      acc[curr.district].units.add(curr.unit); 
                       return acc;
                     }, {});
+
                     const ranked = Object.values(districtStats).sort((a, b) => b.total - a.total);
                     
                     return ranked.length > 0 ? ranked.map((d, index) => (
@@ -885,13 +1289,20 @@ export default function VeterinaryDashboard() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-700">{d.name}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500 leading-snug">
+                          {Array.from(d.units).map((u, i) => (
+                            <span key={i} className="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1 border border-slate-200">
+                              {u}
+                            </span>
+                          ))}
+                        </td>
                         <td className="px-4 py-3 text-right text-slate-500">{d.vac.toLocaleString()}</td>
                         <td className="px-4 py-3 text-right text-slate-500">{d.ster.toLocaleString()}</td>
                         <td className="px-4 py-3 text-right font-bold text-blue-600 group-hover:text-blue-700">{d.total.toLocaleString()}</td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan="5" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูลตามเงื่อนไข</td>
+                        <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูลตามเงื่อนไข</td>
                       </tr>
                     );
                   })()}
@@ -903,53 +1314,81 @@ export default function VeterinaryDashboard() {
               <span>ข้อมูล ณ เวลาปัจจุบัน</span>
             </div>
           </div>
-
         </div>
-        {/* --- ALL DATA TABLE WITH DELETE BUTTON --- */}
-<div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
-  <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-    <Database className="w-5 h-5 text-slate-600" />
-    รายการข้อมูลทั้งหมด
-  </h2>
-  <div className="overflow-x-auto">
-    <table className="min-w-full text-sm text-left">
-      <thead className="bg-slate-50 text-slate-500 font-semibold border-b">
-        <tr>
-          <th className="px-4 py-3">วันที่</th>
-          <th className="px-4 py-3">กิจกรรม/สถานที่</th>
-          <th className="px-4 py-3">เขต</th>
-          <th className="px-4 py-3 text-center">วัคซีน</th>
-          <th className="px-4 py-3 text-center">ทำหมัน</th>
-          <th className="px-4 py-3 text-center">จัดการ</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-100">
-        {filteredData.map((item) => (
-          <tr key={item._id} className="hover:bg-slate-50 transition-colors">
-            <td className="px-4 py-3 text-slate-600">{item.date}</td>
-            <td className="px-4 py-3">
-              <div className="font-bold text-slate-800">{item.activity}</div>
-              <div className="text-xs text-slate-400">{item.location}</div>
-            </td>
-            <td className="px-4 py-3 text-slate-600">{item.district}</td>
-            <td className="px-4 py-3 text-center font-semibold text-blue-600">{item.stats.vaccine}</td>
-            <td className="px-4 py-3 text-center font-semibold text-orange-600">{item.stats.sterilize}</td>
-            <td className="px-4 py-3 text-center">
-              {/* ปุ่มลบที่ถามถึง ใส่ตรงนี้ครับ */}
+
+        {/* --- ALL DATA TABLE WITH EDIT & DELETE BUTTONS --- */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Database className="w-5 h-5 text-slate-600" />
+              รายการข้อมูลทั้งหมด
+            </h2>
+
+            {filteredData.length > 0 && (
               <button 
-                onClick={() => handleDeleteData(item._id)} 
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
-                title="ลบข้อมูล"
+                onClick={handleClearAllData}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs font-bold rounded-lg border border-red-200 transition-colors"
               >
-                <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <Trash2 className="w-4 h-4" />
+                ล้างข้อมูลทั้งหมด
               </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+            )}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-semibold border-b">
+                <tr>
+                  <th className="px-4 py-3">วันที่</th>
+                  <th className="px-4 py-3">สถานที่</th>
+                  <th className="px-4 py-3">เขต</th>
+                  <th className="px-4 py-3 text-center">วัคซีน</th>
+                  <th className="px-4 py-3 text-center">ทำหมัน</th>
+                  <th className="px-4 py-3 text-center w-28">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredData.length > 0 ? (
+                  filteredData.map((item) => (
+                    <tr key={item._id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 text-slate-600">{item.date}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-slate-800">{item.location}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{item.district}</td>
+                      <td className="px-4 py-3 text-center font-semibold text-blue-600">{item.stats.vaccine}</td>
+                      <td className="px-4 py-3 text-center font-semibold text-orange-600">{item.stats.sterilize}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => openEditModal(item)} 
+                            className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors group"
+                            title="แก้ไขข้อมูล"
+                          >
+                            <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteData(item._id)} 
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
+                            title="ลบข้อมูล"
+                          >
+                            <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic bg-slate-50/50">
+                      ไม่พบข้อมูลรายการ
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
     </div>
   );

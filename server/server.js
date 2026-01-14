@@ -69,5 +69,38 @@ app.delete('/api/reports/:id', async (req, res) => {
   }
 });
 
+// API สำหรับแก้ไขข้อมูล (PUT) <-- เพิ่มส่วนนี้เข้าไป
+app.put('/api/reports/:id', async (req, res) => {
+  try {
+    const updatedReport = await Report.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      { new: true } // option นี้เพื่อให้ MongoDB ส่งข้อมูลก้อนใหม่ที่แก้แล้วกลับมา
+    );
+
+    if (!updatedReport) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการแก้ไข" });
+    }
+    
+    res.json(updatedReport);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.delete('/api/reports', async (req, res) => {
+  try {
+    // ลบทุก document ใน collection
+    const result = await Report.deleteMany({});
+    
+    res.json({ 
+      message: "ลบข้อมูลทั้งหมดเรียบร้อยแล้ว", 
+      deletedCount: result.deletedCount 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
