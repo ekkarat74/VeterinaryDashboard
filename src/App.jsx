@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area
+  Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, Area, ComposedChart, Brush
 } from 'recharts';
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -18,59 +18,18 @@ const UNIT_TYPES = ['หน่วยวัคซีน + ไมโครชิ�
 // Updated District List as requested (50 Districts)
 const BANGKOK_DISTRICTS = [
   // ฝั่งธนบุรี (15 เขต)
-  "ธนบุรี", "บางกอกใหญ่", "คลองสาน", "ตลิ่งชัน", "บางกอกน้อย", 
-  "บางขุนเทียน", "ภาษีเจริญ", "หนองแขม", "ราษฎร์บูรณะ", "บางพลัด", 
-  "จอมทอง", "บางแค", "ทวีวัฒนา", "ทุ่งครุ", "บางบอน",
+  "เขตธนบุรี", "เขตบางกอกใหญ่", "เขตคลองสาน", "เขตตลิ่งชัน", "เขตบางกอกน้อย", 
+  "เขตบางขุนเทียน", "เขตภาษีเจริญ", "เขตหนองแขม", "เขตราษฎร์บูรณะ", "เขตบางพลัด", 
+  "เขตจอมทอง", "เขตบางแค", "เขตทวีวัฒนา", "เขตทุ่งครุ", "เขตบางบอน",
   // ฝั่งพระนคร (35 เขต)
-  "พระนคร", "ดุสิต", "หนองจอก", "บางรัก", "บางเขน", 
-  "บางกะปิ", "ปทุมวัน", "ป้อมปราบศัตรูพ่าย", "พระโขนง", "มีนบุรี", 
-  "ลาดกระบัง", "ยานนาวา", "สัมพันธวงศ์", "พญาไท", "ห้วยขวาง", 
-  "ดินแดง", "บึงกุ่ม", "สาทร", "บางซื่อ", "จตุจักร", 
-  "บางคอแหลม", "ประเวศ", "คลองเตย", "สวนหลวง", "ดอนเมือง", 
-  "ราชเทวี", "ลาดพร้าว", "วัฒนา", "หลักสี่", "สายไหม", 
-  "คันนายาว", "สะพานสูง", "วังทองหลาง", "คลองสามวา", "บางนา"
+  "เขตพระนคร", "เขตดุสิต", "เขตหนองจอก", "เขตบางรัก", "เขตบางเขน", 
+  "เขตบางกะปิ", "เขตปทุมวัน", "เขตป้อมปราบศัตรูพ่าย", "เขตพระโขนง", "เขตมีนบุรี", 
+  "เขตลาดกระบัง", "เขตยานนาวา", "เขตสัมพันธวงศ์", "เขตพญาไท", "เขตห้วยขวาง", 
+  "เขตดินแดง", "เขตบึงกุ่ม", "เขตสาทร", "เขตบางซื่อ", "เขตจตุจักร", 
+  "เขตบางคอแหลม", "เขตประเวศ", "เขตคลองเตย", "เขตสวนหลวง", "เขตดอนเมือง", 
+  "เขตราชเทวี", "เขตลาดพร้าว", "เขตวัฒนา", "เขตหลักสี่", "เขตสายไหม", 
+  "เขตคันนายาว", "เขตสะพานสูง", "เขตวังทองหลาง", "เขตคลองสามวา", "เขตบางนา"
 ];
-
-// --- INITIAL MOCK DATA GENERATOR ---
-const generateInitialData = () => {
-  const baseData = [
-    // ลบ property activity ออกจากข้อมูลตัวอย่าง
-    { id: 1, date: '2023-10-15', location: 'วัดไผ่ตัน', lat: 13.789, long: 100.54, district: 'พญาไท', subdistrict: 'สามเสนใน', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 120, sterilize: 15, register: 30, microchip: 25 } },
-    { id: 2, date: '2023-10-20', location: 'โรงเรียนวัดธาตุทอง', lat: 13.719, long: 100.58, district: 'วัฒนา', subdistrict: 'พระโขนงเหนือ', unit: 'หน่วยกรงแมว', stats: { vaccine: 45, sterilize: 40, register: 10, microchip: 10 } },
-    { id: 3, date: '2023-11-05', location: 'สวนจตุจักร', lat: 13.80, long: 100.55, district: 'จตุจักร', subdistrict: 'จอมพล', unit: 'หน่วยผู้ว่า', stats: { vaccine: 300, sterilize: 50, register: 100, microchip: 120 } },
-    { id: 4, date: '2023-11-12', location: 'ชุมชนล็อก 1-2-3', lat: 13.70, long: 100.56, district: 'คลองเตย', subdistrict: 'คลองเตย', unit: 'หน่วยวัคซีน + ไมโครชิป', stats: { vaccine: 500, sterilize: 0, register: 200, microchip: 150 } },
-    { id: 5, date: '2023-12-01', location: 'ศาลาว่าการ กทม. 2', lat: 13.76, long: 100.55, district: 'ดินแดง', subdistrict: 'ดินแดง', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 150, sterilize: 25, register: 40, microchip: 30 } },
-    { id: 6, date: '2023-12-15', location: 'วัดหัวลำโพง', lat: 13.73, long: 100.52, district: 'บางรัก', subdistrict: 'สี่พระยา', unit: 'หน่วยกรงแมว', stats: { vaccine: 60, sterilize: 35, register: 15, microchip: 20 } },
-    { id: 7, date: '2024-01-10', location: 'ตลาดบางกะปิ', lat: 13.76, long: 100.64, district: 'บางกะปิ', subdistrict: 'คลองจั่น', unit: 'หน่วยผู้ว่า', stats: { vaccine: 250, sterilize: 45, register: 80, microchip: 90 } },
-    { id: 8, date: '2024-01-25', location: 'หมู่บ้านเสรี', lat: 13.74, long: 100.61, district: 'สวนหลวง', subdistrict: 'สวนหลวง', unit: 'หน่วยวัคซีน + ไมโครชิป', stats: { vaccine: 400, sterilize: 0, register: 150, microchip: 130 } },
-    { id: 9, date: '2024-02-05', location: 'วัดลาดพร้าว', lat: 13.80, long: 100.59, district: 'ลาดพร้าว', subdistrict: 'ลาดพร้าว', unit: 'หน่วยสัตวแพทย์', stats: { vaccine: 180, sterilize: 30, register: 50, microchip: 45 } },
-    { id: 10, date: '2024-02-20', location: 'ตลาดห้วยขวาง', lat: 13.77, long: 100.57, district: 'ห้วยขวาง', subdistrict: 'ห้วยขวาง', unit: 'หน่วยกรงแมว', stats: { vaccine: 80, sterilize: 55, register: 20, microchip: 25 } },
-  ];
-
-  const extraData = [];
-  for (let i = 0; i < 15; i++) {
-    const district = BANGKOK_DISTRICTS[Math.floor(Math.random() * BANGKOK_DISTRICTS.length)];
-    const unit = UNIT_TYPES[Math.floor(Math.random() * UNIT_TYPES.length)];
-    extraData.push({
-      id: 11 + i,
-      date: `2024-03-${Math.floor(Math.random() * 28) + 1}`,
-      // ลบ activity ออก
-      location: `ชุมชนเขต${district}`,
-      lat: 13.65 + Math.random() * 0.3,
-      long: 100.40 + Math.random() * 0.4,
-      district: district,
-      subdistrict: 'แขวงตัวอย่าง',
-      unit: unit,
-      stats: {
-        vaccine: Math.floor(Math.random() * 200) + 50,
-        sterilize: unit === 'หน่วยวัคซีน + ไมโครชิป' ? 0 : Math.floor(Math.random() * 50),
-        register: Math.floor(Math.random() * 50),
-        microchip: Math.floor(Math.random() * 60)
-      }
-    });
-  }
-  return [...baseData, ...extraData];
-};
 
 // --- COMPONENTS ---
 
@@ -281,6 +240,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
                   <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
                </h4>
                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* แถว 1: วันที่, หน่วย, สถานที่ (3+3+6 = 12 เต็มแถว) */}
                   <div className="md:col-span-3">
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
                     <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
@@ -289,15 +249,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
                   <div className="md:col-span-3">
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
                     <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                       value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
-                       {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
+                        value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
+                        {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                     </select>
                   </div>
                   <div className="md:col-span-6">
-                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
                     <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                       value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
                   </div>
+
+                  {/* แถว 2: เขต, แขวง, พิกัด (3+3+6 = 12 เต็มแถวพอดี) */}
                   <div className="md:col-span-3">
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
                     <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -306,12 +268,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
                     </select>
                   </div>
                   <div className="md:col-span-3">
-                     <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
                     <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                       value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
                   </div>
-                  {/* Coords */}
-                  <div className="md:col-span-12">
+                  
+                  {/* แก้ไข: เปลี่ยนจาก md:col-span-12 เป็น md:col-span-6 เพื่อให้อยู่ต่อจากแขวง */}
+                  <div className="md:col-span-6">
                     <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
                       <Navigation className="w-3 h-3 text-blue-500" /> 
                       พิกัดภูมิศาสตร์ (Latitude, Longitude)
@@ -642,8 +605,8 @@ export default function VeterinaryDashboard() {
     fetchData();
   }, []);
 
-  // 3. แก้ไขฟังก์ชันบันทึกข้อมูล (POST ไปที่ MongoDB)
-  const handleAddNewData = async (newRecord) => {
+  // แก้ไข: เพิ่ม parameter showSuccessAlert = true
+  const handleAddNewData = async (newRecord, showSuccessAlert = true) => {
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -659,26 +622,30 @@ export default function VeterinaryDashboard() {
           subdistrict: newRecord.subdistrict,
           unit: newRecord.unit,
           stats: {
-            vaccine: newRecord.vaccine,
-            sterilize: newRecord.sterilize,
-            register: newRecord.register,
-            microchip: newRecord.microchip
+            vaccine: newRecord.stats ? newRecord.stats.vaccine : newRecord.vaccine,
+            sterilize: newRecord.stats ? newRecord.stats.sterilize : newRecord.sterilize,
+            register: newRecord.stats ? newRecord.stats.register : newRecord.register,
+            microchip: newRecord.stats ? newRecord.stats.microchip : newRecord.microchip
           },
-          details: newRecord.details // ข้อมูลเชิงลึกแยกประเภทสุนัข/แมว
+          details: newRecord.details
         }),
       });
 
       if (response.ok) {
         const savedRecord = await response.json();
-        // อัปเดต State หน้าจอทันทีด้วยข้อมูลที่ได้จาก DB
         setReportData(prev => [savedRecord, ...prev]);
-        alert("✅ บันทึกข้อมูลลงฐานข้อมูลสำเร็จ!");
+        
+        // แก้ไข: เช็คเงื่อนไขก่อนแสดง Alert
+        if (showSuccessAlert) {
+          alert("✅ บันทึกข้อมูลลงฐานข้อมูลสำเร็จ!");
+        }
       } else {
-        alert("❌ ไม่สามารถบันทึกข้อมูลได้");
+        // อาจจะปิด Alert ตอน Error ด้วยถ้าต้องการ หรือปล่อยไว้เพื่อดู Error
+        if (showSuccessAlert) alert("❌ ไม่สามารถบันทึกข้อมูลได้");
       }
     } catch (error) {
       console.error("Save Error:", error);
-      alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+      if (showSuccessAlert) alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
     }
   };
 
@@ -771,7 +738,36 @@ export default function VeterinaryDashboard() {
     }
   };
 
-  // --- IMPORT CSV FUNCTION ---
+  // --- ฟังก์ชัน Helper สำหรับแยกข้อมูล CSV (รองรับกรณีมี "..." ครอบข้อความ) ---
+  const parseCSVLine = (text) => {
+    const result = [];
+    let start = 0;
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '"') {
+        inQuotes = !inQuotes; // สลับสถานะเมื่อเจอเครื่องหมายคำพูด
+      } else if (text[i] === ',' && !inQuotes) {
+        // ถ้าเจอ comma และไม่ได้อยู่ใน quote ให้ตัดคำ
+        let field = text.substring(start, i).trim();
+        // ลบเครื่องหมาย " ที่หัวและท้ายออก (ถ้ามี)
+        if (field.startsWith('"') && field.endsWith('"')) {
+            field = field.substring(1, field.length - 1).replace(/""/g, '"');
+        }
+        result.push(field);
+        start = i + 1;
+      }
+    }
+    // เก็บตกคำสุดท้าย
+    let lastField = text.substring(start).trim();
+    if (lastField.startsWith('"') && lastField.endsWith('"')) {
+        lastField = lastField.substring(1, lastField.length - 1).replace(/""/g, '"');
+    }
+    result.push(lastField);
+    return result;
+  };
+  
+// --- ฟังก์ชัน Import CSV แบบ Real-time ---
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -779,81 +775,199 @@ export default function VeterinaryDashboard() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target.result;
-      const lines = text.split('\n');
+      const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
       
       let successCount = 0;
       let failCount = 0;
 
-      if (lines.length < 2) {
-        alert("ไฟล์ CSV ว่างเปล่าหรือรูปแบบไม่ถูกต้อง");
-        return;
-      }
-
-      const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าหรือไม่?`);
-      if (!confirmImport) {
-        event.target.value = null;
-        return; 
-      }
+      // แจ้งเตือนผู้ใช้ว่ากำลังเริ่มทำงาน
+      // (ถ้ามี Loading State สามารถเปิดตรงนี้ได้)
 
       for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+        const row = parseCSVLine(lines[i]);
+        
+        if (row.length >= 7) {
+             const parseVal = (v) => parseInt(v) || 0;
+             const parseFloatVal = (v) => parseFloat(v) || 0;
 
-        const row = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.trim().replace(/^"|"$/g, ''));
+             const newRecord = {
+                 date: row[0],
+                 location: row[1],
+                 district: row[2],
+                 subdistrict: row[3],
+                 unit: row[4],
+                 lat: parseFloatVal(row[5]),
+                 long: parseFloatVal(row[6]),
+                 details: {
+                     dog: {
+                         maleSterilize: parseVal(row[7]),
+                         femaleSterilize: parseVal(row[8]),
+                         vaccine: parseVal(row[9]),
+                         register: parseVal(row[10]),
+                         microchip: parseVal(row[11]),
+                         owned: parseVal(row[12]),
+                         community: parseVal(row[13])
+                     },
+                     cat: {
+                         maleSterilize: parseVal(row[14]),
+                         femaleSterilize: parseVal(row[15]),
+                         vaccine: parseVal(row[16]),
+                         register: parseVal(row[17]),
+                         microchip: parseVal(row[18]),
+                         owned: parseVal(row[19]),
+                         community: parseVal(row[20])
+                     },
+                     other: {
+                         vaccine: parseVal(row[21])
+                     }
+                 },
+                 stats: {
+                    vaccine: parseVal(row[9]) + parseVal(row[16]) + parseVal(row[21]),
+                    sterilize: parseVal(row[7]) + parseVal(row[8]) + parseVal(row[14]) + parseVal(row[15]),
+                    register: parseVal(row[10]) + parseVal(row[17]),
+                    microchip: parseVal(row[11]) + parseVal(row[18])
+                 }
+             };
 
-        if (row.length >= 9) {
-          const newRecord = {
-            date: row[0],
-            location: row[1],
-            district: row[2] || 'พระนคร',
-            subdistrict: row[3] || '',
-            unit: row[4] || 'หน่วยสัตวแพทย์',
-            lat: 13.75 + (Math.random() * 0.2 - 0.1), 
-            long: 100.50 + (Math.random() * 0.2 - 0.1),
-            vaccine: parseInt(row[5]) || 0,
-            sterilize: parseInt(row[6]) || 0,
-            register: parseInt(row[7]) || 0,
-            microchip: parseInt(row[8]) || 0,
-            details: {
-                dog: { maleSterilize: 0, femaleSterilize: 0, vaccine: 0, register: 0, microchip: 0, owned: 0, community: 0 },
-                cat: { maleSterilize: 0, femaleSterilize: 0, vaccine: 0, register: 0, microchip: 0, owned: 0, community: 0 },
-                other: { vaccine: 0 }
-            }
-          };
+             try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRecord),
+                });
 
-          await handleAddNewData(newRecord); 
-          successCount++;
+                if (response.ok) {
+                    const savedRecord = await response.json();
+                    
+                    // --- จุดที่แก้ไข: อัปเดตหน้าจอทันทีทีละรายการ (Real-time) ---
+                    setReportData(prev => [savedRecord, ...prev]);
+                    // ----------------------------------------------------
+                    
+                    successCount++;
+                } else {
+                    console.error(`Failed to import line ${i+1}`);
+                    failCount++;
+                }
+             } catch (err) {
+                 console.error(`Error importing line ${i+1}:`, err);
+                 failCount++;
+             }
+             
+             // Optional: หน่วงเวลาเล็กน้อยเพื่อให้เห็น Animation ชัดขึ้น (ถ้าต้องการ)
+             // await new Promise(r => setTimeout(r, 50)); 
+             
         } else {
-          failCount++;
+            failCount++;
         }
       }
 
-      alert(`นำเข้าข้อมูลเสร็จสิ้น!\nสำเร็จ: ${successCount} รายการ\nล้มเหลว/ข้าม: ${failCount} รายการ`);
+      // แจ้งเตือนเมื่อเสร็จสิ้นทั้งหมด
+      alert(`นำเข้าข้อมูลเสร็จสิ้น!\n✅ สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว/ข้าม: ${failCount} รายการ`);
       event.target.value = null;
     };
     reader.readAsText(file);
   };
 
-  const exportToCSV = () => {
-    const headers = ["Date", "Location", "District", "Subdistrict", "Unit", "Vaccine", "Sterilize", "Register", "Microchip"];
-    const csvRows = filteredData.map(item => [
-      item.date,
-      `"${item.location.replace(/"/g, '""')}"`,
-      item.district,
-      item.subdistrict,
-      item.unit,
-      item.stats.vaccine,
-      item.stats.sterilize,
-      item.stats.register,
-      item.stats.microchip
-    ].join(","));
+const exportToCSV = () => {
+    // 1. กำหนดหัวตารางให้ครบทุก Field ตามหน้าบันทึกข้อมูลและไฟล์ Excel ตัวอย่าง
+    const headers = [
+      // --- ข้อมูลทั่วไป ---
+      "วันที่", 
+      "สถานที่", 
+      "เขต", 
+      "แขวง", 
+      "หน่วยงาน", 
+      "ละติจูด", 
+      "ลองจิจูด",
+      
+      // --- สุนัข (Dog) ---
+      "สุนัข-ทำหมัน(ผู้)", 
+      "สุนัข-ทำหมัน(เมีย)", 
+      "สุนัข-วัคซีน", 
+      "สุนัข-ขึ้นทะเบียน", 
+      "สุนัข-ฝังไมโครชิป", 
+      "สุนัข-มีเจ้าของ", 
+      "สุนัข-จรจัด",
 
+      // --- แมว (Cat) ---
+      "แมว-ทำหมัน(ผู้)", 
+      "แมว-ทำหมัน(เมีย)", 
+      "แมว-วัคซีน", 
+      "แมว-ขึ้นทะเบียน", 
+      "แมว-ฝังไมโครชิป", 
+      "แมว-มีเจ้าของ", 
+      "แมว-จรจัด",
+
+      // --- อื่นๆ (Other) ---
+      "สัตว์อื่นๆ-วัคซีน",
+
+      // --- ยอดรวม (Totals) - เพื่อความสะดวกในการดูภาพรวม
+      "รวม-วัคซีน", 
+      "รวม-ทำหมัน", 
+      "รวม-ขึ้นทะเบียน", 
+      "รวม-ฝังไมโครชิป"
+    ];
+    
+    const csvRows = filteredData.map(item => {
+      // ดึงข้อมูล details ออกมา ถ้าไม่มีให้เป็น object ว่าง เพื่อป้องกัน error
+      const d = item.details || {};
+      const dog = d.dog || {};
+      const cat = d.cat || {};
+      const other = d.other || {};
+
+      // Helper function เพื่อจัดการค่า null/undefined ให้เป็น 0
+      const val = (v) => v ? parseInt(v) : 0;
+
+      // จัดรูปแบบวันที่ให้เป็น Text ชัดเจน ป้องกัน Excel แปลงผิด (เช่น ใส่ ' นำหน้า หรือใช้ YYYY-MM-DD ตรงๆ)
+      // การใช้ `\t${item.date}` หรือ `'${item.date}` บางทีช่วยบังคับเป็น Text ได้ แต่มาตรฐานสุดคือ YYYY-MM-DD
+      const dateStr = item.date; 
+
+      return [
+        // 1. General Info
+        dateStr,
+        `"${item.location.replace(/"/g, '""')}"`, // ใส่เครื่องหมายคำพูดป้องกันกรณีชื่อสถานที่ "
+        item.district,
+        item.subdistrict,
+        item.unit,
+        item.lat,
+        item.long,
+
+        // 2. Dog Data
+        val(dog.maleSterilize),
+        val(dog.femaleSterilize),
+        val(dog.vaccine),
+        val(dog.register),
+        val(dog.microchip),
+        val(dog.owned),
+        val(dog.community),
+
+        // 3. Cat Data
+        val(cat.maleSterilize),
+        val(cat.femaleSterilize),
+        val(cat.vaccine),
+        val(cat.register),
+        val(cat.microchip),
+        val(cat.owned),
+        val(cat.community),
+
+        // 4. Other Data
+        val(other.vaccine),
+
+        // 5. Grand Totals (จาก stats ที่คำนวณไว้แล้วใน object หลัก)
+        item.stats.vaccine,
+        item.stats.sterilize,
+        item.stats.register,
+        item.stats.microchip
+      ].join(",");
+    });
+
+    // เพิ่ม BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้ถูกต้อง
     const csvContent = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `report_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `รายงานผลการปฏิบัติงาน_ละเอียด_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -922,21 +1036,146 @@ export default function VeterinaryDashboard() {
     return Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredData]);
 
-  // 4. Prepare Chart Data (Unit Comparison)
+// 4. Prepare Chart Data & Table Data (Unit Comparison)
+  // แก้ไข: ปรับให้ unitStats return ค่าที่ครบถ้วน (มี total และ count) เพื่อใช้ในกราฟและตาราง
   const unitStats = useMemo(() => {
     const grouped = filteredData.reduce((acc, curr) => {
-      if (!acc[curr.unit]) acc[curr.unit] = { name: curr.unit, count: 0, vaccine: 0, sterilize: 0 };
+      if (!acc[curr.unit]) {
+        acc[curr.unit] = { 
+          name: curr.unit, 
+          count: 0, 
+          vaccine: 0, 
+          sterilize: 0, 
+          total: 0 // เพิ่ม field นี้
+        };
+      }
       acc[curr.unit].count += 1;
       acc[curr.unit].vaccine += curr.stats.vaccine;
       acc[curr.unit].sterilize += curr.stats.sterilize;
+      acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize);
       return acc;
     }, {});
-    return Object.values(grouped).sort((a, b) => b.vaccine - a.vaccine);
+    
+    // Return เป็น Array เรียงตามผลงานรวม (ใช้ map ในตารางได้เลย)
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
   }, [filteredData]);
+
+  // 6. [เพิ่มใหม่] Prepare District Ranking Data
+  // ย้าย Logic การคำนวณอันดับเขตมาไว้ตรงนี้ เพื่อไม่ให้คำนวณซ้ำใน JSX
+  const districtStats = useMemo(() => {
+    const grouped = filteredData.reduce((acc, curr) => {
+      if (!acc[curr.district]) {
+        acc[curr.district] = { 
+          name: curr.district, 
+          vac: 0, 
+          ster: 0, 
+          total: 0, 
+          units: new Set() // ใช้ Set เก็บชื่อหน่วยงานไม่ให้ซ้ำ
+        };
+      }
+      acc[curr.district].vac += curr.stats.vaccine;
+      acc[curr.district].ster += curr.stats.sterilize;
+      acc[curr.district].total += (curr.stats.vaccine + curr.stats.sterilize);
+      acc[curr.district].units.add(curr.unit); 
+      return acc;
+    }, {});
+
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
+  }, [filteredData]);
+
+  // 5. [เพิ่มใหม่] คำนวณสถิติเชิงลึกจาก details (แยกประเภทสัตว์, เพศ, สถานะ)
+  const detailedStats = useMemo(() => {
+    const stats = filteredData.reduce((acc, curr) => {
+      const d = curr.details || { dog: {}, cat: {}, other: {} };
+      const parse = (val) => parseInt(val) || 0;
+
+      // รวมยอดตามชนิดสัตว์ (นับรวมทุกกิจกรรม)
+      const dogTotal = parse(d.dog?.vaccine) + parse(d.dog?.maleSterilize) + parse(d.dog?.femaleSterilize) + parse(d.dog?.microchip);
+      const catTotal = parse(d.cat?.vaccine) + parse(d.cat?.maleSterilize) + parse(d.cat?.femaleSterilize) + parse(d.cat?.microchip);
+      const otherTotal = parse(d.other?.vaccine);
+
+      acc.species.dog += dogTotal;
+      acc.species.cat += catTotal;
+      acc.species.other += otherTotal;
+
+      // แยกเพศทำหมัน
+      acc.sex.male += parse(d.dog?.maleSterilize) + parse(d.cat?.maleSterilize);
+      acc.sex.female += parse(d.dog?.femaleSterilize) + parse(d.cat?.femaleSterilize);
+
+      // แยกสถานะ (มีเจ้าของ/จรจัด)
+      acc.status.owned += parse(d.dog?.owned) + parse(d.cat?.owned);
+      acc.status.community += parse(d.dog?.community) + parse(d.cat?.community);
+
+      return acc;
+    }, {
+      species: { dog: 0, cat: 0, other: 0 },
+      sex: { male: 0, female: 0 },
+      status: { owned: 0, community: 0 }
+    });
+
+    return {
+      speciesData: [
+        { name: 'สุนัข', value: stats.species.dog, color: '#3b82f6' }, // Blue
+        { name: 'แมว', value: stats.species.cat, color: '#f97316' },  // Orange
+        { name: 'อื่นๆ', value: stats.species.other, color: '#64748b' } // Slate
+      ].filter(i => i.value > 0),
+      sexData: [
+        { name: 'ตัวผู้', value: stats.sex.male, color: '#0ea5e9' },
+        { name: 'ตัวเมีย', value: stats.sex.female, color: '#ec4899' },
+      ],
+      statusData: [
+        { name: 'มีเจ้าของ', value: stats.status.owned, color: '#22c55e' },
+        { name: 'ชุมชน/จรจัด', value: stats.status.community, color: '#eab308' },
+      ]
+    };
+  }, [filteredData]);
+
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    // แสดงเฉพาะชิ้นที่มีค่ามากกว่า 0%
+    if (percent === 0) return null;
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor="middle" 
+        dominantBaseline="central"
+        fontWeight="bold"
+        fontSize={12}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-12 selection:bg-blue-100">
       
+      {/* ✅ เพิ่มส่วนนี้เข้าไปเพื่อให้ Scrollbar สวยงาม */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
+
       {/* Modal บันทึก/แก้ไขข้อมูล */}
       <AddDataModal 
         isOpen={isModalOpen} 
@@ -1135,6 +1374,104 @@ export default function VeterinaryDashboard() {
           />
         </div>
 
+        {/* --- [เพิ่มใหม่] SUMMARY DASHBOARD SECTION --- */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <div className="bg-blue-100 p-1.5 rounded-md">
+                   <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                สรุปผลการดำเนินงานรายเดือน (Monthly Performance)
+              </h2>
+            </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+              
+              {/* 1. สัดส่วนสัตว์ (Species) */}
+              <div className="flex flex-col items-center justify-center p-2">
+                 <h3 className="text-sm font-semibold text-slate-500 mb-4">สัดส่วนสัตว์ที่ให้บริการ (Species)</h3>
+                 <div className="h-48 w-full relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                          <Pie
+                             data={detailedStats.speciesData}
+                             cx="50%" cy="50%"
+                             innerRadius={60}
+                             outerRadius={80}
+                             paddingAngle={2}
+                             dataKey="value"
+                             labelLine={false}
+                          >
+                             {detailedStats.speciesData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />
+                             ))}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{borderRadius: '8px'}} />
+                          <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                       </PieChart>
+                    </ResponsiveContainer>
+                    {/* ตัวเลขตรงกลาง Donut Chart */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                       <span className="text-2xl font-bold text-slate-700">
+                          {detailedStats.speciesData.reduce((a, b) => a + b.value, 0).toLocaleString()}
+                       </span>
+                       <span className="block text-[10px] text-slate-400">ตัว</span>
+                    </div>
+                 </div>
+              </div>
+
+              {/* 2. แยกเพศการทำหมัน (Sex) */}
+              <div className="flex flex-col items-center justify-center p-2 border-t md:border-t-0 md:border-l border-slate-100">
+                 <h3 className="text-sm font-semibold text-slate-500 mb-4">แยกเพศการทำหมัน (Sex)</h3>
+                 <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                          <Pie
+                             data={detailedStats.sexData}
+                             cx="50%" cy="50%"
+                             outerRadius={80}
+                             dataKey="value"
+                             labelLine={false}
+                             label={renderCustomizedLabel} // ใช้ Custom Label
+                          >
+                             {detailedStats.sexData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />
+                             ))}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{borderRadius: '8px'}} />
+                          <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                       </PieChart>
+                    </ResponsiveContainer>
+                 </div>
+              </div>
+
+              {/* 3. สถานะสัตว์ (Ownership Status) - จุดที่ฟอนต์ซ้อนกันหนักสุด */}
+              <div className="flex flex-col items-center justify-center p-2 border-t md:border-t-0 md:border-l border-slate-100">
+                 <h3 className="text-sm font-semibold text-slate-500 mb-4">สถานะสัตว์ (Ownership Status)</h3>
+                 <div className="h-48 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                          <Pie
+                             data={detailedStats.statusData}
+                             cx="50%" cy="50%"
+                             outerRadius={80}
+                             dataKey="value"
+                             labelLine={false}
+                             label={renderCustomizedLabel} // ใช้ Custom Label แก้ปัญหาฟอนต์ซ้อน
+                          >
+                             {detailedStats.statusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />
+                             ))}
+                          </Pie>
+                          <RechartsTooltip contentStyle={{borderRadius: '8px'}} />
+                          <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                       </PieChart>
+                    </ResponsiveContainer>
+                 </div>
+              </div>
+            </div>
+          </div>
+
         {/* --- MAIN CHARTS ROW --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -1150,41 +1487,37 @@ export default function VeterinaryDashboard() {
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData}>
+                
+                <ComposedChart data={trendData}>
                   <defs>
-                    <linearGradient id="colorVaccine" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorSterilize" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorRegister" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorMicrochip" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
                   <RechartsTooltip 
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                    itemStyle={{ padding: 0 }}
                   />
-                  <Legend iconType="circle" />
+                  <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
                   
-                  <Area type="monotone" dataKey="vaccine" name="💉 วัคซีน" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorVaccine)" activeDot={{r: 6, strokeWidth: 0}} />
-                  <Area type="monotone" dataKey="sterilize" name="✂️ ทำหมัน" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorSterilize)" activeDot={{r: 6, strokeWidth: 0}} />
-                  <Area type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorRegister)" activeDot={{r: 6, strokeWidth: 0}} />
-                  <Area type="monotone" dataKey="microchip" name="💾 ไมโครชิป" stroke="#a855f7" strokeWidth={3} fillOpacity={1} fill="url(#colorMicrochip)" activeDot={{r: 6, strokeWidth: 0}} />
-                
-                </AreaChart>
+                  <Area yAxisId="left" type="monotone" dataKey="total" name="ยอดรวมกิจกรรม" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} />
+                  <Bar yAxisId="left" dataKey="vaccine" name="💉 วัคซีน" barSize={10} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="sterilize" name="✂️ ทำหมัน" barSize={10} fill="#f97316" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="right" type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน (ขวา)" stroke="#10b981" strokeWidth={2} dot={{r: 4}} />
+
+                  {/* --- ส่วนที่เพิ่มใหม่: แถบซูมข้อมูล (Brush) --- */}
+                  <Brush 
+                    dataKey="name" 
+                    height={30} 
+                    stroke="#6366f1" 
+                    fill="#f1f5f9"
+                    travellerWidth={10}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -1209,6 +1542,55 @@ export default function VeterinaryDashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+
+        {/* --- EXECUTIVE SUMMARY: TOP UNITS --- */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8 mb-8">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <div className="bg-amber-100 p-1.5 rounded-md">
+              <Activity className="w-5 h-5 text-amber-600" />
+            </div>
+            อันดับหน่วยงานที่มีผลงานสูงสุด (Top Performing Units)
+          </h2>
+          
+          {/* แก้ไข: เพิ่ม max-h-[500px], overflow-auto และ custom-scrollbar เพื่อให้มีบาร์เลื่อนเมื่อข้อมูลยาว */}
+          <div className="overflow-auto max-h-[500px] custom-scrollbar border border-slate-100 rounded-lg relative">
+            <table className="min-w-full text-sm text-left">
+              {/* แก้ไข: เพิ่ม sticky top-0 และ z-10 เพื่อให้หัวตารางลอยอยู่ด้านบนเวลาเลื่อนดูข้อมูล */}
+              <thead className="bg-slate-50 text-slate-600 font-semibold border-b sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th className="px-4 py-3 whitespace-nowrap bg-slate-50">อันดับ</th>
+                  <th className="px-4 py-3 whitespace-nowrap bg-slate-50">หน่วยงาน</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">จำนวนครั้งที่ออกหน่วย</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">วัคซีนสะสม</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">ทำหมันสะสม</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap bg-slate-50">รวมผลงาน (ตัว)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {unitStats.length > 0 ? (
+                  unitStats.map((u, index) => (
+                    <tr key={u.name} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${index === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-700">{u.name}</td>
+                      <td className="px-4 py-3 text-right text-slate-500">{u.count.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-blue-600">{u.vaccine.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-orange-600">{u.sterilize.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-bold text-slate-800">{u.total.toLocaleString()}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูล</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -1241,7 +1623,7 @@ export default function VeterinaryDashboard() {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[28rem] flex flex-col hover:border-indigo-300 transition-colors">
             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
               <div className="bg-indigo-100 p-1.5 rounded-md">
-                 <CheckCircle className="w-5 h-5 text-indigo-600" />
+                <CheckCircle className="w-5 h-5 text-indigo-600" />
               </div>
               5 อันดับเขตผลงานสูงสุด
             </h2>
@@ -1251,34 +1633,16 @@ export default function VeterinaryDashboard() {
                   <tr>
                     <th className="px-4 py-3 first:rounded-tl-lg">อันดับ</th>
                     <th className="px-4 py-3">เขต</th>
-                    <th className="px-4 py-3 w-1/4">หน่วยงานที่ลงพื้นที่</th> 
+                    <th className="px-4 py-3 w-1/4">หน่วยงานที่ลงพื้นที่</th>
                     <th className="px-4 py-3 text-right">วัคซีน</th>
                     <th className="px-4 py-3 text-right">ทำหมัน</th>
                     <th className="px-4 py-3 text-right last:rounded-tr-lg">รวม (ตัว)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(() => {
-                    const districtStats = filteredData.reduce((acc, curr) => {
-                      if (!acc[curr.district]) {
-                        acc[curr.district] = { 
-                          name: curr.district, 
-                          total: 0, 
-                          vac: 0, 
-                          ster: 0,
-                          units: new Set()
-                        };
-                      }
-                      acc[curr.district].vac += curr.stats.vaccine;
-                      acc[curr.district].ster += curr.stats.sterilize;
-                      acc[curr.district].total += (curr.stats.vaccine + curr.stats.sterilize);
-                      acc[curr.district].units.add(curr.unit); 
-                      return acc;
-                    }, {});
-
-                    const ranked = Object.values(districtStats).sort((a, b) => b.total - a.total);
-                    
-                    return ranked.length > 0 ? ranked.map((d, index) => (
+                  {/* แก้ไข: ใช้ districtStats.map วนลูปได้เลย */}
+                  {districtStats.length > 0 ? (
+                    districtStats.map((d, index) => (
                       <tr key={d.name} className={`hover:bg-blue-50/50 transition-colors group ${index < 5 ? 'font-medium' : ''}`}>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs 
@@ -1300,12 +1664,12 @@ export default function VeterinaryDashboard() {
                         <td className="px-4 py-3 text-right text-slate-500">{d.ster.toLocaleString()}</td>
                         <td className="px-4 py-3 text-right font-bold text-blue-600 group-hover:text-blue-700">{d.total.toLocaleString()}</td>
                       </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูลตามเงื่อนไข</td>
-                      </tr>
-                    );
-                  })()}
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูลตามเงื่อนไข</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1314,9 +1678,9 @@ export default function VeterinaryDashboard() {
               <span>ข้อมูล ณ เวลาปัจจุบัน</span>
             </div>
           </div>
-        </div>
+        </div>  
 
-        {/* --- ALL DATA TABLE WITH EDIT & DELETE BUTTONS --- */}
+        {/* --- ALL DATA TABLE --- */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -1326,7 +1690,7 @@ export default function VeterinaryDashboard() {
 
             {filteredData.length > 0 && (
               <button 
-                onClick={handleClearAllData}
+                onClick={handleClearAllData} 
                 className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs font-bold rounded-lg border border-red-200 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
@@ -1334,53 +1698,107 @@ export default function VeterinaryDashboard() {
               </button>
             )}
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 font-semibold border-b">
+          
+          {/* แก้ไข: เพิ่ม max-h-[600px] และ custom-scrollbar เพื่อให้เลื่อนได้ */}
+          <div className="overflow-auto max-h-[600px] custom-scrollbar border border-slate-100 rounded-lg relative">
+            <table className="min-w-full text-sm text-left border-collapse">
+              {/* แก้ไข: เพิ่ม sticky top-0 z-10 เพื่อให้หัวตารางลอยอยู่ด้านบน */}
+              <thead className="bg-slate-50 text-slate-500 font-semibold border-b sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-4 py-3">วันที่</th>
-                  <th className="px-4 py-3">สถานที่</th>
-                  <th className="px-4 py-3">เขต</th>
-                  <th className="px-4 py-3 text-center">วัคซีน</th>
-                  <th className="px-4 py-3 text-center">ทำหมัน</th>
-                  <th className="px-4 py-3 text-center w-28">จัดการ</th>
+                  <th className="px-4 py-3 whitespace-nowrap bg-slate-50">วันที่</th>
+                  <th className="px-4 py-3 whitespace-nowrap bg-slate-50">สถานที่ / เขต</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap bg-slate-100/50">
+                    <span className="block text-[10px] text-slate-400">รวมทั้งหมด</span>
+                    วัคซีน
+                  </th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap bg-slate-100/50">
+                    <span className="block text-[10px] text-slate-400">รวมทั้งหมด</span>
+                    ทำหมัน
+                  </th>
+                  {/* เพิ่มคอลัมน์รายละเอียดแบบย่อ */}
+                  <th className="px-4 py-3 text-center bg-blue-50/90 text-white whitespace-nowrap border-l border-white">
+                     <span className="font-bold">🐕 สุนัข</span><br/>
+                     <span className="text-[9px] opacity-80 font-normal">(วัคซีน / ทำหมัน)</span>
+                  </th>
+                  <th className="px-4 py-3 text-center bg-orange-50/90 text-white whitespace-nowrap border-l border-white">
+                     <span className="font-bold">🐈 แมว</span><br/>
+                     <span className="text-[9px] opacity-80 font-normal">(วัคซีน / ทำหมัน)</span>
+                  </th>
+                  <th className="px-4 py-3 text-center w-28 whitespace-nowrap bg-slate-50">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredData.length > 0 ? (
-                  filteredData.map((item) => (
-                    <tr key={item._id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-slate-600">{item.date}</td>
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-slate-800">{item.location}</div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{item.district}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-blue-600">{item.stats.vaccine}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-orange-600">{item.stats.sterilize}</td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => openEditModal(item)} 
-                            className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors group"
-                            title="แก้ไขข้อมูล"
-                          >
-                            <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteData(item._id)} 
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
-                            title="ลบข้อมูล"
-                          >
-                            <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredData.map((item) => {
+                    // Helper เพื่อดึงค่ามาแสดงในตาราง
+                    const d = item.details || {};
+                    const val = (v) => v ? parseInt(v) : 0;
+
+                    const dogVac = val(d.dog?.vaccine);
+                    const dogSter = val(d.dog?.maleSterilize) + val(d.dog?.femaleSterilize);
+                    
+                    const catVac = val(d.cat?.vaccine);
+                    const catSter = val(d.cat?.maleSterilize) + val(d.cat?.femaleSterilize);
+
+                    return (
+                      <tr key={item._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 text-slate-600 align-top">{item.date}</td>
+                        <td className="px-4 py-3 align-top">
+                          <div className="font-bold text-slate-800">{item.location}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {item.subdistrict ? `${item.subdistrict}, ` : ''}{item.district}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                             <MapIcon className="w-3 h-3" /> {item.lat && item.long ? `${parseFloat(item.lat).toFixed(4)}, ${parseFloat(item.long).toFixed(4)}` : '-'}
+                          </div>
+                        </td>
+                        
+                        {/* ยอดรวม */}
+                        <td className="px-4 py-3 text-center align-top bg-slate-50/30">
+                           <span className="font-bold text-slate-700 text-base">{item.stats.vaccine}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center align-top bg-slate-50/30">
+                           <span className="font-bold text-slate-700 text-base">{item.stats.sterilize}</span>
+                        </td>
+
+                        {/* รายละเอียด สุนัข */}
+                        <td className="px-4 py-3 text-center bg-blue-50/10 align-top border-l border-slate-100">
+                           <div className="text-xs text-slate-600 font-medium">
+                              <span className="text-blue-600">{dogVac}</span> / <span className="text-orange-600">{dogSter}</span>
+                           </div>
+                        </td>
+
+                        {/* รายละเอียด แมว */}
+                        <td className="px-4 py-3 text-center bg-orange-50/10 align-top border-l border-slate-100">
+                           <div className="text-xs text-slate-600 font-medium">
+                              <span className="text-blue-600">{catVac}</span> / <span className="text-orange-600">{catSter}</span>
+                           </div>
+                        </td>
+
+                        <td className="px-4 py-3 text-center align-top">
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => openEditModal(item)} 
+                              className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors group"
+                              title="แก้ไขข้อมูล"
+                            >
+                              <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteData(item._id)} 
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
+                              title="ลบข้อมูล"
+                            >
+                              <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-4 py-8 text-center text-slate-400 italic bg-slate-50/50">
+                    <td colSpan="7" className="px-4 py-8 text-center text-slate-400 italic bg-slate-50/50">
                       ไม่พบข้อมูลรายการ
                     </td>
                   </tr>
