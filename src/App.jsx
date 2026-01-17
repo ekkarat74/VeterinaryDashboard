@@ -1,18 +1,19 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, Area, ComposedChart, Brush
+    Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
+    PieChart, Pie, Cell, Area, ComposedChart, Brush
 } from 'recharts';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { 
-  Activity, Syringe, Scissors, FileText, MapPin, 
-  Filter, Calendar, Database, Download, Users, 
-  Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
-  Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, Image as ImageIcon
+    Activity, Syringe, Scissors, FileText, MapPin, 
+    Filter, Calendar, Database, Download, Users, 
+    Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
+    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, 
+    Image as ImageIcon, Skull, AlertTriangle, Siren
 } from 'lucide-react';
 import L from 'leaflet';
 
@@ -21,807 +22,884 @@ const UNIT_TYPES = ['หน่วยวัคซีน + ไมโครชิ�
 
 // Updated District List as requested (50 Districts)
 const BANGKOK_DISTRICTS = [
-  // ฝั่งธนบุรี (15 เขต)
-  "เขตธนบุรี", "เขตบางกอกใหญ่", "เขตคลองสาน", "เขตตลิ่งชัน", "เขตบางกอกน้อย", 
-  "เขตบางขุนเทียน", "เขตภาษีเจริญ", "เขตหนองแขม", "เขตราษฎร์บูรณะ", "เขตบางพลัด", 
-  "เขตจอมทอง", "เขตบางแค", "เขตทวีวัฒนา", "เขตทุ่งครุ", "เขตบางบอน",
-  // ฝั่งพระนคร (35 เขต)
-  "เขตพระนคร", "เขตดุสิต", "เขตหนองจอก", "เขตบางรัก", "เขตบางเขน", 
-  "เขตบางกะปิ", "เขตปทุมวัน", "เขตป้อมปราบศัตรูพ่าย", "เขตพระโขนง", "เขตมีนบุรี", 
-  "เขตลาดกระบัง", "เขตยานนาวา", "เขตสัมพันธวงศ์", "เขตพญาไท", "เขตห้วยขวาง", 
-  "เขตดินแดง", "เขตบึงกุ่ม", "เขตสาทร", "เขตบางซื่อ", "เขตจตุจักร", 
-  "เขตบางคอแหลม", "เขตประเวศ", "เขตคลองเตย", "เขตสวนหลวง", "เขตดอนเมือง", 
-  "เขตราชเทวี", "เขตลาดพร้าว", "เขตวัฒนา", "เขตหลักสี่", "เขตสายไหม", 
-  "เขตคันนายาว", "เขตสะพานสูง", "เขตวังทองหลาง", "เขตคลองสามวา", "เขตบางนา"
+    // ฝั่งธนบุรี (15 เขต)
+    "เขตธนบุรี", "เขตบางกอกใหญ่", "เขตคลองสาน", "เขตตลิ่งชัน", "เขตบางกอกน้อย", 
+    "เขตบางขุนเทียน", "เขตภาษีเจริญ", "เขตหนองแขม", "เขตราษฎร์บูรณะ", "เขตบางพลัด", 
+    "เขตจอมทอง", "เขตบางแค", "เขตทวีวัฒนา", "เขตทุ่งครุ", "เขตบางบอน",
+    // ฝั่งพระนคร (35 เขต)
+    "เขตพระนคร", "เขตดุสิต", "เขตหนองจอก", "เขตบางรัก", "เขตบางเขน", 
+    "เขตบางกะปิ", "เขตปทุมวัน", "เขตป้อมปราบศัตรูพ่าย", "เขตพระโขนง", "เขตมีนบุรี", 
+    "เขตลาดกระบัง", "เขตยานนาวา", "เขตสัมพันธวงศ์", "เขตพญาไท", "เขตห้วยขวาง", 
+    "เขตดินแดง", "เขตบึงกุ่ม", "เขตสาทร", "เขตบางซื่อ", "เขตจตุจักร", 
+    "เขตบางคอแหลม", "เขตประเวศ", "เขตคลองเตย", "เขตสวนหลวง", "เขตดอนเมือง", 
+    "เขตราชเทวี", "เขตลาดพร้าว", "เขตวัฒนา", "เขตหลักสี่", "เขตสายไหม", 
+    "เขตคันนายาว", "เขตสะพานสูง", "เขตวังทองหลาง", "เขตคลองสามวา", "เขตบางนา"
 ];
 
 // --- COMPONENTS ---
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
-  <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-default">
-    <div>
-      <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-      <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{value.toLocaleString()}</h3>
-      <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
-        {subtext}
-      </p>
-    </div>
-    <div className={`p-4 rounded-2xl ${colorClass} bg-opacity-10 shadow-inner`}>
-      <Icon className={`w-7 h-7 ${colorClass.replace('bg-', 'text-')}`} />
-    </div>
-  </div>
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-default">
+        <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
+            <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{value.toLocaleString()}</h3>
+            <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                {subtext}
+            </p>
+        </div>
+        <div className={`p-4 rounded-2xl ${colorClass} bg-opacity-10 shadow-inner`}>
+            <Icon className={`w-7 h-7 ${colorClass.replace('bg-', 'text-')}`} />
+        </div>
+    </div>
 );
 
-// ฟังก์ชันเลือกสีจุด (คงเดิม)
-const getMarkerColor = (unit) => {
-  switch (unit) {
-    case 'หน่วยผู้ว่า': return '#a855f7'; // สีม่วง
-    case 'หน่วยสัตวแพทย์': return '#3b82f6'; // สีฟ้า
-    case 'หน่วยวัคซีน + ไมโครชิป': return '#22c55e'; // สีเขียว
-    case 'หน่วยกรงแมว': return '#f97316'; // สีส้ม
-    default: return '#64748b';
-  }
-};
+// ✅ เพิ่ม onDeleteOutbreak ลงในวงเล็บปีกกา
+const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
+  const centerPosition = [13.7563, 100.5018];
 
-// --- ส่วนที่แก้ไข: LeafletMap Component ---
-const LeafletMap = ({ data }) => {
-  const centerPosition = [13.7563, 100.5018];
+  const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
 
-  // State สำหรับเก็บว่าหน่วยงานไหนเปิดแสดงอยู่บ้าง (เริ่มต้นแสดงทั้งหมด)
-  const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
+  const toggleLayer = (unit) => {
+    setActiveLayers(prev => 
+      prev.includes(unit) 
+        ? prev.filter(u => u !== unit) 
+        : [...prev, unit]              
+    );
+  };
 
-  // ฟังก์ชัน Toggle การแสดงผล
-  const toggleLayer = (unit) => {
-    setActiveLayers(prev => 
-      prev.includes(unit) 
-        ? prev.filter(u => u !== unit) 
-        : [...prev, unit]              
-    );
-  };
+  // ใช้ useCallback เพื่อประสิทธิภาพ (ตามที่แนะนำก่อนหน้า)
+  const createDangerIcon = useCallback(() => {
+    return L.divIcon({
+      className: 'custom-danger-marker',
+      html: `
+        <div class="danger-marker-container">
+          <div class="danger-pulse"></div>
+          <div class="danger-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></svg>
+          </div>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20]
+    });
+  }, []);
 
-  // ฟังก์ชันเลือกสี
-  const getMarkerColor = (unit) => {
-    switch (unit) {
-      case 'หน่วยผู้ว่า': return '#a855f7'; 
-      case 'หน่วยสัตวแพทย์': return '#3b82f6'; 
-      case 'หน่วยวัคซีน + ไมโครชิป': return '#22c55e'; 
-      case 'หน่วยกรงแมว': return '#f97316'; 
-      default: return '#64748b';
-    }
-  };
+  const getMarkerColor = (unit) => {
+    switch (unit) {
+      case 'หน่วยผู้ว่า': return '#a855f7'; 
+      case 'หน่วยสัตวแพทย์': return '#3b82f6'; 
+      case 'หน่วยวัคซีน + ไมโครชิป': return '#22c55e'; 
+      case 'หน่วยกรงแมว': return '#f97316'; 
+      default: return '#64748b';
+    }
+  };
 
-  // กรองข้อมูลเฉพาะ Layer ที่เปิดอยู่
-  const displayData = useMemo(() => {
-    return data.filter(item => activeLayers.includes(item.unit));
-  }, [data, activeLayers]);
+  const displayData = useMemo(() => {
+    return data.filter(item => activeLayers.includes(item.unit));
+  }, [data, activeLayers]);
 
-  // ฟังก์ชันสร้าง Custom Icon (แบบนิ่ง ไม่มี Pulse)
-  const createNumberIcon = (total, color) => {
-    // กำหนดขนาด (32px สำหรับเลขเยอะ, 28px สำหรับเลขน้อย)
-    const size = total > 999 ? 32 : 28;
-    
-    return L.divIcon({
-      className: 'custom-marker-wrapper', 
-      html: `
-        <div class="marker-container" style="--marker-color: ${color}; width: ${size}px; height: ${size}px;">
-          <div class="marker-content">
-            ${total.toLocaleString()}
-          </div>
-        </div>
-      `,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      popupAnchor: [0, -(size / 2 + 5)]
-    });
-  };
+  const createNumberIcon = useCallback((total, color) => {
+    const size = total > 999 ? 32 : 28;
+    return L.divIcon({
+      className: 'custom-marker-wrapper', 
+      html: `
+        <div class="marker-container" style="--marker-color: ${color}; width: ${size}px; height: ${size}px;">
+          <div class="marker-content">
+            ${total.toLocaleString()}
+          </div>
+        </div>
+      `,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+      popupAnchor: [0, -(size / 2 + 5)]
+    });
+  }, []);
 
-  return (
-    <div className="w-full h-full flex flex-col relative z-0">
-      
-      {/* Filter Bar controls */}
-      <div className="absolute top-4 right-4 z-[500] flex flex-col gap-2 bg-white/90 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-slate-100 max-w-[200px]">
-        <div className="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
-            <Filter className="w-3 h-3" /> กรองบนแผนที่
-        </div>
-        {UNIT_TYPES.map((unit) => {
-            const color = getMarkerColor(unit);
-            const isActive = activeLayers.includes(unit);
-            return (
-                <button
-                    key={unit}
-                    onClick={() => toggleLayer(unit)}
-                    className={`text-[10px] py-1.5 px-3 rounded-lg font-bold transition-all flex items-center gap-2 border w-full text-left
-                        ${isActive 
-                            ? 'bg-white shadow-sm' 
-                            : 'bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100 grayscale'
-                        }
-                    `}
-                    style={isActive ? { borderColor: color, color: '#334155' } : {}}
-                >
-                    <span 
-                        className={`w-2.5 h-2.5 rounded-full shadow-sm transition-transform ${isActive ? 'scale-100' : 'scale-0'}`}
-                        style={{ backgroundColor: color }}
-                    ></span>
-                    <span className="truncate">{unit}</span>
-                </button>
-            )
-        })}
-      </div>
+  return (
+    <div className="w-full h-full flex flex-col relative z-0">
+      
+      {/* Filter Bar controls */}
+        <div className="absolute top-4 right-4 z-[500] flex flex-col gap-2 bg-white/90 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-slate-100 max-w-[200px]">
+            <div className="text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                <Filter className="w-3 h-3" /> กรองบนแผนที่
+            </div>
+            {UNIT_TYPES.map((unit) => {
+                const color = getMarkerColor(unit);
+                const isActive = activeLayers.includes(unit);
+                return (
+                    <button
+                        key={unit}
+                        onClick={() => toggleLayer(unit)}
+                        className={`text-[10px] py-1.5 px-3 rounded-lg font-bold transition-all flex items-center gap-2 border w-full text-left
+                            ${isActive 
+                                ? 'bg-white shadow-sm' 
+                                : 'bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100 grayscale'
+                            }
+                        `}
+                        style={isActive ? { borderColor: color, color: '#334155' } : {}}
+                    >
+                        <span 
+                            className={`w-2.5 h-2.5 rounded-full shadow-sm transition-transform ${isActive ? 'scale-100' : 'scale-0'}`}
+                            style={{ backgroundColor: color }}
+                        ></span>
+                        <span className="truncate">{unit}</span>
+                    </button>
+                )
+            })}
+        </div>
 
-      <style>{`
-        .custom-marker-wrapper { background: transparent; border: none; }
-        
-        .marker-container {
-          position: relative; display: flex; align-items: center; justify-content: center;
-          /* ยังคง Transition ไว้เพื่อให้เวลาเมาส์ชี้ (Hover) มันขยายแบบนุ่มนวล */
-          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-          cursor: pointer;
-        }
+        <style>{`
+            .custom-marker-wrapper { background: transparent; border: none; }
+        
+            .marker-container {
+            position: relative; display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            cursor: pointer;
+            }
 
-        /* Effect ตอนเอาเมาส์ชี้ยังคงไว้ (ขยายใหญ่ขึ้น) */
-        .marker-container:hover { transform: scale(1.2); z-index: 1000; }
+            .marker-container:hover { transform: scale(1.2); z-index: 1000; }
 
-        .marker-content {
-          width: 100%; height: 100%; border-radius: 50%;
-          background-color: var(--marker-color);
-          /* ไล่สีจางลง */
-          background: radial-gradient(circle, var(--marker-color) 30%, rgba(255,255,255,0.8) 150%);
-          border: none;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-          display: flex; align-items: center; justify-content: center;
-          color: white; 
-          font-weight: 800; 
-          font-size: 11px; 
-          font-family: 'Sarabun', sans-serif;
-          position: relative; z-index: 2;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
-      `}</style>
+            .marker-content {
+            width: 100%; height: 100%; border-radius: 50%;
+            background-color: var(--marker-color);
+            background: radial-gradient(circle, var(--marker-color) 30%, rgba(255,255,255,0.8) 150%);
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+            display: flex; align-items: center; justify-content: center;
+            color: white; 
+            font-weight: 800; 
+            font-size: 11px; 
+            font-family: 'Sarabun', sans-serif;
+            position: relative; z-index: 2;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            }
+            .danger-marker-container {
+            position: relative; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            }
+            .danger-content {
+            position: relative; z-index: 2;
+            width: 30px; height: 30px; background: #ef4444; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
+            }
+            .danger-pulse {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(239, 68, 68, 0.5); border-radius: 50%;
+            animation: pulse-red 1.5s infinite;
+            }
+            @keyframes pulse-red {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+            }
+        `}</style>
 
-      <div className="flex-1 w-full h-full rounded-xl overflow-hidden">
-        <MapContainer 
-            center={centerPosition} 
-            zoom={10} 
-            scrollWheelZoom={true} 
-            style={{ height: "100%", width: "100%", background: "#f8fafc", zIndex: 0 }}
-        >
-            <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+        <div className="flex-1 w-full h-full rounded-xl overflow-hidden">
+            <MapContainer 
+                center={centerPosition} 
+                zoom={10} 
+                scrollWheelZoom={true} 
+                style={{ height: "100%", width: "100%", background: "#f8fafc", zIndex: 0 }}
+            >
+            <TileLayer
+                attribution='&copy; OpenStreetMap contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-            {/* ครอบ Marker ด้วย MarkerClusterGroup เพื่อจับกลุ่ม */}
-            <MarkerClusterGroup chunkedLoading>
-                {displayData.map((item) => {
-                if (!item.lat || !item.long) return null;
+            <MarkerClusterGroup chunkedLoading>
+                {displayData.map((item) => {
+                if (!item.lat || !item.long) return null;
 
-                const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0 };
-                const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip;
-                const color = getMarkerColor(item.unit);
+                const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0 };
+                const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip;
+                const color = getMarkerColor(item.unit);
 
-                return (
-                    <Marker
-                    key={item._id || item.id}
-                    position={[parseFloat(item.lat), parseFloat(item.long)]}
-                    icon={createNumberIcon(totalActivity, color)}
-                    >
-                    <Tooltip direction="top" offset={[0, -20]} opacity={1}>
-                        <div className="text-center font-sans">
-                        <span className="font-bold text-slate-800">{item.location}</span>
-                        <div className="text-xs text-slate-500">รวม: {totalActivity.toLocaleString()} ตัว</div>
-                        </div>
-                    </Tooltip>
+                return (
+                    <Marker
+                        key={item._id || item.id}
+                        position={[parseFloat(item.lat), parseFloat(item.long)]}
+                        icon={createNumberIcon(totalActivity, color)}
+                    >
+                    <Tooltip direction="top" offset={[0, -20]} opacity={1}>
+                        <div className="text-center font-sans">
+                        <span className="font-bold text-slate-800">{item.location}</span>
+                        <div className="text-xs text-slate-500">รวม: {totalActivity.toLocaleString()} ตัว</div>
+                        </div>
+                    </Tooltip>
 
-                    <Popup>
-                        <div className="font-sans min-w-[200px] p-1">
-                        {/* --- [เพิ่มใหม่] แสดงรูปด้านบน Popup --- */}
-        {item.imageUrl && (
-            <div className="mb-3 w-full h-32 rounded-lg overflow-hidden border border-slate-100 relative">
-                <img src={item.imageUrl} alt="site" className="w-full h-full object-cover" />
-            </div>
-        )} 
-                        <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-2 text-sm">
-                            {item.unit}
-                        </h3>
-                        <p className="text-[10px] text-slate-500 mb-3 flex items-start gap-1">
-                            <MapPin className="w-3 h-3 mt-0.5 shrink-0" /> 
-                            {item.location} ({item.district})
-                        </p>
-                        
-                        <div className="space-y-2 bg-slate-50 p-2 rounded border border-slate-100 text-xs">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-1.5 text-blue-600 font-semibold">
-                                    <Syringe className="w-3 h-3" /> วัคซีน
-                                </div>
-                                <span className="font-bold text-slate-700">{stats.vaccine.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-1.5 text-orange-500 font-semibold">
-                                    <Scissors className="w-3 h-3" /> ทำหมัน
-                                </div>
-                                <span className="font-bold text-slate-700">{stats.sterilize.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-1.5 text-green-600 font-semibold">
-                                    <FileText className="w-3 h-3" /> ลงทะเบียน
-                                </div>
-                                <span className="font-bold text-slate-700">{stats.register.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-1.5 text-purple-600 font-semibold">
-                                    <Database className="w-3 h-3" /> ไมโครชิป
-                                </div>
-                                <span className="font-bold text-slate-700">{stats.microchip.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-1">
-                                <div className="font-bold text-slate-900">รวมทั้งหมด</div>
-                                <span className="font-bold text-slate-900 text-sm">{totalActivity.toLocaleString()}</span>
-                            </div>
-                        </div>
-                        </div>
-                    </Popup>
-                    </Marker>
-                );
-                })}
-            </MarkerClusterGroup>
-        </MapContainer>
-      </div>
-      
-    </div>
-  );
+                    <Popup>
+                        <div className="font-sans min-w-[200px] p-1">
+                        {item.imageUrl && (
+                            <div className="mb-3 w-full h-32 rounded-lg overflow-hidden border border-slate-100 relative">
+                                <img src={item.imageUrl} alt="site" className="w-full h-full object-cover" />
+                            </div>
+                        )} 
+                        <h3 className="font-bold text-slate-800 border-b border-slate-200 pb-2 mb-2 text-sm">
+                            {item.unit}
+                        </h3>
+                        <p className="text-[10px] text-slate-500 mb-3 flex items-start gap-1">
+                            <MapPin className="w-3 h-3 mt-0.5 shrink-0" /> 
+                            {item.location} ({item.district})
+                        </p>
+                        
+                        <div className="space-y-2 bg-slate-50 p-2 rounded border border-slate-100 text-xs">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1.5 text-blue-600 font-semibold">
+                                    <Syringe className="w-3 h-3" /> วัคซีน
+                                </div>
+                                <span className="font-bold text-slate-700">{stats.vaccine.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1.5 text-orange-500 font-semibold">
+                                    <Scissors className="w-3 h-3" /> ทำหมัน
+                                </div>
+                                <span className="font-bold text-slate-700">{stats.sterilize.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1.5 text-green-600 font-semibold">
+                                    <FileText className="w-3 h-3" /> ลงทะเบียน
+                                </div>
+                                <span className="font-bold text-slate-700">{stats.register.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1.5 text-purple-600 font-semibold">
+                                    <Database className="w-3 h-3" /> ไมโครชิป
+                                </div>
+                                <span className="font-bold text-slate-700">{stats.microchip.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-1">
+                                <div className="font-bold text-slate-900">รวมทั้งหมด</div>
+                                <span className="font-bold text-slate-900 text-sm">{totalActivity.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        </div>
+                    </Popup>
+                    </Marker>
+                );
+                })}
+            </MarkerClusterGroup>
+
+            {outbreaks.map((item, index) => {
+                // แปลงค่าเป็นตัวเลขเพื่อให้แน่ใจว่า Leaflet อ่านค่าได้
+                const lat = parseFloat(item.lat);
+                const long = parseFloat(item.long);
+
+                // เช็คว่ามีค่าพิกัดที่ถูกต้องหรือไม่ (ถ้าเป็น NaN หรือ 0 จะไม่แสดง)
+                if (!lat || !long) return null;
+
+                return (
+                    <React.Fragment key={item._id || `outbreak-${index}`}>
+                        {/* วงกลมระยะ 5 กม. */}
+                        <Circle
+                            center={[lat, long]} // ใช้ตัวแปรที่แปลงแล้ว
+                            radius={5000}
+                            pathOptions={{ 
+                                color: '#f97316', 
+                                fillColor: '#f97316', 
+                                fillOpacity: 0.1, 
+                                weight: 1, 
+                                dashArray: '5, 10' 
+                            }}
+                        />
+
+                        {/* วงกลมระยะ 3 กม. */}
+                        <Circle
+                            center={[lat, long]} // ใช้ตัวแปรที่แปลงแล้ว
+                            radius={3000}
+                            pathOptions={{ 
+                                color: '#ef4444', 
+                                fillColor: '#ef4444', 
+                                fillOpacity: 0.2, 
+                                weight: 2 
+                            }}
+                        />
+
+                        {/* Marker จุดเกิดเหตุ */}
+                        <Marker
+                            position={[lat, long]} // ใช้ตัวแปรที่แปลงแล้ว
+                            icon={createDangerIcon()}
+                        >
+                            <Popup>
+                                <div className="font-sans min-w-[200px] p-1 text-center">
+                                    <div className="bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs inline-block mb-2 border border-red-200">
+                                        🚨 พบเชื้อพิษสุนัขบ้า
+                                    </div>
+                                    <h3 className="font-bold text-slate-800 text-sm">{item.location}</h3>
+                                    <p className="text-xs text-slate-500 mb-2">เขต{item.district}</p>
+                                    <p className="text-[10px] text-slate-400">วันที่พบ: {item.date}</p>
+                                    <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[10px]">
+                                        <div className="text-red-500 font-bold bg-red-50 rounded px-1">3 กม.<br/>ควบคุมโรค</div>
+                                        <div className="text-orange-500 font-bold bg-orange-50 rounded px-1">5 กม.<br/>เฝ้าระวัง</div>
+                                    </div>
+                                    <button 
+                                        onClick={() => onDeleteOutbreak(item._id)}
+                                        className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors"
+                                    >
+                                    <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
+                                    </button>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    </React.Fragment>
+                );
+            })}
+        </MapContainer>
+      </div>
+    </div>
+  );
 };
       
 // --- NEW COMPONENT: IMAGE PREVIEW MODAL ---
 const ImagePreviewModal = ({ imageUrl, onClose }) => {
-  if (!imageUrl) return null;
+    if (!imageUrl) return null;
 
-  return (
-    <div 
-      className="fixed inset-0 z-[3000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={onClose} // คลิกพื้นที่ว่างเพื่อปิด
-    >
-      <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
-        {/* ปุ่มปิด */}
-        <button 
-          onClick={onClose}
-          className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md"
-        >
-          <X className="w-6 h-6" />
-        </button>
+    return (
+    <div 
+        className="fixed inset-0 z-[3000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+        onClick={onClose} // คลิกพื้นที่ว่างเพื่อปิด
+        >
+        <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+            {/* ปุ่มปิด */}
+            <button 
+                onClick={onClose}
+                className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md"
+            >
+                <X className="w-6 h-6" />
+            </button>
         
-        {/* รูปภาพ */}
-        <img 
-          src={imageUrl} 
-          alt="Full Preview" 
-          className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10"
-          onClick={(e) => e.stopPropagation()} // คลิกที่รูปจะไม่ปิด
-        />
-      </div>
-    </div>
+            {/* รูปภาพ */}
+            <img 
+                src={imageUrl} 
+                alt="Full Preview" 
+                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                onClick={(e) => e.stopPropagation()} // คลิกที่รูปจะไม่ปิด
+            />
+        </div>
+    </div>
   );
+};
+
+// --- [เพิ่มใหม่] COMPONENT: RABIES OUTBREAK MODAL ---
+const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+        date: new Date().toISOString().split('T')[0],
+        location: '',
+        district: BANGKOK_DISTRICTS[0],
+        lat: '',
+        long: ''
+    });
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({
+        ...formData,
+        lat: parseFloat(formData.lat),
+        long: parseFloat(formData.long)
+    });
+    onClose();
+  };
+
+    return (
+    <div className="fixed inset-0 bg-red-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-red-500">
+            <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                    <Skull className="w-6 h-6" /> บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า
+                </h3>
+                <button onClick={onClose}><X className="w-5 h-5" /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
+                    <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                        value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่พบ (Location)</label>
+                    <input required type="text" placeholder="ระบุสถานที่" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                        value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">เขตพื้นที่ (District)</label>
+                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                        value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
+                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Latitude</label>
+                        <input required type="number" step="any" placeholder="13.xxxx" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                        value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Longitude</label>
+                        <input required type="number" step="any" placeholder="100.xxxx" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                        value={formData.long} onChange={e => setFormData({...formData, long: e.target.value})} />
+                    </div>
+                </div>
+                <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่</p>
+
+                <div className="pt-4 border-t border-slate-100 flex gap-3">
+                    <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm">ยกเลิก</button>
+                    <button type="submit" className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2">
+                    <Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+  );
 };
 
 // --- UPDATED ADD/EDIT DATA MODAL ---
 const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
-  // ค่าเริ่มต้นสำหรับฟอร์มข้อมูลทั่วไป
-  const defaultFormData = {
-    date: new Date().toISOString().split('T')[0],
-    location: '',
-    district: BANGKOK_DISTRICTS[0],
-    subdistrict: '',
-    unit: UNIT_TYPES[0],
-    lat: '',
-    long: ''
-  };
+    // ค่าเริ่มต้นสำหรับฟอร์มข้อมูลทั่วไป
+    const defaultFormData = {
+        date: new Date().toISOString().split('T')[0],
+        location: '',
+        district: BANGKOK_DISTRICTS[0],
+        subdistrict: '',
+        unit: UNIT_TYPES[0],
+        lat: '',
+        long: ''
+    };
 
-  // ค่าเริ่มต้นสำหรับข้อมูลตัวเลข (Breakdown)
-  const defaultBreakdown = {
-    dog: { maleSterilize: '', femaleSterilize: '', maleVaccine: '', femaleVaccine: '', register: '', microchip: '' },
-    cat: { maleSterilize: '', femaleSterilize: '', maleVaccine: '', femaleVaccine: '', register: '', microchip: '' },
-    other: { vaccine: '' }
-  };
+    // ค่าเริ่มต้นสำหรับข้อมูลตัวเลข (Breakdown)
+    const defaultBreakdown = {
+        dog: { maleSterilize: '', femaleSterilize: '', maleVaccine: '', femaleVaccine: '', register: '', microchip: '' },
+        cat: { maleSterilize: '', femaleSterilize: '', maleVaccine: '', femaleVaccine: '', register: '', microchip: '' },
+        other: { vaccine: '' }
+    };
 
-  const [formData, setFormData] = useState(defaultFormData);
-  const [breakdown, setBreakdown] = useState(defaultBreakdown);
+    const [formData, setFormData] = useState(defaultFormData);
+    const [breakdown, setBreakdown] = useState(defaultBreakdown);
 
-  // [เพิ่มใหม่] State สำหรับจัดการรูปภาพ
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+    // [เพิ่มใหม่] State สำหรับจัดการรูปภาพ
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
-  // Effect: โหลดข้อมูลเดิมเมื่อเปิด Modal ในโหมดแก้ไข หรือ รีเซ็ตเมื่อเพิ่มใหม่
-  useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        // กรณีแก้ไข: โหลดข้อมูลเดิมเข้า State
-        setFormData({
-            date: initialData.date,
-            location: initialData.location,
-            district: initialData.district,
-            subdistrict: initialData.subdistrict,
-            unit: initialData.unit,
-            lat: initialData.lat,
-            long: initialData.long
-        });
-        // โหลดข้อมูลตัวเลข
-        if (initialData.details) {
-            setBreakdown(initialData.details);
-        } else {
-            setBreakdown(defaultBreakdown);
-        }
-        
-        // [เพิ่มใหม่] โหลดรูปภาพเดิม (ถ้ามี)
-        if (initialData.imageUrl) {
-            setImagePreview(initialData.imageUrl);
-        } else {
-            setImagePreview(null);
-            setImageFile(null);
-        }
+    // Effect: โหลดข้อมูลเดิมเมื่อเปิด Modal ในโหมดแก้ไข หรือ รีเซ็ตเมื่อเพิ่มใหม่
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+            // กรณีแก้ไข: โหลดข้อมูลเดิมเข้า State
+                setFormData({
+                    date: initialData.date,
+                    location: initialData.location,
+                    district: initialData.district,
+                    subdistrict: initialData.subdistrict,
+                    unit: initialData.unit,
+                    lat: initialData.lat,
+                    long: initialData.long
+                });
+                // โหลดข้อมูลตัวเลข
+                if (initialData.details) {
+                    setBreakdown(initialData.details);
+                } else {
+                    setBreakdown(defaultBreakdown);
+                }
+                // [เพิ่มใหม่] โหลดรูปภาพเดิม (ถ้ามี)
+                if (initialData.imageUrl) {
+                    setImagePreview(initialData.imageUrl);
+                } else {
+                    setImagePreview(null);
+                    setImageFile(null);
+                }
+                } else {
+                    // กรณีเพิ่มใหม่: ล้างค่าเป็น default
+                    setFormData(defaultFormData);
+                    setBreakdown(defaultBreakdown);
+                    // [เพิ่มใหม่] ล้างรูปภาพ
+                    setImageFile(null);
+                    setImagePreview(null);
+            }
+        }
+    }, [isOpen, initialData]);
 
-      } else {
-        // กรณีเพิ่มใหม่: ล้างค่าเป็น default
-        setFormData(defaultFormData);
-        setBreakdown(defaultBreakdown);
-        // [เพิ่มใหม่] ล้างรูปภาพ
-        setImageFile(null);
-        setImagePreview(null);
-      }
-    }
-  }, [isOpen, initialData]);
+    // คำนวณยอดรวมอัตโนมัติ (Auto-calculation)
+    const totals = useMemo(() => {
+        const parse = (val) => parseInt(val) || 0;
 
-  // คำนวณยอดรวมอัตโนมัติ (Auto-calculation)
-  const totals = useMemo(() => {
-    const parse = (val) => parseInt(val) || 0;
-    
-    const dog = breakdown.dog;
-    const cat = breakdown.cat;
-    const other = breakdown.other;
+        const dog = breakdown.dog;
+        const cat = breakdown.cat;
+        const other = breakdown.other;
 
-    return {
-      // แก้ไขสูตรคำนวณวัคซีน
-      vaccine: parse(dog.maleVaccine) + parse(dog.femaleVaccine) + parse(cat.maleVaccine) + parse(cat.femaleVaccine) + parse(other.vaccine),
-      sterilize: parse(dog.maleSterilize) + parse(dog.femaleSterilize) + parse(cat.maleSterilize) + parse(cat.femaleSterilize),
-      register: parse(dog.register) + parse(cat.register),
-      microchip: parse(dog.microchip) + parse(cat.microchip),
-    };
-  }, [breakdown]);
+        return {
+            // แก้ไขสูตรคำนวณวัคซีน
+            vaccine: parse(dog.maleVaccine) + parse(dog.femaleVaccine) + parse(cat.maleVaccine) + parse(cat.femaleVaccine) + parse(other.vaccine),
+            sterilize: parse(dog.maleSterilize) + parse(dog.femaleSterilize) + parse(cat.maleSterilize) + parse(cat.femaleSterilize),
+            register: parse(dog.register) + parse(cat.register),
+            microchip: parse(dog.microchip) + parse(cat.microchip),
+        };
+    }, [breakdown]);
 
-  // [เพิ่มใหม่] ฟังก์ชันจัดการการเลือกไฟล์รูป
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      // สร้าง URL ชั่วคราวเพื่อแสดง Preview
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-    }
-  };
+    // [เพิ่มใหม่] ฟังก์ชันจัดการการเลือกไฟล์รูป
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            // สร้าง URL ชั่วคราวเพื่อแสดง Preview
+            const previewUrl = URL.createObjectURL(file);
+            setImagePreview(previewUrl);
+        }
+    };
 
-  // [เพิ่มใหม่] ฟังก์ชันลบรูป
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
+    // [เพิ่มใหม่] ฟังก์ชันลบรูป
+    const handleRemoveImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+    };
 
-  if (!isOpen) return null;
+    if (!isOpen) return null;
 
-  // ฟังก์ชันจัดการการเปลี่ยนค่าใน breakdown (Nested State)
-  const handleBreakdownChange = (type, field, value) => {
-    setBreakdown(prev => ({
-      ...prev,
-      [type]: {
-        ...prev[type],
-        [field]: value 
-      }
-    }));
-  };
-
-const handleSubmit = async (e) => { // 2.1 เพิ่ม async เพราะต้องรอแปลงรูป
-    e.preventDefault();
-    
-    // 2.2 แปลงรูปภาพเป็น Base64 (ถ้ามีการเลือกไฟล์ใหม่)
-    let finalImageUrl = initialData?.imageUrl || ""; // ใช้รูปเดิมถ้ามี
-    
-    if (imageFile) {
-        try {
-            finalImageUrl = await convertToBase64(imageFile);
-        } catch (error) {
-            console.error("Error converting image:", error);
-            alert("ไม่สามารถประมวลผลรูปภาพได้");
-            return;
-        }
-    } else if (imagePreview === null) {
-        // กรณี user กดลบรูป
-        finalImageUrl = "";
-    }
-
-    // เตรียมข้อมูล Payload
-    const dataPayload = {
-      ...formData,
-      lat: formData.lat ? parseFloat(formData.lat) : 0,
-      long: formData.long ? parseFloat(formData.long) : 0,
-      vaccine: totals.vaccine,
-      sterilize: totals.sterilize,
-      register: totals.register,
-      microchip: totals.microchip,
-      details: breakdown,
-      imageUrl: finalImageUrl // 2.3 ส่งเป็น String Base64 ไปเก็บ
-    };
-
-    if (initialData) {
-        onUpdate(initialData._id, dataPayload);
-    } else {
-        onSave(dataPayload);
-    }
-    onClose();
-  };
-
-  const convertToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
+    // ฟังก์ชันจัดการการเปลี่ยนค่าใน breakdown (Nested State)
+    const handleBreakdownChange = (type, field, value) => {
+        setBreakdown(prev => ({
+        ...prev,
+        [type]: {
+            ...prev[type],
+            [field]: value 
+        }
+    }));
 };
 
-  return (
-    // ปรับ z-index เป็น z-[2000] เพื่อให้อยู่เหนือ Map และ Header
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-        
-        {/* Header ของ Modal */}
-        <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-700">
-          <div>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              {initialData ? <Edit className="w-5 h-5 text-yellow-400" /> : <Plus className="w-5 h-5 text-green-400" />}
-              {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
-            </h3>
-            <p className="text-slate-400 text-xs mt-0.5">
-                {initialData ? 'ปรับปรุงข้อมูลในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณแยกตามประเภทสัตว์'}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        {/* Form Content */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-            
-            {/* Section 1: General Info */}
-            <div className="space-y-4">
-               <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
-               </h4>
-               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                  {/* แถว 1: วันที่, หน่วย, สถานที่ */}
-                  <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
-                    <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                      value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                  </div>
-                  <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
-                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
-                        {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-                     </select>
-                  </div>
-                  <div className="md:col-span-6">
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
-                    <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                  </div>
+const handleSubmit = async (e) => { // 2.1 เพิ่ม async เพราะต้องรอแปลงรูป
+    e.preventDefault();
 
-                  {/* แถว 2: เขต, แขวง, พิกัด */}
-                  <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
-                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
-                      {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div className="md:col-span-3">
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
-                    <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
-                  </div>
-                  
-                  <div className="md:col-span-6">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
-                      <Navigation className="w-3 h-3 text-blue-500" /> 
-                      พิกัดภูมิศาสตร์ (Latitude, Longitude)
-                    </label>
-                    <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input 
-                        type="text" 
-                        placeholder="เช่น 13.609673, 100.465504" 
-                        className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                        value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
-                        onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.includes(',')) {
-                          const [lat, lng] = value.split(',').map(s => s.trim());
-                          setFormData({ ...formData, lat, long: lng });
-                        } else {
-                          setFormData({ ...formData, lat: value });
-                        }
-                      }} 
-                      />
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    </div>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
-                   </div>
+    // 2.2 แปลงรูปภาพเป็น Base64 (ถ้ามีการเลือกไฟล์ใหม่)
+    let finalImageUrl = initialData?.imageUrl || ""; // ใช้รูปเดิมถ้ามี
 
-                   {/* --- [ส่วนที่เพิ่มใหม่] : อัปโหลดรูปภาพ --- */}
-                   <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
-                    <label className="block text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3 text-blue-500" /> 
-                      รูปภาพประกอบ (Image Attachment)
-                    </label>
-                    
-                    {!imagePreview ? (
-                      <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-32 flex flex-col items-center justify-center cursor-pointer">
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        />
-                        <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                          <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                        <p className="text-[10px] text-slate-400 mt-1">รองรับไฟล์ JPG, PNG</p>
-                      </div>
-                    ) : (
-                      <div className="relative w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-700 p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
-                            <Edit className="w-3 h-3" /> เปลี่ยนรูป
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              onChange={handleImageChange}
-                              className="hidden"
-                            />
-                          </label>
-                          <button 
-                            type="button"
-                            onClick={handleRemoveImage}
-                            className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105"
-                          >
-                            <Trash2 className="w-3 h-3" /> ลบ
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {/* --- จบส่วนที่เพิ่มใหม่ --- */}
+    if (imageFile) {
+        try {
+            finalImageUrl = await convertToBase64(imageFile);
+        } catch (error) {
+            console.error("Error converting image:", error);
+            alert("ไม่สามารถประมวลผลรูปภาพได้");
+            return;
+        }
+    } else if (imagePreview === null) {
+        // กรณี user กดลบรูป
+        finalImageUrl = "";
+    }
 
-               </div>
-            </div>
+    // เตรียมข้อมูล Payload
+    const dataPayload = {
+        ...formData,
+        lat: formData.lat ? parseFloat(formData.lat) : 0,
+        long: formData.long ? parseFloat(formData.long) : 0,
+        vaccine: totals.vaccine,
+        sterilize: totals.sterilize,
+        register: totals.register,
+        microchip: totals.microchip,
+        details: breakdown,
+        imageUrl: finalImageUrl // 2.3 ส่งเป็น String Base64 ไปเก็บ
+    };
 
-            {/* Section 2: Quantitative Data */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center border-b pb-2">
-                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <Calculator className="w-4 h-4 text-orange-600" /> ข้อมูลเชิงปริมาณ (Quantitative Data)
-                </h4>
-              </div>
+    if (initialData) {
+        onUpdate(initialData._id, dataPayload);
+    } else {
+        onSave(dataPayload);
+    }
+        onClose();
+};
 
-              {/* Data Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                {/* Group: DOG */}
-                <div className="bg-blue-50/50 rounded-xl border border-blue-100 overflow-hidden">
-                   <div className="bg-blue-100/80 px-4 py-2 font-bold text-blue-800 flex items-center gap-2">
-                      <span className="text-xl">🐕</span> สุนัข (Dog)
-                   </div>
-                   <div className="p-4 space-y-4">
-                      {/* Row 1: ทำหมัน (Sterilize) */}
-                      <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                              value={breakdown.dog.maleSterilize} onChange={(e) => handleBreakdownChange('dog', 'maleSterilize', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                              value={breakdown.dog.femaleSterilize} onChange={(e) => handleBreakdownChange('dog', 'femaleSterilize', e.target.value)} />
-                          </div>
-                      </div>
-                      
-                      {/* Row 2: วัคซีน (Vaccine) - แก้ไขใหม่แยกเพศ */}
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase text-blue-600">ฉีดวัคซีน (ตัวผู้)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                              value={breakdown.dog.maleVaccine} onChange={(e) => handleBreakdownChange('dog', 'maleVaccine', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase text-blue-600">ฉีดวัคซีน (ตัวเมีย)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                              value={breakdown.dog.femaleVaccine} onChange={(e) => handleBreakdownChange('dog', 'femaleVaccine', e.target.value)} />
-                          </div>
-                      </div>
+const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+    });
+};
 
-                      {/* Row 3: Register & Microchip */}
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                              value={breakdown.dog.register} onChange={(e) => handleBreakdownChange('dog', 'register', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                              value={breakdown.dog.microchip} onChange={(e) => handleBreakdownChange('dog', 'microchip', e.target.value)} />
-                          </div>
-                      </div>
-                   </div>
-                </div>
+return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
 
-                {/* Group: CAT */}
-                <div className="bg-orange-50/50 rounded-xl border border-orange-100 overflow-hidden">
-                   <div className="bg-orange-100/80 px-4 py-2 font-bold text-orange-800 flex items-center gap-2">
-                      <span className="text-xl">🐈</span> แมว (Cat)
-                   </div>
-                   <div className="p-4 space-y-4">
-                      {/* Row 1: ทำหมัน (Sterilize) */}
-                      <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                              value={breakdown.cat.maleSterilize} onChange={(e) => handleBreakdownChange('cat', 'maleSterilize', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.femaleSterilize} onChange={(e) => handleBreakdownChange('cat', 'femaleSterilize', e.target.value)} />
-                          </div>
-                      </div>
-                      
-                      {/* Row 2: วัคซีน (Vaccine) - แก้ไขใหม่แยกเพศ */}
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase text-orange-600">ฉีดวัคซีน (ตัวผู้)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.maleVaccine} onChange={(e) => handleBreakdownChange('cat', 'maleVaccine', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase text-orange-600">ฉีดวัคซีน (ตัวเมีย)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.femaleVaccine} onChange={(e) => handleBreakdownChange('cat', 'femaleVaccine', e.target.value)} />
-                          </div>
-                      </div>
+        {/* Header ของ Modal */}
+        <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-700">
+            <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    {initialData ? <Edit className="w-5 h-5 text-yellow-400" /> : <Plus className="w-5 h-5 text-green-400" />}
+                    {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                {initialData ? 'ปรับปรุงข้อมูลในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณแยกตามประเภทสัตว์'}
+                </p>
+            </div>
+            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
+            <X className="w-5 h-5" />
+            </button>
+        </div>
 
-                      {/* Row 3: Register & Microchip */}
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
-                          </div>
-                      </div>
-                   </div>
-                </div>
+        {/* Form Content */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-                {/* Group: CAT */}
-                <div className="bg-orange-50/50 rounded-xl border border-orange-100 overflow-hidden">
-                   <div className="bg-orange-100/80 px-4 py-2 font-bold text-orange-800 flex items-center gap-2">
-                      <span className="text-xl">🐈</span> แมว (Cat)
-                   </div>
-                   <div className="p-4 space-y-4">
-                      {/* Sterilize Row */}
-                      <div className="grid grid-cols-2 gap-3">
-                         <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                              value={breakdown.cat.maleSterilize} onChange={(e) => handleBreakdownChange('cat', 'maleSterilize', e.target.value)} />
-                         </div>
-                         <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.femaleSterilize} onChange={(e) => handleBreakdownChange('cat', 'femaleSterilize', e.target.value)} />
-                         </div>
-                      </div>
-                      
-                      {/* Services */}
-                      <div className="grid grid-cols-3 gap-3 pt-2 border-t border-orange-100">
-                         <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ฉีดวัคซีน</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.vaccine} onChange={(e) => handleBreakdownChange('cat', 'vaccine', e.target.value)} />
-                         </div>
-                         <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
-                         </div>
-                         <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
-                         </div>
-                      </div>
+        {/* Section 1: General Info */}
+        <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* แถว 1: วันที่, หน่วย, สถานที่ */}
+                <div className="md:col-span-3">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
+                    <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                        value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+                <div className="md:col-span-3">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
+                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
+                        {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                </div>
+                <div className="md:col-span-6">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
+                    <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                </div>
 
-                      {/* Status */}
-                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100 bg-orange-50/50 -mx-4 px-4 pb-2 mt-2">
-                          <div className="col-span-2 text-xs font-bold text-slate-400 mb-1">สถานะสัตว์ (Animal Status)</div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">มีเจ้าของ</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.owned} onChange={(e) => handleBreakdownChange('cat', 'owned', e.target.value)} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ชุมชน/จรจัด</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                               value={breakdown.cat.community} onChange={(e) => handleBreakdownChange('cat', 'community', e.target.value)} />
-                          </div>
-                       </div>
-                   </div>
-                </div>
+                {/* แถว 2: เขต, แขวง, พิกัด */}
+                <div className="md:col-span-3">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
+                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
+                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                </div>
+                <div className="md:col-span-3">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
+                    <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
+                </div>
 
-                {/* Group: OTHERS & SUMMARY */}
-                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                   {/* Others */}
-                   <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden h-fit">
-                      <div className="bg-slate-100/80 px-4 py-2 font-bold text-slate-600 flex items-center gap-2">
-                         <span className="text-xl">🐇</span> สัตว์อื่นๆ (Others)
-                      </div>
-                      <div className="p-4">
-                         <div>
-                            <label className="text-[10px] text-slate-500 font-semibold uppercase">ฉีดวัคซีน (ตัว)</label>
-                            <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-slate-400 outline-none text-center"
-                               value={breakdown.other.vaccine} onChange={(e) => handleBreakdownChange('other', 'vaccine', e.target.value)} />
-                         </div>
-                      </div>
-                   </div>
+                <div className="md:col-span-6">
+                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
+                        <Navigation className="w-3 h-3 text-blue-500" /> 
+                            พิกัดภูมิศาสตร์ (Latitude, Longitude)
+                    </label>
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <input type="text" placeholder="เช่น 13.609673, 100.465504" 
+                                className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.includes(',')) {
+                                        const [lat, lng] = value.split(',').map(s => s.trim());
+                                        setFormData({ ...formData, lat, long: lng });
+                                    } else {
+                                        setFormData({ ...formData, lat: value });
+                                    }
+                                }} 
+                            />
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
+                </div>
 
-                   {/* Live Total Summary */}
-                   <div className="bg-slate-800 rounded-xl overflow-hidden text-white shadow-lg">
-                      <div className="bg-slate-900 px-4 py-2 font-bold text-green-400 flex items-center gap-2 border-b border-slate-700">
-                         <Activity className="w-4 h-4" /> สรุปยอดรวมอัตโนมัติ (Auto-calculated)
-                      </div>
-                      <div className="p-4 grid grid-cols-2 gap-4 text-center">
-                         <div>
-                            <div className="text-2xl font-bold text-blue-400">{totals.vaccine}</div>
-                            <div className="text-[10px] text-slate-400 uppercase">รวมวัคซีน</div>
-                         </div>
-                         <div>
-                            <div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div>
-                            <div className="text-[10px] text-slate-400 uppercase">รวมทำหมัน</div>
-                         </div>
-                         <div>
-                            <div className="text-2xl font-bold text-green-400">{totals.register}</div>
-                            <div className="text-[10px] text-slate-400 uppercase">รวมขึ้นทะเบียน</div>
-                         </div>
-                         <div>
-                            <div className="text-2xl font-bold text-purple-400">{totals.microchip}</div>
-                            <div className="text-[10px] text-slate-400 uppercase">รวมไมโครชิป</div>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                {/* --- อัปโหลดรูปภาพ --- */}
+                <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
+                    <label className="block text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-blue-500" /> 
+                            รูปภาพประกอบ (Image Attachment)
+                    </label>
+                    {!imagePreview ? (
+                        <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-32 flex flex-col items-center justify-center cursor-pointer">
+                            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                            <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                                <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                            <p className="text-[10px] text-slate-400 mt-1">รองรับไฟล์ JPG, PNG</p>
+                        </div>
+                    ) : (
+                        <div className="relative w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
+                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-700 p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
+                                    <Edit className="w-3 h-3" /> เปลี่ยนรูป
+                                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden"/>
+                                </label>
+                                <button type="button" onClick={handleRemoveImage} className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
+                                    <Trash2 className="w-3 h-3" /> ลบ
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        {/* Section 2: Quantitative Data */}
+            <div className="space-y-4">
+                <div className="flex justify-between items-center border-b pb-2">
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <Calculator className="w-4 h-4 text-orange-600" /> ข้อมูลเชิงปริมาณ (Quantitative Data)
+                    </h4>
+                </div>
+
+                {/* Data Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Group: DOG */}
+                    <div className="bg-blue-50/50 rounded-xl border border-blue-100 overflow-hidden">
+                        <div className="bg-blue-100/80 px-4 py-2 font-bold text-blue-800 flex items-center gap-2">
+                            <span className="text-xl">🐕</span> สุนัข (Dog)
+                        </div>
+                        <div className="p-4 space-y-4">
+                            {/* Row 1: ทำหมัน (Sterilize) */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+                                        value={breakdown.dog.maleSterilize} onChange={(e) => handleBreakdownChange('dog', 'maleSterilize', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+                                        value={breakdown.dog.femaleSterilize} onChange={(e) => handleBreakdownChange('dog', 'femaleSterilize', e.target.value)} />
+                                </div>
+                            </div>
+
+                            {/* Row 2: วัคซีน (Vaccine) - แก้ไขใหม่แยกเพศ */}
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase text-blue-600">ฉีดวัคซีน (ตัวผู้)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+                                        value={breakdown.dog.maleVaccine} onChange={(e) => handleBreakdownChange('dog', 'maleVaccine', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase text-blue-600">ฉีดวัคซีน (ตัวเมีย)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+                                        value={breakdown.dog.femaleVaccine} onChange={(e) => handleBreakdownChange('dog', 'femaleVaccine', e.target.value)} />
+                                </div>
+                            </div>
+
+                            {/* Row 3: Register & Microchip */}
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+                                        value={breakdown.dog.register} onChange={(e) => handleBreakdownChange('dog', 'register', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+                                        value={breakdown.dog.microchip} onChange={(e) => handleBreakdownChange('dog', 'microchip', e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Group: CAT */}
+                    <div className="bg-orange-50/50 rounded-xl border border-orange-100 overflow-hidden">
+                        <div className="bg-orange-100/80 px-4 py-2 font-bold text-orange-800 flex items-center gap-2">
+                            <span className="text-xl">🐈</span> แมว (Cat)
+                        </div>
+                        <div className="p-4 space-y-4">
+
+                            {/* Row 1: ทำหมัน (Sterilize) */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+                                        value={breakdown.cat.maleSterilize} onChange={(e) => handleBreakdownChange('cat', 'maleSterilize', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+                                        value={breakdown.cat.femaleSterilize} onChange={(e) => handleBreakdownChange('cat', 'femaleSterilize', e.target.value)} />
+                                </div>
+                            </div>
+
+                            {/* Row 2: วัคซีน (Vaccine) - แยกเพศ */}
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
+                                <div>
+                                    <label className="text-[10px] text-slate-500 font-semibold uppercase text-orange-600">ฉีดวัคซีน (ตัวผู้)</label>
+                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+                                        value={breakdown.cat.maleVaccine} onChange={(e) => handleBreakdownChange('cat', 'maleVaccine', e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-slate-500 font-semibold uppercase text-orange-600">ฉีดวัคซีน (ตัวเมีย)</label>
+                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+                                    value={breakdown.cat.femaleVaccine} onChange={(e) => handleBreakdownChange('cat', 'femaleVaccine', e.target.value)} />
+                            </div>
+                        </div>
+
+                        {/* Row 3: Register & Microchip */}
+                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
+                            <div>
+                                <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
+                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+                                    value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
+                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+                                    value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Group: OTHERS & SUMMARY */}
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    {/* Others */}
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden h-fit">
+                        <div className="bg-slate-100/80 px-4 py-2 font-bold text-slate-600 flex items-center gap-2">
+                            <span className="text-xl">🐇</span> สัตว์อื่นๆ (Others)
+                        </div>
+                        <div className="p-4">
+                            <div>
+                                <label className="text-[10px] text-slate-500 font-semibold uppercase">ฉีดวัคซีน (ตัว)</label>
+                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-slate-400 outline-none text-center"
+                                    value={breakdown.other.vaccine} onChange={(e) => handleBreakdownChange('other', 'vaccine', e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Live Total Summary */}
+                    <div className="bg-slate-800 rounded-xl overflow-hidden text-white shadow-lg">
+                        <div className="bg-slate-900 px-4 py-2 font-bold text-green-400 flex items-center gap-2 border-b border-slate-700">
+                            <Activity className="w-4 h-4" /> สรุปยอดรวมอัตโนมัติ (Auto-calculated)
+                        </div>
+                        <div className="p-4 grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <div className="text-2xl font-bold text-blue-400">{totals.vaccine}</div>
+                                <div className="text-[10px] text-slate-400 uppercase">รวมวัคซีน</div>
+                            </div>
+                            <div>
+                                <div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div>
+                                <div className="text-[10px] text-slate-400 uppercase">รวมทำหมัน</div>
+                        </div>
+                        <div>
+                            <div className="text-2xl font-bold text-green-400">{totals.register}</div>
+                            <div className="text-[10px] text-slate-400 uppercase">รวมขึ้นทะเบียน</div>
+                        </div>
+                        <div>
+                            <div className="text-2xl font-bold text-purple-400">{totals.microchip}</div>
+                            <div className="text-[10px] text-slate-400 uppercase">รวมไมโครชิป</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
           {/* Action Button */}
           <div className="bg-white border-t border-slate-200 p-6 shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -904,131 +982,201 @@ const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
 };
 
 export default function VeterinaryDashboard() {
-  // 1. กำหนดค่าเริ่มต้นเป็น Array ว่าง เพื่อรอรับข้อมูลจาก Database
-  const [reportData, setReportData] = useState([]);
+    // 1. กำหนดค่าเริ่มต้นเป็น Array ว่าง เพื่อรอรับข้อมูลจาก Database
+    const [reportData, setReportData] = useState([]);
+    const [viewImage, setViewImage] = useState(null);
+      
+    // URL ของ Backend (ต้องตรงกับที่ตั้งไว้ใน server.js)
+    const API_URL = 'http://localhost:5000/api/reports';
 
-  const [viewImage, setViewImage] = useState(null);
+    const [editingItem, setEditingItem] = useState(null);
+
+    const [searchTerm, setSearchTerm] = useState(''); // เก็บคำค้นหา (keyword)
+    const [searchDate, setSearchDate] = useState('');
+
+    const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
+    const [selectedMonth, setSelectedMonth] = useState('ทั้งหมด');
+
+    const [selectedUnit, setSelectedUnit] = useState('ทั้งหมด');
+    const [selectedDistrict, setSelectedDistrict] = useState('ทั้งหมด');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+
+    const isReadOnly = new URLSearchParams(window.location.search).get('mode') === 'view';
+
+    const [rankingYear, setRankingYear] = useState('ทั้งหมด');
+    const [rankingMonth, setRankingMonth] = useState('ทั้งหมด');
+
+    const [outbreakData, setOutbreakData] = useState([]);
+    const [isOutbreakModalOpen, setIsOutbreakModalOpen] = useState(false);
+
+    const rankingFilteredData = useMemo(() => {
+        return reportData.filter(item => {
+            // กรองตามปี
+            const [itemYear, itemMonth] = item.date.split('-');
+            const yearMatch = rankingYear === 'ทั้งหมด' || itemYear === rankingYear;
+            // กรองตามเดือน
+            const monthMatch = rankingMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(rankingMonth);
+
+            return yearMatch && monthMatch;
+        });
+    }, [reportData, rankingYear, rankingMonth]);
+
+    const rankingUnitStats = useMemo(() => {
+    const grouped = rankingFilteredData.reduce((acc, curr) => {
+    if (!acc[curr.unit]) {
+        acc[curr.unit] = { 
+            name: curr.unit, 
+            count: 0, 
+            vaccine: 0, 
+            sterilize: 0, 
+            register: 0,
+            microchip: 0,
+            total: 0 
+        };
+    }
+    acc[curr.unit].count += 1;
+    acc[curr.unit].vaccine += curr.stats.vaccine;
+    acc[curr.unit].sterilize += curr.stats.sterilize;
+    acc[curr.unit].register += curr.stats.register;
+    acc[curr.unit].microchip += curr.stats.microchip;
+    acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
+    return acc;
+}, {});
   
-  // URL ของ Backend (ต้องตรงกับที่ตั้งไว้ใน server.js)
-  const API_URL = 'http://localhost:5000/api/reports';
-
-  const [editingItem, setEditingItem] = useState(null);
-
-  const [searchTerm, setSearchTerm] = useState(''); // เก็บคำค้นหา (keyword)
-  const [searchDate, setSearchDate] = useState('');
-
-  const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
-  const [selectedMonth, setSelectedMonth] = useState('ทั้งหมด');
-
-  const [selectedUnit, setSelectedUnit] = useState('ทั้งหมด');
-  const [selectedDistrict, setSelectedDistrict] = useState('ทั้งหมด');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
-
-  const isReadOnly = new URLSearchParams(window.location.search).get('mode') === 'view';
-
-  const [rankingYear, setRankingYear] = useState('ทั้งหมด');
-  const [rankingMonth, setRankingMonth] = useState('ทั้งหมด');
-
-  const rankingFilteredData = useMemo(() => {
-  return reportData.filter(item => {
-    // กรองตามปี
-    const [itemYear, itemMonth] = item.date.split('-');
-    const yearMatch = rankingYear === 'ทั้งหมด' || itemYear === rankingYear;
-    
-    // กรองตามเดือน
-    const monthMatch = rankingMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(rankingMonth);
-
-    return yearMatch && monthMatch;
-  });
-}, [reportData, rankingYear, rankingMonth]);
-
-  const rankingUnitStats = useMemo(() => {
-  const grouped = rankingFilteredData.reduce((acc, curr) => {
-    if (!acc[curr.unit]) {
-      acc[curr.unit] = { 
-        name: curr.unit, 
-        count: 0, 
-        vaccine: 0, 
-        sterilize: 0, 
-        register: 0,   // เพิ่ม
-        microchip: 0,  // เพิ่ม
-        total: 0 
-      };
-    }
-    acc[curr.unit].count += 1;
-    acc[curr.unit].vaccine += curr.stats.vaccine;
-    acc[curr.unit].sterilize += curr.stats.sterilize;
-    acc[curr.unit].register += curr.stats.register;     // เพิ่มการบวกยอด
-    acc[curr.unit].microchip += curr.stats.microchip;
-    acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
-    return acc;
-  }, {});
-  
-  return Object.values(grouped).sort((a, b) => b.total - a.total);
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
 }, [rankingFilteredData]);
 
-// --- [แก้ไข] คำนวณ 5 อันดับเขต จาก rankingFilteredData แทน filteredData ---
+//ฟังก์ชันลบข้อมูล Outbreak
+const handleDeleteOutbreak = async (id) => {
+    if (window.confirm("⚠️ ยืนยันการลบจุดแจ้งเหตุโรคระบาดนี้?\n(เมื่อลบแล้วจะไม่สามารถกู้คืนได้)")) {
+        try {
+            const response = await fetch(`http://localhost:5000/api/outbreaks/${id}`, {
+             method: 'DELETE',
+        });
+
+        if (response.ok) {
+            // อัปเดต State โดยเอา ID ที่ลบออกไป
+            setOutbreakData(prev => prev.filter(item => item._id !== id));
+            alert("✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
+        } else {
+          alert("❌ ไม่สามารถลบข้อมูลได้");
+        }
+        } catch (error) {
+            console.error("Delete Outbreak Error:", error);
+            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        }
+    }
+};
+
+// คำนวณ 5 อันดับเขต จาก rankingFilteredData แทน filteredData ---
 const rankingDistrictStats = useMemo(() => {
-  const grouped = rankingFilteredData.reduce((acc, curr) => {
-    if (!acc[curr.district]) {
-      acc[curr.district] = { 
-        name: curr.district, 
-        vac: 0, 
-        ster: 0, 
-        total: 0, 
-        units: new Set() 
-      };
-    }
-    acc[curr.district].vac += curr.stats.vaccine;
-    acc[curr.district].ster += curr.stats.sterilize;
-    acc[curr.district].total += (curr.stats.vaccine + curr.stats.sterilize);
-    acc[curr.district].units.add(curr.unit); 
-    return acc;
-  }, {});
+    const grouped = rankingFilteredData.reduce((acc, curr) => {
+        if (!acc[curr.district]) {
+            acc[curr.district] = { 
+                name: curr.district, 
+                vac: 0, 
+                ster: 0, 
+                total: 0, 
+                units: new Set() 
+            };
+        }
+    acc[curr.district].vac += curr.stats.vaccine;
+    acc[curr.district].ster += curr.stats.sterilize;
+    acc[curr.district].total += (curr.stats.vaccine + curr.stats.sterilize);
+    acc[curr.district].units.add(curr.unit); 
+    return acc;
+}, {});
 
-  return Object.values(grouped).sort((a, b) => b.total - a.total);
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
 }, [rankingFilteredData]);
 
-  const handleToggleViewMode = () => {
-    const url = new URL(window.location);
-    if (isReadOnly) {
-      url.searchParams.delete('mode'); // ลบ ?mode=view ออก (กลับเป็น Admin)
-    } else {
-      url.searchParams.set('mode', 'view'); // ใส่ ?mode=view (เป็น View Only)
-    }
-    window.location.href = url.toString(); // รีโหลดหน้า
-  };
+const handleToggleViewMode = () => {
+    const url = new URL(window.location);
+    if (isReadOnly) {
+        url.searchParams.delete('mode'); // ลบ ?mode=view ออก (กลับเป็น Admin)
+    } else {
+        url.searchParams.set('mode', 'view'); // ใส่ ?mode=view (เป็น View Only)
+    }
+    window.location.href = url.toString(); // รีโหลดหน้า
+};
 
-  const THAI_MONTHS = [
-    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-  ];
+const THAI_MONTHS = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
 
-  const availableYears = useMemo(() => {
-    const years = reportData.map(item => item.date.split('-')[0]); // ดึงปีจาก YYYY-MM-DD
-    return [...new Set(years)].sort().reverse(); // Unique และเรียงล่าสุดขึ้นก่อน
-  }, [reportData]);
+const availableYears = useMemo(() => {
+    const years = reportData.map(item => item.date.split('-')[0]); // ดึงปีจาก YYYY-MM-DD
+    return [...new Set(years)].sort().reverse(); // Unique และเรียงล่าสุดขึ้นก่อน
+}, [reportData]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(API_URL);
-        const data = await response.json();
-    
-        if (data && data.length > 0) {
-          setReportData(data);
-        } else {
-          setReportData([]); 
-        }
-      } catch (error) {
-        console.error("Fetch Error:", error);
-        setReportData([]); 
-      }
-    };
-    fetchData();
-  }, []);
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                setReportData(data);
+            } else {
+                setReportData([]); 
+            }
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            setReportData([]); 
+        }
+    };
+    fetchData();
+}, []);
+
+useEffect(() => {
+    const fetchOutbreaks = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/outbreaks');
+            const result = await response.json();
+        
+            // ✅ เพิ่มความยืดหยุ่น: รองรับทั้งแบบ Array ตรงๆ และแบบมี key data
+            const dataArray = Array.isArray(result) ? result : (result.data || []);
+        
+            console.log("Fetched Outbreaks:", dataArray); // ดู Log ว่ามีข้อมูลมาจริงไหม
+            setOutbreakData(dataArray);
+        } catch (error) {
+            console.error("Fetch Outbreaks Error:", error);
+            setOutbreakData([]);
+        }
+    };
+    fetchOutbreaks();
+}, []);
+
+  // ค้นหาฟังก์ชัน handleAddOutbreak แล้วแทนที่ด้วยอันนี้
+  const handleAddOutbreak = async (data) => {
+      try {
+        const response = await fetch('http://localhost:5000/api/outbreaks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const savedRecord = await response.json();
+            
+            // ✅ ตรวจสอบว่า savedRecord มีข้อมูลถูกต้องไหมก่อน set state
+            console.log("Saved Outbreak:", savedRecord); 
+            
+            // อัปเดต State ทันทีเพื่อให้แสดงบนแผนที่
+            setOutbreakData(prev => [savedRecord, ...prev]); 
+            
+            alert("🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
+        } else {
+            alert("❌ ไม่สามารถบันทึกข้อมูลได้");
+        }
+      } catch (error) {
+          console.error("Save Outbreak Error", error);
+          alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      }
+  };
 
   const handleAddNewData = async (newRecord, showSuccessAlert = true) => {
     try {
@@ -1568,51 +1716,70 @@ const rankingDistrictStats = useMemo(() => {
   }, [filteredData]);
 
   // 5. [เพิ่มใหม่] คำนวณสถิติเชิงลึกจาก details (แยกประเภทสัตว์, เพศ, สถานะ)
-  const detailedStats = useMemo(() => {
-    const stats = filteredData.reduce((acc, curr) => {
-      const d = curr.details || { dog: {}, cat: {}, other: {} };
-      const parse = (val) => parseInt(val) || 0;
+const detailedStats = useMemo(() => {
+    const stats = filteredData.reduce((acc, curr) => {
+        const d = curr.details || { dog: {}, cat: {}, other: {} };
+        const parse = (val) => parseInt(val) || 0;
 
-      // รวมยอดตามชนิดสัตว์ (นับรวมทุกกิจกรรม)
-      const dogTotal = parse(d.dog?.vaccine) + parse(d.dog?.maleSterilize) + parse(d.dog?.femaleSterilize) + parse(d.dog?.microchip);
-      const catTotal = parse(d.cat?.vaccine) + parse(d.cat?.maleSterilize) + parse(d.cat?.femaleSterilize) + parse(d.cat?.microchip);
-      const otherTotal = parse(d.other?.vaccine);
+        // รวมยอดตามชนิดสัตว์ (นับรวมทุกกิจกรรม)
+        const dogTotal = parse(d.dog?.vaccine) + parse(d.dog?.maleSterilize) + parse(d.dog?.femaleSterilize) + parse(d.dog?.microchip);
+        const catTotal = parse(d.cat?.vaccine) + parse(d.cat?.maleSterilize) + parse(d.cat?.femaleSterilize) + parse(d.cat?.microchip);
+        const otherTotal = parse(d.other?.vaccine);
 
-      acc.species.dog += dogTotal;
-      acc.species.cat += catTotal;
-      acc.species.other += otherTotal;
+        acc.species.dog += dogTotal;
+        acc.species.cat += catTotal;
+        acc.species.other += otherTotal;
 
-      // แยกเพศทำหมัน
-      acc.sex.male += parse(d.dog?.maleSterilize) + parse(d.cat?.maleSterilize);
-      acc.sex.female += parse(d.dog?.femaleSterilize) + parse(d.cat?.femaleSterilize);
+        // แยกเพศทำหมัน
+        acc.sex.male += parse(d.dog?.maleSterilize) + parse(d.cat?.maleSterilize);
+        acc.sex.female += parse(d.dog?.femaleSterilize) + parse(d.cat?.femaleSterilize);
 
-      // แยกสถานะ (มีเจ้าของ/จรจัด)
-      acc.status.owned += parse(d.dog?.owned) + parse(d.cat?.owned);
-      acc.status.community += parse(d.dog?.community) + parse(d.cat?.community);
+        // แยกสถานะ (มีเจ้าของ/จรจัด)
+        acc.status.owned += parse(d.dog?.owned) + parse(d.cat?.owned);
+        acc.status.community += parse(d.dog?.community) + parse(d.cat?.community);
 
-      return acc;
-    }, {
-      species: { dog: 0, cat: 0, other: 0 },
-      sex: { male: 0, female: 0 },
-      status: { owned: 0, community: 0 }
-    });
+    return acc;
+    }, {
+        species: { dog: 0, cat: 0, other: 0 },
+        sex: { male: 0, female: 0 },
+        status: { owned: 0, community: 0 }
+    });
 
-    return {
-      speciesData: [
-        { name: 'สุนัข', value: stats.species.dog, color: '#3b82f6' }, // Blue
-        { name: 'แมว', value: stats.species.cat, color: '#f97316' },  // Orange
-        { name: 'อื่นๆ', value: stats.species.other, color: '#64748b' } // Slate
-      ].filter(i => i.value > 0),
-      sexData: [
-        { name: 'ตัวผู้', value: stats.sex.male, color: '#0ea5e9' },
-        { name: 'ตัวเมีย', value: stats.sex.female, color: '#ec4899' },
-      ],
-      statusData: [
-        { name: 'มีเจ้าของ', value: stats.status.owned, color: '#22c55e' },
-        { name: 'ชุมชน/จรจัด', value: stats.status.community, color: '#eab308' },
-      ]
-    };
-  }, [filteredData]);
+    return {
+        speciesData: [
+            { name: 'สุนัข', value: stats.species.dog, color: '#3b82f6' }, // Blue
+            { name: 'แมว', value: stats.species.cat, color: '#f97316' },  // Orange
+            { name: 'อื่นๆ', value: stats.species.other, color: '#64748b' } // Slate
+        ].filter(i => i.value > 0),
+        sexData: [
+            { name: 'ตัวผู้', value: stats.sex.male, color: '#0ea5e9' },
+            { name: 'ตัวเมีย', value: stats.sex.female, color: '#ec4899' },
+        ],
+        statusData: [
+            { name: 'มีเจ้าของ', value: stats.status.owned, color: '#22c55e' },
+            { name: 'ชุมชน/จรจัด', value: stats.status.community, color: '#eab308' },
+        ]
+    };
+}, [filteredData]);
+
+// ✅ [เพิ่มใหม่] คำนวณสถิติสำหรับ Dashboard โรคระบาด
+const outbreakStats = useMemo(() => {
+    const total = outbreakData.length;
+    
+    // จัดกลุ่มตามเขต
+    const grouped = outbreakData.reduce((acc, curr) => {
+        acc[curr.district] = (acc[curr.district] || 0) + 1;
+    return acc;
+    }, {});
+
+    // แปลงเป็น Array เพื่อทำกราฟ (เรียงมากไปน้อย 5 อันดับ)
+    const topDistricts = Object.keys(grouped)
+        .map(key => ({ name: key, count: grouped[key] }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+    return { total, topDistricts };
+}, [outbreakData]);
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -1676,74 +1843,88 @@ const rankingDistrictStats = useMemo(() => {
         onFileChange={handleFileUpload}
         onExport={exportToCSV}
       />
+        <AddOutbreakModal 
+          isOpen={isOutbreakModalOpen}
+          onClose={() => setIsOutbreakModalOpen(false)}
+          onSave={handleAddOutbreak}
+       />
 
       {/* --- HEADER --- */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
-              <Activity className="text-white w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-800 leading-tight tracking-tight">ระบบรายงานผลการปฏิบัติงานสัตวแพทย์</h1>
-              <p className="text-xs font-medium text-slate-500">Veterinary & Animal Control Dashboard</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={handleToggleViewMode}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all shadow-sm font-bold text-sm
-                ${isReadOnly 
-                  ? 'bg-slate-800 text-white hover:bg-slate-700 border border-slate-700' // Style ตอนเป็น View Mode (ปุ่ม Admin)
-                  : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100' // Style ตอนเป็น Admin Mode (ปุ่ม View)
-                }`}
-              title={isReadOnly ? "คลิกเพื่อกลับสู่โหมดแก้ไขข้อมูล" : "คลิกเพื่อดูมุมมอง Dashboard แบบผู้ใช้งานทั่วไป"}
-            >
-              {isReadOnly ? <Unlock className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              <span className="hidden sm:inline">
-                {isReadOnly ? 'กลับสู่โหมดแอดมิน' : 'ดู Dashboard'}
-              </span>
-            </button>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
+              <Activity className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold text-slate-800 leading-tight tracking-tight">ระบบรายงานผลการปฏิบัติงานสัตวแพทย์</h1>
+              <p className="text-xs font-medium text-slate-500">Veterinary & Animal Control Dashboard</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            
+            {/* ✅ แก้ไขตรงนี้: แสดงปุ่มเฉพาะตอนที่ไม่ได้อยู่โหมด View (isReadOnly = false) */}
+            {!isReadOnly && (
+              <button 
+                onClick={handleToggleViewMode}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full transition-all shadow-sm font-bold text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100"
+                title="คลิกเพื่อดูมุมมอง Dashboard แบบผู้ใช้งานทั่วไป"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  ดู Dashboard
+                </span>
+              </button>
+            )}
 
-            {/* --- [ส่วนที่แก้ไข] : ครอบปุ่ม Action ทั้งหมดด้วยการเช็ค !isReadOnly --- */}
-            {!isReadOnly && (
-              <>
-                <button 
-                  onClick={handleGenerateMockData}
-                  className="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 border border-purple-200 text-purple-700 text-sm font-bold px-4 py-2.5 rounded-full transition-all shadow-sm"
-                >
-                  <Zap className="w-4 h-4" />
-                  <span className="hidden sm:inline">จำลอง 100 เคส</span>
-                </button>
+            {/* --- ปุ่ม Action อื่นๆ จะถูกซ่อนด้วย !isReadOnly อยู่แล้วตาม Logic เดิม --- */}
+            {!isReadOnly && (
+              <>
+                <button 
+                  onClick={handleGenerateMockData}
+                  className="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 border border-purple-200 text-purple-700 text-sm font-bold px-4 py-2.5 rounded-full transition-all shadow-sm"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span className="hidden sm:inline">จำลอง 100 เคส</span>
+                </button>
 
-                <button 
-                  onClick={() => setIsCsvModalOpen(true)}
-                  className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-sm"
-                >
-                  <FileText className="w-4 h-4 text-slate-500" />
-                  <span className="hidden sm:inline">จัดการข้อมูล CSV</span>
-                </button>
+                <button 
+                  onClick={() => setIsCsvModalOpen(true)}
+                  className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-sm"
+                >
+                  <FileText className="w-4 h-4 text-slate-500" />
+                  <span className="hidden sm:inline">จัดการข้อมูล CSV</span>
+                </button>
 
-                <button 
-                  onClick={openAddModal}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-md hover:shadow-lg"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">บันทึกผลงานใหม่</span>
-                </button>
-              </>
-            )}
+                {/* ปุ่มแจ้งโรคระบาด */}
+                <button 
+                    onClick={() => setIsOutbreakModalOpen(true)}
+                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-md hover:shadow-lg animate-pulse"
+                >
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="hidden sm:inline">แจ้งจุดโรคระบาด</span>
+                </button>
 
-            {/* (Optional) แสดงป้ายบอกว่าเป็น View Mode */}
-            {isReadOnly && (
-               <span className="px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full border border-slate-200">
-                 View Only Mode
-               </span>
-            )}
-          </div>
-        </div>
-      </header>
+                <button 
+                  onClick={openAddModal}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-md hover:shadow-lg"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">บันทึกผลงานใหม่</span>
+                </button>
+              </>
+            )}
+
+            {/* (Optional) แสดงป้ายบอกว่าเป็น View Mode (ยังคงไว้เพื่อให้รู้ว่าอยู่โหมดไหน) */}
+            {isReadOnly && (
+               <span className="px-3 py-1 bg-slate-100 text-slate-500 text-xs rounded-full border border-slate-200 flex items-center gap-1">
+                 <Lock className="w-3 h-3" /> View Only Mode
+               </span>
+            )}
+          </div>
+        </div>
+      </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
@@ -2064,7 +2245,6 @@ const rankingDistrictStats = useMemo(() => {
           </div>
         </div>
 
-        {/* --- [แก้ไข] RANKING ROW (เพิ่มฟิลเตอร์ Year/Month) --- */}
 {/* --- [แก้ไข] RANKING ROW (Layout: Side-by-Side) --- */}
 <div className="space-y-4 mt-8">
   
@@ -2219,6 +2399,70 @@ const rankingDistrictStats = useMemo(() => {
   </div>
 </div>
 
+        {/* ✅ [เพิ่มใหม่] RABIES DASHBOARD SECTION */}
+        {outbreakStats.total > 0 && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4">
+            
+            {/* Card 1: ยอดรวมผู้ป่วย/จุดระบาด */}
+            <div className="md:col-span-4 lg:col-span-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg shadow-red-200 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+               {/* ตกแต่งพื้นหลัง */}
+               <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+               <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/10 rounded-full blur-xl"></div>
+               
+               <div className="relative z-10">
+                 <div className="flex items-center gap-2 mb-1 opacity-90">
+                   <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                     <Siren className="w-5 h-5 animate-pulse text-white" />
+                   </div>
+                   <span className="font-bold text-sm tracking-wide">สถานการณ์ระบาด</span>
+                 </div>
+                 <h3 className="text-5xl font-extrabold mt-2 tracking-tight drop-shadow-sm">{outbreakStats.total}</h3>
+                 <p className="text-sm font-medium opacity-90 mt-1">จุดที่พบเชื้อในปัจจุบัน</p>
+               </div>
+
+               <div className="relative z-10 mt-4">
+                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold border border-white/10">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-200 animate-pulse"></span>
+                    Update Real-time
+                 </span>
+               </div>
+            </div>
+
+            {/* Chart: 5 อันดับเขตที่มีการระบาด */}
+            <div className="md:col-span-8 lg:col-span-9 bg-white border border-red-100 rounded-xl p-6 shadow-sm flex flex-col">
+               <div className="flex items-center justify-between mb-4">
+                 <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                   <div className="w-1.5 h-6 bg-red-500 rounded-full"></div>
+                   5 เขตที่พบการระบาดสูงสุด (Top Risk Districts)
+                 </h4>
+               </div>
+               
+               <div className="flex-1 min-h-[120px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart layout="vertical" data={outbreakStats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={24}>
+                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#fee2e2"/>
+                     <XAxis type="number" hide />
+                     <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={110} 
+                        tick={{fontSize: 12, fontWeight: 600, fill: '#475569'}} 
+                        axisLine={false} 
+                        tickLine={false} 
+                     />
+                     <RechartsTooltip 
+                        cursor={{fill: '#fef2f2'}} 
+                        contentStyle={{borderRadius: '8px', border: '1px solid #fecaca', boxShadow: '0 4px 6px -1px rgb(220 38 38 / 0.1)'}}
+                     />
+                     <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} name="จำนวนจุดที่พบ">
+                     </Bar>
+                   </BarChart>
+                 </ResponsiveContainer>
+               </div>
+            </div>
+          </div>
+        )}
+
        {/* --- MAP SECTION (ย้ายมาไว้ล่างสุด เต็มจอ) --- */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[32rem] flex flex-col hover:border-green-300 transition-colors mt-8 relative z-0">
             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -2228,7 +2472,11 @@ const rankingDistrictStats = useMemo(() => {
               แผนที่แสดงความหนาแน่นกิจกรรม (Geographic Distribution)
             </h2>
             <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 relative shadow-inner bg-slate-50 isolate">
-              <LeafletMap data={filteredData} />
+                <LeafletMap 
+                    data={filteredData} 
+                    outbreaks={outbreakData} 
+                    onDeleteOutbreak={handleDeleteOutbreak} 
+                />
               
               {/* Legend Overlay: ย้ายมาซ้ายล่าง (left-4) เพื่อไม่ให้บัง Copyright แผนที่ด้านขวา */}
               <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md p-3 rounded-lg shadow-lg border border-slate-100 text-xs space-y-2 z-[400] min-w-[160px]">
@@ -2239,7 +2487,7 @@ const rankingDistrictStats = useMemo(() => {
                   <div className="space-y-1.5">
                     <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 shadow-sm shrink-0"></span>หน่วยผู้ว่า</div>
                     <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 mr-2 shadow-sm shrink-0"></span>หน่วยสัตวแพทย์</div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-green-500 mr-2 shadow-sm shrink-0"></span>หน่วยวัคซีนฯ</div>
+                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-green-500 mr-2 shadow-sm shrink-0"></span>หน่วยวัคซีน + ไมโครชิป</div>
                     <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 mr-2 shadow-sm shrink-0"></span>หน่วยกรงแมว</div>
                   </div>
                 </div>
@@ -2269,9 +2517,18 @@ const rankingDistrictStats = useMemo(() => {
                     <div className="flex items-center justify-between gap-3">
                       <span className="flex items-center text-purple-600 font-medium">
                         <Database className="w-3 h-3 mr-1.5"/>ไมโครชิป
-                      </span>
-                      <span className="font-bold text-slate-700">{totals.microchip.toLocaleString()}</span>
-                    </div>
+                        </span>
+                        <span className="font-bold text-slate-700">{totals.microchip.toLocaleString()}</span>
+                    </div>
+                    {/* [เพิ่มใหม่] เพิ่มคำอธิบาย Legend สำหรับจุดระบาด */}
+                    <div className="..."> 
+                        {/* ต่อท้ายจาก Legend เดิม */}
+                        <div className="pt-2 border-t border-slate-200 mt-2">
+                            <div className="flex items-center gap-2 text-red-600 font-bold">
+                                <AlertTriangle className="w-4 h-4" /> จุดพบเชื้อพิษสุนัขบ้า
+                            </div>
+                        </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -57,6 +57,53 @@ app.post('/api/reports', async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+
+const outbreakSchema = new mongoose.Schema({
+  date: { type: String, required: true },
+  location: String,
+  district: String,
+  lat: { type: Number, required: true },
+  long: { type: Number, required: true },
+}, { timestamps: true });
+
+const Outbreak = mongoose.model('Outbreak', outbreakSchema);
+
+// --- [เพิ่มใหม่] API สำหรับ Outbreak (โรคพิษสุนัขบ้า) ---
+app.get('/api/outbreaks', async (req, res) => {
+  try {
+    const outbreaks = await Outbreak.find().sort({ date: -1 });
+    res.json(outbreaks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/outbreaks', async (req, res) => {
+  try {
+    const newOutbreak = new Outbreak(req.body);
+    const savedOutbreak = await newOutbreak.save();
+    res.status(201).json(savedOutbreak);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.delete('/api/outbreaks/:id', async (req, res) => {
+  try {
+    // เก็บค่าที่ลบใส่ตัวแปรไว้เช็ค
+    const deletedOutbreak = await Outbreak.findByIdAndDelete(req.params.id);
+    
+    // ถ้าหาไม่เจอ (เป็น null) ให้ส่ง 404 กลับไป
+    if (!deletedOutbreak) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
+    }
+
+    res.json({ message: "ลบข้อมูลเรียบร้อย", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // API สำหรับลบข้อมูลรายรายการ
 app.delete('/api/reports/:id', async (req, res) => {
   try {
