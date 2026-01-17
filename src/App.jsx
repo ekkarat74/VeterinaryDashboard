@@ -1,7 +1,3 @@
-เพิ่มปุ่มกดบันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า หน่อย ข้อมูลมี วันที่ สถานที่ Latitude-Longitude เขต 
-
-เอาเฉพาะส่วนที่เพิ่มและแก้ไข
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
