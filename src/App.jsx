@@ -986,8 +986,11 @@ export default function VeterinaryDashboard() {
     const [reportData, setReportData] = useState([]);
     const [viewImage, setViewImage] = useState(null);
       
-    // URL ของ Backend (ต้องตรงกับที่ตั้งไว้ใน server.js)
-    const API_URL = 'http://localhost:5000/api/reports';
+    // กำหนด Base URL: ถ้ามีตัวแปร VITE_API_URL (ตอนขึ้น Host) ให้ใช้ตัวนั้น ถ้าไม่มีให้ใช้ localhost
+    const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+    // ใช้ BASE_URL เชื่อมกับ Endpoint
+    const API_URL = `${BASE_URL}/api/reports`;
 
     const [editingItem, setEditingItem] = useState(null);
 
