@@ -194,6 +194,11 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
             0% { transform: scale(0.8); opacity: 1; }
             100% { transform: scale(1.5); opacity: 0; }
             }
+            @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+                }
+            }
         `}</style>
 
         <div className="flex-1 w-full h-full rounded-xl overflow-hidden">
@@ -281,70 +286,77 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                 })}
             </MarkerClusterGroup>
 
-            {outbreaks.map((item, index) => {
-                // แปลงค่าเป็นตัวเลขเพื่อให้แน่ใจว่า Leaflet อ่านค่าได้
-                const lat = parseFloat(item.lat);
-                const long = parseFloat(item.long);
+            // ภายใน outbreaks.map ภายใน LeafletMap
+{outbreaks.map((item, index) => {
+    const lat = parseFloat(item.lat);
+    const long = parseFloat(item.long);
+    if (!lat || !long) return null;
 
-                // เช็คว่ามีค่าพิกัดที่ถูกต้องหรือไม่ (ถ้าเป็น NaN หรือ 0 จะไม่แสดง)
-                if (!lat || !long) return null;
+    return (
+        <React.Fragment key={item._id || `outbreak-${index}`}>
+            {/* ✅ เพิ่มใหม่: วงกลมระยะ 1 กม. (พื้นที่ควบคุมสีแดงเข้ม) */}
+            <Circle
+                center={[lat, long]}
+                radius={1000}
+                pathOptions={{ 
+                    color: '#991b1b', // Red-800
+                    fillColor: '#991b1b', 
+                    fillOpacity: 0.3, 
+                    weight: 2,
+                    dashArray: '2, 5'
+                }}
+            />
 
-                return (
-                    <React.Fragment key={item._id || `outbreak-${index}`}>
-                        {/* วงกลมระยะ 5 กม. */}
-                        <Circle
-                            center={[lat, long]} // ใช้ตัวแปรที่แปลงแล้ว
-                            radius={5000}
-                            pathOptions={{ 
-                                color: '#f97316', 
-                                fillColor: '#f97316', 
-                                fillOpacity: 0.1, 
-                                weight: 1, 
-                                dashArray: '5, 10' 
-                            }}
-                        />
+            {/* วงกลมระยะ 3 กม. (เดิม) */}
+            <Circle
+                center={[lat, long]}
+                radius={3000}
+                pathOptions={{ 
+                    color: '#ef4444', 
+                    fillColor: '#ef4444', 
+                    fillOpacity: 0.15, 
+                    weight: 2 
+                }}
+            />
 
-                        {/* วงกลมระยะ 3 กม. */}
-                        <Circle
-                            center={[lat, long]} // ใช้ตัวแปรที่แปลงแล้ว
-                            radius={3000}
-                            pathOptions={{ 
-                                color: '#ef4444', 
-                                fillColor: '#ef4444', 
-                                fillOpacity: 0.2, 
-                                weight: 2 
-                            }}
-                        />
+            {/* วงกลมระยะ 5 กม. (เดิม) */}
+            <Circle
+                center={[lat, long]}
+                radius={5000}
+                pathOptions={{ 
+                    color: '#f97316', 
+                    fillColor: '#f97316', 
+                    fillOpacity: 0.05, 
+                    weight: 1, 
+                    dashArray: '5, 10' 
+                }}
+            />
 
-                        {/* Marker จุดเกิดเหตุ */}
-                        <Marker
-                            position={[lat, long]} // ใช้ตัวแปรที่แปลงแล้ว
-                            icon={createDangerIcon()}
-                        >
-                            <Popup>
-                                <div className="font-sans min-w-[200px] p-1 text-center">
-                                    <div className="bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs inline-block mb-2 border border-red-200">
-                                        🚨 พบเชื้อพิษสุนัขบ้า
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 text-sm">{item.location}</h3>
-                                    <p className="text-xs text-slate-500 mb-2">เขต{item.district}</p>
-                                    <p className="text-[10px] text-slate-400">วันที่พบ: {item.date}</p>
-                                    <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[10px]">
-                                        <div className="text-red-500 font-bold bg-red-50 rounded px-1">3 กม.<br/>ควบคุมโรค</div>
-                                        <div className="text-orange-500 font-bold bg-orange-50 rounded px-1">5 กม.<br/>เฝ้าระวัง</div>
-                                    </div>
-                                    <button 
-                                        onClick={() => onDeleteOutbreak(item._id)}
-                                        className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors"
-                                    >
-                                    <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
-                                    </button>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    </React.Fragment>
-                );
-            })}
+            <Marker position={[lat, long]} icon={createDangerIcon()}>
+                <Popup>
+                    <div className="font-sans min-w-[200px] p-1 text-center">
+                        <div className="bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs inline-block mb-2 border border-red-200">
+                            🚨 พบเชื้อพิษสุนัขบ้า
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-sm">{item.location}</h3>
+                        <p className="text-xs text-slate-500 mb-2">เขต{item.district}</p>
+                        
+                        {/* ✅ อัปเดตตารางระยะใน Popup */}
+                        <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-3 gap-1 text-[9px]">
+                            <div className="text-red-900 font-bold bg-red-100 rounded px-1 py-0.5">1 กม.<br/>รัศมีเข้มงวด</div>
+                            <div className="text-red-600 font-bold bg-red-50 rounded px-1 py-0.5">3 กม.<br/>ควบคุมโรค</div>
+                            <div className="text-orange-500 font-bold bg-orange-50 rounded px-1 py-0.5">5 กม.<br/>เฝ้าระวัง</div>
+                        </div>
+                        
+                        <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors">
+                            <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
+                        </button>
+                    </div>
+                </Popup>
+            </Marker>
+        </React.Fragment>
+    );
+})}
         </MapContainer>
       </div>
     </div>
@@ -368,7 +380,6 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
             >
                 <X className="w-6 h-6" />
             </button>
-        
             {/* รูปภาพ */}
             <img 
                 src={imageUrl} 
@@ -645,105 +656,105 @@ return (
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-        {/* Section 1: General Info */}
-        <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                {/* แถว 1: วันที่, หน่วย, สถานที่ */}
-                <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
-                    <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                        value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                </div>
-                <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
-                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
-                        {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                </div>
-                <div className="md:col-span-6">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
-                    <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                </div>
-
-                {/* แถว 2: เขต, แขวง, พิกัด */}
-                <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
-                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
-                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                </div>
-                <div className="md:col-span-3">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
-                    <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
-                </div>
-
-                <div className="md:col-span-6">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
-                        <Navigation className="w-3 h-3 text-blue-500" /> 
-                            พิกัดภูมิศาสตร์ (Latitude, Longitude)
-                    </label>
-                    <div className="flex gap-2">
-                        <div className="relative flex-1">
-                            <input type="text" placeholder="เช่น 13.609673, 100.465504" 
-                                className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value.includes(',')) {
-                                        const [lat, lng] = value.split(',').map(s => s.trim());
-                                        setFormData({ ...formData, lat, long: lng });
-                                    } else {
-                                        setFormData({ ...formData, lat: value });
-                                    }
-                                }} 
-                            />
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        </div>
+                {/* Section 1: General Info */}
+                <div className="space-y-4">
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* แถว 1: วันที่, หน่วย, สถานที่ */}
+                    <div className="md:col-span-3">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
+                        <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                            value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
-                </div>
+                    <div className="md:col-span-3">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
+                        <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
+                            {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                    </div>
+                    <div className="md:col-span-6">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
+                        <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                    </div>
 
-                {/* --- อัปโหลดรูปภาพ --- */}
-                <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
-                    <label className="block text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
-                        <ImageIcon className="w-3 h-3 text-blue-500" /> 
-                            รูปภาพประกอบ (Image Attachment)
-                    </label>
-                    {!imagePreview ? (
-                        <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-32 flex flex-col items-center justify-center cursor-pointer">
-                            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                            <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                                <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
+                    {/* แถว 2: เขต, แขวง, พิกัด */}
+                    <div className="md:col-span-3">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
+                        <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
+                            {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                    <div className="md:col-span-3">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
+                        <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
+                    </div>
+
+                    <div className="md:col-span-6">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
+                            <Navigation className="w-3 h-3 text-blue-500" /> 
+                                พิกัดภูมิศาสตร์ (Latitude, Longitude)
+                        </label>
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <input type="text" placeholder="เช่น 13.609673, 100.465504" 
+                                    className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                    value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value.includes(',')) {
+                                            const [lat, lng] = value.split(',').map(s => s.trim());
+                                            setFormData({ ...formData, lat, long: lng });
+                                        } else {
+                                            setFormData({ ...formData, lat: value });
+                                        }
+                                    }} 
+                                />
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             </div>
-                            <p className="text-xs text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                            <p className="text-[10px] text-slate-400 mt-1">รองรับไฟล์ JPG, PNG</p>
                         </div>
-                    ) : (
-                        <div className="relative w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
-                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-700 p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
-                                    <Edit className="w-3 h-3" /> เปลี่ยนรูป
-                                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden"/>
-                                </label>
-                                <button type="button" onClick={handleRemoveImage} className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
-                                    <Trash2 className="w-3 h-3" /> ลบ
-                                </button>
+                        <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
+                    </div>
+
+                    {/* --- อัปโหลดรูปภาพ --- */}
+                    <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
+                        <label className="block text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3 text-blue-500" /> 
+                                รูปภาพประกอบ (Image Attachment)
+                        </label>
+                        {!imagePreview ? (
+                            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-32 flex flex-col items-center justify-center cursor-pointer">
+                                <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                                <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                                    <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                                <p className="text-[10px] text-slate-400 mt-1">รองรับไฟล์ JPG, PNG</p>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="relative w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
+                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-700 p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
+                                        <Edit className="w-3 h-3" /> เปลี่ยนรูป
+                                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden"/>
+                                    </label>
+                                    <button type="button" onClick={handleRemoveImage} className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
+                                        <Trash2 className="w-3 h-3" /> ลบ
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        {/* Section 2: Quantitative Data */}
+            {/* Section 2: Quantitative Data */}
             <div className="space-y-4">
                 <div className="flex justify-between items-center border-b pb-2">
                     <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -788,19 +799,35 @@ return (
                                 </div>
                             </div>
 
-                            {/* Row 3: Register & Microchip */}
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                                        value={breakdown.dog.register} onChange={(e) => handleBreakdownChange('dog', 'register', e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                                        value={breakdown.dog.microchip} onChange={(e) => handleBreakdownChange('dog', 'microchip', e.target.value)} />
-                                </div>
-                            </div>
+                           {/* --- ส่วนของสุนัข (Dog) --- */}
+<div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
+    <div>
+        <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
+        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
+            value={breakdown.dog.register} onChange={(e) => handleBreakdownChange('dog', 'register', e.target.value)} />
+    </div>
+    {/* ✅ เพิ่มช่องฝังไมโครชิปสุนัข */}
+    <div>
+        <label className="text-[10px] text-slate-500 font-semibold uppercase text-purple-600">ฝังไมโครชิป</label>
+        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-purple-400 outline-none text-center"
+            value={breakdown.dog.microchip} onChange={(e) => handleBreakdownChange('dog', 'microchip', e.target.value)} />
+    </div>
+</div>
+
+{/* --- ส่วนของแมว (Cat) --- */}
+<div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
+    <div>
+        <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
+        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
+            value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
+    </div>
+    {/* ✅ เพิ่มช่องฝังไมโครชิปแมว */}
+    <div>
+        <label className="text-[10px] text-slate-500 font-semibold uppercase text-purple-600">ฝังไมโครชิป</label>
+        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-purple-400 outline-none text-center"
+            value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
+    </div>
+</div>
                         </div>
                     </div>
 
@@ -901,84 +928,72 @@ return (
     </div>
 </div>
 
-          {/* Action Button */}
-          <div className="bg-white border-t border-slate-200 p-6 shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-base">
-              <Save className="w-5 h-5" />
-              {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูลเข้าระบบ'}
-            </button>
-          </div>
-        </form>
-      </div>
+            {/* Action Button */}
+            <div className="bg-white border-t border-slate-200 p-6 shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-base">
+                <Save className="w-5 h-5" />
+                {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูลเข้าระบบ'}
+                </button>
+            </div>
+        </form>
+    </div>
     </div>
   );
 };
 
 // --- NEW COMPONENT: CSV ACTION MODAL ---
 const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
-  if (!isOpen) return null;
+    if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 relative animate-in zoom-in-95 duration-200">
+    return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 relative animate-in zoom-in-95 duration-200">
         
-        {/* Close Button */}
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+            {/* Close Button */}
+            <button onClick={onClose} className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+            </button>
 
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <FileText className="w-6 h-6 text-blue-600" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-800">จัดการข้อมูล CSV</h3>
-          <p className="text-xs text-slate-500">เลือกดำเนินการกับไฟล์ข้อมูล</p>
-        </div>
+            <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">จัดการข้อมูล CSV</h3>
+                <p className="text-xs text-slate-500">เลือกดำเนินการกับไฟล์ข้อมูล</p>
+            </div>
 
-        <div className="space-y-3">
-          {/* Import Button */}
-          <div className="relative w-full group">
-            <button className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold rounded-xl transition-all">
-              <Upload className="w-5 h-5" />
-              <span>นำเข้าไฟล์ (Import)</span>
-            </button>
-            {/* Hidden Input Overlay */}
-            <input 
-              type="file" 
-              accept=".csv" 
-              onChange={(e) => {
-                onFileChange(e);
-                onClose(); // ปิด Modal เมื่อเลือกไฟล์เสร็จ
-              }}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              title="คลิกเพื่อเลือกไฟล์ CSV"
-            />
-          </div>
+            <div className="space-y-3">
+                {/* Import Button */}
+                <div className="relative w-full group">
+                    <button className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold rounded-xl transition-all">
+                        <Upload className="w-5 h-5" />
+                        <span>นำเข้าไฟล์ (Import)</span>
+                    </button>
+                    {/* Hidden Input Overlay */}
+                    <input type="file" accept=".csv" onChange={(e) => { onFileChange(e); onClose(); // ปิด Modal เมื่อเลือกไฟล์เสร็จ
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    title="คลิกเพื่อเลือกไฟล์ CSV"
+                    />
+                </div>
 
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink-0 mx-4 text-xs text-slate-400">หรือ</span>
-            <div className="flex-grow border-t border-slate-200"></div>
-          </div>
+                <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-slate-200"></div>
+                        <span className="flex-shrink-0 mx-4 text-xs text-slate-400">หรือ</span>
+                        <div className="flex-grow border-t border-slate-200"></div>
+                    </div>
 
-          {/* Export Button */}
-          <button 
-            onClick={() => {
-              onExport();
-              onClose();
-            }}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-slate-100 hover:bg-green-500 hover:text-white text-slate-700 font-bold rounded-xl transition-all shadow-sm hover:shadow-md"
-          >
-            <Download className="w-5 h-5" />
-            <span>ส่งออกไฟล์ (Export)</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+                    {/* Export Button */}
+                    <button onClick={() => {onExport(); onClose();}}
+                        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-slate-100 hover:bg-green-500 hover:text-white text-slate-700 font-bold rounded-xl transition-all shadow-sm hover:shadow-md"
+                    >
+                        <Download className="w-5 h-5" />
+                        <span>ส่งออกไฟล์ (Export)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default function VeterinaryDashboard() {
@@ -1026,28 +1041,29 @@ export default function VeterinaryDashboard() {
         });
     }, [reportData, rankingYear, rankingMonth]);
 
-    const rankingUnitStats = useMemo(() => {
+    // ภายใน VeterinaryDashboard
+const rankingUnitStats = useMemo(() => {
     const grouped = rankingFilteredData.reduce((acc, curr) => {
-    if (!acc[curr.unit]) {
-        acc[curr.unit] = { 
-            name: curr.unit, 
-            count: 0, 
-            vaccine: 0, 
-            sterilize: 0, 
-            register: 0,
-            microchip: 0,
-            total: 0 
-        };
-    }
-    acc[curr.unit].count += 1;
-    acc[curr.unit].vaccine += curr.stats.vaccine;
-    acc[curr.unit].sterilize += curr.stats.sterilize;
-    acc[curr.unit].register += curr.stats.register;
-    acc[curr.unit].microchip += curr.stats.microchip;
-    acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
-    return acc;
-}, {});
-  
+        if (!acc[curr.unit]) {
+            acc[curr.unit] = { 
+                name: curr.unit, 
+                count: 0, 
+                vaccine: 0, 
+                sterilize: 0, 
+                register: 0,   // ✅ เพิ่มใหม่
+                microchip: 0,  // ✅ เพิ่มใหม่
+                total: 0 
+            };
+        }
+        acc[curr.unit].count += 1;
+        acc[curr.unit].vaccine += curr.stats.vaccine;
+        acc[curr.unit].sterilize += curr.stats.sterilize;
+        acc[curr.unit].register += curr.stats.register;   // ✅ เพิ่มใหม่
+        acc[curr.unit].microchip += curr.stats.microchip; // ✅ เพิ่มใหม่
+        acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
+        return acc;
+    }, {});
+    
     return Object.values(grouped).sort((a, b) => b.total - a.total);
 }, [rankingFilteredData]);
 
@@ -1638,6 +1654,10 @@ useEffect(() => {
     });
   }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
 
+const mapDisplayData = useMemo(() => {
+    return filteredData; // ใช้ข้อมูลที่ผ่านการกรองจากตัวกรองหลักด้านบนสุด
+}, [filteredData]);
+
   // 2. Calculate Totals (KPIs)
   const totals = useMemo(() => {
     return filteredData.reduce((acc, curr) => ({
@@ -1649,28 +1669,37 @@ useEffect(() => {
   }, [filteredData]);
 
   // 3. Prepare Chart Data (Monthly Trend)
-  const trendData = useMemo(() => {
-    const grouped = filteredData.reduce((acc, curr) => {
-      const month = curr.date.substring(0, 7); 
-      if (!acc[month]) acc[month] = { 
-        name: month, 
-        vaccine: 0, 
-        sterilize: 0, 
-        register: 0, 
-        microchip: 0, 
-        total: 0 
-      };
-      
-      acc[month].vaccine += curr.stats.vaccine;
-      acc[month].sterilize += curr.stats.sterilize;
-      acc[month].register += curr.stats.register;
-      acc[month].microchip += curr.stats.microchip;
-      
-      acc[month].total += (curr.stats.vaccine + curr.stats.sterilize);
-      return acc;
-    }, {});
-    return Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
-  }, [filteredData]);
+// Prepare Chart Data (Monthly Trend)
+// 3. Prepare Chart Data (Monthly Trend - บังคับแสดง 10 แท่งล่าสุด)
+  const trendData = useMemo(() => {
+    const dataMap = filteredData.reduce((acc, curr) => {
+      const month = curr.date.substring(0, 7); // YYYY-MM
+      if (!acc[month]) acc[month] = { 
+        name: month, vaccine: 0, sterilize: 0, register: 0, microchip: 0, total: 0 
+      };
+      acc[month].vaccine += curr.stats.vaccine;
+      acc[month].sterilize += curr.stats.sterilize;
+      acc[month].register += curr.stats.register;
+      acc[month].microchip += curr.stats.microchip;
+      acc[month].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
+      return acc;
+    }, {});
+
+    // สร้างลิสต์ 10 เดือนล่าสุด (นับถอยหลังจากเดือนปัจจุบัน)
+    const last10Months = [];
+    for (let i = 9; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const monthStr = d.toISOString().substring(0, 7);
+      
+      // ถ้าใน dataMap มีข้อมูลเดือนนั้นให้ดึงมา ถ้าไม่มีให้ใส่ 0 (เพื่อให้กราฟครบ 10 แท่ง)
+      last10Months.push(dataMap[monthStr] || {
+        name: monthStr, vaccine: 0, sterilize: 0, register: 0, microchip: 0, total: 0
+      });
+    }
+
+    return last10Months;
+  }, [filteredData]);
 
   // แก้ไข: ปรับให้ unitStats return ค่าที่ครบถ้วน (มี total และ count) เพื่อใช้ในกราฟและตาราง
   const unitStats = useMemo(() => {
@@ -2077,153 +2106,148 @@ const outbreakStats = useMemo(() => {
           />
         </div>
 
-        {/* --- [เพิ่มใหม่] SUMMARY DASHBOARD SECTION --- */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <div className="bg-blue-100 p-1.5 rounded-md">
-                   <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                สรุปผลการดำเนินงานรายเดือน (Monthly Performance)
-              </h2>
-            </div>
-           
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              
-              {/* 1. สัดส่วนสัตว์ (Species) */}
-              <div className="flex flex-col items-center justify-center p-2">
-                 <h3 className="text-sm font-semibold text-slate-500 mb-4">สัดส่วนสัตว์ที่ให้บริการ (Species)</h3>
-                 <div className="h-48 w-full relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <PieChart>
-                          <Pie
-                             data={detailedStats.speciesData}
-                             cx="50%" cy="50%"
-                             innerRadius={60}
-                             outerRadius={80}
-                             paddingAngle={2}
-                             dataKey="value"
-                             labelLine={false}
-                          >
-                             {detailedStats.speciesData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />
-                             ))}
-                          </Pie>
-                          <RechartsTooltip contentStyle={{borderRadius: '8px'}} />
-                          <Legend verticalAlign="bottom" height={36} iconType="circle"/>
-                       </PieChart>
-                    </ResponsiveContainer>
-                    {/* ตัวเลขตรงกลาง Donut Chart */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                       <span className="text-2xl font-bold text-slate-700">
-                          {detailedStats.speciesData.reduce((a, b) => a + b.value, 0).toLocaleString()}
-                       </span>
-                       <span className="block text-[10px] text-slate-400">ตัว</span>
-                    </div>
-                 </div>
-              </div>
+{/* --- [ปรับปรุง] SUMMARY DASHBOARD SECTION (เหลือ 2 กราฟกึ่งกลาง) --- */}
+<div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-all duration-300">
+    <div className="flex justify-between items-center mb-10">
+        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <div className="bg-blue-100 p-1.5 rounded-md">
+                <Activity className="w-5 h-5 text-blue-600" />
+            </div>
+            สรุปภาพรวมสัตว์ที่ได้รับบริการ
+        </h2>
+    </div>
 
-              {/* 2. แยกเพศการทำหมัน (Sex) */}
-              <div className="flex flex-col items-center justify-center p-2 border-t md:border-t-0 md:border-l border-slate-100">
-                 <h3 className="text-sm font-semibold text-slate-500 mb-4">แยกเพศการทำหมัน (Sex)</h3>
-                 <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <PieChart>
-                          <Pie
-                             data={detailedStats.sexData}
-                             cx="50%" cy="50%"
-                             outerRadius={80}
-                             dataKey="value"
-                             labelLine={false}
-                             label={renderCustomizedLabel} // ใช้ Custom Label
-                          >
-                             {detailedStats.sexData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />
-                             ))}
-                          </Pie>
-                          <RechartsTooltip contentStyle={{borderRadius: '8px'}} />
-                          <Legend verticalAlign="bottom" height={36} iconType="circle"/>
-                       </PieChart>
-                    </ResponsiveContainer>
-                 </div>
-              </div>
+    {/* ปรับ Grid เป็น 2 คอลัมน์กึ่งกลาง */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center justify-items-center max-w-4xl mx-auto">
+        
+        {/* 1. สัดส่วนสัตว์ (Species) */}
+        <div className="flex flex-col items-center w-full">
+            <h3 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-[0.2em] text-center">สัดส่วนสัตว์ (Species)</h3>
+            <div className="h-56 w-full relative flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={detailedStats.speciesData}
+                            cx="50%" cy="50%"
+                            innerRadius={70}
+                            outerRadius={95}
+                            paddingAngle={8}
+                            dataKey="value"
+                        >
+                            {detailedStats.speciesData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={3} />
+                            ))}
+                        </Pie>
+                        <RechartsTooltip 
+                            contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)'}} 
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+                {/* ตัวเลขรวมตรงกลาง */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-4xl font-black text-slate-700">
+                        {detailedStats.speciesData.reduce((a, b) => a + b.value, 0).toLocaleString()}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ตัวรวม</span>
+                </div>
+            </div>
+            {/* Custom Legend */}
+            <div className="mt-6 flex flex-wrap justify-center gap-5">
+                {detailedStats.speciesData.map(item => (
+                    <div key={item.name} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{backgroundColor: item.color}}></div>
+                        <span className="text-[11px] font-bold text-slate-600">{item.name}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
 
-              {/* 3. สถานะสัตว์ (Ownership Status) - จุดที่ฟอนต์ซ้อนกันหนักสุด */}
-              <div className="flex flex-col items-center justify-center p-2 border-t md:border-t-0 md:border-l border-slate-100">
-                 <h3 className="text-sm font-semibold text-slate-500 mb-4">สถานะสัตว์ (Ownership Status)</h3>
-                 <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                       <PieChart>
-                          <Pie
-                             data={detailedStats.statusData}
-                             cx="50%" cy="50%"
-                             outerRadius={80}
-                             dataKey="value"
-                             labelLine={false}
-                             label={renderCustomizedLabel} // ใช้ Custom Label แก้ปัญหาฟอนต์ซ้อน
-                          >
-                             {detailedStats.statusData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={2} />
-                             ))}
-                          </Pie>
-                          <RechartsTooltip contentStyle={{borderRadius: '8px'}} />
-                          <Legend verticalAlign="bottom" height={36} iconType="circle"/>
-                       </PieChart>
-                    </ResponsiveContainer>
-                 </div>
-              </div>
-            </div>
-          </div>
+        {/* 2. แยกเพศการทำหมัน (Sex) */}
+        <div className="flex flex-col items-center w-full md:border-l border-slate-100 md:pl-12">
+            <h3 className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-[0.2em] text-center">เพศการทำหมัน (Sex)</h3>
+            <div className="h-56 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={detailedStats.sexData}
+                            cx="50%" cy="50%"
+                            outerRadius={95}
+                            dataKey="value"
+                            labelLine={false}
+                            label={renderCustomizedLabel}
+                        >
+                            {detailedStats.sexData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="white" strokeWidth={3} />
+                            ))}
+                        </Pie>
+                        <RechartsTooltip />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+            {/* Custom Legend */}
+            <div className="mt-6 flex justify-center gap-5">
+                {detailedStats.sexData.map(item => (
+                    <div key={item.name} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{backgroundColor: item.color}}></div>
+                        <span className="text-[11px] font-bold text-slate-600">{item.name}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+    </div>
+</div>
 
         {/* --- MAIN CHARTS ROW --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Trend Chart (กราฟแนวโน้มรายเดือน) */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <div className="bg-blue-100 p-1.5 rounded-md">
-                   <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                แนวโน้มผลการดำเนินงานรายเดือน
-              </h2>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                
-                <ComposedChart data={trendData}>
-                  <defs>
-                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis yAxisId="left" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                  />
-                  <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px' }} />
-                  
-                  <Area yAxisId="left" type="monotone" dataKey="total" name="ยอดรวมกิจกรรม" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} />
-                  <Bar yAxisId="left" dataKey="vaccine" name="💉 วัคซีน" barSize={10} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="sterilize" name="✂️ ทำหมัน" barSize={10} fill="#f97316" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน (ขวา)" stroke="#10b981" strokeWidth={2} dot={{r: 4}} />
-
-                  {/* แถบซูมข้อมูล (Brush) */}
-                  <Brush 
-                    dataKey="name" 
-                    height={30} 
-                    stroke="#6366f1" 
-                    fill="#f1f5f9"
-                    travellerWidth={10}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Trend Chart (กราฟแนวโน้มรายเดือน) */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <div className="bg-blue-100 p-1.5 rounded-md">
+                   <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                แนวโน้มผลการดำเนินงานรายเดือน (10 เดือนล่าสุด)
+              </h2>
+            </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{fontSize: 10, fill: '#64748b'}} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    dy={10}
+                  />
+                  <YAxis yAxisId="left" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                  />
+                  <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} />
+                  
+                  {/* พื้นหลัง Gradient เชื่อมโยงแนวโน้ม */}
+                  <Area yAxisId="left" type="monotone" dataKey="total" name="ยอดรวมกิจกรรม" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} />
+                  
+                  {/* ปรับ barSize ให้เล็กลงเพื่อให้ 10 แท่งไม่เบียดกันเกินไป */}
+                  <Bar yAxisId="left" dataKey="vaccine" name="💉 วัคซีน" barSize={8} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="sterilize" name="✂️ ทำหมัน" barSize={8} fill="#f97316" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="microchip" name="🆔 ไมโครชิป" barSize={8} fill="#a855f7" radius={[4, 4, 0, 0]} />
+                  
+                  <Line yAxisId="right" type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน (ขวา)" stroke="#10b981" strokeWidth={2} dot={{r: 3}} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
           {/* Unit Comparison Chart (กราฟแท่งเปรียบเทียบหน่วย) */}
           <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-purple-300 transition-colors">
@@ -2248,158 +2272,156 @@ const outbreakStats = useMemo(() => {
           </div>
         </div>
 
-{/* --- [แก้ไข] RANKING ROW (Layout: Side-by-Side) --- */}
-<div className="space-y-4 mt-8">
-  
-  {/* [คงเดิม] แถบควบคุมฟิลเตอร์สำหรับส่วน Ranking */}
-  <div className="bg-white px-5 py-3 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-    <div className="flex items-center gap-2 font-bold text-slate-700">
-        <div className="bg-yellow-100 p-1.5 rounded-lg">
-           <Filter className="w-4 h-4 text-yellow-700" />
-        </div>
-        <span>ตัวกรองการจัดอันดับ (Ranking Filters)</span>
-    </div>
-    <div className="flex items-center gap-3 w-full sm:w-auto">
-        <select 
-            value={rankingYear}
-            onChange={(e) => setRankingYear(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2"
-        >
-            <option value="ทั้งหมด">ทุกปี (รวมทั้งหมด)</option>
-            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+{/* --- [SECTION] RANKING & GEOGRAPHIC DISTRIBUTION --- */}
+<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+  
+  {/* ฝั่งซ้าย: Ranking Tables (占据 5 ส่วนจาก 12) */}
+  <div className="lg:col-span-5 space-y-6 flex flex-col">
+    
+    {/* ตัวกรองการจัดอันดับแบบกะทัดรัด */}
+    <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
+      <div className="flex items-center gap-2 font-bold text-slate-700 text-sm">
+          <div className="bg-yellow-100 p-1.5 rounded-lg">
+             <Filter className="w-3.5 h-3.5 text-yellow-700" />
+          </div>
+          <span>ตัวกรองการจัดอันดับ</span>
+      </div>
+      <div className="flex items-center gap-2">
+          <select value={rankingYear} onChange={(e) => setRankingYear(e.target.value)} className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg p-2 flex-1">
+              <option value="ทั้งหมด">ทุกปี</option>
+              {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select value={rankingMonth} onChange={(e) => setRankingMonth(e.target.value)} className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg p-2 flex-1">
+              <option value="ทั้งหมด">ทุกเดือน</option>
+              {THAI_MONTHS.map((m, index) => (<option key={index} value={index + 1}>{m}</option>))}
+          </select>
+      </div>
+    </div>
 
-        <select 
-            value={rankingMonth}
-            onChange={(e) => setRankingMonth(e.target.value)}
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2"
-        >
-            <option value="ทั้งหมด">ทุกเดือน (รวมทั้งหมด)</option>
-            {THAI_MONTHS.map((m, index) => (
-                <option key={index} value={index + 1}>{m}</option>
-            ))}
-        </select>
-    </div>
-  </div>
+    {/* อันดับหน่วยงานสูงสุด (เวอร์ชันเพิ่มข้อมูลครบถ้วน) */}
+<div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[28rem] flex flex-col">
+  <h2 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
+    <div className="bg-amber-100 p-1.5 rounded-md">
+      <Activity className="w-4 h-4 text-amber-600" />
+    </div>
+    อันดับหน่วยงานสูงสุด
+  </h2>
+  <div className="flex-1 overflow-auto custom-scrollbar border border-slate-50 rounded-lg">
+    <table className="min-w-full text-left">
+      <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 shadow-sm text-[10px] uppercase font-bold">
+        <tr>
+          <th className="px-2 py-3 w-8">#</th>
+          <th className="px-2 py-3 min-w-[120px]">หน่วยงาน</th>
+          <th className="px-2 py-3 text-right text-blue-600">วัคซีน</th>
+          <th className="px-2 py-3 text-right text-orange-500">ทำหมัน</th>
+          <th className="px-2 py-3 text-right text-green-600">ลงทะเบียน</th>
+          <th className="px-2 py-3 text-right text-purple-600">ไมโครชิป</th>
+          <th className="px-2 py-3 text-right bg-slate-100 text-slate-800">รวม</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {rankingUnitStats.length > 0 ? (
+          rankingUnitStats.map((u, index) => (
+            <tr key={u.name} className="hover:bg-slate-50 transition-colors text-[11px]">
+              <td className="px-2 py-3">
+                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black ${index === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {index + 1}
+                </span>
+              </td>
+              <td className="px-2 py-3 font-bold text-slate-700">
+                <div className="truncate max-w-[140px]" title={u.name}>{u.name}</div>
+                <div className="text-[9px] text-slate-400 font-normal">{u.count} กิจกรรม</div>
+              </td>
+              <td className="px-2 py-3 text-right font-medium text-blue-700 bg-blue-50/20">{u.vaccine.toLocaleString()}</td>
+              <td className="px-2 py-3 text-right font-medium text-orange-700 bg-orange-50/20">{u.sterilize.toLocaleString()}</td>
+              <td className="px-2 py-3 text-right font-medium text-green-700 bg-green-50/20">{u.register.toLocaleString()}</td>
+              <td className="px-2 py-3 text-right font-medium text-purple-700 bg-purple-50/20">{u.microchip.toLocaleString()}</td>
+              <td className="px-2 py-3 text-right font-black text-slate-900 bg-slate-100/50">
+                {u.total.toLocaleString()}
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="7" className="px-4 py-10 text-center text-slate-400 italic">ไม่พบข้อมูลการจัดอันดับ</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
 
-  {/* [แก้ไข] Grid Container: จัดให้วางคู่กัน (grid-cols-2) */}
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-    
-    {/* 1. ตารางอันดับหน่วยงาน (Top Units) */}
-    {/* เอา lg:col-span-2 ออก เพื่อให้กลับมาขนาดครึ่งจอและวางข้างเขต */}
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-0 mb-0 flex flex-col h-[32rem]"> 
-      
-      <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
-        <div className="bg-amber-100 p-1.5 rounded-md">
-          <Activity className="w-5 h-5 text-amber-600" />
-        </div>
-        อันดับหน่วยงานสูงสุด
-      </h2>
-      
-      <div className="flex-1 overflow-auto custom-scrollbar border border-slate-100 rounded-lg relative">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-slate-50 text-slate-600 font-semibold border-b sticky top-0 z-10 shadow-sm text-[10px] uppercase">
-            <tr>
-              <th className="px-2 py-3 whitespace-nowrap bg-slate-50">#</th>
-              <th className="px-2 py-3 whitespace-nowrap bg-slate-50 min-w-[100px]">หน่วยงาน</th>
-              <th className="px-1 py-3 text-right whitespace-nowrap bg-slate-50 text-blue-600">วัคซีน</th>
-              <th className="px-1 py-3 text-right whitespace-nowrap bg-slate-50 text-orange-500">ทำหมัน</th>
-              <th className="px-1 py-3 text-right whitespace-nowrap bg-slate-50 text-green-600">ทะเบียน</th>
-              <th className="px-1 py-3 text-right whitespace-nowrap bg-slate-50 text-purple-600">ชิป</th>
-              <th className="px-2 py-3 text-right whitespace-nowrap bg-slate-100 font-bold text-slate-700">รวม</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rankingUnitStats.length > 0 ? (
-              rankingUnitStats.map((u, index) => (
-                <tr key={u.name} className="hover:bg-slate-50 transition-colors text-xs">
-                  <td className="px-2 py-3">
-                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${index === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>
-                      {index + 1}
-                    </span>
-                  </td>
-                  <td className="px-2 py-3 font-medium text-slate-700">
-                    <div className="truncate max-w-[100px]" title={u.name}>{u.name}</div>
-                    <div className="text-[9px] text-slate-400 font-normal mt-0.5">{u.count} ครั้ง</div>
-                  </td>
-                  <td className="px-1 py-3 text-right text-slate-600">{u.vaccine.toLocaleString()}</td>
-                  <td className="px-1 py-3 text-right text-slate-600">{u.sterilize.toLocaleString()}</td>
-                  <td className="px-1 py-3 text-right text-slate-600">{u.register.toLocaleString()}</td>
-                  <td className="px-1 py-3 text-right text-slate-600">{u.microchip.toLocaleString()}</td>
-                  <td className="px-2 py-3 text-right font-bold text-slate-800 bg-slate-50/30">{u.total.toLocaleString()}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูล</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    {/* 5 อันดับเขตผลงานสูงสุด */}
+    <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[22rem] flex flex-col hover:border-indigo-300 transition-colors">
+      <h2 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
+        <div className="bg-indigo-100 p-1.5 rounded-md"><CheckCircle className="w-4 h-4 text-indigo-600" /></div>
+        5 อันดับเขตสูงสุด
+      </h2>
+      <div className="flex-1 overflow-auto custom-scrollbar px-1">
+        <div className="space-y-5">
+          {rankingDistrictStats.slice(0, 5).map((d, index) => {
+            const maxTotal = rankingDistrictStats[0]?.total || 1;
+            const percentage = (d.total / maxTotal) * 100;
+            return (
+              <div key={d.name}>
+                <div className="flex justify-between items-end mb-1">
+                  <div className="text-xs font-bold text-slate-700">{index + 1}. {d.name}</div>
+                  <div className="text-xs font-black text-slate-800">{d.total.toLocaleString()}</div>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${index === 0 ? 'bg-indigo-500' : 'bg-blue-400'}`} style={{ width: `${percentage}%` }}></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  </div>
 
-    {/* 2. ตาราง 5 อันดับเขต (Top Districts) */}
-    {/* ส่วนนี้เหมือนเดิม วางอยู่ใน Grid Column ที่ 2 โดยอัตโนมัติ */}
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-[32rem] hover:border-indigo-300 transition-colors">
-      <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
-        <div className="bg-indigo-100 p-1.5 rounded-md">
-          <CheckCircle className="w-5 h-5 text-indigo-600" />
-        </div>
-        5 อันดับเขตผลงานสูงสุด
-      </h2>
-        <div className="flex-1 overflow-auto custom-scrollbar border border-slate-100 rounded-lg relative">
-          <table className="min-w-full text-sm text-left border-collapse">
-            <thead className="bg-slate-50 text-slate-500 font-semibold sticky top-0 z-10 shadow-sm text-xs">
-              <tr>
-                <th className="px-4 py-3 bg-slate-50 w-12">#</th>
-                <th className="px-4 py-3 bg-slate-50">เขต</th>
-                <th className="px-4 py-3 bg-slate-50">หน่วยงาน</th>
-                <th className="px-4 py-3 text-right bg-slate-50">รวม (ตัว)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {rankingDistrictStats.length > 0 ? (
-                rankingDistrictStats.slice(0, 5).map((d, index) => (
-                  <tr key={d.name} className={`hover:bg-blue-50/50 transition-colors group ${index < 3 ? 'font-medium' : ''}`}>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs 
-                        ${index === 0 ? 'bg-yellow-100 text-yellow-700 font-bold' : 
-                          index === 1 ? 'bg-slate-200 text-slate-700' : 
-                          index === 2 ? 'bg-orange-100 text-orange-800' : 'text-slate-400'}`}>
-                        {index + 1}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 font-medium whitespace-nowrap">
-                      {d.name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-[10px] text-slate-500 truncate max-w-[100px] bg-slate-50 px-2 py-1 rounded border border-slate-100 inline-block" title={Array.from(d.units).join(', ')}>
-                      {Array.from(d.units).join(', ')}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-blue-600 group-hover:text-blue-700">
-                      {d.total.toLocaleString()}
-                    </td>
-                  </tr>
-                  ))
-                ) : (
-              <tr>
-                <td colSpan="4" className="px-4 py-8 text-center text-slate-400 italic">ไม่พบข้อมูลตามเงื่อนไข</td>
-              </tr>
-              )}
-            </tbody>
-          </table>
-      </div>
-      <div className="mt-4 pt-2 border-t border-slate-100 text-xs text-slate-400 text-center flex justify-between items-center px-2">
-         <span>*แสดง 5 อันดับแรก</span>
-         <span>
-            {rankingYear !== 'ทั้งหมด' ? `ปี ${rankingYear}` : 'ทุกปี'} / {rankingMonth !== 'ทั้งหมด' ? THAI_MONTHS[rankingMonth-1] : 'ทุกเดือน'}
-         </span>
-      </div>
-    </div>
+  {/* ฝั่งขวา: แผนที่ขนาดใหญ่ (占据 7 ส่วนจาก 12) */}
+  <div className="lg:col-span-7 flex flex-col">
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-full min-h-[56rem] flex flex-col relative z-0">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-green-100 p-1.5 rounded-md"><MapIcon className="w-5 h-5 text-green-600" /></div>
+          Geographic Distribution (ภาพรวมพื้นที่ กทม.)
+        </h2>
+      </div>
 
-  </div>
+      <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 relative bg-slate-50 isolate">
+          <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onDeleteOutbreak={handleDeleteOutbreak} />
+          
+          {/* Legend ภายในแผนที่ */}
+          <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-200 text-[10px] space-y-3 z-[400] min-w-[180px]">
+            <div className="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-2 flex items-center gap-2">
+               <Database className="w-3 h-3 text-blue-500" /> สัญลักษณ์บนแผนที่
+            </div>
+            <div className="grid grid-cols-1 gap-2.5">
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></span>หน่วยผู้ว่าฯ</div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>หน่วยสัตวแพทย์</div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>หน่วยวัคซีน + ไมโครชิป</div>
+              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500 shadow-sm"></span>หน่วยกรงแมว</div>
+            </div>
+            
+            <div className="pt-2 mt-2 border-t border-slate-100">
+                <div className="font-bold text-red-600 mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> รัศมีควบคุมโรค</div>
+                <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-red-900 font-bold">
+                        <span className="w-3 h-3 rounded-full border border-red-800 bg-red-800/40"></span> 1 กม. เข้มงวด
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full border border-red-500 bg-red-500/20"></span> 3 กม. ควบคุม
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full border border-orange-400 bg-orange-400/10 border-dashed"></span> 5 กม. เฝ้าระวัง
+                    </div>
+                </div>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
 </div>
 
         {/* ✅ [เพิ่มใหม่] RABIES DASHBOARD SECTION */}
@@ -2466,77 +2488,6 @@ const outbreakStats = useMemo(() => {
           </div>
         )}
 
-       {/* --- MAP SECTION (ย้ายมาไว้ล่างสุด เต็มจอ) --- */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[32rem] flex flex-col hover:border-green-300 transition-colors mt-8 relative z-0">
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <div className="bg-green-100 p-1.5 rounded-md">
-                <MapIcon className="w-5 h-5 text-green-600" />
-              </div>
-              แผนที่แสดงความหนาแน่นกิจกรรม (Geographic Distribution)
-            </h2>
-            <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 relative shadow-inner bg-slate-50 isolate">
-                <LeafletMap 
-                    data={filteredData} 
-                    outbreaks={outbreakData} 
-                    onDeleteOutbreak={handleDeleteOutbreak} 
-                />
-              
-              {/* Legend Overlay: ย้ายมาซ้ายล่าง (left-4) เพื่อไม่ให้บัง Copyright แผนที่ด้านขวา */}
-              <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md p-3 rounded-lg shadow-lg border border-slate-100 text-xs space-y-2 z-[400] min-w-[160px]">
-                
-                {/* 1. ประเภทหน่วยงาน */}
-                <div>
-                  <div className="font-bold text-slate-700 mb-2 border-b pb-1">ประเภทหน่วยงาน</div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 shadow-sm shrink-0"></span>หน่วยผู้ว่า</div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 mr-2 shadow-sm shrink-0"></span>หน่วยสัตวแพทย์</div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-green-500 mr-2 shadow-sm shrink-0"></span>หน่วยวัคซีน + ไมโครชิป</div>
-                    <div className="flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 mr-2 shadow-sm shrink-0"></span>หน่วยกรงแมว</div>
-                  </div>
-                </div>
-
-                {/* 2. สรุปผลงานรวม */}
-                <div className="pt-2 border-t border-slate-200 mt-2">
-                  <div className="font-bold text-slate-700 mb-2 border-b pb-1">สรุปผลงานรวม (บนแผนที่)</div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex items-center text-blue-600 font-medium">
-                        <Syringe className="w-3 h-3 mr-1.5"/>วัคซีน
-                      </span>
-                      <span className="font-bold text-slate-700">{totals.vaccine.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex items-center text-orange-500 font-medium">
-                        <Scissors className="w-3 h-3 mr-1.5"/>ทำหมัน
-                      </span>
-                      <span className="font-bold text-slate-700">{totals.sterilize.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex items-center text-green-600 font-medium">
-                        <FileText className="w-3 h-3 mr-1.5"/>ทะเบียน
-                      </span>
-                      <span className="font-bold text-slate-700">{totals.register.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex items-center text-purple-600 font-medium">
-                        <Database className="w-3 h-3 mr-1.5"/>ไมโครชิป
-                        </span>
-                        <span className="font-bold text-slate-700">{totals.microchip.toLocaleString()}</span>
-                    </div>
-                    {/* [เพิ่มใหม่] เพิ่มคำอธิบาย Legend สำหรับจุดระบาด */}
-                    <div className="..."> 
-                        {/* ต่อท้ายจาก Legend เดิม */}
-                        <div className="pt-2 border-t border-slate-200 mt-2">
-                            <div className="flex items-center gap-2 text-red-600 font-bold">
-                                <AlertTriangle className="w-4 h-4" /> จุดพบเชื้อพิษสุนัขบ้า
-                            </div>
-                        </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-        </div>
 
         {/* --- ALL DATA TABLE --- */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
