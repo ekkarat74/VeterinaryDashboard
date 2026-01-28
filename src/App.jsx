@@ -13,7 +13,7 @@ import { 
     Filter, Calendar, Database, Download, Users, 
     Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
     Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, 
-    Image as ImageIcon, Skull, AlertTriangle, Siren
+    Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope
 } from 'lucide-react';
 import L from 'leaflet';
 
@@ -217,8 +217,8 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                 {displayData.map((item) => {
                 if (!item.lat || !item.long) return null;
 
-                const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0 };
-                const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip;
+                const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
+                const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip + (stats.medical || 0);
                 const color = getMarkerColor(item.unit);
 
                 return (
@@ -274,6 +274,12 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                                 </div>
                                 <span className="font-bold text-slate-700">{stats.microchip.toLocaleString()}</span>
                             </div>
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1.5 text-rose-600 font-semibold">
+                                    <Stethoscope className="w-3 h-3" /> รักษาสัตว์
+                                </div>
+                                <span className="font-bold text-slate-700">{(stats.medical || 0).toLocaleString()}</span>
+                            </div>
                             <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-1">
                                 <div className="font-bold text-slate-900">รวมทั้งหมด</div>
                                 <span className="font-bold text-slate-900 text-sm">{totalActivity.toLocaleString()}</span>
@@ -286,77 +292,42 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                 })}
             </MarkerClusterGroup>
 
-            // ภายใน outbreaks.map ภายใน LeafletMap
 {outbreaks.map((item, index) => {
-    const lat = parseFloat(item.lat);
-    const long = parseFloat(item.long);
-    if (!lat || !long) return null;
+        const lat = parseFloat(item.lat);
+        const long = parseFloat(item.long);
+        if (!lat || !long) return null;
 
-    return (
-        <React.Fragment key={item._id || `outbreak-${index}`}>
-            {/* ✅ เพิ่มใหม่: วงกลมระยะ 1 กม. (พื้นที่ควบคุมสีแดงเข้ม) */}
-            <Circle
-                center={[lat, long]}
-                radius={1000}
-                pathOptions={{ 
-                    color: '#991b1b', // Red-800
-                    fillColor: '#991b1b', 
-                    fillOpacity: 0.3, 
-                    weight: 2,
-                    dashArray: '2, 5'
-                }}
-            />
-
-            {/* วงกลมระยะ 3 กม. (เดิม) */}
-            <Circle
-                center={[lat, long]}
-                radius={3000}
-                pathOptions={{ 
-                    color: '#ef4444', 
-                    fillColor: '#ef4444', 
-                    fillOpacity: 0.15, 
-                    weight: 2 
-                }}
-            />
-
-            {/* วงกลมระยะ 5 กม. (เดิม) */}
-            <Circle
-                center={[lat, long]}
-                radius={5000}
-                pathOptions={{ 
-                    color: '#f97316', 
-                    fillColor: '#f97316', 
-                    fillOpacity: 0.05, 
-                    weight: 1, 
-                    dashArray: '5, 10' 
-                }}
-            />
-
-            <Marker position={[lat, long]} icon={createDangerIcon()}>
-                <Popup>
-                    <div className="font-sans min-w-[200px] p-1 text-center">
-                        <div className="bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs inline-block mb-2 border border-red-200">
-                            🚨 พบเชื้อพิษสุนัขบ้า
-                        </div>
-                        <h3 className="font-bold text-slate-800 text-sm">{item.location}</h3>
-                        <p className="text-xs text-slate-500 mb-2">เขต{item.district}</p>
+        return (
+            <React.Fragment key={item._id || `outbreak-${index}`}>
+                <Circle center={[lat, long]} radius={1000} pathOptions={{ color: '#991b1b', fillOpacity: 0.3, weight: 2, dashArray: '2, 5' }} />
+                <Circle center={[lat, long]} radius={3000} pathOptions={{ color: '#ef4444', fillOpacity: 0.15, weight: 2 }} />
+                <Circle center={[lat, long]} radius={5000} pathOptions={{ color: '#f97316', fillOpacity: 0.05, weight: 1, dashArray: '5, 10' }} />
+                
+                <Marker position={[lat, long]} icon={createDangerIcon()}>
+                    <Popup>
+                        <div className="font-sans min-w-[200px] p-1 text-center">
+                            <div className="bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs inline-block mb-2 border border-red-200">
+                                🚨 พบเชื้อพิษสุนัขบ้า
+                            </div>
+                            <h3 className="font-bold text-slate-800 text-sm">{item.location}</h3>
+                            <p className="text-xs text-slate-500 mb-2">เขต{item.district}</p>
                         
-                        {/* ✅ อัปเดตตารางระยะใน Popup */}
-                        <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-3 gap-1 text-[9px]">
-                            <div className="text-red-900 font-bold bg-red-100 rounded px-1 py-0.5">1 กม.<br/>รัศมีเข้มงวด</div>
-                            <div className="text-red-600 font-bold bg-red-50 rounded px-1 py-0.5">3 กม.<br/>ควบคุมโรค</div>
-                            <div className="text-orange-500 font-bold bg-orange-50 rounded px-1 py-0.5">5 กม.<br/>เฝ้าระวัง</div>
-                        </div>
+                            {/* ✅ อัปเดตตารางระยะใน Popup */}
+                            <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-3 gap-1 text-[9px]">
+                                <div className="text-red-900 font-bold bg-red-100 rounded px-1 py-0.5">1 กม.<br/>รัศมีเข้มงวด</div>
+                                <div className="text-red-600 font-bold bg-red-50 rounded px-1 py-0.5">3 กม.<br/>ควบคุมโรค</div>
+                                <div className="text-orange-500 font-bold bg-orange-50 rounded px-1 py-0.5">5 กม.<br/>เฝ้าระวัง</div>
+                            </div>
                         
-                        <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors">
-                            <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
-                        </button>
-                    </div>
-                </Popup>
-            </Marker>
-        </React.Fragment>
-    );
-})}
+                            <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors">
+                                <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
+                            </button>
+                        </div>
+                    </Popup>
+                </Marker>
+            </React.Fragment>
+        );
+    })}
         </MapContainer>
       </div>
     </div>
@@ -485,16 +456,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
     };
 
     // ค่าเริ่มต้นสำหรับข้อมูลตัวเลข (Breakdown)
+    // ✅ แก้ไข: วัคซีนเหลือยอดรวม, เพิ่ม medical (รักษาสัตว์)
     const defaultBreakdown = {
-        dog: { maleSterilize: '', femaleSterilize: '', maleVaccine: '', femaleVaccine: '', register: '', microchip: '' },
-        cat: { maleSterilize: '', femaleSterilize: '', maleVaccine: '', femaleVaccine: '', register: '', microchip: '' },
-        other: { vaccine: '' }
+        dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
+        cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
+        other: { vaccine: '', medical: '' }
     };
 
     const [formData, setFormData] = useState(defaultFormData);
     const [breakdown, setBreakdown] = useState(defaultBreakdown);
 
-    // [เพิ่มใหม่] State สำหรับจัดการรูปภาพ
+    // State สำหรับจัดการรูปภาพ
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
 
@@ -502,7 +474,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-            // กรณีแก้ไข: โหลดข้อมูลเดิมเข้า State
                 setFormData({
                     date: initialData.date,
                     location: initialData.location,
@@ -512,26 +483,22 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
                     lat: initialData.lat,
                     long: initialData.long
                 });
-                // โหลดข้อมูลตัวเลข
                 if (initialData.details) {
                     setBreakdown(initialData.details);
                 } else {
                     setBreakdown(defaultBreakdown);
                 }
-                // [เพิ่มใหม่] โหลดรูปภาพเดิม (ถ้ามี)
                 if (initialData.imageUrl) {
                     setImagePreview(initialData.imageUrl);
                 } else {
                     setImagePreview(null);
                     setImageFile(null);
                 }
-                } else {
-                    // กรณีเพิ่มใหม่: ล้างค่าเป็น default
-                    setFormData(defaultFormData);
-                    setBreakdown(defaultBreakdown);
-                    // [เพิ่มใหม่] ล้างรูปภาพ
-                    setImageFile(null);
-                    setImagePreview(null);
+            } else {
+                setFormData(defaultFormData);
+                setBreakdown(defaultBreakdown);
+                setImageFile(null);
+                setImagePreview(null);
             }
         }
     }, [isOpen, initialData]);
@@ -545,26 +512,25 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
         const other = breakdown.other;
 
         return {
-            // แก้ไขสูตรคำนวณวัคซีน
-            vaccine: parse(dog.maleVaccine) + parse(dog.femaleVaccine) + parse(cat.maleVaccine) + parse(cat.femaleVaccine) + parse(other.vaccine),
+            // ✅ แก้ไขสูตร: วัคซีนไม่ต้องแยกเพศ
+            vaccine: parse(dog.vaccine) + parse(cat.vaccine) + parse(other.vaccine),
             sterilize: parse(dog.maleSterilize) + parse(dog.femaleSterilize) + parse(cat.maleSterilize) + parse(cat.femaleSterilize),
             register: parse(dog.register) + parse(cat.register),
             microchip: parse(dog.microchip) + parse(cat.microchip),
+            // ✅ เพิ่มสูตร: รักษาสัตว์
+            medical: parse(dog.medical) + parse(cat.medical) + parse(other.medical),
         };
     }, [breakdown]);
 
-    // [เพิ่มใหม่] ฟังก์ชันจัดการการเลือกไฟล์รูป
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             setImageFile(file);
-            // สร้าง URL ชั่วคราวเพื่อแสดง Preview
             const previewUrl = URL.createObjectURL(file);
             setImagePreview(previewUrl);
         }
     };
 
-    // [เพิ่มใหม่] ฟังก์ชันลบรูป
     const handleRemoveImage = () => {
         setImageFile(null);
         setImagePreview(null);
@@ -572,373 +538,357 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
 
     if (!isOpen) return null;
 
-    // ฟังก์ชันจัดการการเปลี่ยนค่าใน breakdown (Nested State)
     const handleBreakdownChange = (type, field, value) => {
         setBreakdown(prev => ({
-        ...prev,
-        [type]: {
-            ...prev[type],
-            [field]: value 
-        }
-    }));
-};
-
-const handleSubmit = async (e) => { // 2.1 เพิ่ม async เพราะต้องรอแปลงรูป
-    e.preventDefault();
-
-    // 2.2 แปลงรูปภาพเป็น Base64 (ถ้ามีการเลือกไฟล์ใหม่)
-    let finalImageUrl = initialData?.imageUrl || ""; // ใช้รูปเดิมถ้ามี
-
-    if (imageFile) {
-        try {
-            finalImageUrl = await convertToBase64(imageFile);
-        } catch (error) {
-            console.error("Error converting image:", error);
-            alert("ไม่สามารถประมวลผลรูปภาพได้");
-            return;
-        }
-    } else if (imagePreview === null) {
-        // กรณี user กดลบรูป
-        finalImageUrl = "";
-    }
-
-    // เตรียมข้อมูล Payload
-    const dataPayload = {
-        ...formData,
-        lat: formData.lat ? parseFloat(formData.lat) : 0,
-        long: formData.long ? parseFloat(formData.long) : 0,
-        vaccine: totals.vaccine,
-        sterilize: totals.sterilize,
-        register: totals.register,
-        microchip: totals.microchip,
-        details: breakdown,
-        imageUrl: finalImageUrl // 2.3 ส่งเป็น String Base64 ไปเก็บ
+            ...prev,
+            [type]: {
+                ...prev[type],
+                [field]: value 
+            }
+        }));
     };
 
-    if (initialData) {
-        onUpdate(initialData._id, dataPayload);
-    } else {
-        onSave(dataPayload);
-    }
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        let finalImageUrl = initialData?.imageUrl || ""; 
+
+        if (imageFile) {
+            try {
+                finalImageUrl = await convertToBase64(imageFile);
+            } catch (error) {
+                console.error("Error converting image:", error);
+                alert("ไม่สามารถประมวลผลรูปภาพได้");
+                return;
+            }
+        } else if (imagePreview === null) {
+            finalImageUrl = "";
+        }
+
+        const dataPayload = {
+            ...formData,
+            lat: formData.lat ? parseFloat(formData.lat) : 0,
+            long: formData.long ? parseFloat(formData.long) : 0,
+            vaccine: totals.vaccine,
+            sterilize: totals.sterilize,
+            register: totals.register,
+            microchip: totals.microchip,
+            medical: totals.medical, // ✅ เพิ่มยอดรวมรักษาลงใน Payload
+            details: breakdown,
+            imageUrl: finalImageUrl 
+        };
+
+        if (initialData) {
+            onUpdate(initialData._id, dataPayload);
+        } else {
+            onSave(dataPayload);
+        }
         onClose();
-};
+    };
 
-const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
-    });
-};
+    const convertToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
+    };
 
-return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
 
-        {/* Header ของ Modal */}
-        <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-700">
-            <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    {initialData ? <Edit className="w-5 h-5 text-yellow-400" /> : <Plus className="w-5 h-5 text-green-400" />}
-                    {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
-                </h3>
-                <p className="text-slate-400 text-xs mt-0.5">
-                {initialData ? 'ปรับปรุงข้อมูลในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณแยกตามประเภทสัตว์'}
-                </p>
-            </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
-            <X className="w-5 h-5" />
-            </button>
-        </div>
-
-        {/* Form Content */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-
-                {/* Section 1: General Info */}
-                <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    {/* แถว 1: วันที่, หน่วย, สถานที่ */}
-                    <div className="md:col-span-3">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
-                        <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                            value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                {/* Header */}
+                <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-700">
+                    <div>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                            {initialData ? <Edit className="w-5 h-5 text-yellow-400" /> : <Plus className="w-5 h-5 text-green-400" />}
+                            {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
+                        </h3>
+                        <p className="text-slate-400 text-xs mt-0.5">
+                            {initialData ? 'ปรับปรุงข้อมูลในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณ'}
+                        </p>
                     </div>
-                    <div className="md:col-span-3">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
-                        <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
-                            {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
-                    </div>
-                    <div className="md:col-span-6">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
-                        <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                    </div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
-                    {/* แถว 2: เขต, แขวง, พิกัด */}
-                    <div className="md:col-span-3">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
-                        <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
-                            {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                    </div>
-                    <div className="md:col-span-3">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
-                        <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
-                    </div>
+                {/* Form Content */}
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-                    <div className="md:col-span-6">
-                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
-                            <Navigation className="w-3 h-3 text-blue-500" /> 
-                                พิกัดภูมิศาสตร์ (Latitude, Longitude)
-                        </label>
-                        <div className="flex gap-2">
-                            <div className="relative flex-1">
-                                <input type="text" placeholder="เช่น 13.609673, 100.465504" 
-                                    className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                    value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value.includes(',')) {
-                                            const [lat, lng] = value.split(',').map(s => s.trim());
-                                            setFormData({ ...formData, lat, long: lng });
-                                        } else {
-                                            setFormData({ ...formData, lat: value });
-                                        }
-                                    }} 
-                                />
-                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            </div>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1 italic">* สามารถคัดลอกจาก Google Maps มาวางได้เลย (รูปแบบ: lat, long)</p>
-                    </div>
-
-                    {/* --- อัปโหลดรูปภาพ --- */}
-                    <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
-                        <label className="block text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3 text-blue-500" /> 
-                                รูปภาพประกอบ (Image Attachment)
-                        </label>
-                        {!imagePreview ? (
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-32 flex flex-col items-center justify-center cursor-pointer">
-                                <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                                <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                                    <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
+                        {/* Section 1: General Info (คงเดิม) */}
+                        <div className="space-y-4">
+                            <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-600" /> ข้อมูลทั่วไป (General Information)
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">วันที่เริ่มกิจกรรม</label>
+                                    <input required type="date" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                                        value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                                 </div>
-                                <p className="text-xs text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                                <p className="text-[10px] text-slate-400 mt-1">รองรับไฟล์ JPG, PNG</p>
-                            </div>
-                        ) : (
-                            <div className="relative w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
-                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                    <label className="cursor-pointer bg-white/90 hover:bg-white text-slate-700 p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
-                                        <Edit className="w-3 h-3" /> เปลี่ยนรูป
-                                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden"/>
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">หน่วยกิจกรรม</label>
+                                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})}>
+                                        {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-6">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">สถานที่ (Location)</label>
+                                    <input required type="text" placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                                </div>
+
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">เขต (District)</label>
+                                    <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
+                                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
+                                    <input required type="text" placeholder="ระบุแขวง" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} />
+                                </div>
+
+                                <div className="md:col-span-6">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
+                                        <Navigation className="w-3 h-3 text-blue-500" /> 
+                                            พิกัดภูมิศาสตร์ (Latitude, Longitude)
                                     </label>
-                                    <button type="button" onClick={handleRemoveImage} className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
-                                        <Trash2 className="w-3 h-3" /> ลบ
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input type="text" placeholder="เช่น 13.6096, 100.4655" 
+                                                className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                                                value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    if (value.includes(',')) {
+                                                        const [lat, lng] = value.split(',').map(s => s.trim());
+                                                        setFormData({ ...formData, lat, long: lng });
+                                                    } else {
+                                                        setFormData({ ...formData, lat: value });
+                                                    }
+                                                }} 
+                                            />
+                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* อัปโหลดรูปภาพ */}
+                                <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
+                                    <label className="block text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
+                                        <ImageIcon className="w-3 h-3 text-blue-500" /> 
+                                            รูปภาพประกอบ (Image Attachment)
+                                    </label>
+                                    {!imagePreview ? (
+                                        <div className="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-32 flex flex-col items-center justify-center cursor-pointer">
+                                            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                                            <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
+                                                <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
+                                            </div>
+                                            <p className="text-xs text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                                        </div>
+                                    ) : (
+                                        <div className="relative w-full h-48 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 group">
+                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <button type="button" onClick={handleRemoveImage} className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1">
+                                                    <Trash2 className="w-3 h-3" /> ลบรูปภาพ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        )}
+                        </div>
+
+                        {/* SECTION 2: Quantitative Data */}
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center border-b pb-2">
+                                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <Calculator className="w-4 h-4 text-orange-600" /> ข้อมูลเชิงปริมาณ (Quantitative Data)
+                                </h4>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                                {/* 1. ฉีดวัคซีน (Vaccine) - ✅ แก้ไข: ไม่แยกเพศ */}
+                                <div className="bg-blue-50/50 rounded-xl border border-blue-100 overflow-hidden">
+                                    <div className="bg-blue-100/80 px-4 py-2 font-bold text-blue-800 flex items-center gap-2">
+                                        <Syringe className="w-4 h-4" /> ฉีดวัคซีน (Vaccine)
+                                    </div>
+                                    <div className="p-4 grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">สุนัข (รวม)</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-400"
+                                                value={breakdown.dog.vaccine} onChange={(e) => handleBreakdownChange('dog', 'vaccine', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">แมว (รวม)</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-400"
+                                                value={breakdown.cat.vaccine} onChange={(e) => handleBreakdownChange('cat', 'vaccine', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">อื่น ๆ</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-blue-400"
+                                                value={breakdown.other.vaccine} onChange={(e) => handleBreakdownChange('other', 'vaccine', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 2. ทำหมัน (Sterilization) - คงเดิม (แยกเพศ) */}
+                                <div className="bg-orange-50/50 rounded-xl border border-orange-100 overflow-hidden">
+                                    <div className="bg-orange-100/80 px-4 py-2 font-bold text-orange-800 flex items-center gap-2">
+                                        <Scissors className="w-4 h-4" /> ทำหมัน (Sterilization)
+                                    </div>
+                                    <div className="p-4 space-y-4">
+                                        {/* สุนัข */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="col-span-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">สุนัข</div>
+                                            <div>
+                                                <label className="text-[10px] text-slate-500 font-semibold">เพศผู้</label>
+                                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-orange-400"
+                                                    value={breakdown.dog.maleSterilize} onChange={(e) => handleBreakdownChange('dog', 'maleSterilize', e.target.value)} />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-slate-500 font-semibold">เพศเมีย</label>
+                                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-orange-400"
+                                                    value={breakdown.dog.femaleSterilize} onChange={(e) => handleBreakdownChange('dog', 'femaleSterilize', e.target.value)} />
+                                            </div>
+                                        </div>
+                                        {/* แมว */}
+                                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100/50">
+                                            <div className="col-span-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">แมว</div>
+                                            <div>
+                                                <label className="text-[10px] text-slate-500 font-semibold">เพศผู้</label>
+                                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-orange-400"
+                                                    value={breakdown.cat.maleSterilize} onChange={(e) => handleBreakdownChange('cat', 'maleSterilize', e.target.value)} />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] text-slate-500 font-semibold">เพศเมีย</label>
+                                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-orange-400"
+                                                    value={breakdown.cat.femaleSterilize} onChange={(e) => handleBreakdownChange('cat', 'femaleSterilize', e.target.value)} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 3. ฝังไมโครชิป (Microchip) */}
+                                <div className="bg-purple-50/50 rounded-xl border border-purple-100 overflow-hidden">
+                                    <div className="bg-purple-100/80 px-4 py-2 font-bold text-purple-800 flex items-center gap-2">
+                                        <Database className="w-4 h-4" /> ฝังไมโครชิป (Microchip)
+                                    </div>
+                                    <div className="p-4 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">สุนัข (มีเจ้าของ)</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-purple-400"
+                                                value={breakdown.dog.microchip} onChange={(e) => handleBreakdownChange('dog', 'microchip', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">แมว (มีเจ้าของ)</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-purple-400"
+                                                value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 4. ขึ้นทะเบียน (Registration) */}
+                                <div className="bg-green-50/50 rounded-xl border border-green-100 overflow-hidden">
+                                    <div className="bg-green-100/80 px-4 py-2 font-bold text-green-800 flex items-center gap-2">
+                                        <FileText className="w-4 h-4" /> ขึ้นทะเบียน (Register)
+                                    </div>
+                                    <div className="p-4 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">สุนัข</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-green-400"
+                                                value={breakdown.dog.register} onChange={(e) => handleBreakdownChange('dog', 'register', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">แมว</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-green-400"
+                                                value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ✅ 5. รักษาสัตว์ (Medical Treatment) - เพิ่มใหม่ */}
+                                <div className="bg-rose-50/50 rounded-xl border border-rose-100 overflow-hidden lg:col-span-2">
+                                    <div className="bg-rose-100/80 px-4 py-2 font-bold text-rose-800 flex items-center gap-2">
+                                        <Stethoscope className="w-4 h-4" /> รักษาสัตว์ (Medical Treatment)
+                                    </div>
+                                    <div className="p-4 grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">สุนัข</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-rose-400"
+                                                value={breakdown.dog.medical} onChange={(e) => handleBreakdownChange('dog', 'medical', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">แมว</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-rose-400"
+                                                value={breakdown.cat.medical} onChange={(e) => handleBreakdownChange('cat', 'medical', e.target.value)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-semibold uppercase block mb-1">อื่น ๆ</label>
+                                            <input type="number" min="0" placeholder="0" className="w-full p-2 bg-white border border-slate-200 rounded text-center outline-none focus:ring-1 focus:ring-rose-400"
+                                                value={breakdown.other.medical} onChange={(e) => handleBreakdownChange('other', 'medical', e.target.value)} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Summary Block */}
+                        <div className="bg-slate-800 rounded-xl overflow-hidden text-white shadow-lg mt-4">
+                            <div className="bg-slate-900 px-4 py-2 font-bold text-green-400 flex items-center gap-2 border-b border-slate-700">
+                                <Activity className="w-4 h-4" /> สรุปยอดรวมอัตโนมัติ (Auto-calculated)
+                            </div>
+                            {/* ปรับ Grid เป็น 5 คอลัมน์เพื่อรองรับรักษาสัตว์ */}
+                            <div className="p-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                                <div>
+                                    <div className="text-2xl font-bold text-blue-400">{totals.vaccine}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase">รวมวัคซีน</div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase">รวมทำหมัน</div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-green-400">{totals.register}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase">รวมขึ้นทะเบียน</div>
+                                </div>
+                                <div>
+                                    <div className="text-2xl font-bold text-purple-400">{totals.microchip}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase">รวมไมโครชิป</div>
+                                </div>
+                                {/* ✅ เพิ่มแสดงผลรวมรักษา */}
+                                <div>
+                                    <div className="text-2xl font-bold text-rose-400">{totals.medical}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase">รวมรักษา</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
-                </div>
-            </div>
 
-            {/* Section 2: Quantitative Data */}
-            <div className="space-y-4">
-                <div className="flex justify-between items-center border-b pb-2">
-                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                        <Calculator className="w-4 h-4 text-orange-600" /> ข้อมูลเชิงปริมาณ (Quantitative Data)
-                    </h4>
-                </div>
-
-                {/* Data Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                    {/* Group: DOG */}
-                    <div className="bg-blue-50/50 rounded-xl border border-blue-100 overflow-hidden">
-                        <div className="bg-blue-100/80 px-4 py-2 font-bold text-blue-800 flex items-center gap-2">
-                            <span className="text-xl">🐕</span> สุนัข (Dog)
-                        </div>
-                        <div className="p-4 space-y-4">
-                            {/* Row 1: ทำหมัน (Sterilize) */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                                        value={breakdown.dog.maleSterilize} onChange={(e) => handleBreakdownChange('dog', 'maleSterilize', e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                                        value={breakdown.dog.femaleSterilize} onChange={(e) => handleBreakdownChange('dog', 'femaleSterilize', e.target.value)} />
-                                </div>
-                            </div>
-
-                            {/* Row 2: วัคซีน (Vaccine) - แก้ไขใหม่แยกเพศ */}
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase text-blue-600">ฉีดวัคซีน (ตัวผู้)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                                        value={breakdown.dog.maleVaccine} onChange={(e) => handleBreakdownChange('dog', 'maleVaccine', e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase text-blue-600">ฉีดวัคซีน (ตัวเมีย)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-                                        value={breakdown.dog.femaleVaccine} onChange={(e) => handleBreakdownChange('dog', 'femaleVaccine', e.target.value)} />
-                                </div>
-                            </div>
-
-                           {/* --- ส่วนของสุนัข (Dog) --- */}
-<div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100">
-    <div>
-        <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-blue-400 outline-none text-center"
-            value={breakdown.dog.register} onChange={(e) => handleBreakdownChange('dog', 'register', e.target.value)} />
-    </div>
-    {/* ✅ เพิ่มช่องฝังไมโครชิปสุนัข */}
-    <div>
-        <label className="text-[10px] text-slate-500 font-semibold uppercase text-purple-600">ฝังไมโครชิป</label>
-        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-purple-400 outline-none text-center"
-            value={breakdown.dog.microchip} onChange={(e) => handleBreakdownChange('dog', 'microchip', e.target.value)} />
-    </div>
-</div>
-
-{/* --- ส่วนของแมว (Cat) --- */}
-<div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
-    <div>
-        <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-            value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
-    </div>
-    {/* ✅ เพิ่มช่องฝังไมโครชิปแมว */}
-    <div>
-        <label className="text-[10px] text-slate-500 font-semibold uppercase text-purple-600">ฝังไมโครชิป</label>
-        <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-purple-400 outline-none text-center"
-            value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
-    </div>
-</div>
-                        </div>
+                    {/* Action Button */}
+                    <div className="bg-white border-t border-slate-200 p-6 shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                        <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-base">
+                            <Save className="w-5 h-5" />
+                            {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูลเข้าระบบ'}
+                        </button>
                     </div>
-
-                    {/* Group: CAT */}
-                    <div className="bg-orange-50/50 rounded-xl border border-orange-100 overflow-hidden">
-                        <div className="bg-orange-100/80 px-4 py-2 font-bold text-orange-800 flex items-center gap-2">
-                            <span className="text-xl">🐈</span> แมว (Cat)
-                        </div>
-                        <div className="p-4 space-y-4">
-
-                            {/* Row 1: ทำหมัน (Sterilize) */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวผู้)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                                        value={breakdown.cat.maleSterilize} onChange={(e) => handleBreakdownChange('cat', 'maleSterilize', e.target.value)} />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase">ทำหมัน (ตัวเมีย)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                                        value={breakdown.cat.femaleSterilize} onChange={(e) => handleBreakdownChange('cat', 'femaleSterilize', e.target.value)} />
-                                </div>
-                            </div>
-
-                            {/* Row 2: วัคซีน (Vaccine) - แยกเพศ */}
-                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
-                                <div>
-                                    <label className="text-[10px] text-slate-500 font-semibold uppercase text-orange-600">ฉีดวัคซีน (ตัวผู้)</label>
-                                    <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                                        value={breakdown.cat.maleVaccine} onChange={(e) => handleBreakdownChange('cat', 'maleVaccine', e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="text-[10px] text-slate-500 font-semibold uppercase text-orange-600">ฉีดวัคซีน (ตัวเมีย)</label>
-                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                                    value={breakdown.cat.femaleVaccine} onChange={(e) => handleBreakdownChange('cat', 'femaleVaccine', e.target.value)} />
-                            </div>
-                        </div>
-
-                        {/* Row 3: Register & Microchip */}
-                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-orange-100">
-                            <div>
-                                <label className="text-[10px] text-slate-500 font-semibold uppercase">ขึ้นทะเบียน</label>
-                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                                    value={breakdown.cat.register} onChange={(e) => handleBreakdownChange('cat', 'register', e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="text-[10px] text-slate-500 font-semibold uppercase">ฝังไมโครชิป</label>
-                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-orange-400 outline-none text-center"
-                                    value={breakdown.cat.microchip} onChange={(e) => handleBreakdownChange('cat', 'microchip', e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Group: OTHERS & SUMMARY */}
-                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    {/* Others */}
-                    <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden h-fit">
-                        <div className="bg-slate-100/80 px-4 py-2 font-bold text-slate-600 flex items-center gap-2">
-                            <span className="text-xl">🐇</span> สัตว์อื่นๆ (Others)
-                        </div>
-                        <div className="p-4">
-                            <div>
-                                <label className="text-[10px] text-slate-500 font-semibold uppercase">ฉีดวัคซีน (ตัว)</label>
-                                <input type="number" min="0" placeholder="0" className="w-full mt-1 p-2 bg-white border border-slate-200 rounded shadow-sm focus:ring-1 focus:ring-slate-400 outline-none text-center"
-                                    value={breakdown.other.vaccine} onChange={(e) => handleBreakdownChange('other', 'vaccine', e.target.value)} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Live Total Summary */}
-                    <div className="bg-slate-800 rounded-xl overflow-hidden text-white shadow-lg">
-                        <div className="bg-slate-900 px-4 py-2 font-bold text-green-400 flex items-center gap-2 border-b border-slate-700">
-                            <Activity className="w-4 h-4" /> สรุปยอดรวมอัตโนมัติ (Auto-calculated)
-                        </div>
-                        <div className="p-4 grid grid-cols-2 gap-4 text-center">
-                            <div>
-                                <div className="text-2xl font-bold text-blue-400">{totals.vaccine}</div>
-                                <div className="text-[10px] text-slate-400 uppercase">รวมวัคซีน</div>
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div>
-                                <div className="text-[10px] text-slate-400 uppercase">รวมทำหมัน</div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-green-400">{totals.register}</div>
-                            <div className="text-[10px] text-slate-400 uppercase">รวมขึ้นทะเบียน</div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-purple-400">{totals.microchip}</div>
-                            <div className="text-[10px] text-slate-400 uppercase">รวมไมโครชิป</div>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
-    </div>
-</div>
-
-            {/* Action Button */}
-            <div className="bg-white border-t border-slate-200 p-6 shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-base">
-                <Save className="w-5 h-5" />
-                {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูลเข้าระบบ'}
-                </button>
-            </div>
-        </form>
-    </div>
-    </div>
-  );
+    );
 };
 
 // --- NEW COMPONENT: CSV ACTION MODAL ---
@@ -1041,7 +991,7 @@ export default function VeterinaryDashboard() {
         });
     }, [reportData, rankingYear, rankingMonth]);
 
-    // ภายใน VeterinaryDashboard
+// ภายใน VeterinaryDashboard
 const rankingUnitStats = useMemo(() => {
     const grouped = rankingFilteredData.reduce((acc, curr) => {
         if (!acc[curr.unit]) {
@@ -1050,17 +1000,27 @@ const rankingUnitStats = useMemo(() => {
                 count: 0, 
                 vaccine: 0, 
                 sterilize: 0, 
-                register: 0,   // ✅ เพิ่มใหม่
-                microchip: 0,  // ✅ เพิ่มใหม่
+                register: 0,   // เพิ่มใหม่
+                microchip: 0,  // เพิ่มใหม่
+                medical: 0,    // เพิ่มใหม่ (รักษาสัตว์)
                 total: 0 
             };
         }
         acc[curr.unit].count += 1;
-        acc[curr.unit].vaccine += curr.stats.vaccine;
-        acc[curr.unit].sterilize += curr.stats.sterilize;
-        acc[curr.unit].register += curr.stats.register;   // ✅ เพิ่มใหม่
-        acc[curr.unit].microchip += curr.stats.microchip; // ✅ เพิ่มใหม่
-        acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
+        acc[curr.unit].vaccine += (curr.stats.vaccine || 0);
+        acc[curr.unit].sterilize += (curr.stats.sterilize || 0);
+        acc[curr.unit].register += (curr.stats.register || 0);
+        acc[curr.unit].microchip += (curr.stats.microchip || 0);
+        acc[curr.unit].medical += (curr.stats.medical || 0); // รวมยอดรักษาสัตว์
+        
+        // ยอดรวมกิจกรรมทั้งหมด
+        acc[curr.unit].total += (
+            (curr.stats.vaccine || 0) + 
+            (curr.stats.sterilize || 0) + 
+            (curr.stats.register || 0) + 
+            (curr.stats.microchip || 0) + 
+            (curr.stats.medical || 0)
+        );
         return acc;
     }, {});
     
@@ -1323,72 +1283,65 @@ useEffect(() => {
     }
   };
 
-  // --- ฟังก์ชันจำลองข้อมูล 100 เคส (Mock Data) ---
-  const handleGenerateMockData = () => {
-    // Helper สุ่มตัวเลข
-    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-    // Helper สุ่มเลือก Array
-    const randArr = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  // --- ภายในส่วนฟังก์ชัน handleGenerateMockData ของ VeterinaryDashboard ---
+const handleGenerateMockData = () => {
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randArr = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    const mockItems = Array.from({ length: 100 }).map((_, index) => {
-      // สุ่มรายละเอียดภายใน
-      const details = {
-        dog: {
-          maleSterilize: randInt(0, 5),
-          femaleSterilize: randInt(0, 5),
-          vaccine: randInt(0, 10),
-          register: randInt(0, 5),
-          microchip: randInt(0, 5),
-          owned: randInt(0, 10),
-          community: randInt(0, 10)
-        },
-        cat: {
-          maleSterilize: randInt(0, 5),
-          femaleSterilize: randInt(0, 5),
-          vaccine: randInt(0, 10),
-          register: randInt(0, 5),
-          microchip: randInt(0, 5),
-          owned: randInt(0, 10),
-          community: randInt(0, 10)
-        },
-        other: { vaccine: randInt(0, 2) }
-      };
+    const mockItems = Array.from({ length: 100 }).map((_, index) => {
+        const details = {
+            dog: {
+                maleSterilize: randInt(0, 5),
+                femaleSterilize: randInt(0, 5),
+                vaccine: randInt(0, 10),
+                register: randInt(0, 5),
+                microchip: randInt(0, 5),
+                medical: randInt(0, 5) // เพิ่ม: จำลองการรักษาสุนัข
+            },
+            cat: {
+                maleSterilize: randInt(0, 5),
+                femaleSterilize: randInt(0, 5),
+                vaccine: randInt(0, 10),
+                register: randInt(0, 5),
+                microchip: randInt(0, 5),
+                medical: randInt(0, 5) // เพิ่ม: จำลองการรักษาแมว
+            },
+            other: { 
+                vaccine: randInt(0, 2),
+                medical: randInt(0, 2) // เพิ่ม: จำลองการรักษาสัตว์อื่นๆ
+            }
+        };
 
-      // คำนวณยอดรวม (Stats)
-      const stats = {
-        vaccine: details.dog.vaccine + details.cat.vaccine + details.other.vaccine,
-        sterilize: details.dog.maleSterilize + details.dog.femaleSterilize + details.cat.maleSterilize + details.cat.femaleSterilize,
-        register: details.dog.register + details.cat.register,
-        microchip: details.dog.microchip + details.cat.microchip
-      };
+        const stats = {
+            vaccine: details.dog.vaccine + details.cat.vaccine + details.other.vaccine,
+            sterilize: details.dog.maleSterilize + details.dog.femaleSterilize + details.cat.maleSterilize + details.cat.femaleSterilize,
+            register: details.dog.register + details.cat.register,
+            microchip: details.dog.microchip + details.cat.microchip,
+            medical: details.dog.medical + details.cat.medical + details.other.medical // เพิ่ม: ยอดรวมรักษา
+        };
 
-      // สุ่มพิกัด (กรอบกทม.)
-      const lat = (13.6 + Math.random() * 0.3).toFixed(6);
-      const long = (100.35 + Math.random() * 0.4).toFixed(6);
+        const lat = (13.6 + Math.random() * 0.3).toFixed(6);
+        const long = (100.35 + Math.random() * 0.4).toFixed(6);
+        const date = new Date();
+        date.setDate(date.getDate() - randInt(0, 60));
 
-      // สุ่มวันที่ (ย้อนหลังไม่เกิน 60 วัน)
-      const date = new Date();
-      date.setDate(date.getDate() - randInt(0, 60));
-      const dateStr = date.toISOString().split('T')[0];
+        return {
+            _id: `mock_${Date.now()}_${index}`,
+            date: date.toISOString().split('T')[0],
+            location: `จุดจำลองรักษาสัตว์ที่ ${index + 1}`,
+            district: randArr(BANGKOK_DISTRICTS),
+            subdistrict: 'แขวงจำลอง',
+            unit: randArr(UNIT_TYPES),
+            lat: parseFloat(lat),
+            long: parseFloat(long),
+            details: details,
+            stats: stats
+        };
+    });
 
-      return {
-        _id: `mock_${Date.now()}_${index}`, // สร้าง ID ปลอม
-        date: dateStr,
-        location: `จุดจำลองที่ ${index + 1}`,
-        district: randArr(BANGKOK_DISTRICTS),
-        subdistrict: 'แขวงจำลอง',
-        unit: randArr(UNIT_TYPES),
-        lat: parseFloat(lat),
-        long: parseFloat(long),
-        details: details,
-        stats: stats
-      };
-    });
-
-    // อัปเดต State ทันที (ไม่ยิง API)
-    setReportData(prev => [...mockItems, ...prev]);
-    alert(`✅ จำลองข้อมูลเพิ่ม 100 เคสเรียบร้อย\n(ข้อมูลนี้อยู่แค่หน้าจอ จะหายไปเมื่อรีเฟรช)`);
-  };
+    setReportData(prev => [...mockItems, ...prev]);
+    alert(`✅ จำลองข้อมูลรักษาสัตว์และบริการอื่นๆ เพิ่ม 100 เคสเรียบร้อย`);
+};
 
   // --- ฟังก์ชัน Helper สำหรับแยกข้อมูล CSV (รองรับกรณีมี "..." ครอบข้อความ) ---
   const parseCSVLine = (text) => {
@@ -1668,38 +1621,42 @@ const mapDisplayData = useMemo(() => {
     }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0 });
   }, [filteredData]);
 
-  // 3. Prepare Chart Data (Monthly Trend)
-// Prepare Chart Data (Monthly Trend)
-// 3. Prepare Chart Data (Monthly Trend - บังคับแสดง 10 แท่งล่าสุด)
-  const trendData = useMemo(() => {
+  // 3. Prepare Chart Data (Monthly Trend - บังคับแสดง 10 แท่งล่าสุด)
+const trendData = useMemo(() => {
     const dataMap = filteredData.reduce((acc, curr) => {
-      const month = curr.date.substring(0, 7); // YYYY-MM
-      if (!acc[month]) acc[month] = { 
-        name: month, vaccine: 0, sterilize: 0, register: 0, microchip: 0, total: 0 
-      };
-      acc[month].vaccine += curr.stats.vaccine;
-      acc[month].sterilize += curr.stats.sterilize;
-      acc[month].register += curr.stats.register;
-      acc[month].microchip += curr.stats.microchip;
-      acc[month].total += (curr.stats.vaccine + curr.stats.sterilize + curr.stats.register + curr.stats.microchip);
-      return acc;
+        const month = curr.date.substring(0, 7); // YYYY-MM
+        if (!acc[month]) acc[month] = { 
+            name: month, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 
+        };
+        acc[month].vaccine += (curr.stats.vaccine || 0);
+        acc[month].sterilize += (curr.stats.sterilize || 0);
+        acc[month].register += (curr.stats.register || 0);
+        acc[month].microchip += (curr.stats.microchip || 0);
+        acc[month].medical += (curr.stats.medical || 0); // ✅ เพิ่มการรวมยอดรักษาสัตว์
+        
+        acc[month].total += (
+            (curr.stats.vaccine || 0) + 
+            (curr.stats.sterilize || 0) + 
+            (curr.stats.register || 0) + 
+            (curr.stats.microchip || 0) +
+            (curr.stats.medical || 0) // ✅ รวมยอดรักษาเข้าไปในยอดรวมกิจกรรม
+        );
+        return acc;
     }, {});
 
-    // สร้างลิสต์ 10 เดือนล่าสุด (นับถอยหลังจากเดือนปัจจุบัน)
     const last10Months = [];
     for (let i = 9; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthStr = d.toISOString().substring(0, 7);
-      
-      // ถ้าใน dataMap มีข้อมูลเดือนนั้นให้ดึงมา ถ้าไม่มีให้ใส่ 0 (เพื่อให้กราฟครบ 10 แท่ง)
-      last10Months.push(dataMap[monthStr] || {
-        name: monthStr, vaccine: 0, sterilize: 0, register: 0, microchip: 0, total: 0
-      });
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const monthStr = d.toISOString().substring(0, 7);
+        
+        last10Months.push(dataMap[monthStr] || {
+            name: monthStr, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0
+        });
     }
 
     return last10Months;
-  }, [filteredData]);
+}, [filteredData]);
 
   // แก้ไข: ปรับให้ unitStats return ค่าที่ครบถ้วน (มี total และ count) เพื่อใช้ในกราฟและตาราง
   const unitStats = useMemo(() => {
@@ -2199,55 +2156,39 @@ const outbreakStats = useMemo(() => {
 </div>
 
         {/* --- MAIN CHARTS ROW --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Trend Chart (กราฟแนวโน้มรายเดือน) */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition-colors">
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <div className="bg-blue-100 p-1.5 rounded-md">
-                   <Calendar className="w-5 h-5 text-blue-600" />
+                    <Calendar className="w-5 h-5 text-blue-600" />
                 </div>
                 แนวโน้มผลการดำเนินงานรายเดือน (10 เดือนล่าสุด)
-              </h2>
-            </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+            </h2>
+        </div>
+        <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{fontSize: 10, fill: '#64748b'}} 
-                    axisLine={false} 
-                    tickLine={false} 
-                    dy={10}
-                  />
-                  <YAxis yAxisId="left" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                  />
-                  <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} />
-                  
-                  {/* พื้นหลัง Gradient เชื่อมโยงแนวโน้ม */}
-                  <Area yAxisId="left" type="monotone" dataKey="total" name="ยอดรวมกิจกรรม" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} />
-                  
-                  {/* ปรับ barSize ให้เล็กลงเพื่อให้ 10 แท่งไม่เบียดกันเกินไป */}
-                  <Bar yAxisId="left" dataKey="vaccine" name="💉 วัคซีน" barSize={8} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="sterilize" name="✂️ ทำหมัน" barSize={8} fill="#f97316" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="left" dataKey="microchip" name="🆔 ไมโครชิป" barSize={8} fill="#a855f7" radius={[4, 4, 0, 0]} />
-                  
-                  <Line yAxisId="right" type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน (ขวา)" stroke="#10b981" strokeWidth={2} dot={{r: 3}} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} dy={10} />
+                        <YAxis yAxisId="left" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                        <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }} />
+                        <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} />
+                
+                        <Area yAxisId="left" type="monotone" dataKey="total" name="ยอดรวมกิจกรรม" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} />
+                
+                        {/* แท่งข้อมูลต่างๆ - ปรับ barSize เป็น 6 เพื่อรองรับแท่งที่เพิ่มขึ้น */}
+                        <Bar yAxisId="left" dataKey="vaccine" name="💉 วัคซีน" barSize={6} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        <Bar yAxisId="left" dataKey="sterilize" name="✂️ ทำหมัน" barSize={6} fill="#f97316" radius={[4, 4, 0, 0]} />
+                        <Bar yAxisId="left" dataKey="microchip" name="🆔 ไมโครชิป" barSize={6} fill="#a855f7" radius={[4, 4, 0, 0]} />
+                        <Bar yAxisId="left" dataKey="medical" name="🩺 รักษาสัตว์" barSize={6} fill="#e11d48" radius={[4, 4, 0, 0]} />
+
+                        <Line yAxisId="right" type="monotone" dataKey="register" name="📝 ขึ้นทะเบียน (ขวา)" stroke="#10b981" strokeWidth={2} dot={{r: 3}} />
                 </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            </ResponsiveContainer>
+        </div>
+    </div>
 
           {/* Unit Comparison Chart (กราฟแท่งเปรียบเทียบหน่วย) */}
           <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-purple-300 transition-colors">
@@ -2298,57 +2239,52 @@ const outbreakStats = useMemo(() => {
       </div>
     </div>
 
-    {/* อันดับหน่วยงานสูงสุด (เวอร์ชันเพิ่มข้อมูลครบถ้วน) */}
+   {/* อันดับหน่วยงานสูงสุด */}
 <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 h-[28rem] flex flex-col">
-  <h2 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
-    <div className="bg-amber-100 p-1.5 rounded-md">
-      <Activity className="w-4 h-4 text-amber-600" />
+    <h2 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
+        <div className="bg-amber-100 p-1.5 rounded-md">
+            <Activity className="w-4 h-4 text-amber-600" />
+        </div>
+        อันดับหน่วยงานสูงสุด (รวมทุกกิจกรรม)
+    </h2>
+    <div className="flex-1 overflow-auto custom-scrollbar border border-slate-50 rounded-lg">
+        <table className="min-w-full text-left">
+            <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 shadow-sm text-[9px] uppercase font-bold">
+                <tr>
+                    <th className="px-2 py-3 w-8">#</th>
+                    <th className="px-2 py-3 min-w-[100px]">หน่วยงาน</th>
+                    <th className="px-1 py-3 text-center text-blue-600">วัคซีน</th>
+                    <th className="px-1 py-3 text-center text-orange-500">ทำหมัน</th>
+                    <th className="px-1 py-3 text-center text-purple-600">ชิป</th>
+                    <th className="px-1 py-3 text-center text-green-600">ทะเบียน</th>
+                    <th className="px-1 py-3 text-center text-rose-500">รักษา</th>
+                    <th className="px-2 py-3 text-right bg-slate-100 text-slate-800">รวม</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+                {rankingUnitStats.map((u, index) => (
+                    <tr key={u.name} className="hover:bg-slate-50 transition-colors text-[10px]">
+                        <td className="px-2 py-3">
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full font-black ${index === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>
+                                {index + 1}
+                            </span>
+                        </td>
+                        <td className="px-2 py-3 font-bold text-slate-700">
+                            <div className="truncate w-24" title={u.name}>{u.name}</div>
+                        </td>
+                        <td className="px-1 py-3 text-center text-blue-700 bg-blue-50/20">{u.vaccine.toLocaleString()}</td>
+                        <td className="px-1 py-3 text-center text-orange-700 bg-orange-50/20">{u.sterilize.toLocaleString()}</td>
+                        <td className="px-1 py-3 text-center text-purple-700 bg-purple-50/20">{u.microchip.toLocaleString()}</td>
+                        <td className="px-1 py-3 text-center text-green-700 bg-green-50/20">{u.register.toLocaleString()}</td>
+                        <td className="px-1 py-3 text-center text-rose-700 bg-rose-50/20">{u.medical.toLocaleString()}</td>
+                        <td className="px-2 py-3 text-right font-black text-slate-900 bg-slate-100/50">
+                            {u.total.toLocaleString()}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
     </div>
-    อันดับหน่วยงานสูงสุด
-  </h2>
-  <div className="flex-1 overflow-auto custom-scrollbar border border-slate-50 rounded-lg">
-    <table className="min-w-full text-left">
-      <thead className="bg-slate-50 text-slate-500 sticky top-0 z-10 shadow-sm text-[10px] uppercase font-bold">
-        <tr>
-          <th className="px-2 py-3 w-8">#</th>
-          <th className="px-2 py-3 min-w-[120px]">หน่วยงาน</th>
-          <th className="px-2 py-3 text-right text-blue-600">วัคซีน</th>
-          <th className="px-2 py-3 text-right text-orange-500">ทำหมัน</th>
-          <th className="px-2 py-3 text-right text-green-600">ลงทะเบียน</th>
-          <th className="px-2 py-3 text-right text-purple-600">ไมโครชิป</th>
-          <th className="px-2 py-3 text-right bg-slate-100 text-slate-800">รวม</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-100">
-        {rankingUnitStats.length > 0 ? (
-          rankingUnitStats.map((u, index) => (
-            <tr key={u.name} className="hover:bg-slate-50 transition-colors text-[11px]">
-              <td className="px-2 py-3">
-                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black ${index === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>
-                  {index + 1}
-                </span>
-              </td>
-              <td className="px-2 py-3 font-bold text-slate-700">
-                <div className="truncate max-w-[140px]" title={u.name}>{u.name}</div>
-                <div className="text-[9px] text-slate-400 font-normal">{u.count} กิจกรรม</div>
-              </td>
-              <td className="px-2 py-3 text-right font-medium text-blue-700 bg-blue-50/20">{u.vaccine.toLocaleString()}</td>
-              <td className="px-2 py-3 text-right font-medium text-orange-700 bg-orange-50/20">{u.sterilize.toLocaleString()}</td>
-              <td className="px-2 py-3 text-right font-medium text-green-700 bg-green-50/20">{u.register.toLocaleString()}</td>
-              <td className="px-2 py-3 text-right font-medium text-purple-700 bg-purple-50/20">{u.microchip.toLocaleString()}</td>
-              <td className="px-2 py-3 text-right font-black text-slate-900 bg-slate-100/50">
-                {u.total.toLocaleString()}
-              </td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan="7" className="px-4 py-10 text-center text-slate-400 italic">ไม่พบข้อมูลการจัดอันดับ</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
 </div>
 
     {/* 5 อันดับเขตผลงานสูงสุด */}
@@ -2379,50 +2315,52 @@ const outbreakStats = useMemo(() => {
     </div>
   </div>
 
-  {/* ฝั่งขวา: แผนที่ขนาดใหญ่ (占据 7 ส่วนจาก 12) */}
-  <div className="lg:col-span-7 flex flex-col">
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-full min-h-[56rem] flex flex-col relative z-0">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <div className="bg-green-100 p-1.5 rounded-md"><MapIcon className="w-5 h-5 text-green-600" /></div>
-          Geographic Distribution (ภาพรวมพื้นที่ กทม.)
-        </h2>
-      </div>
+    {/* ฝั่งขวา: แผนที่ขนาดใหญ่ (占据 7 ส่วนจาก 12) */}
+    <div className="lg:col-span-7 flex flex-col">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-full min-h-[56rem] flex flex-col relative z-0">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <div className="bg-green-100 p-1.5 rounded-md"><MapIcon className="w-5 h-5 text-green-600" /></div>
+                        Geographic Distribution (ภาพรวมพื้นที่ กทม.)
+                </h2>
+                <span className="text-[10px] bg-rose-50 text-rose-600 px-2 py-1 rounded-full font-bold border border-rose-100 flex items-center gap-1">
+                    <Stethoscope className="w-3 h-3" /> รวมข้อมูลการรักษาแล้ว
+                </span>
+            </div>
 
-      <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 relative bg-slate-50 isolate">
-          <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onDeleteOutbreak={handleDeleteOutbreak} />
-          
-          {/* Legend ภายในแผนที่ */}
-          <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-200 text-[10px] space-y-3 z-[400] min-w-[180px]">
-            <div className="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-2 flex items-center gap-2">
-               <Database className="w-3 h-3 text-blue-500" /> สัญลักษณ์บนแผนที่
-            </div>
-            <div className="grid grid-cols-1 gap-2.5">
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></span>หน่วยผู้ว่าฯ</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>หน่วยสัตวแพทย์</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>หน่วยวัคซีน + ไมโครชิป</div>
-              <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500 shadow-sm"></span>หน่วยกรงแมว</div>
-            </div>
+            <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 relative bg-slate-50 isolate">
+                <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onDeleteOutbreak={handleDeleteOutbreak} />
+                    {/* Legend ภายในแผนที่ */}
+                    <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-200 text-[10px] space-y-3 z-[400] min-w-[180px]">
+                        <div className="font-bold text-slate-800 border-b border-slate-100 pb-2 mb-2 flex items-center gap-2">
+                            <Database className="w-3 h-3 text-blue-500" /> สัญลักษณ์บนแผนที่
+                        </div>
+                        <div className="grid grid-cols-1 gap-2.5">
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></span>หน่วยผู้ว่าฯ</div>
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>หน่วยสัตวแพทย์</div>
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>หน่วยวัคซีน + ไมโครชิป</div>
+                            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-orange-500 shadow-sm"></span>หน่วยกรงแมว</div>
+                        </div>
             
-            <div className="pt-2 mt-2 border-t border-slate-100">
-                <div className="font-bold text-red-600 mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> รัศมีควบคุมโรค</div>
-                <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-red-900 font-bold">
-                        <span className="w-3 h-3 rounded-full border border-red-800 bg-red-800/40"></span> 1 กม. เข้มงวด
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full border border-red-500 bg-red-500/20"></span> 3 กม. ควบคุม
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full border border-orange-400 bg-orange-400/10 border-dashed"></span> 5 กม. เฝ้าระวัง
+                        <div className="pt-2 mt-2 border-t border-slate-100">
+                            <div className="font-bold text-red-600 mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> รัศมีควบคุมโรค</div>
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2 text-red-900 font-bold">
+                                        <span className="w-3 h-3 rounded-full border border-red-800 bg-red-800/40"></span> 1 กม. เข้มงวด
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full border border-red-500 bg-red-500/20"></span> 3 กม. ควบคุม
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full border border-orange-400 bg-orange-400/10 border-dashed"></span> 5 กม. เฝ้าระวัง
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-          </div>
-      </div>
-    </div>
-  </div>
-</div>
+        </div>
 
         {/* ✅ [เพิ่มใหม่] RABIES DASHBOARD SECTION */}
         {outbreakStats.total > 0 && (
