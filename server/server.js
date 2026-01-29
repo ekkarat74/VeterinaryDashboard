@@ -15,47 +15,49 @@ mongoose.connect(mongoURI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ Connection Error:', err));
 
+// 1. แก้ไข Schema ให้รองรับฟิลด์ medical (การรักษา)
 const reportSchema = new mongoose.Schema({
-  date: { type: String, required: true },
-  activity: String,
-  location: String,
-  district: String,
-  subdistrict: String,
-  unit: String,
-  lat: { type: Number, default: 0 },
-  long: { type: Number, default: 0 },
-  // [เพิ่มตรงนี้] เก็บ Base64 string ของรูปภาพ
-  imageUrl: { type: String, default: "" }, 
-  stats: {
-    vaccine: { type: Number, default: 0 },
-    sterilize: { type: Number, default: 0 },
-    register: { type: Number, default: 0 },
-    microchip: { type: Number, default: 0 }
-  },
-  details: { type: Object, default: {} }
+  date: { type: String, required: true },
+  activity: String,
+  location: String,
+  district: String,
+  subdistrict: String,
+  unit: String,
+  lat: { type: Number, default: 0 },
+  long: { type: Number, default: 0 },
+  imageUrl: { type: String, default: "" }, 
+  stats: {
+    vaccine: { type: Number, default: 0 },
+    sterilize: { type: Number, default: 0 },
+    register: { type: Number, default: 0 },
+    microchip: { type: Number, default: 0 },
+    medical: { type: Number, default: 0 } // ✅ เพิ่มฟิลด์นี้รองรับยอดรวมการรักษา
+  },
+  details: { type: Object, default: {} }
 }, { timestamps: true });
 
 const Report = mongoose.model('Report', reportSchema);
 
-// API สำหรับดึงข้อมูล
+// 2. แก้ไข API ดึงข้อมูลให้เรียงลำดับตามวันที่ล่าสุด (สอดคล้องกับการ Export/Import)
 app.get('/api/reports', async (req, res) => {
-  try {
-    const reports = await Report.find();
-    res.json(reports);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  try {
+    // ✅ เพิ่ม .sort({ date: -1 }) เพื่อให้ข้อมูลที่ดึงไปแสดงผลเรียงจากใหม่ไปเก่า
+    const reports = await Report.find().sort({ date: -1 }); 
+    res.json(reports);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // API สำหรับบันทึกข้อมูล
 app.post('/api/reports', async (req, res) => {
-  try {
-    const newReport = new Report(req.body);
-    const savedReport = await newReport.save();
-    res.status(201).json(savedReport);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+  try {
+    const newReport = new Report(req.body);
+    const savedReport = await newReport.save();
+    res.status(201).json(savedReport);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 });
 
 const outbreakSchema = new mongoose.Schema({
@@ -106,15 +108,15 @@ app.delete('/api/outbreaks/:id', async (req, res) => {
 
 // API สำหรับลบข้อมูลรายรายการ
 app.delete('/api/reports/:id', async (req, res) => {
-  try {
-    const deletedReport = await Report.findByIdAndDelete(req.params.id);
-    if (!deletedReport) {
-      return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
-    }
-    res.json({ message: "ลบข้อมูลสำเร็จ", id: req.params.id });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  try {
+    const deletedReport = await Report.findByIdAndDelete(req.params.id);
+    if (!deletedReport) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
+    }
+    res.json({ message: "ลบข้อมูลสำเร็จ", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // API สำหรับแก้ไขข้อมูล (PUT) <-- เพิ่มส่วนนี้เข้าไป

@@ -1369,7 +1369,7 @@ const parseCSVLine = (text) => {
     return result;
 };
   
-  // --- ฟังก์ชัน Import CSV แบบ Real-time ---
+// --- ฟังก์ชัน Import CSV แบบ Real-time ---
 const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1386,6 +1386,7 @@ const handleFileUpload = (event) => {
         for (let i = 1; i < lines.length; i++) {
             const row = parseCSVLine(lines[i]);
             
+            // ตรวจสอบความยาว Row (ควรมี 21 คอลัมน์ตามหัวข้อ Export ล่าสุด)
             if (row.length >= 7) {
                 const parseVal = (v) => parseInt(v) || 0;
                 const parseFloatVal = (v) => parseFloat(v) || 0;
@@ -1405,7 +1406,7 @@ const handleFileUpload = (event) => {
                             vaccine: parseVal(row[9]),
                             register: parseVal(row[10]),
                             microchip: parseVal(row[11]),
-                            medical: parseVal(row[12]) // เพิ่ม: รักษาสุนัข
+                            medical: parseVal(row[12]) // ✅ ดึงข้อมูลรักษาสุนัข (คอลัมน์ที่ 13)
                         },
                         cat: {
                             maleSterilize: parseVal(row[13]),
@@ -1413,20 +1414,20 @@ const handleFileUpload = (event) => {
                             vaccine: parseVal(row[15]),
                             register: parseVal(row[16]),
                             microchip: parseVal(row[17]),
-                            medical: parseVal(row[18]) // เพิ่ม: รักษาแมว
+                            medical: parseVal(row[18]) // ✅ ดึงข้อมูลรักษาแมว (คอลัมน์ที่ 19)
                         },
                         other: { 
                             vaccine: parseVal(row[19]),
-                            medical: parseVal(row[20]) // เพิ่ม: รักษาสัตว์อื่น
+                            medical: parseVal(row[20]) // ✅ ดึงข้อมูลรักษาสัตว์อื่น (คอลัมน์ที่ 21)
                         }
                     },
-                    // คำนวณยอดรวม (Stats) อัตโนมัติก่อนส่งเข้า DB
+                    // ✅ คำนวณยอดรวม (Stats) อัตโนมัติรวมถึงยอดรักษา
                     stats: {
                         vaccine: parseVal(row[9]) + parseVal(row[15]) + parseVal(row[19]),
                         sterilize: parseVal(row[7]) + parseVal(row[8]) + parseVal(row[13]) + parseVal(row[14]),
                         register: parseVal(row[10]) + parseVal(row[16]),
                         microchip: parseVal(row[11]) + parseVal(row[17]),
-                        medical: parseVal(row[12]) + parseVal(row[18]) + parseVal(row[20])
+                        medical: parseVal(row[12]) + parseVal(row[18]) + parseVal(row[20]) // ✅ รวมยอดรักษาทั้งหมด
                     }
                 };
 
@@ -1439,7 +1440,7 @@ const handleFileUpload = (event) => {
 
                     if (response.ok) {
                         const savedRecord = await response.json();
-                        setReportData(prev => [savedRecord, ...prev]);
+                        setReportData(prev => [savedRecord, ...prev]); // เพิ่มเข้า State ทันทีแบบเรียงใหม่ขึ้นก่อน
                         successCount++;
                     } else { failCount++; }
                 } catch (err) { failCount++; }
@@ -1452,6 +1453,7 @@ const handleFileUpload = (event) => {
 };
 
 const exportToCSV = () => {
+    // 1. กำหนด Header ให้ครอบคลุมทุกฟิลด์รวมถึง 'รักษา' (medical)
     const headers = [
         "วันที่", "สถานที่", "เขต", "แขวง", "หน่วยงาน", "ละติจูด", "ลองจิจูด",
         "สุนัข-ทำหมัน(ผู้)", "สุนัข-ทำหมัน(เมีย)", "สุนัข-วัคซีน", "สุนัข-ขึ้นทะเบียน", "สุนัข-ฝังไมโครชิป", "สุนัข-รักษา",
@@ -1459,7 +1461,11 @@ const exportToCSV = () => {
         "อื่นๆ-วัคซีน", "อื่นๆ-รักษา"
     ];
     
-    const csvRows = filteredData.map(item => {
+    // 2. เรียงข้อมูล (Sort) ตามวันที่จาก "ใหม่ไปเก่า" ก่อนทำการ Map
+    // ใช้ slice() เพื่อไม่ให้กระทบกับลำดับข้อมูลที่แสดงอยู่บนหน้าจอ Dashboard หลัก
+    const sortedData = [...filteredData].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const csvRows = sortedData.map(item => {
         const d = item.details || {};
         const dog = d.dog || {};
         const cat = d.cat || {};
@@ -1468,25 +1474,33 @@ const exportToCSV = () => {
 
         return [
             item.date,
-            `"${item.location.replace(/"/g, '""')}"`,
+            `"${item.location.replace(/"/g, '""')}"`, // กันปัญหาถ้าในชื่อสถานที่มีเครื่องหมายคอมม่า
             item.district,
             item.subdistrict,
             item.unit,
             item.lat,
             item.long,
-            val(dog.maleSterilize), val(dog.femaleSterilize), val(dog.vaccine), val(dog.register), val(dog.microchip), val(dog.medical),
-            val(cat.maleSterilize), val(cat.femaleSterilize), val(cat.vaccine), val(cat.register), val(cat.microchip), val(cat.medical),
+            // ข้อมูลสุนัข
+            val(dog.maleSterilize), val(dog.femaleSterilize), val(dog.vaccine), 
+            val(dog.register), val(dog.microchip), val(dog.medical),
+            // ข้อมูลแมว
+            val(cat.maleSterilize), val(cat.femaleSterilize), val(cat.vaccine), 
+            val(cat.register), val(cat.microchip), val(cat.medical),
+            // ข้อมูลสัตว์อื่นๆ
             val(other.vaccine), val(other.medical)
         ].join(",");
     });
 
+    // 3. รวม Header และข้อมูล พร้อมใส่ BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้ถูกต้อง
     const csvContent = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Template_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Report_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link); // เพิ่ม link เข้าไปใน document เพื่อให้สั่ง click ได้ในบาง browser
     link.click();
+    document.body.removeChild(link); // ลบออกเมื่อเสร็จสิ้น
 };
   
   // --- DATA PROCESSING ---
