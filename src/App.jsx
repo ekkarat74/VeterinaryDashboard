@@ -1343,241 +1343,151 @@ const handleGenerateMockData = () => {
     alert(`✅ จำลองข้อมูลรักษาสัตว์และบริการอื่นๆ เพิ่ม 100 เคสเรียบร้อย`);
 };
 
-  // --- ฟังก์ชัน Helper สำหรับแยกข้อมูล CSV (รองรับกรณีมี "..." ครอบข้อความ) ---
-  const parseCSVLine = (text) => {
-    const result = [];
-    let start = 0;
-    let inQuotes = false;
-    
-    for (let i = 0; i < text.length; i++) {
-      if (text[i] === '"') {
-        inQuotes = !inQuotes; // สลับสถานะเมื่อเจอเครื่องหมายคำพูด
-      } else if (text[i] === ',' && !inQuotes) {
-        // ถ้าเจอ comma และไม่ได้อยู่ใน quote ให้ตัดคำ
-        let field = text.substring(start, i).trim();
-        // ลบเครื่องหมาย " ที่หัวและท้ายออก (ถ้ามี)
-        if (field.startsWith('"') && field.endsWith('"')) {
-            field = field.substring(1, field.length - 1).replace(/""/g, '"');
-        }
-        result.push(field);
-        start = i + 1;
-      }
-    }
-    // เก็บตกคำสุดท้าย
-    let lastField = text.substring(start).trim();
-    if (lastField.startsWith('"') && lastField.endsWith('"')) {
-        lastField = lastField.substring(1, lastField.length - 1).replace(/""/g, '"');
-    }
-    result.push(lastField);
-    return result;
-  };
+// --- ฟังก์ชัน Helper สำหรับแยกข้อมูล CSV 
+const parseCSVLine = (text) => {
+    const result = [];
+    let start = 0;
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '"') {
+            inQuotes = !inQuotes;
+        } else if (text[i] === ',' && !inQuotes) {
+            let field = text.substring(start, i).trim();
+            if (field.startsWith('"') && field.endsWith('"')) {
+                field = field.substring(1, field.length - 1).replace(/""/g, '"');
+            }
+            result.push(field);
+            start = i + 1;
+        }
+    }
+    let lastField = text.substring(start).trim();
+    if (lastField.startsWith('"') && lastField.endsWith('"')) {
+        lastField = lastField.substring(1, lastField.length - 1).replace(/""/g, '"');
+    }
+    result.push(lastField);
+    return result;
+};
   
   // --- ฟังก์ชัน Import CSV แบบ Real-time ---
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target.result;
-      const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
-      
-      let successCount = 0;
-      let failCount = 0;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const text = e.target.result;
+        const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+        
+        let successCount = 0;
+        let failCount = 0;
 
-      // แจ้งเตือนผู้ใช้ว่ากำลังเริ่มทำงาน
-      // (ถ้ามี Loading State สามารถเปิดตรงนี้ได้)
+        // เริ่มวนลูปที่ i = 1 เพื่อข้าม Header
+        for (let i = 1; i < lines.length; i++) {
+            const row = parseCSVLine(lines[i]);
+            
+            if (row.length >= 7) {
+                const parseVal = (v) => parseInt(v) || 0;
+                const parseFloatVal = (v) => parseFloat(v) || 0;
 
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCSVLine(lines[i]);
-        
-        if (row.length >= 7) {
-             const parseVal = (v) => parseInt(v) || 0;
-             const parseFloatVal = (v) => parseFloat(v) || 0;
+                const dataPayload = {
+                    date: row[0],
+                    location: row[1],
+                    district: row[2],
+                    subdistrict: row[3],
+                    unit: row[4],
+                    lat: parseFloatVal(row[5]),
+                    long: parseFloatVal(row[6]),
+                    details: {
+                        dog: {
+                            maleSterilize: parseVal(row[7]),
+                            femaleSterilize: parseVal(row[8]),
+                            vaccine: parseVal(row[9]),
+                            register: parseVal(row[10]),
+                            microchip: parseVal(row[11]),
+                            medical: parseVal(row[12]) // เพิ่ม: รักษาสุนัข
+                        },
+                        cat: {
+                            maleSterilize: parseVal(row[13]),
+                            femaleSterilize: parseVal(row[14]),
+                            vaccine: parseVal(row[15]),
+                            register: parseVal(row[16]),
+                            microchip: parseVal(row[17]),
+                            medical: parseVal(row[18]) // เพิ่ม: รักษาแมว
+                        },
+                        other: { 
+                            vaccine: parseVal(row[19]),
+                            medical: parseVal(row[20]) // เพิ่ม: รักษาสัตว์อื่น
+                        }
+                    },
+                    // คำนวณยอดรวม (Stats) อัตโนมัติก่อนส่งเข้า DB
+                    stats: {
+                        vaccine: parseVal(row[9]) + parseVal(row[15]) + parseVal(row[19]),
+                        sterilize: parseVal(row[7]) + parseVal(row[8]) + parseVal(row[13]) + parseVal(row[14]),
+                        register: parseVal(row[10]) + parseVal(row[16]),
+                        microchip: parseVal(row[11]) + parseVal(row[17]),
+                        medical: parseVal(row[12]) + parseVal(row[18]) + parseVal(row[20])
+                    }
+                };
 
-             const newRecord = {
-                 date: row[0],
-                 location: row[1],
-                 district: row[2],
-                 subdistrict: row[3],
-                 unit: row[4],
-                 lat: parseFloatVal(row[5]),
-                 long: parseFloatVal(row[6]),
-                 details: {
-                     dog: {
-                         maleSterilize: parseVal(row[7]),
-                         femaleSterilize: parseVal(row[8]),
-                         vaccine: parseVal(row[9]),
-                         register: parseVal(row[10]),
-                         microchip: parseVal(row[11]),
-                         owned: parseVal(row[12]),
-                         community: parseVal(row[13])
-                     },
-                     cat: {
-                         maleSterilize: parseVal(row[14]),
-                         femaleSterilize: parseVal(row[15]),
-                         vaccine: parseVal(row[16]),
-                         register: parseVal(row[17]),
-                         microchip: parseVal(row[18]),
-                         owned: parseVal(row[19]),
-                         community: parseVal(row[20])
-                     },
-                     other: {
-                         vaccine: parseVal(row[21])
-                     }
-                 },
-                 stats: {
-                    vaccine: parseVal(row[9]) + parseVal(row[16]) + parseVal(row[21]),
-                    sterilize: parseVal(row[7]) + parseVal(row[8]) + parseVal(row[14]) + parseVal(row[15]),
-                    register: parseVal(row[10]) + parseVal(row[17]),
-                    microchip: parseVal(row[11]) + parseVal(row[18])
-                 }
-             };
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dataPayload),
+                    });
 
-             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newRecord),
-                });
+                    if (response.ok) {
+                        const savedRecord = await response.json();
+                        setReportData(prev => [savedRecord, ...prev]);
+                        successCount++;
+                    } else { failCount++; }
+                } catch (err) { failCount++; }
+            }
+        }
+        alert(`นำเข้าสำเร็จ: ${successCount} รายการ, ล้มเหลว: ${failCount} รายการ`);
+        event.target.value = null;
+    };
+    reader.readAsText(file);
+};
 
-                if (response.ok) {
-                    const savedRecord = await response.json();
-                    
-                    // --- จุดที่แก้ไข: อัปเดตหน้าจอทันทีทีละรายการ (Real-time) ---
-                    setReportData(prev => [savedRecord, ...prev]);
-                    // ----------------------------------------------------
-                    
-                    successCount++;
-                } else {
-                    console.error(`Failed to import line ${i+1}`);
-                    failCount++;
-                }
-             } catch (err) {
-                 console.error(`Error importing line ${i+1}:`, err);
-                 failCount++;
-             }
-             
-             // Optional: หน่วงเวลาเล็กน้อยเพื่อให้เห็น Animation ชัดขึ้น (ถ้าต้องการ)
-             // await new Promise(r => setTimeout(r, 50)); 
-             
-        } else {
-            failCount++;
-        }
-      }
+const exportToCSV = () => {
+    const headers = [
+        "วันที่", "สถานที่", "เขต", "แขวง", "หน่วยงาน", "ละติจูด", "ลองจิจูด",
+        "สุนัข-ทำหมัน(ผู้)", "สุนัข-ทำหมัน(เมีย)", "สุนัข-วัคซีน", "สุนัข-ขึ้นทะเบียน", "สุนัข-ฝังไมโครชิป", "สุนัข-รักษา",
+        "แมว-ทำหมัน(ผู้)", "แมว-ทำหมัน(เมีย)", "แมว-วัคซีน", "แมว-ขึ้นทะเบียน", "แมว-ฝังไมโครชิป", "แมว-รักษา",
+        "อื่นๆ-วัคซีน", "อื่นๆ-รักษา"
+    ];
+    
+    const csvRows = filteredData.map(item => {
+        const d = item.details || {};
+        const dog = d.dog || {};
+        const cat = d.cat || {};
+        const other = d.other || {};
+        const val = (v) => v || 0;
 
-      // แจ้งเตือนเมื่อเสร็จสิ้นทั้งหมด
-      alert(`นำเข้าข้อมูลเสร็จสิ้น!\n✅ สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว/ข้าม: ${failCount} รายการ`);
-      event.target.value = null;
-    };
-    reader.readAsText(file);
-  };
+        return [
+            item.date,
+            `"${item.location.replace(/"/g, '""')}"`,
+            item.district,
+            item.subdistrict,
+            item.unit,
+            item.lat,
+            item.long,
+            val(dog.maleSterilize), val(dog.femaleSterilize), val(dog.vaccine), val(dog.register), val(dog.microchip), val(dog.medical),
+            val(cat.maleSterilize), val(cat.femaleSterilize), val(cat.vaccine), val(cat.register), val(cat.microchip), val(cat.medical),
+            val(other.vaccine), val(other.medical)
+        ].join(",");
+    });
 
-  const exportToCSV = () => {
-    // 1. กำหนดหัวตารางให้ครบทุก Field ตามหน้าบันทึกข้อมูลและไฟล์ Excel ตัวอย่าง
-    const headers = [
-      // --- ข้อมูลทั่วไป ---
-      "วันที่", 
-      "สถานที่", 
-      "เขต", 
-      "แขวง", 
-      "หน่วยงาน", 
-      "ละติจูด", 
-      "ลองจิจูด",
-      
-      // --- สุนัข (Dog) ---
-      "สุนัข-ทำหมัน(ผู้)", 
-      "สุนัข-ทำหมัน(เมีย)", 
-      "สุนัข-วัคซีน", 
-      "สุนัข-ขึ้นทะเบียน", 
-      "สุนัข-ฝังไมโครชิป", 
-      "สุนัข-มีเจ้าของ", 
-      "สุนัข-จรจัด",
-
-      // --- แมว (Cat) ---
-      "แมว-ทำหมัน(ผู้)", 
-      "แมว-ทำหมัน(เมีย)", 
-      "แมว-วัคซีน", 
-      "แมว-ขึ้นทะเบียน", 
-      "แมว-ฝังไมโครชิป", 
-      "แมว-มีเจ้าของ", 
-      "แมว-จรจัด",
-
-      // --- อื่นๆ (Other) ---
-      "สัตว์อื่นๆ-วัคซีน",
-
-      // --- ยอดรวม (Totals) - เพื่อความสะดวกในการดูภาพรวม
-      "รวม-วัคซีน", 
-      "รวม-ทำหมัน", 
-      "รวม-ขึ้นทะเบียน", 
-      "รวม-ฝังไมโครชิป"
-    ];
-    
-    const csvRows = filteredData.map(item => {
-      // ดึงข้อมูล details ออกมา ถ้าไม่มีให้เป็น object ว่าง เพื่อป้องกัน error
-      const d = item.details || {};
-      const dog = d.dog || {};
-      const cat = d.cat || {};
-      const other = d.other || {};
-
-      // Helper function เพื่อจัดการค่า null/undefined ให้เป็น 0
-      const val = (v) => v ? parseInt(v) : 0;
-
-      // จัดรูปแบบวันที่ให้เป็น Text ชัดเจน ป้องกัน Excel แปลงผิด (เช่น ใส่ ' นำหน้า หรือใช้ YYYY-MM-DD ตรงๆ)
-      // การใช้ `\t${item.date}` หรือ `'${item.date}` บางทีช่วยบังคับเป็น Text ได้ แต่มาตรฐานสุดคือ YYYY-MM-DD
-      const dateStr = item.date; 
-
-      return [
-        // 1. General Info
-        dateStr,
-        `"${item.location.replace(/"/g, '""')}"`, // ใส่เครื่องหมายคำพูดป้องกันกรณีชื่อสถานที่ "
-        item.district,
-        item.subdistrict,
-        item.unit,
-        item.lat,
-        item.long,
-
-        // 2. Dog Data
-        val(dog.maleSterilize),
-        val(dog.femaleSterilize),
-        val(dog.vaccine),
-        val(dog.register),
-        val(dog.microchip),
-        val(dog.owned),
-        val(dog.community),
-
-        // 3. Cat Data
-        val(cat.maleSterilize),
-        val(cat.femaleSterilize),
-        val(cat.vaccine),
-        val(cat.register),
-        val(cat.microchip),
-        val(cat.owned),
-        val(cat.community),
-
-        // 4. Other Data
-        val(other.vaccine),
-
-        // 5. Grand Totals (จาก stats ที่คำนวณไว้แล้วใน object หลัก)
-        item.stats.vaccine,
-        item.stats.sterilize,
-        item.stats.register,
-        item.stats.microchip
-      ].join(",");
-    });
-
-    // เพิ่ม BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้ถูกต้อง
-    const csvContent = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `รายงานผลการปฏิบัติงาน_ละเอียด_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+    const csvContent = "\uFEFF" + [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Template_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+};
   
   // --- DATA PROCESSING ---
 
@@ -1659,50 +1569,42 @@ const trendData = useMemo(() => {
 }, [filteredData]);
 
   // แก้ไข: ปรับให้ unitStats return ค่าที่ครบถ้วน (มี total และ count) เพื่อใช้ในกราฟและตาราง
-  const unitStats = useMemo(() => {
-    const grouped = filteredData.reduce((acc, curr) => {
-      if (!acc[curr.unit]) {
-        acc[curr.unit] = { 
-          name: curr.unit, 
-          count: 0, 
-          vaccine: 0, 
-          sterilize: 0, 
-          total: 0 // เพิ่ม field นี้
-        };
-      }
-      acc[curr.unit].count += 1;
-      acc[curr.unit].vaccine += curr.stats.vaccine;
-      acc[curr.unit].sterilize += curr.stats.sterilize;
-      acc[curr.unit].total += (curr.stats.vaccine + curr.stats.sterilize);
-      return acc;
-    }, {});
-    
-    // Return เป็น Array เรียงตามผลงานรวม (ใช้ map ในตารางได้เลย)
-    return Object.values(grouped).sort((a, b) => b.total - a.total);
-  }, [filteredData]);
-
-  // 6. [เพิ่มใหม่] Prepare District Ranking Data
-  // ย้าย Logic การคำนวณอันดับเขตมาไว้ตรงนี้ เพื่อไม่ให้คำนวณซ้ำใน JSX
-  const districtStats = useMemo(() => {
-    const grouped = filteredData.reduce((acc, curr) => {
-      if (!acc[curr.district]) {
-        acc[curr.district] = { 
-          name: curr.district, 
-          vac: 0, 
-          ster: 0, 
-          total: 0, 
-          units: new Set() // ใช้ Set เก็บชื่อหน่วยงานไม่ให้ซ้ำ
-        };
-      }
-      acc[curr.district].vac += curr.stats.vaccine;
-      acc[curr.district].ster += curr.stats.sterilize;
-      acc[curr.district].total += (curr.stats.vaccine + curr.stats.sterilize);
-      acc[curr.district].units.add(curr.unit); 
-      return acc;
-    }, {});
-
-    return Object.values(grouped).sort((a, b) => b.total - a.total);
-  }, [filteredData]);
+// แก้ไข: ปรับให้ unitStats return ค่าที่ครบถ้วน (มี total, register, microchip, medical)
+  const unitStats = useMemo(() => {
+    const grouped = filteredData.reduce((acc, curr) => {
+      if (!acc[curr.unit]) {
+        acc[curr.unit] = { 
+          name: curr.unit, 
+          count: 0, 
+          vaccine: 0, 
+          sterilize: 0, 
+          register: 0,   // ✅ เพิ่ม
+          microchip: 0,  // ✅ เพิ่ม
+          medical: 0,    // ✅ เพิ่ม
+          total: 0 
+        };
+      }
+      acc[curr.unit].count += 1;
+      acc[curr.unit].vaccine += (curr.stats.vaccine || 0);
+      acc[curr.unit].sterilize += (curr.stats.sterilize || 0);
+      acc[curr.unit].register += (curr.stats.register || 0);     // ✅ บวกเพิ่ม
+      acc[curr.unit].microchip += (curr.stats.microchip || 0);   // ✅ บวกเพิ่ม
+      acc[curr.unit].medical += (curr.stats.medical || 0);       // ✅ บวกเพิ่ม
+      
+      // ✅ รวมยอดทั้งหมดให้ครบทุกด้าน
+      acc[curr.unit].total += (
+          (curr.stats.vaccine || 0) + 
+          (curr.stats.sterilize || 0) + 
+          (curr.stats.register || 0) + 
+          (curr.stats.microchip || 0) + 
+          (curr.stats.medical || 0)
+      );
+      return acc;
+    }, {});
+    
+    // Return เป็น Array เรียงตามผลงานรวม
+    return Object.values(grouped).sort((a, b) => b.total - a.total);
+  }, [filteredData]);
 
   // 5. [เพิ่มใหม่] คำนวณสถิติเชิงลึกจาก details (แยกประเภทสัตว์, เพศ, สถานะ)
 const detailedStats = useMemo(() => {
@@ -2191,26 +2093,34 @@ const outbreakStats = useMemo(() => {
     </div>
 
           {/* Unit Comparison Chart (กราฟแท่งเปรียบเทียบหน่วย) */}
-          <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-purple-300 transition-colors">
-            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <div className="bg-purple-100 p-1.5 rounded-md">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              เปรียบเทียบตามหน่วย
-            </h2>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={unitStats} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 11, fill: '#475569', fontWeight: 500}} axisLine={false} tickLine={false} />
-                  <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px' }} />
-                  <Bar dataKey="vaccine" name="วัคซีน" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={24} />
-                  <Bar dataKey="sterilize" name="ทำหมัน" fill="#f97316" radius={[0, 4, 4, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-purple-300 transition-colors">
+            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <div className="bg-purple-100 p-1.5 rounded-md">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              เปรียบเทียบตามหน่วย
+            </h2>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={unitStats} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 11, fill: '#475569', fontWeight: 500}} axisLine={false} tickLine={false} />
+                  <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px' }} />
+                  
+                  {/* ✅ ปรับ barSize เป็น 10-12 เพื่อให้เรียงกัน 5 แท่งได้สวยงามไม่ล้น */}
+                  <Bar dataKey="vaccine" name="วัคซีน" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={10} />
+                  <Bar dataKey="sterilize" name="ทำหมัน" fill="#f97316" radius={[0, 4, 4, 0]} barSize={10} />
+                  
+                  {/* ✅ เพิ่ม 3 แท่งใหม่ */}
+                  <Bar dataKey="register" name="ขึ้นทะเบียน" fill="#10b981" radius={[0, 4, 4, 0]} barSize={10} />
+                  <Bar dataKey="microchip" name="ไมโครชิป" fill="#a855f7" radius={[0, 4, 4, 0]} barSize={10} />
+                  <Bar dataKey="medical" name="รักษาสัตว์" fill="#e11d48" radius={[0, 4, 4, 0]} barSize={10} />
+                  
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
 
 {/* --- [SECTION] RANKING & GEOGRAPHIC DISTRIBUTION --- */}
@@ -2546,24 +2456,37 @@ const outbreakStats = useMemo(() => {
                         </td>
 
                         {/* --- [ส่วนที่แก้ไข] : ซ่อนปุ่ม Edit/Delete ถ้าเป็น ReadOnly --- */}
-{!isReadOnly && (
-  <td className="px-4 py-3 text-center align-top">
-    <div className="flex items-center justify-center gap-2">
-      <button 
-        onClick={() => openEditModal(item)} 
-        className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors group"
-      >
-        <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform" />
-      </button>
-      <button 
-        onClick={() => handleDeleteData(item._id)} 
-        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
-      >
-        <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
-      </button>
-    </div>
-  </td>
-)}
+                        {!isReadOnly && (
+                          <td className="px-4 py-3 text-center align-top">
+                            <div className="flex items-center justify-center gap-2">
+                              
+                              {/* ✅ เพิ่มปุ่มดูข้อมูล (สีฟ้า) */}
+                              <button 
+                                onClick={() => openEditModal(item)}
+                                className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors group"
+                                title="ดูรายละเอียด"
+                              >
+                                <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                              </button>
+
+                              <button 
+                                onClick={() => openEditModal(item)} 
+                                className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors group"
+                                title="แก้ไขข้อมูล"
+                              >
+                                <Pencil className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                              </button>
+                              
+                              <button 
+                                onClick={() => handleDeleteData(item._id)} 
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group"
+                                title="ลบข้อมูล"
+                              >
+                                <X className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
