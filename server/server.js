@@ -304,6 +304,104 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin'])
         res.status(500).json({ message: "การกู้คืนข้อมูลล้มเหลว: " + err.message });
     }
 });
+// --- เพิ่มใน server.js ---
+
+// 1. API ดึงรายชื่อผู้ใช้ทั้งหมด (เฉพาะ SuperAdmin)
+app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+  try {
+    // ดึงข้อมูลทั้งหมดแต่ไม่เอา password (-password)
+    const users = await User.find({}, '-password').sort({ _id: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 2. API แก้ไขสิทธิ์ผู้ใช้งาน (เฉพาะ SuperAdmin)
+app.put('/api/users/:id/role', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+  try {
+    const { role } = req.body;
+    // ป้องกันไม่ให้แก้สิทธิ์ตัวเองผ่าน API นี้ (ถ้าต้องการ)
+    if (req.user._id === req.params.id) {
+        return res.status(400).json({ message: "ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้ในหน้านี้" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id, 
+      { role }, 
+      { new: true }
+    ).select('-password');
+
+    if (!updatedUser) return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
+    
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// 3. API ลบผู้ใช้งาน (แถมให้ เพื่อการจัดการที่สมบูรณ์)
+app.delete('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+      if (req.user._id === req.params.id) {
+          return res.status(400).json({ message: "ไม่สามารถลบบัญชีตัวเองได้" });
+      }
+      await User.findByIdAndDelete(req.params.id);
+      res.json({ message: "ลบผู้ใช้งานเรียบร้อย" });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // --- [ส่วนที่เพิ่ม] API จัดการผู้ใช้งาน (User Management) ---
+
+// 1. ดึงรายชื่อผู้ใช้ทั้งหมด (GET) - เฉพาะ SuperAdmin
+app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+        // ดึงข้อมูลทั้งหมด แต่ไม่เอา password (-password) และเรียงลำดับใหม่สุดก่อน
+        const users = await User.find({}, '-password').sort({ _id: -1 });
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 2. แก้ไขระดับสิทธิ์ (PUT) - เฉพาะ SuperAdmin
+app.put('/api/users/:id/role', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+        const { role } = req.body;
+        
+        // ป้องกันไม่ให้แก้สิทธิ์ตัวเอง (กันพลาดจนเข้าระบบไม่ได้)
+        if (req.user._id === req.params.id) {
+            return res.status(400).json({ message: "ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้ในหน้านี้" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id, 
+            { role }, 
+            { new: true }
+        ).select('-password');
+
+        if (!updatedUser) return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
+        
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// 3. ลบผู้ใช้งาน (DELETE) - เฉพาะ SuperAdmin
+app.delete('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+        if (req.user._id === req.params.id) {
+            return res.status(400).json({ message: "ไม่สามารถลบบัญชีตัวเองได้" });
+        }
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: "ลบผู้ใช้งานเรียบร้อย" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
