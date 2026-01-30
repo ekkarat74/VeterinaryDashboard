@@ -38,7 +38,8 @@ const BANGKOK_DISTRICTS = [
 
 // --- COMPONENTS ---
 
-const LoginModal = ({ isOpen, onClose, onLogin }) => {
+// เพิ่มรับ prop: apiBaseUrl
+const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
@@ -47,7 +48,8 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://192.168.1.35:5000/api/login', {
+            // แก้ไข: ใช้ apiBaseUrl แทนการระบุ IP ตรงๆ หรือ localhost
+            const res = await fetch(`${apiBaseUrl}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
@@ -60,11 +62,14 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
                 alert(data.message);
             }
         } catch (error) {
-            alert("Login Failed");
+            // เพิ่ม: แสดง URL ที่พยายามเชื่อมต่อเพื่อให้รู้ว่าผิดตรงไหน
+            alert(`Login Failed: ไม่สามารถเชื่อมต่อ Server ได้ที่ ${apiBaseUrl}`);
+            console.error(error);
         }
     };
 
     return (
+        // ... (ส่วน UI เหมือนเดิม)
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
                 <h2 className="text-xl font-bold mb-4 text-slate-800">เข้าสู่ระบบ</h2>
@@ -81,7 +86,8 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
     );
 };
 
-const UserManagementModal = ({ isOpen, onClose, token }) => {
+// เพิ่มรับ prop: apiBaseUrl
+const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("admin");
@@ -91,7 +97,8 @@ const UserManagementModal = ({ isOpen, onClose, token }) => {
     const handleCreateUser = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:5000/api/users', {
+            // แก้ไข: เปลี่ยนจาก 'http://localhost:5000/api/users' เป็น apiBaseUrl
+            const res = await fetch(`${apiBaseUrl}/api/users`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -99,6 +106,7 @@ const UserManagementModal = ({ isOpen, onClose, token }) => {
                 },
                 body: JSON.stringify({ username, password, role })
             });
+            // ... (ส่วน logic ที่เหลือเหมือนเดิม)
             if (res.ok) {
                 alert("สร้างผู้ใช้งานสำเร็จ");
                 setUsername(""); setPassword("");
@@ -107,17 +115,21 @@ const UserManagementModal = ({ isOpen, onClose, token }) => {
             }
         } catch (error) {
             console.error(error);
+            alert("เชื่อมต่อ Server ไม่ได้");
         }
     };
 
     return (
+        // ... (ส่วน UI return เหมือนเดิม)
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                <div className="flex justify-between mb-4">
+                {/* ... UI Code ... */}
+                 <div className="flex justify-between mb-4">
                     <h2 className="text-xl font-bold text-slate-800">จัดการผู้ใช้งาน (SuperAdmin)</h2>
                     <button onClick={onClose}><X className="w-5 h-5"/></button>
                 </div>
                 <form onSubmit={handleCreateUser} className="space-y-4">
+                    {/* ... Inputs ... */}
                     <div>
                         <label className="block text-xs font-bold mb-1">ชื่อผู้ใช้</label>
                         <input className="w-full p-2 border rounded" value={username} onChange={e=>setUsername(e.target.value)} required />
@@ -1844,11 +1856,13 @@ export default function VeterinaryDashboard() {
                 isOpen={isLoginModalOpen} 
                 onClose={() => setIsLoginModalOpen(false)} 
                 onLogin={handleLogin} 
+                apiBaseUrl={BASE_URL}  // ✅ เพิ่มบรรทัดนี้
             />
             <UserManagementModal 
                 isOpen={isUserMgmtOpen}
                 onClose={() => setIsUserMgmtOpen(false)}
                 token={user?.token}
+                apiBaseUrl={BASE_URL} // ✅ เพิ่มบรรทัดนี้
             />
 
             {/* Header */}
