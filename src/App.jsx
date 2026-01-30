@@ -1364,7 +1364,7 @@ export default function VeterinaryDashboard() {
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
     // Constants
-    const BASE_URL = 'http://localhost:5000';
+    const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
     const API_URL = `${BASE_URL}/api/reports`;
     const THAI_MONTHS = [
         "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
