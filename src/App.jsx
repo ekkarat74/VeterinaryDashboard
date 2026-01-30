@@ -38,7 +38,7 @@ const BANGKOK_DISTRICTS = [
 
 // --- COMPONENTS ---
 
-// เพิ่มรับ prop: apiBaseUrl
+// --- [UI UPGRADE] LoginModal ---
 const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -48,7 +48,6 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // แก้ไข: ใช้ apiBaseUrl แทนการระบุ IP ตรงๆ หรือ localhost
             const res = await fetch(`${apiBaseUrl}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -62,24 +61,55 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
                 alert(data.message);
             }
         } catch (error) {
-            // เพิ่ม: แสดง URL ที่พยายามเชื่อมต่อเพื่อให้รู้ว่าผิดตรงไหน
             alert(`Login Failed: ไม่สามารถเชื่อมต่อ Server ได้ที่ ${apiBaseUrl}`);
-            console.error(error);
         }
     };
 
     return (
-        // ... (ส่วน UI เหมือนเดิม)
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-                <h2 className="text-xl font-bold mb-4 text-slate-800">เข้าสู่ระบบ</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input className="w-full p-2 border rounded" placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)} />
-                    <input className="w-full p-2 border rounded" type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} />
-                    <div className="flex gap-2 justify-end">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-slate-500">ยกเลิก</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Login</button>
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl transform transition-all scale-100 border border-slate-100 relative overflow-hidden">
+                {/* Decoration Circle */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+                
+                <div className="text-center mb-8 relative z-10">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
+                        <Lock className="w-8 h-8 text-white" />
                     </div>
+                    <h2 className="text-2xl font-bold text-slate-800">เข้าสู่ระบบ</h2>
+                    <p className="text-sm text-slate-500 mt-1">สำหรับเจ้าหน้าที่สัตวแพทย์</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+                    <div className="relative group">
+                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <input 
+                            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-medium text-slate-700" 
+                            placeholder="ชื่อผู้ใช้งาน (Username)" 
+                            value={username} 
+                            onChange={e=>setUsername(e.target.value)} 
+                        />
+                    </div>
+                    <div className="relative group">
+                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <input 
+                            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-medium text-slate-700" 
+                            type="password" 
+                            placeholder="รหัสผ่าน (Password)" 
+                            value={password} 
+                            onChange={e=>setPassword(e.target.value)} 
+                        />
+                    </div>
+                    
+                    <div className="pt-2">
+                        <button type="submit" className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                            <span>เข้าสู่ระบบ</span>
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                    
+                    <button type="button" onClick={onClose} className="w-full py-2 text-slate-400 hover:text-slate-600 text-sm font-medium">
+                        ยกเลิก
+                    </button>
                 </form>
             </div>
         </div>
@@ -88,22 +118,16 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
 
 // --- แก้ไข UserManagementModal ใน VeterinaryDashboard.js ---
 
-// --- [ส่วนที่แก้ไข] UserManagementModal ---
+// --- [UI UPGRADE] UserManagementModal ---
 const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
-    // State สำหรับสร้าง User ใหม่
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("admin");
-
-    // State สำหรับรายการ User
     const [userList, setUserList] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // ดึงข้อมูลเมื่อ Modal เปิด
     useEffect(() => {
-        if (isOpen) {
-            fetchUsers();
-        }
+        if (isOpen) fetchUsers();
     }, [isOpen]);
 
     const fetchUsers = async () => {
@@ -112,15 +136,12 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
             const res = await fetch(`${apiBaseUrl}/api/users`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
             if (res.ok) {
                 const data = await res.json();
                 setUserList(data);
-            } else {
-                console.error("Failed to fetch users:", res.status);
             }
         } catch (error) {
-            console.error("Connection Error:", error);
+            console.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -138,20 +159,16 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                 body: JSON.stringify({ username, password, role })
             });
             if (res.ok) {
-                alert("สร้างผู้ใช้งานสำเร็จ");
-                setUsername(""); setPassword("");
-                fetchUsers(); // โหลดรายชื่อใหม่ทันที
+                setUsername(""); setPassword(""); fetchUsers();
             } else {
                 const data = await res.json();
                 alert(data.message || "สร้างไม่สำเร็จ");
             }
-        } catch (error) {
-            alert("เชื่อมต่อ Server ไม่ได้");
-        }
+        } catch (error) { alert("เชื่อมต่อ Server ไม่ได้"); }
     };
 
     const handleUpdateRole = async (userId, newRole) => {
-        if(!window.confirm(`ยืนยันการเปลี่ยนสิทธิ์เป็น ${newRole}?`)) return;
+        if(!window.confirm(`เปลี่ยนสิทธิ์เป็น ${newRole}?`)) return;
         try {
             const res = await fetch(`${apiBaseUrl}/api/users/${userId}/role`, {
                 method: 'PUT',
@@ -161,111 +178,137 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                 },
                 body: JSON.stringify({ role: newRole })
             });
-            
-            const data = await res.json();
-            
-            if (res.ok) {
-                alert("แก้ไขสิทธิ์เรียบร้อย");
-                fetchUsers(); // รีเฟรชข้อมูล
-            } else {
-                alert(data.message);
-            }
-        } catch (error) {
-            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-        }
+            if (res.ok) fetchUsers();
+        } catch (error) { alert("Error connecting"); }
     };
 
     const handleDeleteUser = async (userId) => {
-        if(!window.confirm("ต้องการลบผู้ใช้งานนี้หรือไม่?")) return;
+        if(!window.confirm("ต้องการลบผู้ใช้งานนี้?")) return;
         try {
             const res = await fetch(`${apiBaseUrl}/api/users/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (res.ok) {
-                fetchUsers();
-            } else {
-                const data = await res.json();
-                alert(data.message);
-            }
-        } catch (error) {
-            alert("ลบไม่สำเร็จ");
+            if (res.ok) fetchUsers();
+        } catch (error) { alert("Error deleting"); }
+    };
+
+    // Helper: Badge Style
+    const getRoleBadgeStyle = (r) => {
+        switch(r) {
+            case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
+            case 'admin': return 'bg-blue-100 text-blue-700 border-blue-200';
+            default: return 'bg-slate-100 text-slate-600 border-slate-200';
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
                 
                 {/* Header */}
-                <div className="flex justify-between mb-6 border-b pb-4">
-                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Users className="w-6 h-6 text-blue-600"/> จัดการผู้ใช้งาน (SuperAdmin)
-                    </h2>
-                    <button onClick={onClose} className="hover:bg-slate-100 p-1 rounded-full"><X className="w-5 h-5"/></button>
+                <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-slate-800 rounded-lg">
+                            <Users className="w-5 h-5 text-blue-400"/>
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white">จัดการผู้ใช้งานระบบ</h2>
+                            <p className="text-slate-400 text-xs">สำหรับผู้ดูแลระบบสูงสุด (SuperAdmin)</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white hover:bg-white/10 p-2 rounded-full transition-colors">
+                        <X className="w-5 h-5"/>
+                    </button>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-8 overflow-hidden">
+                <div className="flex flex-col md:flex-row h-full overflow-hidden">
+                    
                     {/* Left: Create Form */}
-                    <div className="w-full md:w-1/3 space-y-4 border-r pr-0 md:pr-6 border-slate-100 overflow-y-auto">
-                        <h3 className="font-bold text-sm text-slate-500 uppercase">เพิ่มผู้ใช้ใหม่</h3>
-                        <form onSubmit={handleCreateUser} className="space-y-3">
-                            <div>
-                                <label className="block text-xs font-bold mb-1">ชื่อผู้ใช้</label>
-                                <input className="w-full p-2 border rounded bg-slate-50" value={username} onChange={e=>setUsername(e.target.value)} required />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold mb-1">รหัสผ่าน</label>
-                                <input className="w-full p-2 border rounded bg-slate-50" type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold mb-1">ระดับสิทธิ์</label>
-                                <select className="w-full p-2 border rounded bg-slate-50" value={role} onChange={e=>setRole(e.target.value)}>
-                                    <option value="admin">Admin</option>
-                                    <option value="superadmin">SuperAdmin</option>
-                                    <option value="user">User</option>
-                                </select>
-                            </div>
-                            <button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold flex items-center justify-center gap-2 shadow-sm">
-                                <Plus className="w-4 h-4"/> สร้างบัญชี
-                            </button>
-                        </form>
+                    <div className="w-full md:w-80 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto shrink-0">
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Plus className="w-4 h-4 text-green-600"/> เพิ่มผู้ใช้ใหม่
+                            </h3>
+                            <form onSubmit={handleCreateUser} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ชื่อผู้ใช้ (Username)</label>
+                                    <input className="w-full p-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow" 
+                                        value={username} onChange={e=>setUsername(e.target.value)} required placeholder="ระบุชื่อผู้ใช้" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">รหัสผ่าน (Password)</label>
+                                    <input className="w-full p-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow" 
+                                        type="password" value={password} onChange={e=>setPassword(e.target.value)} required placeholder="ระบุรหัสผ่าน" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
+                                    <div className="relative">
+                                        <select className="w-full p-2.5 border border-slate-200 rounded-lg bg-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-slate-700" 
+                                            value={role} onChange={e=>setRole(e.target.value)}>
+                                            <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
+                                            <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
+                                            <option value="user">User (ดูได้อย่างเดียว)</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
+                                    </div>
+                                </div>
+                                <button type="submit" className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-2">
+                                    <CheckCircle className="w-4 h-4"/> สร้างบัญชีผู้ใช้
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 space-y-2">
+                            <p className="font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> คำแนะนำ:</p>
+                            <ul className="list-disc pl-4 space-y-1 opacity-80">
+                                <li>SuperAdmin: จัดการ Users และลบข้อมูลทั้งหมดได้</li>
+                                <li>Admin: เพิ่ม/แก้ไข/ลบ ข้อมูลทั่วไปได้</li>
+                                <li>User: ดู Dashboard ได้อย่างเดียว</li>
+                            </ul>
+                        </div>
                     </div>
 
                     {/* Right: User List Table */}
-                    <div className="w-full md:w-2/3 flex flex-col overflow-hidden">
-                        <h3 className="font-bold text-sm text-slate-500 uppercase mb-3 flex justify-between items-center">
-                            รายชื่อผู้ใช้งาน ({userList.length})
-                            <button onClick={fetchUsers} className="text-blue-500 text-xs hover:underline">รีเฟรช</button>
-                        </h3>
+                    <div className="flex-1 flex flex-col overflow-hidden bg-white p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                <Database className="w-4 h-4 text-slate-400"/> รายชื่อในระบบ <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">{userList.length}</span>
+                            </h3>
+                            <button onClick={fetchUsers} className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded hover:bg-blue-50">
+                                <RotateCw className="w-4 h-4" />
+                            </button>
+                        </div>
                         
-                        <div className="flex-1 overflow-y-auto border rounded-lg">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar border border-slate-100 rounded-xl shadow-sm">
                             <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0">
+                                <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase sticky top-0 z-10">
                                     <tr>
-                                        <th className="p-3">Username</th>
-                                        <th className="p-3">Role</th>
-                                        <th className="p-3 text-center">Action</th>
+                                        <th className="p-4 w-16 text-center">Avatar</th>
+                                        <th className="p-4">Username</th>
+                                        <th className="p-4">Role</th>
+                                        <th className="p-4 text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y">
+                                <tbody className="divide-y divide-slate-100">
                                     {isLoading ? (
-                                        <tr><td colSpan="3" className="p-4 text-center">กำลังโหลด...</td></tr>
+                                        <tr><td colSpan="4" className="p-8 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
                                     ) : userList.length === 0 ? (
-                                        <tr><td colSpan="3" className="p-4 text-center text-slate-400">ไม่พบข้อมูลผู้ใช้งาน</td></tr>
+                                        <tr><td colSpan="4" className="p-8 text-center text-slate-400">ไม่พบข้อมูลผู้ใช้งาน</td></tr>
                                     ) : (
                                         userList.map(u => (
-                                            <tr key={u._id} className="hover:bg-slate-50">
-                                                <td className="p-3 font-medium">{u.username}</td>
+                                            <tr key={u._id} className="hover:bg-slate-50 transition-colors group">
+                                                <td className="p-3 text-center">
+                                                    <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs mx-auto">
+                                                        {u.username.substring(0,2).toUpperCase()}
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 font-semibold text-slate-700">{u.username}</td>
                                                 <td className="p-3">
-                                                    {/* Dropdown เปลี่ยนสิทธิ์ */}
                                                     <select 
-                                                        className={`p-1 rounded border text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                            u.role === 'superadmin' ? 'text-purple-600 border-purple-200 bg-purple-50' : 
-                                                            u.role === 'admin' ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-slate-600'
-                                                        }`}
+                                                        className={`text-xs font-bold px-2 py-1 rounded-full border outline-none cursor-pointer appearance-none text-center min-w-[100px] transition-colors ${getRoleBadgeStyle(u.role)}`}
                                                         value={u.role}
                                                         onChange={(e) => handleUpdateRole(u._id, e.target.value)}
                                                     >
@@ -274,10 +317,10 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                                         <option value="user">User</option>
                                                     </select>
                                                 </td>
-                                                <td className="p-3 text-center">
+                                                <td className="p-3 text-right">
                                                     <button 
                                                         onClick={() => handleDeleteUser(u._id)}
-                                                        className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                                                        className="text-slate-300 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
                                                         title="ลบผู้ใช้"
                                                     >
                                                         <Trash2 className="w-4 h-4"/>
