@@ -1597,12 +1597,85 @@ export default function VeterinaryDashboard() {
         }
     };
 
+// --- [ส่วนที่แก้ไข] ฟังก์ชันจำลองข้อมูล 500 เคส ---
     const handleGenerateMockData = () => {
-        // (Mock generation logic - same as before, simplified here)
-        // Note: In real app, this should probably also call API or be dev-only
+        // เช็คสิทธิ์ก่อน (ถ้าต้องการ) หรือปล่อยให้กดได้เลยเพื่อ Test
+        // if (!canEdit) return; 
+
+        if (!window.confirm("⚠️ ยืนยันการจำลองข้อมูล 500 เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)")) return;
+
+        const newMockData = [];
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setFullYear(endDate.getFullYear() - 1); // ย้อนหลัง 1 ปี
+
+        // Helper สุ่มตัวเลข
         const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-        // ... (Mock logic details omitted for brevity, assuming existing logic)
-        alert("Simulated Mock Data (Client Side Only for Demo)");
+        
+        // Helper สุ่มพิกัด (กรุงเทพฯ และปริมณฑล)
+        // Lat: 13.6 - 13.9, Long: 100.3 - 100.7
+        const randCoord = () => ({
+            lat: 13.6 + Math.random() * 0.35,
+            long: 100.35 + Math.random() * 0.4
+        });
+
+        for (let i = 0; i < 500; i++) {
+            // สุ่มวันที่
+            const date = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+            const dateStr = date.toISOString().split('T')[0];
+
+            // สุ่มข้อมูลพื้นฐาน
+            const district = BANGKOK_DISTRICTS[Math.floor(Math.random() * BANGKOK_DISTRICTS.length)];
+            const unit = UNIT_TYPES[Math.floor(Math.random() * UNIT_TYPES.length)];
+            const coords = randCoord();
+
+            // สุ่มตัวเลขสถิติ (ให้มีความแปรปรวน)
+            const stats = {
+                vaccine: randInt(0, 50),
+                sterilize: randInt(0, 20),
+                register: randInt(0, 30),
+                microchip: randInt(0, 15),
+                medical: randInt(0, 10)
+            };
+
+            // สร้าง Mock Object
+            newMockData.push({
+                _id: `mock-${Date.now()}-${i}`, // ID ปลอมสำหรับ key
+                date: dateStr,
+                location: `จุดบริการจำลอง ${district} #${i+1}`,
+                district: district,
+                subdistrict: "แขวงจำลอง",
+                unit: unit,
+                lat: coords.lat,
+                long: coords.long,
+                stats: stats,
+                imageUrl: "", // ไม่มีรูป
+                // สร้าง details ปลอมกัน Error (คำนวณแบบคร่าวๆ)
+                details: {
+                    dog: { 
+                        vaccine: Math.floor(stats.vaccine * 0.6), 
+                        maleSterilize: Math.floor(stats.sterilize * 0.3), 
+                        femaleSterilize: Math.floor(stats.sterilize * 0.3), 
+                        microchip: Math.floor(stats.microchip * 0.7), 
+                        register: Math.floor(stats.register * 0.6), 
+                        medical: Math.floor(stats.medical * 0.7) 
+                    },
+                    cat: { 
+                        vaccine: Math.floor(stats.vaccine * 0.4), 
+                        maleSterilize: Math.floor(stats.sterilize * 0.2), 
+                        femaleSterilize: Math.floor(stats.sterilize * 0.2), 
+                        microchip: Math.floor(stats.microchip * 0.3), 
+                        register: Math.floor(stats.register * 0.4), 
+                        medical: Math.floor(stats.medical * 0.3) 
+                    },
+                    other: { vaccine: 0, medical: 0 }
+                }
+            });
+        }
+
+        // อัปเดต State เพื่อแสดงผลทันที
+        setReportData(prev => [...newMockData, ...prev]);
+        alert(`✅ สร้างข้อมูลจำลอง 500 เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
     };
 
     const handleRestoreSuccess = () => {
@@ -2062,6 +2135,10 @@ export default function VeterinaryDashboard() {
                                 <button onClick={openAddModal} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg">
                                     <Plus className="w-4 h-4" />
                                     <span className="hidden sm:inline">เพิ่มข้อมูล</span>
+                                </button>
+                                <button onClick={handleGenerateMockData} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" title="สร้างข้อมูลจำลองเพื่อทดสอบระบบ">
+                                    <Zap className="w-4 h-4 text-yellow-300" />
+                                    <span className="hidden sm:inline">จำลอง 500 เคส</span>
                                 </button>
                             </>
                         )}
