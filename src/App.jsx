@@ -13,7 +13,7 @@ import { 
     Filter, Calendar, Database, Download, Users, 
     Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
     Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, 
-    Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope, Key, ChevronRight, RotateCw, ChevronDown
+    Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope, Key, ChevronRight, RotateCw
 } from 'lucide-react';
 import L from 'leaflet';
 
