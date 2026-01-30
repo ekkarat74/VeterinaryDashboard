@@ -183,14 +183,24 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     };
 
     const handleDeleteUser = async (userId) => {
-        if(!window.confirm("ต้องการลบผู้ใช้งานนี้?")) return;
+        if(!window.confirm("ยืนยันการลบผู้ใช้งานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
+        
         try {
             const res = await fetch(`${apiBaseUrl}/api/users/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (res.ok) fetchUsers();
-        } catch (error) { alert("Error deleting"); }
+            
+            if (res.ok) {
+                // ลบสำเร็จ ให้โหลดข้อมูลใหม่
+                fetchUsers();
+            } else {
+                alert("ไม่สามารถลบได้ (อาจไม่มีสิทธิ์)");
+            }
+        } catch (error) { 
+            console.error(error);
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ"); 
+        }
     };
 
     // Helper: Badge Style
@@ -318,14 +328,15 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                                     </select>
                                                 </td>
                                                 <td className="p-3 text-right">
-                                                    <button 
-                                                        onClick={() => handleDeleteUser(u._id)}
-                                                        className="text-slate-300 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                                                        title="ลบผู้ใช้"
-                                                    >
-                                                        <Trash2 className="w-4 h-4"/>
-                                                    </button>
-                                                </td>
+        <button 
+            onClick={() => handleDeleteUser(u._id)}
+            // หมายเหตุ: ลบ opacity-0 ออกเพื่อให้เห็นปุ่มตลอดเวลา
+            className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
+            title="ลบผู้ใช้"
+        >
+            <Trash2 className="w-4 h-4"/>
+        </button>
+    </td>
                                             </tr>
                                         ))
                                     )}
