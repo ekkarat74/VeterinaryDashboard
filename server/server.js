@@ -6,10 +6,27 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
+
+// ✅ กำหนดรายชื่อเว็บที่อนุญาตให้ยิง API เข้ามาได้
+const allowedOrigins = [
+  'http://localhost:3000', // อนุญาตให้ Test ในเครื่องตัวเองได้
+  'http://localhost:5173', // (เผื่อใช้ Vite)
+  'https://veterinary-dashboard-mu.vercel.app' // ✅ โดเมนของจริงที่คุณให้มา
+];
+
 app.use(cors({
-  origin: '*',
+  origin: function (origin, callback) {
+    // อนุญาต request ที่ไม่มี origin (เช่น การยิงผ่าน Postman หรือ Mobile App) 
+    // หรือ origin ที่อยู่ในรายการที่อนุญาต
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS')); // ปฏิเสธเว็บอื่น
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // ถ้าอนาคตมีการใช้ Cookie
 }));
 app.use(express.json({ limit: '10mb' }));
 
