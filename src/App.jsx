@@ -38,6 +38,68 @@ const BANGKOK_DISTRICTS = [
 
 // --- COMPONENTS ---
 
+// --- [NEW COMPONENT] Password Confirmation Modal ---
+const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+    const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        await onConfirm(password);
+        setIsLoading(false);
+        setPassword(""); // Clear password after submit
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border-2 border-red-500">
+                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Lock className="w-5 h-5" /> ยืนยันตัวตน Superadmin
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div className="text-center space-y-2">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                            <Trash2 className="w-6 h-6 text-red-600" />
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-800">{title}</h4>
+                        <p className="text-sm text-slate-500">{message}</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">ใส่รหัสผ่านของคุณเพื่อยืนยัน</label>
+                        <input 
+                            type="password" 
+                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                            placeholder="รหัสผ่าน Superadmin"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="pt-2 flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold">ยกเลิก</button>
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {isLoading ? "กำลังตรวจสอบ..." : "ยืนยันการลบ"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 // --- [UI UPGRADE] LoginModal ---
 const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     const [username, setUsername] = useState("");
@@ -1430,6 +1492,9 @@ export default function VeterinaryDashboard() {
         "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
     ];
 
+    // Confirm Password
+    const [isConfirmPasswordOpen, setIsConfirmPasswordOpen] = useState(false);
+
     // --- 2. AUTHENTICATION LOGIC ---
 
     // ตรวจสอบ Login เมื่อโหลดหน้าเว็บ
@@ -1625,34 +1690,41 @@ export default function VeterinaryDashboard() {
         }
     };
 
+    // [แก้ไข] ฟังก์ชันนี้จะแค่เปิด Modal เท่านั้น ไม่ลบเลยทันที
     const handleClearAllData = async () => {
-        // Double check permissions strictly
         if (!isSuperAdmin) {
             alert("⛔️ ขออภัย เฉพาะ SuperAdmin เท่านั้นที่มีสิทธิ์ล้างข้อมูลทั้งหมด");
             return;
         }
+        // เปิด Modal ถามรหัสผ่าน
+        setIsConfirmPasswordOpen(true);
+    };
 
-        const confirmed = window.confirm("⚠️ คำเตือน: คุณต้องการลบข้อมูลทั้งหมดในระบบใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้");
-        if (!confirmed) return;
-
-        const doubleCheck = window.confirm("❗️ ยืนยันครั้งสุดท้าย: ลบข้อมูลทั้งหมด?");
-        if (!doubleCheck) return;
-
+    // [เพิ่ม] ฟังก์ชันลบจริง (รับ password จาก Modal)
+    const executeClearAllData = async (passwordInput) => {
         try {
             const response = await fetch(API_URL, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${user?.token}` }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}` 
+                },
+                body: JSON.stringify({ password: passwordInput }) // ส่งรหัสผ่านไปใน Body
             });
+
+            const result = await response.json();
 
             if (response.ok) {
                 setReportData([]);
-                alert("✅ ลบข้อมูลทั้งหมดเรียบร้อยแล้ว");
+                setIsConfirmPasswordOpen(false); // ปิด Modal
+                alert(`✅ ${result.message}`);
             } else {
-                alert("❌ ลบไม่สำเร็จ");
+                // กรณีรหัสผิด หรือ Error อื่นๆ
+                alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
             }
         } catch (error) {
             console.error("Clear All Error:", error);
-            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
         }
     };
 
@@ -2109,6 +2181,13 @@ export default function VeterinaryDashboard() {
                 onClose={() => setIsUserMgmtOpen(false)}
                 token={user?.token}
                 apiBaseUrl={BASE_URL} // ✅ เพิ่มบรรทัดนี้
+            />
+            <PasswordConfirmModal 
+                isOpen={isConfirmPasswordOpen}
+                onClose={() => setIsConfirmPasswordOpen(false)}
+                onConfirm={executeClearAllData}
+                title="ล้างข้อมูลทั้งหมด?"
+                message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน"
             />
 
             {/* Header */}
