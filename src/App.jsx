@@ -2246,6 +2246,7 @@ export default function VeterinaryDashboard() {
                     <KPICard title="จำนวนการทำหมัน" value={totals.sterilize} subtext="สุนัขและแมว" icon={Scissors} colorClass="text-orange-500 bg-orange-500" />
                     <KPICard title="ขึ้นทะเบียนสัตว์เลี้ยง" value={totals.register} subtext="ลงระบบฐานข้อมูล" icon={FileText} colorClass="text-green-500 bg-green-500" />
                     <KPICard title="ฝังไมโครชิป" value={totals.microchip} subtext="ระบุตัวตนสัตว์" icon={Database} colorClass="text-purple-500 bg-purple-500" />
+                    <KPICard title="จำนวนการรักษาสัตว์" value={totals.medical} subtext="บริการรักษาพยาบาล" icon={Stethoscope} colorClass="text-rose-500 bg-rose-500" />
                 </div>
 
                 {/* Charts: Species & Sex */}
@@ -2294,10 +2295,11 @@ export default function VeterinaryDashboard() {
                                     <YAxis yAxisId="right" orientation="right" tick={{fontSize:12}} axisLine={false} tickLine={false} />
                                     <RechartsTooltip />
                                     <Legend />
-                                    <Area yAxisId="left" type="monotone" dataKey="total" fill="#e0e7ff" stroke="#6366f1" />
-                                    <Bar yAxisId="left" dataKey="vaccine" fill="#3b82f6" barSize={10} radius={[4,4,0,0]} />
-                                    <Bar yAxisId="left" dataKey="sterilize" fill="#f97316" barSize={10} radius={[4,4,0,0]} />
-                                    <Line yAxisId="right" type="monotone" dataKey="register" stroke="#10b981" strokeWidth={2} />
+                                    <Area yAxisId="left" type="monotone" dataKey="total" fill="#e0e7ff" stroke="#6366f1" name="ยอดรวมทั้งหมด" />
+                                    <Bar yAxisId="left" dataKey="vaccine" fill="#3b82f6" barSize={10} radius={[4,4,0,0]} name="วัคซีน" />
+                                    <Bar yAxisId="left" dataKey="sterilize" fill="#f97316" barSize={10} radius={[4,4,0,0]} name="ทำหมัน" />
+                                    <Bar yAxisId="left" dataKey="medical" fill="#ec4899" barSize={10} radius={[4,4,0,0]} name="รักษาสัตว์" />
+                                    <Line yAxisId="right" type="monotone" dataKey="register" stroke="#10b981" strokeWidth={2} name="ขึ้นทะเบียน" />
                                 </ComposedChart>
                             </ResponsiveContainer>
                         </div>
