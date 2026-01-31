@@ -216,18 +216,37 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadm
   }
 });
 
+// แก้ไข: API ลบข้อมูลทั้งหมด (ต้องใส่ Password ยืนยัน)
 app.delete('/api/reports', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
-  try {
-    // ลบทุก document ใน collection
-    const result = await Report.deleteMany({});
-    
-    res.json({ 
-      message: "ลบข้อมูลทั้งหมดเรียบร้อยแล้ว", 
-      deletedCount: result.deletedCount 
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  try {
+    const { password } = req.body; // รับรหัสผ่านที่ส่งมาจาก Frontend
+
+    if (!password) {
+      return res.status(400).json({ message: "กรุณาระบุรหัสผ่านเพื่อยืนยันการลบ" });
+    }
+
+    // 1. ค้นหา User ปัจจุบันที่กำลัง login อยู่
+    const user = await User.findById(req.user._id);
+    if (!user) {
+        return res.status(404).json({ message: "ไม่พบข้อมูลผู้ใช้งาน" });
+    }
+
+    // 2. ตรวจสอบรหัสผ่านว่าตรงกันหรือไม่
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "รหัสผ่านไม่ถูกต้อง! ไม่สามารถลบข้อมูลได้" });
+    }
+
+    // 3. ถ้ารหัสถูก ให้ทำการลบข้อมูล
+    const result = await Report.deleteMany({});
+    
+    res.json({ 
+      message: "ยืนยันตัวตนสำเร็จ: ลบข้อมูลทั้งหมดเรียบร้อยแล้ว", 
+      deletedCount: result.deletedCount 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // --- [เพิ่มใหม่] API สำหรับ Backup & Restore ระบบ ---
