@@ -1824,35 +1824,6 @@ export default function VeterinaryDashboard() {
         return last10Months;
     }, [filteredData]);
 
-    const detailedStats = useMemo(() => {
-        const stats = filteredData.reduce((acc, curr) => {
-            const d = curr.details || { dog: {}, cat: {}, other: {} };
-            const parse = (val) => parseInt(val) || 0;
-            const dogTotal = parse(d.dog?.vaccine) + parse(d.dog?.maleSterilize) + parse(d.dog?.femaleSterilize) + parse(d.dog?.microchip) + parse(d.dog?.medical);
-            const catTotal = parse(d.cat?.vaccine) + parse(d.cat?.maleSterilize) + parse(d.cat?.femaleSterilize) + parse(d.cat?.microchip) + parse(d.cat?.medical);
-            const otherTotal = parse(d.other?.vaccine) + parse(d.other?.medical);
-
-            acc.species.dog += dogTotal;
-            acc.species.cat += catTotal;
-            acc.species.other += otherTotal;
-            acc.sex.male += parse(d.dog?.maleSterilize) + parse(d.cat?.maleSterilize);
-            acc.sex.female += parse(d.dog?.femaleSterilize) + parse(d.cat?.femaleSterilize);
-            return acc;
-        }, { species: { dog: 0, cat: 0, other: 0 }, sex: { male: 0, female: 0 } });
-
-        return {
-            speciesData: [
-                { name: 'สุนัข', value: stats.species.dog, color: '#3b82f6' },
-                { name: 'แมว', value: stats.species.cat, color: '#f97316' },
-                { name: 'อื่นๆ', value: stats.species.other, color: '#64748b' }
-            ].filter(i => i.value > 0),
-            sexData: [
-                { name: 'ตัวผู้', value: stats.sex.male, color: '#0ea5e9' },
-                { name: 'ตัวเมีย', value: stats.sex.female, color: '#ec4899' },
-            ]
-        };
-    }, [filteredData]);
-
     const outbreakStats = useMemo(() => {
         const total = outbreakData.length;
         const grouped = outbreakData.reduce((acc, curr) => {
@@ -2294,39 +2265,6 @@ export default function VeterinaryDashboard() {
                     />
                 </div>
                 
-                {/* Charts: Species & Sex */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Activity className="w-5 h-5 text-blue-600" /> สรุปภาพรวมสัตว์ที่ได้รับบริการ</h2>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center justify-items-center">
-                        <div className="w-full h-56 relative flex justify-center items-center">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={detailedStats.speciesData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                                        {detailedStats.speciesData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                                    </Pie>
-                                    <RechartsTooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <div className="absolute text-center pointer-events-none">
-                                <span className="block text-2xl font-bold">{detailedStats.speciesData.reduce((a,b)=>a+b.value,0).toLocaleString()}</span>
-                                <span className="text-[10px] text-slate-400">ตัวรวม</span>
-                            </div>
-                        </div>
-                        <div className="w-full h-56 flex justify-center items-center">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={detailedStats.sexData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={renderCustomizedLabel}>
-                                        {detailedStats.sexData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                                    </Pie>
-                                    <RechartsTooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Charts: Trend & Units */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
