@@ -15,7 +15,7 @@ import { 
     Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, 
     Trash2, Zap, Eye, Lock, Unlock, Image as ImageIcon, Skull, AlertTriangle, 
     Siren, Stethoscope, Key, ChevronRight, RotateCw, Printer, ChevronLeft, 
-    ChevronRight, Bell
+    Bell
 } from 'lucide-react';
 import L from 'leaflet';
 
