@@ -349,6 +349,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     );
 };
 
+// --- แก้ไข KPICard ให้แสดงพื้นหลังทึบและไอคอนสีขาว ---
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-default">
         <div>
@@ -359,8 +360,8 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
                 {subtext}
             </p>
         </div>
-        <div className={`p-4 rounded-2xl ${colorClass} bg-opacity-10 shadow-inner`}>
-            <Icon className={`w-7 h-7 ${colorClass.replace('bg-', 'text-')}`} />
+        <div className={`w-14 h-14 rounded-2xl ${colorClass} shadow-md flex items-center justify-center`}>
+            <Icon className="w-7 h-7 text-white" />
         </div>
     </div>
 );
@@ -2241,11 +2242,41 @@ export default function VeterinaryDashboard() {
 
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                    <KPICard title="จำนวนวัคซีนทั้งหมด" value={totals.vaccine} subtext="สะสมรวมทุกหน่วย" icon={Syringe} colorClass="text-blue-600 bg-blue-600" />
-                    <KPICard title="จำนวนการทำหมัน" value={totals.sterilize} subtext="สุนัขและแมว" icon={Scissors} colorClass="text-orange-500 bg-orange-500" />
-                    <KPICard title="ขึ้นทะเบียนสัตว์เลี้ยง" value={totals.register} subtext="ลงระบบฐานข้อมูล" icon={FileText} colorClass="text-green-500 bg-green-500" />
-                    <KPICard title="ฝังไมโครชิป" value={totals.microchip} subtext="ระบุตัวตนสัตว์" icon={Database} colorClass="text-purple-500 bg-purple-500" />
-                    <KPICard title="จำนวนการรักษาสัตว์" value={totals.medical} subtext="บริการรักษาพยาบาล" icon={Stethoscope} colorClass="text-rose-500 bg-rose-500" />
+                    <KPICard 
+                        title="จำนวนวัคซีนทั้งหมด" 
+                        value={totals.vaccine} 
+                        subtext="สะสมรวมทุกหน่วย" 
+                        icon={Syringe} 
+                        colorClass="bg-blue-600" 
+                    />
+                    <KPICard 
+                        title="จำนวนการทำหมัน" 
+                        value={totals.sterilize} 
+                        subtext="สุนัขและแมว" 
+                        icon={Scissors} 
+                        colorClass="bg-orange-500" 
+                    />
+                    <KPICard 
+                        title="ขึ้นทะเบียนสัตว์เลี้ยง" 
+                        value={totals.register} 
+                        subtext="ลงระบบฐานข้อมูล" 
+                        icon={FileText} 
+                        colorClass="bg-green-500" 
+                    />
+                    <KPICard 
+                        title="ฝังไมโครชิป" 
+                        value={totals.microchip} 
+                        subtext="ระบุตัวตนสัตว์" 
+                        icon={Database} 
+                        colorClass="bg-purple-500" 
+                    />
+                    <KPICard 
+                        title="จำนวนการรักษาสัตว์" 
+                        value={totals.medical} 
+                        subtext="บริการรักษาพยาบาล" 
+                        icon={Stethoscope} 
+                        colorClass="bg-rose-500" 
+                    />
                 </div>
 
                 {/* Charts: Species & Sex */}
