@@ -328,15 +328,14 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                                     </select>
                                                 </td>
                                                 <td className="p-3 text-right">
-        <button 
-            onClick={() => handleDeleteUser(u._id)}
-            // หมายเหตุ: ลบ opacity-0 ออกเพื่อให้เห็นปุ่มตลอดเวลา
-            className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
-            title="ลบผู้ใช้"
-        >
-            <Trash2 className="w-4 h-4"/>
-        </button>
-    </td>
+                                                    <button onClick={() => handleDeleteUser(u._id)}
+                                                        // หมายเหตุ: ลบ opacity-0 ออกเพื่อให้เห็นปุ่มตลอดเวลา
+                                                        className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
+                                                        title="ลบผู้ใช้"
+                                                    >
+                                                        <Trash2 className="w-4 h-4"/>
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -2241,7 +2240,7 @@ export default function VeterinaryDashboard() {
                 </div>
 
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                     <KPICard title="จำนวนวัคซีนทั้งหมด" value={totals.vaccine} subtext="สะสมรวมทุกหน่วย" icon={Syringe} colorClass="text-blue-600 bg-blue-600" />
                     <KPICard title="จำนวนการทำหมัน" value={totals.sterilize} subtext="สุนัขและแมว" icon={Scissors} colorClass="text-orange-500 bg-orange-500" />
                     <KPICard title="ขึ้นทะเบียนสัตว์เลี้ยง" value={totals.register} subtext="ลงระบบฐานข้อมูล" icon={FileText} colorClass="text-green-500 bg-green-500" />
