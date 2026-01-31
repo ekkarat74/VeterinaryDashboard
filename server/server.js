@@ -12,7 +12,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '100mb' }));
 
 // เชื่อมต่อ MongoDB
 // หมายเหตุ: แทนที่ตรงนี้ด้วย URL จาก MongoDB Atlas ในไฟล์ .env
