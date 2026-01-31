@@ -178,8 +178,6 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     );
 };
 
-// --- แก้ไข UserManagementModal ใน VeterinaryDashboard.js ---
-
 // --- [UI UPGRADE] UserManagementModal ---
 const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     const [username, setUsername] = useState("");
@@ -698,9 +696,14 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                                 <div className="text-orange-500 font-bold bg-orange-50 rounded px-1 py-0.5">5 กม.<br/>เฝ้าระวัง</div>
                             </div>
                         
-                            <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors">
-                                <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
-                            </button>
+                            {onDeleteOutbreak && (
+                        <button 
+        onClick={() => onDeleteOutbreak(item._id)} 
+        className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors"
+    >
+        <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
+    </button>
+)}
                         </div>
                     </Popup>
                 </Marker>
@@ -2297,50 +2300,25 @@ export default function VeterinaryDashboard() {
 
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                    <KPICard 
-                        title="จำนวนวัคซีนทั้งหมด" 
-                        value={totals.vaccine} 
-                        subtext="สะสมรวมทุกหน่วย" 
-                        icon={Syringe} 
+                    <KPICard title="จำนวนวัคซีนทั้งหมด" value={totals.vaccine} subtext="สะสมรวมทุกหน่วย" icon={Syringe} 
                         // ใช้ Gradient สีฟ้า
-                        colorClass="bg-gradient-to-br from-blue-500 to-blue-700" 
-                        shadowClass="shadow-lg shadow-blue-500/30"
+                        colorClass="bg-gradient-to-br from-blue-500 to-blue-700" shadowClass="shadow-lg shadow-blue-500/30"
                     />
-                    <KPICard 
-                        title="จำนวนการทำหมัน" 
-                        value={totals.sterilize} 
-                        subtext="สุนัขและแมว" 
-                        icon={Scissors} 
+                    <KPICard title="จำนวนการทำหมัน" value={totals.sterilize} subtext="สุนัขและแมว" icon={Scissors} 
                         // ใช้ Gradient สีส้ม
-                        colorClass="bg-gradient-to-br from-orange-400 to-orange-600" 
-                        shadowClass="shadow-lg shadow-orange-500/30"
+                        colorClass="bg-gradient-to-br from-orange-400 to-orange-600" shadowClass="shadow-lg shadow-orange-500/30"
                     />
-                    <KPICard 
-                        title="ขึ้นทะเบียนสัตว์เลี้ยง" 
-                        value={totals.register} 
-                        subtext="ลงระบบฐานข้อมูล" 
-                        icon={FileText} 
+                    <KPICard title="ขึ้นทะเบียนสัตว์เลี้ยง" value={totals.register} subtext="ลงระบบฐานข้อมูล" icon={FileText} 
                         // ใช้ Gradient สีเขียว
-                        colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" 
-                        shadowClass="shadow-lg shadow-emerald-500/30"
+                        colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" shadowClass="shadow-lg shadow-emerald-500/30"
                     />
-                    <KPICard 
-                        title="ฝังไมโครชิป" 
-                        value={totals.microchip} 
-                        subtext="ระบุตัวตนสัตว์" 
-                        icon={Database} 
+                    <KPICard title="ฝังไมโครชิป" value={totals.microchip} subtext="ระบุตัวตนสัตว์" icon={Database} 
                         // ใช้ Gradient สีม่วง
-                        colorClass="bg-gradient-to-br from-purple-500 to-purple-700" 
-                        shadowClass="shadow-lg shadow-purple-500/30"
+                        colorClass="bg-gradient-to-br from-purple-500 to-purple-700" shadowClass="shadow-lg shadow-purple-500/30"
                     />
-                    <KPICard 
-                        title="จำนวนการรักษาสัตว์" 
-                        value={totals.medical} 
-                        subtext="บริการรักษาพยาบาล" 
-                        icon={Stethoscope} 
+                    <KPICard title="จำนวนการรักษาสัตว์" value={totals.medical} subtext="บริการรักษาพยาบาล" icon={Stethoscope} 
                         // ใช้ Gradient สีชมพูเข้ม/แดง (Rose)
-                        colorClass="bg-gradient-to-br from-rose-400 to-rose-600" 
-                        shadowClass="shadow-lg shadow-rose-500/30"
+                        colorClass="bg-gradient-to-br from-rose-400 to-rose-600" shadowClass="shadow-lg shadow-rose-500/30"
                     />
                 </div>
                 
