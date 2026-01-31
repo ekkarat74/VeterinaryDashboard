@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-    Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
-    PieChart, Pie, Cell, Area, ComposedChart, Brush
+    Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+    Legend, ResponsiveContainer, PieChart, Pie, Cell, Area, ComposedChart, Brush
 } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,8 +12,10 @@ import { 
     Activity, Syringe, Scissors, FileText, MapPin, 
     Filter, Calendar, Database, Download, Users, 
     Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
-    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, 
-    Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope, Key, ChevronRight, RotateCw
+    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, 
+    Trash2, Zap, Eye, Lock, Unlock, Image as ImageIcon, Skull, AlertTriangle, 
+    Siren, Stethoscope, Key, ChevronRight, RotateCw, Printer, ChevronLeft, 
+    ChevronRight, Bell
 } from 'lucide-react';
 import L from 'leaflet';
 
@@ -1452,6 +1454,34 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
     );
 };
 
+// --- [NEW COMPONENT] Toast Notification ---
+const ToastContainer = ({ toasts, removeToast }) => {
+    return (
+        <div className="fixed bottom-5 right-5 z-[6000] flex flex-col gap-2 pointer-events-none">
+            {toasts.map((toast) => (
+                <div key={toast.id} 
+                     className={`pointer-events-auto min-w-[300px] p-4 rounded-xl shadow-2xl border-l-4 flex items-start gap-3 transform transition-all duration-300 animate-in slide-in-from-right-full ${
+                        toast.type === 'success' ? 'bg-white border-green-500 text-green-800' :
+                        toast.type === 'error' ? 'bg-white border-red-500 text-red-800' :
+                        'bg-white border-blue-500 text-blue-800'
+                     }`}>
+                    <div className={`mt-0.5 p-1 rounded-full ${
+                        toast.type === 'success' ? 'bg-green-100' : toast.type === 'error' ? 'bg-red-100' : 'bg-blue-100'
+                    }`}>
+                        {toast.type === 'success' ? <CheckCircle className="w-4 h-4"/> : 
+                         toast.type === 'error' ? <AlertTriangle className="w-4 h-4"/> : <Bell className="w-4 h-4"/>}
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-bold text-sm">{toast.title}</h4>
+                        <p className="text-xs opacity-90">{toast.message}</p>
+                    </div>
+                    <button onClick={() => removeToast(toast.id)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 export default function VeterinaryDashboard() {
     // --- 1. STATE MANAGEMENT ---
     
@@ -1497,6 +1527,26 @@ export default function VeterinaryDashboard() {
 
     // Confirm Password
     const [isConfirmPasswordOpen, setIsConfirmPasswordOpen] = useState(false);
+
+    // Pagination States 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10; // จำนวนรายการต่อหน้า
+
+    // Toast States
+    const [toasts, setToasts] = useState([]);
+
+    // Helper: Add Toast
+    const addToast = (title, message, type = 'success') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, title, message, type }]);
+        // Auto remove after 3 seconds
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    };
+    
+    // Helper: Print Function
+    const handlePrint = () => {
+        window.print();
+    };
 
     // --- 2. AUTHENTICATION LOGIC ---
 
@@ -1592,9 +1642,9 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setReportData(prev => [savedRecord, ...prev]);
-                if (showSuccessAlert) alert("✅ บันทึกข้อมูลสำเร็จ!");
+                if (showSuccessAlert) addToast("บันทึกสำเร็จ", "ข้อมูลถูกบันทึกเข้าระบบเรียบร้อยแล้ว", "success");
             } else {
-                if (showSuccessAlert) alert("❌ บันทึกไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                if (showSuccessAlert) addToast("บันทึกไม่สำเร็จ", "กรุณาตรวจสอบสิทธิ์หรือข้อมูล", "error");
             }
         } catch (error) {
             console.error("Save Error:", error);
@@ -1616,14 +1666,14 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setReportData(prev => prev.map(item => item._id === id ? savedRecord : item));
-                alert("✅ แก้ไขข้อมูลสำเร็จ!");
+                addToast("แก้ไขสำเร็จ", "ข้อมูลถูกปรับปรุงเรียบร้อยแล้ว", "success");
                 setEditingItem(null);
             } else {
-                alert("❌ แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                addToast("แก้ไขไม่สำเร็จ", "คุณอาจไม่มีสิทธิ์ในการแก้ไข", "error");
             }
         } catch (error) {
             console.error("Update Error:", error);
-            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            addToast("เกิดข้อผิดพลาด", "ไม่สามารถเชื่อมต่อ Server ได้", "error");
         }
     };
 
@@ -1637,13 +1687,13 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     setReportData(prev => prev.filter(item => item._id !== id));
-                    alert("✅ ลบข้อมูลสำเร็จ");
+                    addToast("ลบข้อมูลสำเร็จ", "ลบรายการออกจากระบบแล้ว", "success");
                 } else {
-                    alert("❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                    addToast("ลบไม่สำเร็จ", "เกิดข้อผิดพลาดในการลบ", "error");
                 }
             } catch (error) {
                 console.error("Delete Error:", error);
-                alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+                addToast("เกิดข้อผิดพลาด", "ไม่สามารถเชื่อมต่อ Server ได้", "error");
             }
         }
     };
@@ -1847,6 +1897,18 @@ export default function VeterinaryDashboard() {
             return textMatch && dateMatch && unitMatch && districtMatch;
         });
     }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
+
+    // --- [ADDED] Reset Page when filter changes ---
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, searchDate, selectedYear, selectedMonth, selectedUnit, selectedDistrict]);
+
+    // --- [ADDED] Pagination Calculation ---
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredData.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredData, currentPage]);
 
     const mapDisplayData = useMemo(() => filteredData, [filteredData]);
 
@@ -2139,6 +2201,19 @@ export default function VeterinaryDashboard() {
                 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+                @media print {
+        @page { size: landscape; margin: 10mm; }
+        .no-print, header button, .fixed { display: none !important; }
+        .print-only { display: block !important; }
+        body { background: white; font-size: 12px; }
+        .shadow-sm, .shadow-lg { box-shadow: none !important; }
+        .border { border-color: #000 !important; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd !important; padding: 4px !important; }
+        /* ซ่อน Map และกราฟบางส่วนตอนพิมพ์เพื่อประหยัดหมึก หรือจะเปิดไว้ก็ได้ */
+        .leaflet-container { border: 1px solid #ccc; }
+    }
             `}</style>
 
             {/* Modals */}
@@ -2192,6 +2267,8 @@ export default function VeterinaryDashboard() {
                 title="ล้างข้อมูลทั้งหมด?"
                 message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน"
             />
+
+            <ToastContainer toasts={toasts} removeToast={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
             {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
@@ -2252,6 +2329,10 @@ export default function VeterinaryDashboard() {
                                     <Zap className="w-4 h-4 text-yellow-300" />
                                     <span className="hidden sm:inline">จำลอง 500 เคส</span>
                                 </button>
+                                {/* [ADDED] Print Button */}
+            <button onClick={handlePrint} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full no-print" title="พิมพ์รายงาน">
+                <Printer className="w-5 h-5" />
+            </button>
                             </>
                         )}
                     </div>
@@ -2513,7 +2594,7 @@ export default function VeterinaryDashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredData.map((item) => (
+                                {paginatedData.map((item) => (
                                     <tr key={item._id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-4 py-3 text-slate-600">{item.date}</td>
                                         <td className="px-4 py-3">
@@ -2540,9 +2621,61 @@ export default function VeterinaryDashboard() {
                                         )}
                                     </tr>
                                 ))}
+                                {paginatedData.length === 0 && (
+            <tr><td colSpan="6" className="p-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>
+        )}
                             </tbody>
                         </table>
                     </div>
+                    {/* [ADDED] Pagination Controls */}
+<div className="flex items-center justify-between mt-4 px-2 no-print">
+    <div className="text-xs text-slate-500">
+        แสดง {paginatedData.length} จากทั้งหมด {filteredData.length} รายการ
+    </div>
+    <div className="flex items-center gap-2">
+        <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            <ChevronLeft className="w-4 h-4 text-slate-600"/>
+        </button>
+        
+        <div className="flex gap-1">
+            {/* Logic แสดงเลขหน้าแบบย่อ */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                // คำนวณเลขหน้าที่จะแสดง (ให้ currentPage อยู่ตรงกลางถ้าเป็นไปได้)
+                let pageNum = i + 1;
+                if (totalPages > 5 && currentPage > 3) {
+                    pageNum = currentPage - 3 + i;
+                    if(pageNum > totalPages) pageNum = totalPages - 4 + i;
+                }
+                
+                return (
+                    <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+                            currentPage === pageNum 
+                            ? 'bg-slate-900 text-white' 
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {pageNum}
+                    </button>
+                );
+            })}
+        </div>
+
+        <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            <ChevronRight className="w-4 h-4 text-slate-600"/>
+        </button>
+    </div>
+</div>
                 </div>
             </main>
             <ImagePreviewModal
