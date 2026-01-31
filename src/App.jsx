@@ -2676,7 +2676,6 @@ export default function VeterinaryDashboard() {
         </button>
     </div>
 </div>
-                
             </main>
             <ImagePreviewModal
                 imageUrl={viewImage}
