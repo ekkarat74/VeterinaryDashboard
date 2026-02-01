@@ -59,6 +59,9 @@ const reportSchema = new mongoose.Schema({
     medical: { type: Number, default: 0 }
   },
   details: { type: Object, default: {} }
+  // [เพิ่ม] เก็บชื่อผู้สร้างและผู้แก้ไข
+  createdBy: { type: String, default: 'System' },
+  updatedBy: { type: String }
 }, { timestamps: true });
 const Report = mongoose.model('Report', reportSchema);
 
@@ -278,7 +281,11 @@ app.get('/api/reports', async (req, res) => {
 // Create Report (Admin/SuperAdmin)
 app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
-    const newReport = new Report(req.body);
+    // [แก้ไข] เพิ่ม createdBy โดยดึงจาก req.user.username (ที่ได้จาก Token)
+    const newReport = new Report({
+        ...req.body,
+        createdBy: req.user.username 
+    });
     const savedReport = await newReport.save();
     res.status(201).json(savedReport);
   } catch (err) {
@@ -289,9 +296,13 @@ app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin'
 // Update Report (Admin/SuperAdmin)
 app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
+    // [แก้ไข] เพิ่ม updatedBy เมื่อมีการแก้ไข
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id, 
-      req.body, 
+      { 
+          ...req.body,
+          updatedBy: req.user.username 
+      }, 
       { new: true }
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
