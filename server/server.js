@@ -113,7 +113,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Setup Initial Admin (รันครั้งเดียวแล้วควร Comment ออก)
-app.get('/setup-admin', async (req, res) => {
+/*app.get('/setup-admin', async (req, res) => {
     try {
         const exists = await User.findOne({ username: "superadmin" });
         if(exists) return res.send("SuperAdmin already exists.");
@@ -126,7 +126,7 @@ app.get('/setup-admin', async (req, res) => {
     } catch (err) {
         res.status(500).send(err.message);
     }
-});
+});*/
 
 // =======================
 // B. USER MANAGEMENT
