@@ -2904,6 +2904,7 @@ export default function VeterinaryDashboard() {
                                     <th className="px-4 py-3 text-center">รูปภาพ</th>
                                     <th className="px-4 py-3 text-center">วัคซีน</th>
                                     <th className="px-4 py-3 text-center">ทำหมัน</th>
+                                    <th className="px-4 py-3 text-center">ผู้บันทึก</th>
                                     {/* Action Column visible only if canEdit */}
                                     {canEdit && <th className="px-4 py-3 text-center w-28">จัดการ</th>}
                                 </tr>
@@ -2924,7 +2925,20 @@ export default function VeterinaryDashboard() {
                                         </td>
                                         <td className="px-4 py-3 text-center font-bold text-blue-600">{item.stats.vaccine}</td>
                                         <td className="px-4 py-3 text-center font-bold text-orange-500">{item.stats.sterilize}</td>
-                                        
+
+                                        <td className="px-4 py-3 text-center">
+                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                        <Users className="w-3 h-3 mr-1 text-slate-400"/>
+                        {item.createdBy || '-'}
+                    </div>
+                    {/* (Optional) ถ้าอยากโชว์คนแก้ไขล่าสุดด้วย */}
+                    {item.updatedBy && item.updatedBy !== item.createdBy && (
+                        <div className="text-[10px] text-slate-400 mt-1">
+                            แก้ไข: {item.updatedBy}
+                        </div>
+                    )}
+                </td>
+
                                         {/* Action Buttons */}
                                         {canEdit && (
                                             <td className="px-4 py-3 text-center">
