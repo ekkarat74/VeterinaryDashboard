@@ -33,7 +33,10 @@ mongoose.connect(MONGO_URI)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['superadmin', 'admin', 'user'], default: 'user' }
+  role: { type: String, enum: ['superadmin', 'admin', 'user'], default: 'user' },
+  // [เพิ่ม] สถานะบัญชี
+  status: { type: String, enum: ['active', 'suspended'], default: 'active' }, 
+  lastLogin: { type: Date } // [เพิ่ม] เก็บเวลาล็อกอินล่าสุด (Optional)
 });
 const User = mongoose.model('User', userSchema);
 
@@ -135,18 +138,17 @@ app.post('/api/login', async (req, res) => {
 
 // Create User (SuperAdmin Only)
 app.post('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
-  try {
-    const { username, password, role } = req.body;
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = new User({ username, password: hashedPassword, role });
-    await newUser.save();
-    res.status(201).json({ message: "สร้างผู้ใช้งานสำเร็จ" });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+    try {
+        const { username, password, role } = req.body;
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        // status จะเป็น active โดย default
+        const newUser = new User({ username, password: hashedPassword, role }); 
+        await newUser.save();
+        res.status(201).json({ message: "สร้างผู้ใช้งานสำเร็จ" });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
 });
 
 // Get All Users (SuperAdmin Only)
@@ -157,6 +159,44 @@ app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (r
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+app.put('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+        const { username, role, status } = req.body;
+        
+        // ป้องกันการระงับบัญชีตัวเอง
+        if (req.user._id === req.params.id && status === 'suspended') {
+             return res.status(400).json({ message: "ไม่สามารถระงับบัญชีตัวเองได้" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id, 
+            { username, role, status }, 
+            { new: true }
+        ).select('-password');
+
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        if (!newPassword || newPassword.length < 4) {
+            return res.status(400).json({ message: "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+        res.json({ message: "รีเซ็ตรหัสผ่านเรียบร้อยแล้ว" });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
 });
 
 // Update User Role (SuperAdmin Only)
