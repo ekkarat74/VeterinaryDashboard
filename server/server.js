@@ -193,6 +193,33 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), a
     }
 });
 
+app.post('/api/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user._id;
+
+        // หา User จาก Database
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
+
+        // ตรวจสอบรหัสผ่านเดิม
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) return res.status(400).json({ message: "รหัสผ่านเดิมไม่ถูกต้อง" });
+
+        // Hash รหัสผ่านใหม่
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // บันทึก
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({ message: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // =======================
 // C. REPORTS (ข้อมูลปฏิบัติงาน)
 // =======================
