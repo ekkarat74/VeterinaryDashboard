@@ -2193,6 +2193,8 @@ export default function VeterinaryDashboard() {
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
             `}</style>
 
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
+
             {/* Modals */}
             <AddDataModal 
                 isOpen={isModalOpen} 
