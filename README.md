@@ -1,16 +1,46 @@
-# React + Vite
+# 🐾 Veterinary & Animal Control Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ระบบรายงานผลการปฏิบัติงานสัตวแพทย์และควบคุมโรคพิษสุนัขบ้า (Web Application) พัฒนาด้วย React และ Tailwind CSS เชื่อมต่อกับระบบแผนที่และฐานข้อมูลเพื่อการวิเคราะห์ข้อมูลเชิงลึก
 
-Currently, two official plugins are available:
+![Dashboard Preview](https://via.placeholder.com/1200x600?text=Dashboard+Preview)
+*(คุณสามารถใส่รูป Screenshot ของหน้าเว็บจริงที่นี่)*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌟 ฟีเจอร์หลัก (Key Features)
 
-## React Compiler
+### 📊 1. Dashboard & Visualization
+- **KPI Cards:** แสดงยอดรวมวัคซีน, ทำหมัน, ขึ้นทะเบียน, ไมโครชิป และการรักษา พร้อม Animation สวยงาม
+- **Interactive Charts:** กราฟเส้นและแท่งแสดงแนวโน้มรายเดือน (Recharts) และเปรียบเทียบผลงานแต่ละหน่วยงาน
+- **Auto-calculation:** คำนวณยอดรวมจากข้อมูลดิบอัตโนมัติ
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🗺️ 2. GIS & Mapping (ระบบแผนที่)
+- **Interactive Map:** แผนที่แสดงจุดปฏิบัติงานพร้อมระบบ Clustering (รวมกลุ่มหมุดเมื่อซูมออก)
+- **Rabies Outbreak Monitoring:** แสดงจุดเกิดโรคระบาดพร้อมวงรัศมีแจ้งเตือน:
+  - 🔴 **1 กม.** (เข้มงวด)
+  - 🛑 **3 กม.** (ควบคุมโรค)
+  - 🟠 **5 กม.** (เฝ้าระวัง)
+- **Filters:** กรองข้อมูลบนแผนที่ตามประเภทหน่วยงานได้
 
-## Expanding the ESLint configuration
+### 🔐 3. Authentication & Security
+- **Role-based Access:**
+  - **SuperAdmin:** สิทธิ์สูงสุด จัดการ Users, ลบข้อมูลทั้งหมด (ต้องยืนยันรหัสผ่าน), Backup/Restore
+  - **Admin:** เพิ่ม/ลบ/แก้ไข ข้อมูลรายงานและจุดระบาด
+  - **User:** ดูข้อมูลได้อย่างเดียว (View Only)
+- **User Management:** ระบบเพิ่ม/ลบ/แก้ไขสิทธิ์ผู้ใช้งาน (เฉพาะ SuperAdmin)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🛠️ 4. Tools & Utilities
+- **CSV Management:** รองรับการ Import และ Export ข้อมูลรายงานเป็นไฟล์ `.csv`
+- **Backup & Restore:** สำรองข้อมูลทั้งระบบเป็นไฟล์ `.json` และกู้คืนได้
+- **Print Mode:** ปุ่มสั่งพิมพ์รายงาน (ซ่อนเมนูและปุ่มต่างๆ อัตโนมัติเมื่อสั่งพิมพ์)
+- **Toast Notifications:** แจ้งเตือนสถานะการทำงาน (Success/Error) ที่มุมจอ
+- **Image Preview:** ดูรูปภาพประกอบการปฏิบัติงานแบบขยายใหญ่
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend Framework:** [React](https://react.dev/) (Vite)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Maps:** [Leaflet](https://leafletjs.com/) & [React Leaflet](https://react-leaflet.js.org/)
+- **Charts:** [Recharts](https://recharts.org/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Http Client:** Fetch API
