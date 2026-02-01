@@ -5,8 +5,8 @@ import { 
 } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-//import 'leaflet.markercluster/dist/MarkerCluster.css';
-//import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { 
     Activity, Syringe, Scissors, FileText, MapPin, 
