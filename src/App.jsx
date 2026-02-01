@@ -1536,14 +1536,14 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
 
                 // ✅ แก้ไข: เพิ่ม Header Authorization
                 const response = await fetch(`${TARGET_URL}/api/system/restore`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // สำคัญมาก
-                    },
-                    body: JSON.stringify(backupData)
-                });
-
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // ต้องส่ง Token
+                },
+                body: event.target.result // ส่งข้อมูล text/json ที่อ่านได้โดยตรง
+            });
+                
                 const result = await response.json();
                 if (response.ok) {
                     alert(`✅ กู้คืนข้อมูลสำเร็จ!\n- รายงาน: ${result.reportCount} รายการ\n- จุดระบาด: ${result.outbreakCount} รายการ`);
