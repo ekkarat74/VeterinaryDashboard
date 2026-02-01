@@ -2,9 +2,6 @@
 
 ระบบรายงานผลการปฏิบัติงานสัตวแพทย์และควบคุมโรคพิษสุนัขบ้า (Web Application) พัฒนาด้วย React และ Tailwind CSS เชื่อมต่อกับระบบแผนที่และฐานข้อมูลเพื่อการวิเคราะห์ข้อมูลเชิงลึก
 
-![Dashboard Preview](https://via.placeholder.com/1200x600?text=Dashboard+Preview)
-*(คุณสามารถใส่รูป Screenshot ของหน้าเว็บจริงที่นี่)*
-
 ## 🌟 ฟีเจอร์หลัก (Key Features)
 
 ### 📊 1. Dashboard & Visualization
