@@ -1668,14 +1668,14 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setReportData(prev => prev.map(item => item._id === id ? savedRecord : item));
-                alert("✅ แก้ไขข้อมูลสำเร็จ!");
+                addToast('success', "✅ แก้ไขข้อมูลสำเร็จ!");
                 setEditingItem(null);
             } else {
-                alert("❌ แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                addToast('error', "❌ แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)");
             }
         } catch (error) {
             console.error("Update Error:", error);
-            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
         }
     };
 
@@ -1689,13 +1689,13 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     setReportData(prev => prev.filter(item => item._id !== id));
-                    alert("✅ ลบข้อมูลสำเร็จ");
+                    addToast('success', "✅ ลบข้อมูลสำเร็จ");
                 } else {
-                    alert("❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                    addToast('error', "❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
                 }
             } catch (error) {
                 console.error("Delete Error:", error);
-                alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+                addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
             }
         }
     };
@@ -1714,13 +1714,13 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setOutbreakData(prev => [savedRecord, ...prev]);
-                alert("🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
+                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
             } else {
-                alert("❌ ไม่สามารถบันทึกข้อมูลได้");
+                addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
             }
         } catch (error) {
             console.error("Save Outbreak Error", error);
-            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
         }
     };
 
@@ -1734,13 +1734,13 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     setOutbreakData(prev => prev.filter(item => item._id !== id));
-                    alert("✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
+                    addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
                 } else {
-                    alert("❌ ไม่สามารถลบข้อมูลได้");
+                    addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
                 }
             } catch (error) {
                 console.error("Delete Outbreak Error:", error);
-                alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+                addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
             }
         }
     };
