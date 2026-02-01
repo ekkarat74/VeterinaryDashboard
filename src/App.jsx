@@ -887,36 +887,43 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
 
     // Effect: โหลดข้อมูลเดิมเมื่อเปิด Modal ในโหมดแก้ไข หรือ รีเซ็ตเมื่อเพิ่มใหม่
     useEffect(() => {
-        if (isOpen) {
-            if (initialData) {
-                setFormData({
-                    date: initialData.date,
-                    location: initialData.location,
-                    district: initialData.district,
-                    subdistrict: initialData.subdistrict,
-                    unit: initialData.unit,
-                    lat: initialData.lat,
-                    long: initialData.long
-                });
-                if (initialData.details) {
-                    setBreakdown(initialData.details);
-                } else {
-                    setBreakdown(defaultBreakdown);
-                }
-                if (initialData.imageUrl) {
-                    setImagePreview(initialData.imageUrl);
-                } else {
-                    setImagePreview(null);
-                    setImageFile(null);
-                }
-            } else {
-                setFormData(defaultFormData);
-                setBreakdown(defaultBreakdown);
-                setImageFile(null);
-                setImagePreview(null);
-            }
-        }
-    }, [isOpen, initialData]);
+        if (isOpen) {
+            if (initialData) {
+                setFormData({
+                    date: initialData.date,
+                    location: initialData.location,
+                    district: initialData.district,
+                    subdistrict: initialData.subdistrict || '',
+                    unit: initialData.unit,
+                    lat: initialData.lat,
+                    long: initialData.long
+                });
+
+                // ✅ FIX: ใช้การ Merge Object เพื่อป้องกัน undefined กรณีข้อมูลเก่าไม่มีบาง field
+                if (initialData.details) {
+                    setBreakdown({
+                        dog: { ...defaultBreakdown.dog, ...(initialData.details.dog || {}) },
+                        cat: { ...defaultBreakdown.cat, ...(initialData.details.cat || {}) },
+                        other: { ...defaultBreakdown.other, ...(initialData.details.other || {}) }
+                    });
+                } else {
+                    setBreakdown(defaultBreakdown);
+                }
+
+                if (initialData.imageUrl) {
+                    setImagePreview(initialData.imageUrl);
+                } else {
+                    setImagePreview(null);
+                    setImageFile(null);
+                }
+            } else {
+                setFormData(defaultFormData);
+                setBreakdown(defaultBreakdown);
+                setImageFile(null);
+                setImagePreview(null);
+            }
+        }
+    }, [isOpen, initialData]);
 
     // คำนวณยอดรวมอัตโนมัติ (Auto-calculation)
     const totals = useMemo(() => {
@@ -964,42 +971,46 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault();
 
-        let finalImageUrl = initialData?.imageUrl || ""; 
+        let finalImageUrl = initialData?.imageUrl || ""; 
 
-        if (imageFile) {
-            try {
-                finalImageUrl = await convertToBase64(imageFile);
-            } catch (error) {
-                console.error("Error converting image:", error);
-                alert("ไม่สามารถประมวลผลรูปภาพได้");
-                return;
-            }
-        } else if (imagePreview === null) {
-            finalImageUrl = "";
-        }
+        if (imageFile) {
+            try {
+                finalImageUrl = await convertToBase64(imageFile);
+            } catch (error) {
+                console.error("Error converting image:", error);
+                if(onToast) onToast('error', "ไม่สามารถประมวลผลรูปภาพได้");
+                return;
+            }
+        } else if (imagePreview === null) {
+            finalImageUrl = "";
+        }
 
-        const dataPayload = {
-            ...formData,
-            lat: formData.lat ? parseFloat(formData.lat) : 0,
-            long: formData.long ? parseFloat(formData.long) : 0,
-            vaccine: totals.vaccine,
-            sterilize: totals.sterilize,
-            register: totals.register,
-            microchip: totals.microchip,
-            medical: totals.medical, // ✅ เพิ่มยอดรวมรักษาลงใน Payload
-            details: breakdown,
-            imageUrl: finalImageUrl 
-        };
+        // ✅ FIX: จัดโครงสร้างข้อมูลให้ตรงกับ Mongoose Schema (เอาตัวเลขไปใส่ใน stats)
+        const dataPayload = {
+            ...formData,
+            lat: formData.lat ? parseFloat(formData.lat) : 0,
+            long: formData.long ? parseFloat(formData.long) : 0,
+            // ย้ายตัวเลขรวม เข้าไปอยู่ใน object 'stats'
+            stats: {
+                vaccine: totals.vaccine,
+                sterilize: totals.sterilize,
+                register: totals.register,
+                microchip: totals.microchip,
+                medical: totals.medical
+            },
+            details: breakdown,
+            imageUrl: finalImageUrl 
+        };
 
-        if (initialData) {
-            onUpdate(initialData._id, dataPayload);
-        } else {
-            onSave(dataPayload);
-        }
-        onClose();
-    };
+        if (initialData) {
+            onUpdate(initialData._id, dataPayload);
+        } else {
+            onSave(dataPayload);
+        }
+        onClose();
+    };
 
     const convertToBase64 = (file) => {
         return new Promise((resolve, reject) => {
