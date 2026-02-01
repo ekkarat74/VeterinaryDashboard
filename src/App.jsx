@@ -38,7 +38,7 @@ const BANGKOK_DISTRICTS = [
 
 // --- COMPONENTS ---
 
-// --- [NEW COMPONENT] ChangePasswordModal ---
+// --- [UI UPGRADE] ChangePasswordModal ---
 const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -90,35 +90,42 @@ const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) =>
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative overflow-hidden">
-                <div className="text-center mb-6">
-                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Key className="w-6 h-6 text-orange-600" />
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-100">
+                {/* Header */}
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                        <Key className="w-5 h-5 text-orange-600" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-800">เปลี่ยนรหัสผ่าน</h2>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-800">เปลี่ยนรหัสผ่าน</h2>
+                        <p className="text-xs text-slate-500">เพื่อความปลอดภัยของบัญชี</p>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">รหัสผ่านเดิม</label>
-                        <input type="password" required className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-orange-500 outline-none" 
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">รหัสผ่านเดิม</label>
+                        <input type="password" required className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                            placeholder="••••••"
                             value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">รหัสผ่านใหม่</label>
-                        <input type="password" required className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-orange-500 outline-none" 
+                    <div className="pt-2 border-t border-slate-100">
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">รหัสผ่านใหม่</label>
+                        <input type="password" required className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                            placeholder="กำหนดรหัสผ่านใหม่"
                             value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">ยืนยันรหัสผ่านใหม่</label>
-                        <input type="password" required className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-orange-500 outline-none" 
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">ยืนยันรหัสผ่านใหม่</label>
+                        <input type="password" required className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                            placeholder="พิมพ์รหัสใหม่อีกครั้ง"
                             value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                     </div>
                     
-                    <div className="pt-2 flex gap-3">
-                        <button type="button" onClick={onClose} className="flex-1 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-bold">ยกเลิก</button>
-                        <button type="submit" disabled={isLoading} className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold shadow-lg disabled:opacity-50">
-                            {isLoading ? 'กำลังบันทึก...' : 'ยืนยัน'}
+                    <div className="pt-4 flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 text-slate-500 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">ยกเลิก</button>
+                        <button type="submit" disabled={isLoading} className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2">
+                            {isLoading ? 'กำลังบันทึก...' : <><CheckCircle className="w-4 h-4"/> ยืนยัน</>}
                         </button>
                     </div>
                 </form>
@@ -306,7 +313,7 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
 const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => {
     const [formData, setFormData] = useState({ username: '', role: 'user', status: 'active' });
     const [newPassword, setNewPassword] = useState('');
-    const [activeTab, setActiveTab] = useState('info'); // 'info' or 'password'
+    const [activeTab, setActiveTab] = useState('info'); // 'info' | 'password'
 
     useEffect(() => {
         if (user) {
@@ -316,8 +323,9 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                 status: user.status || 'active'
             });
             setNewPassword('');
+            setActiveTab('info'); // Reset tab when opening new user
         }
-    }, [user]);
+    }, [user, isOpen]);
 
     if (!isOpen || !user) return null;
 
@@ -333,57 +341,100 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
     };
 
     return (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
-                <div className="bg-slate-100 p-2 flex gap-1 border-b border-slate-200">
-                    <button onClick={() => setActiveTab('info')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'info' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:bg-slate-200'}`}>
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]">
+                
+                {/* Header Profile */}
+                <div className="bg-slate-900 p-6 text-center text-white relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-orange-500"></div>
+                    <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold border-4 border-slate-800 shadow-xl">
+                        {user.username.substring(0, 2).toUpperCase()}
+                    </div>
+                    <h3 className="text-lg font-bold">{user.username}</h3>
+                    <p className="text-xs text-slate-400 opacity-80 uppercase tracking-wider">{user.role}</p>
+                    
+                    <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex border-b border-slate-100">
+                    <button 
+                        onClick={() => setActiveTab('info')} 
+                        className={`flex-1 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'info' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                    >
                         แก้ไขข้อมูล
                     </button>
-                    <button onClick={() => setActiveTab('password')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'password' ? 'bg-white shadow text-red-600' : 'text-slate-500 hover:bg-slate-200'}`}>
+                    <button 
+                        onClick={() => setActiveTab('password')} 
+                        className={`flex-1 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'password' ? 'border-red-500 text-red-600 bg-red-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                    >
                         รีเซ็ตรหัสผ่าน
                     </button>
                 </div>
 
                 <div className="p-6">
                     {activeTab === 'info' ? (
-                        <form onSubmit={handleInfoSubmit} className="space-y-4">
+                        <form onSubmit={handleInfoSubmit} className="space-y-4 animate-in slide-in-from-left-4 duration-300">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">ชื่อผู้ใช้</label>
-                                <input className="w-full p-2 border rounded-lg text-sm" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ชื่อผู้ใช้ (Username)</label>
+                                <div className="relative">
+                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium transition-all" 
+                                        value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์การใช้งาน</label>
-                                <select className="w-full p-2 border rounded-lg text-sm" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                    <option value="user">User</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="superadmin">SuperAdmin</option>
-                                </select>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
+                                    <select className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm cursor-pointer" 
+                                        value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                        <option value="user">User</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="superadmin">SuperAdmin</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สถานะ (Status)</label>
+                                    <select className={`w-full p-2.5 border border-slate-200 rounded-xl outline-none text-sm cursor-pointer font-bold ${formData.status === 'suspended' ? 'bg-red-50 text-red-600 focus:ring-red-500' : 'bg-green-50 text-green-600 focus:ring-green-500'}`}
+                                        value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                                        <option value="active">ใช้งานปกติ</option>
+                                        <option value="suspended">ระงับการใช้งาน</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">สถานะบัญชี</label>
-                                <select className="w-full p-2 border rounded-lg text-sm" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                                    <option value="active">🟢 ใช้งานปกติ (Active)</option>
-                                    <option value="suspended">🔴 ระงับการใช้งาน (Suspended)</option>
-                                </select>
-                            </div>
-                            <div className="pt-2 flex justify-end gap-2">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-slate-500 text-xs font-bold hover:bg-slate-100 rounded-lg">ปิด</button>
-                                <button type="submit" className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700">บันทึก</button>
-                            </div>
+
+                            <button type="submit" className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2">
+                                <Save className="w-4 h-4" /> บันทึกการเปลี่ยนแปลง
+                            </button>
                         </form>
                     ) : (
-                        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                            <div className="bg-red-50 p-3 rounded-lg border border-red-100 mb-2">
-                                <p className="text-xs text-red-600 font-medium">⚠️ Admin กำลังตั้งรหัสผ่านใหม่ให้ผู้ใช้นี้</p>
+                        <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+                            <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex gap-3 items-start">
+                                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="text-xs font-bold text-red-700">คำเตือนสำหรับ Admin</h4>
+                                    <p className="text-[10px] text-red-600 leading-tight mt-1">
+                                        การเปลี่ยนรหัสผ่านที่นี่จะทำให้ User ไม่สามารถใช้รหัสเดิมได้ทันที กรุณาแจ้งรหัสใหม่ให้ User ทราบด้วย
+                                    </p>
+                                </div>
                             </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">รหัสผ่านใหม่</label>
-                                <input type="text" className="w-full p-2 border rounded-lg text-sm font-mono" placeholder="ระบุรหัสผ่านใหม่" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={4} />
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ตั้งรหัสผ่านใหม่</label>
+                                <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input type="text" className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500 outline-none text-sm font-mono transition-all" 
+                                        placeholder="ระบุรหัสผ่านใหม่..." 
+                                        value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={4} />
+                                </div>
                             </div>
-                            <div className="pt-2 flex justify-end gap-2">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-slate-500 text-xs font-bold hover:bg-slate-100 rounded-lg">ปิด</button>
-                                <button type="submit" className="px-3 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700">ยืนยันเปลี่ยนรหัส</button>
-                            </div>
+
+                            <button type="submit" className="w-full mt-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg hover:shadow-red-500/30 transition-all flex items-center justify-center gap-2">
+                                <RotateCw className="w-4 h-4" /> ยืนยันรีเซ็ตรหัสผ่าน
+                            </button>
                         </form>
                     )}
                 </div>
