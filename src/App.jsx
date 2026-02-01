@@ -12,8 +12,9 @@ import { 
     Activity, Syringe, Scissors, FileText, MapPin, 
     Filter, Calendar, Database, Download, Users, 
     Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
-    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, 
-    Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope, Key, ChevronRight, RotateCw
+    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, 
+    Trash2, Zap, Eye, Lock, Unlock, Image as ImageIcon, Skull, AlertTriangle, 
+    Siren, Stethoscope, Key, ChevronRight, RotateCw, Info
 } from 'lucide-react';
 import L from 'leaflet';
 
@@ -37,6 +38,45 @@ const BANGKOK_DISTRICTS = [
 ];
 
 // --- COMPONENTS ---
+
+// --- [NEW COMPONENT] Toast Notification System ---
+const ToastContainer = ({ toasts, removeToast }) => {
+    return (
+        <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+            {toasts.map((toast) => (
+                <div 
+                    key={toast.id}
+                    className={`
+                        pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border-l-4 transition-all duration-500 animate-in slide-in-from-right-full fade-in
+                        ${toast.type === 'success' ? 'bg-white border-green-500 text-slate-800' : ''}
+                        ${toast.type === 'error' ? 'bg-white border-red-500 text-slate-800' : ''}
+                        ${toast.type === 'warning' ? 'bg-white border-orange-500 text-slate-800' : ''}
+                        ${toast.type === 'info' ? 'bg-white border-blue-500 text-slate-800' : ''}
+                    `}
+                >
+                    <div className="shrink-0 pt-0.5">
+                        {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
+                        {toast.type === 'error' && <X className="w-5 h-5 text-red-500" />}
+                        {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-orange-500" />}
+                        {toast.type === 'info' && <Info className="w-5 h-5 text-blue-500" />}
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="text-sm font-bold">
+                            {toast.type === 'success' && 'สำเร็จ (Success)'}
+                            {toast.type === 'error' && 'เกิดข้อผิดพลาด (Error)'}
+                            {toast.type === 'warning' && 'คำเตือน (Warning)'}
+                            {toast.type === 'info' && 'แจ้งเตือน (Info)'}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{toast.message}</p>
+                    </div>
+                    <button onClick={() => removeToast(toast.id)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 // --- [NEW COMPONENT] Password Confirmation Modal ---
 const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
@@ -1498,6 +1538,23 @@ export default function VeterinaryDashboard() {
     // Confirm Password
     const [isConfirmPasswordOpen, setIsConfirmPasswordOpen] = useState(false);
 
+  const [toasts, setToasts] = useState([]);
+
+  // ฟังก์ชันสำหรับเรียกใช้แจ้งเตือน (แทน alert)
+    const showToast = useCallback((message, type = 'info') => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, message, type }]);
+        
+        // ลบอัตโนมัติเมื่อผ่านไป 4 วินาที
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 4000);
+    }, []);
+
+    const removeToast = (id) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    };
+
     // --- 2. AUTHENTICATION LOGIC ---
 
     // ตรวจสอบ Login เมื่อโหลดหน้าเว็บ
@@ -1592,13 +1649,13 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setReportData(prev => [savedRecord, ...prev]);
-                if (showSuccessAlert) alert("✅ บันทึกข้อมูลสำเร็จ!");
+                if (showSuccessAlert) showToast("บันทึกข้อมูลเข้าระบบเรียบร้อยแล้ว", "success");
             } else {
-                if (showSuccessAlert) alert("❌ บันทึกไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                if (showSuccessAlert) showToast("บันทึกไม่สำเร็จ (อาจไม่มีสิทธิ์)", "error");
             }
         } catch (error) {
             console.error("Save Error:", error);
-            if (showSuccessAlert) alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            if (showSuccessAlert) showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ Server", "error");
         }
     };
 
@@ -1616,14 +1673,14 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setReportData(prev => prev.map(item => item._id === id ? savedRecord : item));
-                alert("✅ แก้ไขข้อมูลสำเร็จ!");
+                showToast("แก้ไขข้อมูลสำเร็จ", "success");
                 setEditingItem(null);
             } else {
-                alert("❌ แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                showToast("แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)", "error");
             }
         } catch (error) {
             console.error("Update Error:", error);
-            alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "error");
         }
     };
 
@@ -1637,7 +1694,7 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     setReportData(prev => prev.filter(item => item._id !== id));
-                    alert("✅ ลบข้อมูลสำเร็จ");
+                    showToast("ลบข้อมูลสำเร็จ", "success");
                 } else {
                     alert("❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
                 }
