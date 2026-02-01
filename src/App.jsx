@@ -302,6 +302,96 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     );
 };
 
+// --- [NEW COMPONENT] Edit User & Reset Password Modal ---
+const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => {
+    const [formData, setFormData] = useState({ username: '', role: 'user', status: 'active' });
+    const [newPassword, setNewPassword] = useState('');
+    const [activeTab, setActiveTab] = useState('info'); // 'info' or 'password'
+
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                username: user.username,
+                role: user.role,
+                status: user.status || 'active'
+            });
+            setNewPassword('');
+        }
+    }, [user]);
+
+    if (!isOpen || !user) return null;
+
+    const handleInfoSubmit = (e) => {
+        e.preventDefault();
+        onUpdate(user._id, formData);
+    };
+
+    const handlePasswordSubmit = (e) => {
+        e.preventDefault();
+        onResetPassword(user._id, newPassword);
+        setNewPassword('');
+    };
+
+    return (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+                <div className="bg-slate-100 p-2 flex gap-1 border-b border-slate-200">
+                    <button onClick={() => setActiveTab('info')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'info' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:bg-slate-200'}`}>
+                        แก้ไขข้อมูล
+                    </button>
+                    <button onClick={() => setActiveTab('password')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'password' ? 'bg-white shadow text-red-600' : 'text-slate-500 hover:bg-slate-200'}`}>
+                        รีเซ็ตรหัสผ่าน
+                    </button>
+                </div>
+
+                <div className="p-6">
+                    {activeTab === 'info' ? (
+                        <form onSubmit={handleInfoSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">ชื่อผู้ใช้</label>
+                                <input className="w-full p-2 border rounded-lg text-sm" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์การใช้งาน</label>
+                                <select className="w-full p-2 border rounded-lg text-sm" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="superadmin">SuperAdmin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">สถานะบัญชี</label>
+                                <select className="w-full p-2 border rounded-lg text-sm" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                                    <option value="active">🟢 ใช้งานปกติ (Active)</option>
+                                    <option value="suspended">🔴 ระงับการใช้งาน (Suspended)</option>
+                                </select>
+                            </div>
+                            <div className="pt-2 flex justify-end gap-2">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-slate-500 text-xs font-bold hover:bg-slate-100 rounded-lg">ปิด</button>
+                                <button type="submit" className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700">บันทึก</button>
+                            </div>
+                        </form>
+                    ) : (
+                        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                            <div className="bg-red-50 p-3 rounded-lg border border-red-100 mb-2">
+                                <p className="text-xs text-red-600 font-medium">⚠️ Admin กำลังตั้งรหัสผ่านใหม่ให้ผู้ใช้นี้</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">รหัสผ่านใหม่</label>
+                                <input type="text" className="w-full p-2 border rounded-lg text-sm font-mono" placeholder="ระบุรหัสผ่านใหม่" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={4} />
+                            </div>
+                            <div className="pt-2 flex justify-end gap-2">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-slate-500 text-xs font-bold hover:bg-slate-100 rounded-lg">ปิด</button>
+                                <button type="submit" className="px-3 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700">ยืนยันเปลี่ยนรหัส</button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- [UI UPGRADE] UserManagementModal ---
 const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     const [username, setUsername] = useState("");
@@ -309,6 +399,9 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     const [role, setRole] = useState("admin");
     const [userList, setUserList] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [editingUser, setEditingUser] = useState(null); // สำหรับ Modal แก้ไข
 
     useEffect(() => {
         if (isOpen) fetchUsers();
@@ -355,20 +448,26 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
         }
     };
 
-    const handleUpdateRole = async (userId, newRole) => {
-        if(!window.confirm(`เปลี่ยนสิทธิ์เป็น ${newRole}?`)) return;
-        try {
-            const res = await fetch(`${apiBaseUrl}/api/users/${userId}/role`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ role: newRole })
-            });
-            if (res.ok) fetchUsers();
-        } catch (error) { alert("Error connecting"); }
-    };
+    const handleUpdateUser = async (userId, updateData) => {
+        try {
+            const res = await fetch(`${apiBaseUrl}/api/users/${userId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(updateData)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                fetchUsers();
+                setEditingUser(null);
+                onToast('success', 'แก้ไขข้อมูลสำเร็จ');
+            } else {
+                onToast('error', data.message);
+            }
+        } catch (error) { onToast('error', "Update Error"); }
+    };
 
     const handleDeleteUser = async (userId) => {
         if(!window.confirm("ยืนยันการลบผู้ใช้งานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
@@ -390,6 +489,32 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
         }
     };
 
+    const handleAdminResetPassword = async (userId, newPassword) => {
+        if(!window.confirm("ยืนยันการเปลี่ยนรหัสผ่านให้ผู้ใช้นี้?")) return;
+        try {
+            const res = await fetch(`${apiBaseUrl}/api/users/${userId}/reset-password`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ newPassword })
+            });
+            if (res.ok) {
+                setEditingUser(null);
+                onToast('success', 'เปลี่ยนรหัสผ่านเรียบร้อย');
+            } else {
+                const data = await res.json();
+                onToast('error', data.message);
+            }
+        } catch (error) { onToast('error', "Reset Password Error"); }
+    };
+
+    // [NEW] Filtered Users
+    const filteredUsers = userList.filter(u => 
+        u.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     // Helper: Badge Style
     const getRoleBadgeStyle = (r) => {
         switch(r) {
@@ -403,6 +528,13 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <EditUserModal 
+                isOpen={!!editingUser} 
+                onClose={() => setEditingUser(null)} 
+                user={editingUser}
+                onUpdate={handleUpdateUser}
+                onResetPassword={handleAdminResetPassword}
+            />
             <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
                 
                 {/* Header */}
@@ -474,6 +606,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
                                 <Database className="w-4 h-4 text-slate-400"/> รายชื่อในระบบ <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs">{userList.length}</span>
                             </h3>
+                            
                             <button onClick={fetchUsers} className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded hover:bg-blue-50">
                                 <RotateCw className="w-4 h-4" />
                             </button>
@@ -515,6 +648,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                                     </select>
                                                 </td>
                                                 <td className="p-3 text-right">
+                                                    
                                                     <button onClick={() => handleDeleteUser(u._id)}
                                                         // หมายเหตุ: ลบ opacity-0 ออกเพื่อให้เห็นปุ่มตลอดเวลา
                                                         className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
@@ -522,6 +656,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                                     >
                                                         <Trash2 className="w-4 h-4"/>
                                                     </button>
+                                                    
                                                 </td>
                                             </tr>
                                         ))
