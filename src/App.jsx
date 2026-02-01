@@ -2329,10 +2329,6 @@ export default function VeterinaryDashboard() {
                                     <Zap className="w-4 h-4 text-yellow-300" />
                                     <span className="hidden sm:inline">จำลอง 500 เคส</span>
                                 </button>
-                                {/* [ADDED] Print Button */}
-            <button onClick={handlePrint} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full no-print" title="พิมพ์รายงาน">
-                <Printer className="w-5 h-5" />
-            </button>
                             </>
                         )}
                     </div>
@@ -2616,6 +2612,10 @@ export default function VeterinaryDashboard() {
                                                 <div className="flex justify-center gap-2">
                                                     <button onClick={() => openEditModal(item)} className="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg"><Pencil className="w-4 h-4"/></button>
                                                     <button onClick={() => handleDeleteData(item._id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><X className="w-4 h-4"/></button>
+                                                    {/* [ADDED] Print Button */}
+            <button onClick={handlePrint} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full no-print" title="พิมพ์รายงาน">
+                <Printer className="w-5 h-5" />
+            </button>
                                                 </div>
                                             </td>
                                         )}
