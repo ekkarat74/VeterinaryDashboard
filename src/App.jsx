@@ -2205,6 +2205,7 @@ export default function VeterinaryDashboard() {
                 onSave={handleAddNewData} 
                 onUpdate={handleUpdateData} 
                 initialData={editingItem} 
+                showToast={showToast}
             />
             <CsvActionModal 
                 isOpen={isCsvModalOpen} 
@@ -2235,12 +2236,14 @@ export default function VeterinaryDashboard() {
                 onClose={() => setIsLoginModalOpen(false)} 
                 onLogin={handleLogin} 
                 apiBaseUrl={BASE_URL}  // ✅ เพิ่มบรรทัดนี้
+                showToast={showToast}
             />
             <UserManagementModal 
                 isOpen={isUserMgmtOpen}
                 onClose={() => setIsUserMgmtOpen(false)}
                 token={user?.token}
                 apiBaseUrl={BASE_URL} // ✅ เพิ่มบรรทัดนี้
+                showToast={showToast}
             />
             <PasswordConfirmModal 
                 isOpen={isConfirmPasswordOpen}
