@@ -872,83 +872,99 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
   );
 };
 
-// --- [เพิ่มใหม่] COMPONENT: RABIES OUTBREAK MODAL ---
+// --- [UPDATED COMPONENT] RABIES OUTBREAK MODAL ---
 const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
-    const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
-        location: '',
-        district: BANGKOK_DISTRICTS[0],
-        lat: '',
-        long: ''
-    });
+    const [formData, setFormData] = useState({
+        date: new Date().toISOString().split('T')[0],
+        location: '',
+        district: BANGKOK_DISTRICTS[0],
+        lat: '',
+        long: ''
+    });
 
-    if (!isOpen) return null;
+    if (!isOpen) return null;
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave({
-        ...formData,
-        lat: parseFloat(formData.lat),
-        long: parseFloat(formData.long)
-    });
-    onClose();
-  };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({
+            ...formData,
+            lat: parseFloat(formData.lat),
+            long: parseFloat(formData.long)
+        });
+        onClose();
+    };
 
-    return (
-    <div className="fixed inset-0 bg-red-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-red-500">
-            <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
-                <h3 className="text-lg font-bold flex items-center gap-2">
-                    <Skull className="w-6 h-6" /> บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า
-                </h3>
-                <button onClick={onClose}><X className="w-5 h-5" /></button>
-            </div>
+    return (
+        <div className="fixed inset-0 bg-red-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-red-500">
+                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Skull className="w-6 h-6" /> บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+                </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
-                    <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                        value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
+                        <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                            value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                    </div>
 
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่พบ (Location)</label>
-                    <input required type="text" placeholder="ระบุสถานที่" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                        value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-                </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่พบ (Location)</label>
+                        <input required type="text" placeholder="ระบุสถานที่" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                            value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                    </div>
 
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">เขตพื้นที่ (District)</label>
-                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                        value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})}>
-                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">เขตพื้นที่ (District)</label>
+                        <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                            value={formData.district} onChange={e => setFormData({ ...formData, district: e.target.value })}>
+                            {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Latitude</label>
-                        <input required type="number" step="any" placeholder="13.xxxx" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                        value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Longitude</label>
-                        <input required type="number" step="any" placeholder="100.xxxx" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                        value={formData.long} onChange={e => setFormData({...formData, long: e.target.value})} />
-                    </div>
-                </div>
-                <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่</p>
+                    {/* ✅ ส่วนที่แก้ไข: รวม Lat/Long เป็นช่องเดียวเหมือน AddDataModal */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
+                            <Navigation className="w-3 h-3 text-red-500" />
+                            พิกัดภูมิศาสตร์ (Latitude, Longitude)
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="เช่น 13.xxxx, 100.xxxx"
+                                className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono"
+                                // Logic การแสดงผลรวมค่า
+                                value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
+                                // Logic การแยกค่าเมื่อกรอก
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value.includes(',')) {
+                                        const [lat, lng] = value.split(',').map(s => s.trim());
+                                        setFormData({ ...formData, lat, long: lng });
+                                    } else {
+                                        setFormData({ ...formData, lat: value });
+                                    }
+                                }}
+                            />
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        </div>
+                    </div>
+                    
+                    <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่ (คั่นด้วยเครื่องหมายจุลภาค ,)</p>
 
-                <div className="pt-4 border-t border-slate-100 flex gap-3">
-                    <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm">ยกเลิก</button>
-                    <button type="submit" className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2">
-                    <Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-  );
+                    <div className="pt-4 border-t border-slate-100 flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                        <button type="submit" className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all">
+                            <Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 // --- UPDATED ADD/EDIT DATA MODAL ---
