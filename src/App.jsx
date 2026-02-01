@@ -2106,155 +2106,226 @@ export default function VeterinaryDashboard() {
 
     // CSV Logic
     const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // ตรวจสอบว่าเป็นไฟล์ CSV หรือไม่
-    if (file.type !== "text/csv" && !file.name.endsWith('.csv')) {
-        alert("กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น");
-        return;
-    }
+    // ตรวจสอบว่าเป็นไฟล์ CSV หรือไม่
+    if (file.type !== "text/csv" && !file.name.endsWith('.csv')) {
+        alert("กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น");
+        return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        try {
-            const text = event.target.result;
-            const lines = text.split('\n');
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const text = event.target.result;
+            const lines = text.split('\n');
 
-            // ถ้าไม่มีข้อมูล (มีแค่ Header หรือว่างเปล่า)
-            if (lines.length < 2) {
-                alert("ไฟล์ไม่มีข้อมูล");
-                return;
-            }
+            // ถ้าไม่มีข้อมูล (มีแค่ Header หรือว่างเปล่า)
+            if (lines.length < 2) {
+                alert("ไฟล์ไม่มีข้อมูล");
+                return;
+            }
 
-            let successCount = 0;
-            let failCount = 0;
+            let successCount = 0;
+            let failCount = 0;
 
-            // แสดง Loading หรือแจ้งเตือนว่ากำลังทำงาน
-            const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าหรือไม่? \n(การทำงานอาจใช้เวลาสักครู่)`);
-            if (!confirmImport) return;
+            // แสดง Loading หรือแจ้งเตือนว่ากำลังทำงาน
+            const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าหรือไม่? \n(ระบบจะอ่านข้อมูลรายละเอียดทั้งหมด)`);
+            if (!confirmImport) return;
 
-            // วนลูปอ่านข้อมูลทีละแถว (เริ่มที่ i=1 เพื่อข้าม Header)
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
+            // วนลูปอ่านข้อมูลทีละแถว (เริ่มที่ i=1 เพื่อข้าม Header)
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
 
-                // แยกข้อมูลด้วย comma (แบบง่าย)
-                // หมายเหตุ: หากใน CSV มี comma ในเนื้อหา (เช่น ชื่อสถานที่) วิธีนี้อาจตัดผิด 
-                // ควรใช้ Library เช่น 'papaparse' หากต้องการความแม่นยำสูง แต่โค้ดนี้ใช้ได้พื้นฐาน
-                const cols = line.split(',');
+                // แยกข้อมูลด้วย comma
+                const cols = line.split(',');
 
-                // Map ข้อมูลตามลำดับ Header ที่เรา Export ออกไป
-                // [Date, Loc, Dist, Sub, Unit, Vac, Ster, Reg, Chip, Med, Lat, Long]
-                const newRecord = {
-                    date: cols[0]?.trim(),
-                    location: cols[1]?.replace(/"/g, '').trim(), // ลบ quote ออก
-                    district: cols[2]?.trim(),
-                    subdistrict: cols[3]?.trim(),
-                    unit: cols[4]?.trim(),
-                    stats: {
-                        vaccine: parseInt(cols[5]) || 0,
-                        sterilize: parseInt(cols[6]) || 0,
-                        register: parseInt(cols[7]) || 0,
-                        microchip: parseInt(cols[8]) || 0,
-                        medical: parseInt(cols[9]) || 0
-                    },
-                    lat: parseFloat(cols[10]) || 0,
-                    long: parseFloat(cols[11]) || 0,
-                    // ใส่ค่า default ให้ details ป้องกัน error
-                    details: { 
-                        dog: { vaccine: 0, maleSterilize: 0, femaleSterilize: 0, microchip: 0, register: 0, medical: 0 },
-                        cat: { vaccine: 0, maleSterilize: 0, femaleSterilize: 0, microchip: 0, register: 0, medical: 0 },
-                        other: { vaccine: 0, medical: 0 }
-                    }
-                };
+                // Map ข้อมูลตามลำดับ Header ที่แก้ไขใหม่ใน exportToCSV
+                // Indices:
+                // 0-4: Info
+                // 5-9: Total Stats
+                // 10-11: Lat/Long
+                // 12-17: Dog Details
+                // 18-23: Cat Details
+                // 24-25: Other Details
 
-                // ตรวจสอบข้อมูลจำเป็นเบื้องต้น
-                if (!newRecord.date || !newRecord.location) {
-                    failCount++;
-                    continue;
-                }
+                const newRecord = {
+                    date: cols[0]?.trim(),
+                    location: cols[1]?.replace(/"/g, '').trim(), // ลบ quote ออก
+                    district: cols[2]?.trim(),
+                    subdistrict: cols[3]?.trim(),
+                    unit: cols[4]?.trim(),
+                    
+                    // Stats (ยอดรวม) อ่านจาก CSV หรือถ้าไม่มีให้เป็น 0
+                    stats: {
+                        vaccine: parseInt(cols[5]) || 0,
+                        sterilize: parseInt(cols[6]) || 0,
+                        register: parseInt(cols[7]) || 0,
+                        microchip: parseInt(cols[8]) || 0,
+                        medical: parseInt(cols[9]) || 0
+                    },
+                    
+                    lat: parseFloat(cols[10]) || 0,
+                    long: parseFloat(cols[11]) || 0,
+                    
+                    // Details: อ่านข้อมูลละเอียดกลับคืนมา
+                    details: { 
+                        dog: { 
+                            vaccine: parseInt(cols[12]) || 0,
+                            maleSterilize: parseInt(cols[13]) || 0,
+                            femaleSterilize: parseInt(cols[14]) || 0,
+                            register: parseInt(cols[15]) || 0,
+                            microchip: parseInt(cols[16]) || 0, 
+                            medical: parseInt(cols[17]) || 0
+                        },
+                        cat: { 
+                            vaccine: parseInt(cols[18]) || 0,
+                            maleSterilize: parseInt(cols[19]) || 0,
+                            femaleSterilize: parseInt(cols[20]) || 0, 
+                            register: parseInt(cols[21]) || 0,
+                            microchip: parseInt(cols[22]) || 0,
+                            medical: parseInt(cols[23]) || 0
+                        },
+                        other: { 
+                            vaccine: parseInt(cols[24]) || 0, 
+                            medical: parseInt(cols[25]) || 0 
+                        }
+                    }
+                };
 
-                // เรียก API เพื่อบันทึกข้อมูล
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${user?.token}` // ใช้ Token จาก State
-                        },
-                        body: JSON.stringify(newRecord)
-                    });
+                // ตรวจสอบข้อมูลจำเป็นเบื้องต้น
+                if (!newRecord.date || !newRecord.location) {
+                    failCount++;
+                    continue;
+                }
 
-                    if (response.ok) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                        console.error(`Row ${i} failed:`, await response.text());
-                    }
-                } catch (err) {
-                    failCount++;
-                    console.error(`Row ${i} error:`, err);
-                }
-            }
+                // เรียก API เพื่อบันทึกข้อมูล
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${user?.token}` // ใช้ Token จาก State
+                        },
+                        body: JSON.stringify(newRecord)
+                    });
 
-            // สรุปผล
-            alert(`นำเข้าข้อมูลเสร็จสิ้น\n✅ สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว: ${failCount} รายการ`);
-            
-            // รีโหลดหน้าเว็บเพื่อให้ข้อมูลใหม่แสดงผล
-            window.location.reload();
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.error(`Row ${i} failed:`, await response.text());
+                    }
+                } catch (err) {
+                    failCount++;
+                    console.error(`Row ${i} error:`, err);
+                }
+            }
 
-        } catch (error) {
-            console.error("CSV Parse Error:", error);
-            alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV");
-        }
-    };
+            // สรุปผล
+            alert(`นำเข้าข้อมูลเสร็จสิ้น\n✅ สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว: ${failCount} รายการ`);
+            
+            // รีโหลดหน้าเว็บเพื่อให้ข้อมูลใหม่แสดงผล
+            window.location.reload();
 
-    reader.readAsText(file);
+        } catch (error) {
+            console.error("CSV Parse Error:", error);
+            alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV");
+        }
+    };
+
+    reader.readAsText(file);
 };
+    
     const exportToCSV = () => {
-    // ใช้ข้อมูลที่กรองอยู่ปัจจุบัน (filteredData)
-    if (!filteredData || filteredData.length === 0) {
-        alert("ไม่มีข้อมูลสำหรับส่งออก (Export)");
-        return;
-    }
+    // ใช้ข้อมูลที่กรองอยู่ปัจจุบัน (filteredData)
+    if (!filteredData || filteredData.length === 0) {
+        alert("ไม่มีข้อมูลสำหรับส่งออก (Export)");
+        return;
+    }
 
-    // 1. กำหนดหัวตาราง (Header)
-    const headers = [
-        "Date", 
-        "Location", 
-        "District", 
-        "Subdistrict", 
-        "Unit", 
-        "Vaccine", 
-        "Sterilize", 
-        "Register", 
-        "Microchip", 
-        "Medical", 
-        "Latitude", 
-        "Longitude"
-    ];
+    // 1. กำหนดหัวตาราง (Header) ให้ครบทุก Field
+    const headers = [
+        "Date", 
+        "Location", 
+        "District", 
+        "Subdistrict", 
+        "Unit", 
+        "Total_Vaccine",    // เปลี่ยนชื่อให้ชัดว่ายอดรวม
+        "Total_Sterilize", 
+        "Total_Register", 
+        "Total_Microchip", 
+        "Total_Medical", 
+        "Latitude", 
+        "Longitude",
+        // --- เพิ่มส่วนรายละเอียด (Details) ---
+        "Dog_Vaccine", "Dog_MaleSterilize", "Dog_FemaleSterilize", "Dog_Register", "Dog_Microchip", "Dog_Medical",
+        "Cat_Vaccine", "Cat_MaleSterilize", "Cat_FemaleSterilize", "Cat_Register", "Cat_Microchip", "Cat_Medical",
+        "Other_Vaccine", "Other_Medical"
+    ];
 
-    // 2. แปลงข้อมูลเป็น Rows
-    const csvRows = filteredData.map(item => {
-        // จัดการกรณีที่มีเครื่องหมายคอมมา (,) ในข้อความ ให้ใส่เครื่องหมายคำพูดครอบ
-        const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
-        
-        return [
-            item.date,
-            safeLocation,
-            item.district,
-            item.subdistrict || "",
-            item.unit,
-            item.stats.vaccine || 0,
-            item.stats.sterilize || 0,
-            item.stats.register || 0,
-            item.stats.microchip || 0,
-            item.stats.medical || 0,
-            item.lat,
-            item.long
-        ].join(",");
-    });
+    // 2. แปลงข้อมูลเป็น Rows
+    const csvRows = filteredData.map(item => {
+        // จัดการกรณีที่มีเครื่องหมายคอมมา (,) ในข้อความ ให้ใส่เครื่องหมายคำพูดครอบ
+        const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
+        
+        // Helper เพื่อป้องกัน error กรณี details เป็น undefined
+        const d = item.details || { dog: {}, cat: {}, other: {} };
+        const dog = d.dog || {};
+        const cat = d.cat || {};
+        const other = d.other || {};
+
+        return [
+            item.date,
+            safeLocation,
+            item.district,
+            item.subdistrict || "",
+            item.unit,
+            // Stats (ยอดรวม)
+            item.stats.vaccine || 0,
+            item.stats.sterilize || 0,
+            item.stats.register || 0,
+            item.stats.microchip || 0,
+            item.stats.medical || 0,
+            item.lat,
+            item.long,
+            // Details: Dog
+            dog.vaccine || 0,
+            dog.maleSterilize || 0,
+            dog.femaleSterilize || 0,
+            dog.register || 0,
+            dog.microchip || 0,
+            dog.medical || 0,
+            // Details: Cat
+            cat.vaccine || 0,
+            cat.maleSterilize || 0,
+            cat.femaleSterilize || 0,
+            cat.register || 0,
+            cat.microchip || 0,
+            cat.medical || 0,
+            // Details: Other
+            other.vaccine || 0,
+            other.medical || 0
+        ].join(",");
+    });
+
+    // 3. รวม Header และ Rows
+    const csvString = [headers.join(","), ...csvRows].join("\n");
+
+    // 4. สร้าง Blob พร้อม BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้
+    const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+    
+    // 5. สร้างลิงก์ดาวน์โหลด
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `VET_FULL_REPORT_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
 
     // 3. รวม Header และ Rows
     const csvString = [headers.join(","), ...csvRows].join("\n");
