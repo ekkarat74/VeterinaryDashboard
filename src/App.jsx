@@ -40,35 +40,35 @@ const BANGKOK_DISTRICTS = [
 
 // --- [NEW COMPONENT] Toast Notification System ---
 const ToastContainer = ({ toasts, removeToast }) => {
-    return (
-        <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
-            {toasts.map((toast) => (
-                <div
-                    key={toast.id}
-                    className={`
-                        pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl min-w-[300px] max-w-md 
-                        transform transition-all duration-500 ease-in-out animate-in slide-in-from-right fade-in
-                        ${toast.type === 'success' ? 'bg-emerald-600 text-white' : ''}
-                        ${toast.type === 'error' ? 'bg-red-600 text-white' : ''}
-                        ${toast.type === 'info' ? 'bg-blue-600 text-white' : ''}
-                    `}
-                >
-                    <div className="shrink-0">
-                        {toast.type === 'success' && <Check className="w-5 h-5" />}
-                        {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
-                        {toast.type === 'info' && <Info className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1 text-sm font-medium">{toast.message}</div>
-                    <button 
-                        onClick={() => removeToast(toast.id)} 
-                        className="opacity-70 hover:opacity-100 transition-opacity"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            ))}
-        </div>
-    );
+    return (
+        <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
+            {toasts.map((toast) => (
+                <div
+                    key={toast.id}
+                    className={`
+                        pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl min-w-[300px] max-w-md 
+                        transform transition-all duration-500 ease-in-out animate-in slide-in-from-right fade-in
+                        ${toast.type === 'success' ? 'bg-emerald-600 text-white' : ''}
+                        ${toast.type === 'error' ? 'bg-red-600 text-white' : ''}
+                        ${toast.type === 'info' ? 'bg-blue-600 text-white' : ''}
+                    `}
+                >
+                    <div className="shrink-0">
+                        {toast.type === 'success' && <Check className="w-5 h-5" />}
+                        {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
+                        {toast.type === 'info' && <Info className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 text-sm font-medium">{toast.message}</div>
+                    <button 
+                        onClick={() => removeToast(toast.id)} 
+                        className="opacity-70 hover:opacity-100 transition-opacity"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
 };
 
 // --- [NEW COMPONENT] Password Confirmation Modal ---
@@ -150,15 +150,15 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
             });
             const data = await res.json();
             if (res.ok) {
-                onLogin(data);
-                onToast('success', 'เข้าสู่ระบบสำเร็จ'); // <--- ใช้ onToast
-                onClose();
-            } else {
-                onToast('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ'); // <--- ใช้ onToast
-            }
-        } catch (error) {
-            onToast('error', `Login Failed: ไม่สามารถเชื่อมต่อ Server ได้`); // <--- ใช้ onToast
-        }
+                onLogin(data);
+                onToast('success', 'เข้าสู่ระบบสำเร็จ'); // <--- ใช้ onToast
+                onClose();
+            } else {
+                onToast('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ'); // <--- ใช้ onToast
+            }
+        } catch (error) {
+            onToast('error', `Login Failed: ไม่สามารถเชื่อมต่อ Server ได้`); // <--- ใช้ onToast
+        }
     };
 
     return (
@@ -253,12 +253,12 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                 body: JSON.stringify({ username, password, role })
             });
             if (res.ok) {
-                setUsername(""); setPassword(""); fetchUsers();
-                onToast('success', 'สร้างบัญชีผู้ใช้สำเร็จ'); // <--- เปลี่ยน
-            } else {
-                const data = await res.json();
-                onToast('error', data.message || "สร้างไม่สำเร็จ"); // <--- เปลี่ยน
-            }
+                setUsername(""); setPassword(""); fetchUsers();
+                onToast('success', 'สร้างบัญชีผู้ใช้สำเร็จ'); // <--- เปลี่ยน
+            } else {
+                const data = await res.json();
+                onToast('error', data.message || "สร้างไม่สำเร็จ"); // <--- เปลี่ยน
+            }
         } catch (error) { alert("เชื่อมต่อ Server ไม่ได้"); }
     };
 
@@ -287,14 +287,14 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
             });
             
             if (res.ok) {
-                fetchUsers();
-                onToast('success', 'ลบผู้ใช้งานเรียบร้อย'); // <--- เปลี่ยน
-            } else {
-                onToast('error', "ไม่สามารถลบได้ (อาจไม่มีสิทธิ์)"); // <--- เปลี่ยน
-            }
-        } catch (error) { 
-            onToast('error', "เกิดข้อผิดพลาดในการเชื่อมต่อ"); // <--- เปลี่ยน
-        }
+                fetchUsers();
+                onToast('success', 'ลบผู้ใช้งานเรียบร้อย'); // <--- เปลี่ยน
+            } else {
+                onToast('error', "ไม่สามารถลบได้ (อาจไม่มีสิทธิ์)"); // <--- เปลี่ยน
+            }
+        } catch (error) { 
+            onToast('error', "เกิดข้อผิดพลาดในการเชื่อมต่อ"); // <--- เปลี่ยน
+        }
     };
 
     // Helper: Badge Style
@@ -887,43 +887,43 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
 
     // Effect: โหลดข้อมูลเดิมเมื่อเปิด Modal ในโหมดแก้ไข หรือ รีเซ็ตเมื่อเพิ่มใหม่
     useEffect(() => {
-        if (isOpen) {
-            if (initialData) {
-                setFormData({
-                    date: initialData.date,
-                    location: initialData.location,
-                    district: initialData.district,
-                    subdistrict: initialData.subdistrict || '',
-                    unit: initialData.unit,
-                    lat: initialData.lat,
-                    long: initialData.long
-                });
+        if (isOpen) {
+            if (initialData) {
+                setFormData({
+                    date: initialData.date,
+                    location: initialData.location,
+                    district: initialData.district,
+                    subdistrict: initialData.subdistrict || '',
+                    unit: initialData.unit,
+                    lat: initialData.lat,
+                    long: initialData.long
+                });
 
-                // ✅ FIX: ใช้การ Merge Object เพื่อป้องกัน undefined กรณีข้อมูลเก่าไม่มีบาง field
-                if (initialData.details) {
-                    setBreakdown({
-                        dog: { ...defaultBreakdown.dog, ...(initialData.details.dog || {}) },
-                        cat: { ...defaultBreakdown.cat, ...(initialData.details.cat || {}) },
-                        other: { ...defaultBreakdown.other, ...(initialData.details.other || {}) }
-                    });
-                } else {
-                    setBreakdown(defaultBreakdown);
-                }
+                // ✅ FIX: ใช้การ Merge Object เพื่อป้องกัน undefined กรณีข้อมูลเก่าไม่มีบาง field
+                if (initialData.details) {
+                    setBreakdown({
+                        dog: { ...defaultBreakdown.dog, ...(initialData.details.dog || {}) },
+                        cat: { ...defaultBreakdown.cat, ...(initialData.details.cat || {}) },
+                        other: { ...defaultBreakdown.other, ...(initialData.details.other || {}) }
+                    });
+                } else {
+                    setBreakdown(defaultBreakdown);
+                }
 
-                if (initialData.imageUrl) {
-                    setImagePreview(initialData.imageUrl);
-                } else {
-                    setImagePreview(null);
-                    setImageFile(null);
-                }
-            } else {
-                setFormData(defaultFormData);
-                setBreakdown(defaultBreakdown);
-                setImageFile(null);
-                setImagePreview(null);
-            }
-        }
-    }, [isOpen, initialData]);
+                if (initialData.imageUrl) {
+                    setImagePreview(initialData.imageUrl);
+                } else {
+                    setImagePreview(null);
+                    setImageFile(null);
+                }
+            } else {
+                setFormData(defaultFormData);
+                setBreakdown(defaultBreakdown);
+                setImageFile(null);
+                setImagePreview(null);
+            }
+        }
+    }, [isOpen, initialData]);
 
     // คำนวณยอดรวมอัตโนมัติ (Auto-calculation)
     const totals = useMemo(() => {
@@ -944,44 +944,14 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
         };
     }, [breakdown]);
 
-    // สร้าง Canvas เพื่อย่อรูป
-const resizeImage = (file) => {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // กำหนดความกว้างสูงสุด
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-                
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                // แปลงเป็น JPEG คุณภาพ 0.7
-                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
-            }
-        }
-    });
-};
-
-// แก้ไข handleImageChange
-const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        try {
-            const resizedBase64 = await resizeImage(file);
-            setImagePreview(resizedBase64);
-            // ปรับ logic ให้ใช้ base64 string ตรงๆ แทน file object ใน state
-            setImageFile(resizedBase64); 
-        } catch (err) {
-            console.error(err);
-        }
-    }
-};
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            const previewUrl = URL.createObjectURL(file);
+            setImagePreview(previewUrl);
+        }
+    };
 
     const handleRemoveImage = () => {
         setImageFile(null);
@@ -1001,46 +971,46 @@ const handleImageChange = async (e) => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault();
 
-        let finalImageUrl = initialData?.imageUrl || ""; 
+        let finalImageUrl = initialData?.imageUrl || ""; 
 
-        if (imageFile) {
-            try {
-                finalImageUrl = await convertToBase64(imageFile);
-            } catch (error) {
-                console.error("Error converting image:", error);
-                if(onToast) onToast('error', "ไม่สามารถประมวลผลรูปภาพได้");
-                return;
-            }
-        } else if (imagePreview === null) {
-            finalImageUrl = "";
-        }
+        if (imageFile) {
+            try {
+                finalImageUrl = await convertToBase64(imageFile);
+            } catch (error) {
+                console.error("Error converting image:", error);
+                if(onToast) onToast('error', "ไม่สามารถประมวลผลรูปภาพได้");
+                return;
+            }
+        } else if (imagePreview === null) {
+            finalImageUrl = "";
+        }
 
-        // ✅ FIX: จัดโครงสร้างข้อมูลให้ตรงกับ Mongoose Schema (เอาตัวเลขไปใส่ใน stats)
-        const dataPayload = {
-            ...formData,
-            lat: formData.lat ? parseFloat(formData.lat) : 0,
-            long: formData.long ? parseFloat(formData.long) : 0,
-            // ย้ายตัวเลขรวม เข้าไปอยู่ใน object 'stats'
-            stats: {
-                vaccine: totals.vaccine,
-                sterilize: totals.sterilize,
-                register: totals.register,
-                microchip: totals.microchip,
-                medical: totals.medical
-            },
-            details: breakdown,
-            imageUrl: finalImageUrl 
-        };
+        // ✅ FIX: จัดโครงสร้างข้อมูลให้ตรงกับ Mongoose Schema (เอาตัวเลขไปใส่ใน stats)
+        const dataPayload = {
+            ...formData,
+            lat: formData.lat ? parseFloat(formData.lat) : 0,
+            long: formData.long ? parseFloat(formData.long) : 0,
+            // ย้ายตัวเลขรวม เข้าไปอยู่ใน object 'stats'
+            stats: {
+                vaccine: totals.vaccine,
+                sterilize: totals.sterilize,
+                register: totals.register,
+                microchip: totals.microchip,
+                medical: totals.medical
+            },
+            details: breakdown,
+            imageUrl: finalImageUrl 
+        };
 
-        if (initialData) {
-            onUpdate(initialData._id, dataPayload);
-        } else {
-            onSave(dataPayload);
-        }
-        onClose();
-    };
+        if (initialData) {
+            onUpdate(initialData._id, dataPayload);
+        } else {
+            onSave(dataPayload);
+        }
+        onClose();
+    };
 
     const convertToBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -1573,23 +1543,23 @@ export default function VeterinaryDashboard() {
     // Confirm Password
     const [isConfirmPasswordOpen, setIsConfirmPasswordOpen] = useState(false);
 
-  // [เพิ่ม] State สำหรับ Toast
-    const [toasts, setToasts] = useState([]);
+  // [เพิ่ม] State สำหรับ Toast
+    const [toasts, setToasts] = useState([]);
 
-    // [เพิ่ม] Function สำหรับเรียก Toast
-    const addToast = (type, message) => {
-        const id = Date.now();
-        setToasts(prev => [...prev, { id, type, message }]);
+    // [เพิ่ม] Function สำหรับเรียก Toast
+    const addToast = (type, message) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, type, message }]);
 
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            setToasts(prev => prev.filter(t => t.id !== id));
-        }, 3000);
-    };
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
+    };
 
-    const removeToast = (id) => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-    };
+    const removeToast = (id) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    };
 
     // --- 2. AUTHENTICATION LOGIC ---
 
@@ -1709,10 +1679,10 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setReportData(prev => prev.map(item => item._id === id ? savedRecord : item));
-                addToast('success', "✅ แก้ไขข้อมูลสำเร็จ!");
+                addToast('success', "✅ แก้ไขข้อมูลสำเร็จ!");
                 setEditingItem(null);
             } else {
-                addToast('error', "❌ แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                addToast('error', "❌ แก้ไขไม่สำเร็จ (อาจไม่มีสิทธิ์)");
             }
         } catch (error) {
             console.error("Update Error:", error);
@@ -1730,9 +1700,9 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     setReportData(prev => prev.filter(item => item._id !== id));
-                    addToast('success', "✅ ลบข้อมูลสำเร็จ");
+                    addToast('success', "✅ ลบข้อมูลสำเร็จ");
                 } else {
-                    addToast('error', "❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
+                    addToast('error', "❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
                 }
             } catch (error) {
                 console.error("Delete Error:", error);
@@ -1755,9 +1725,9 @@ export default function VeterinaryDashboard() {
             if (response.ok) {
                 const savedRecord = await response.json();
                 setOutbreakData(prev => [savedRecord, ...prev]);
-                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
+                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
             } else {
-                addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
+                addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
             }
         } catch (error) {
             console.error("Save Outbreak Error", error);
@@ -1775,9 +1745,9 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     setOutbreakData(prev => prev.filter(item => item._id !== id));
-                    addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
+                    addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
                 } else {
-                    addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
+                    addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
                 }
             } catch (error) {
                 console.error("Delete Outbreak Error:", error);
@@ -2234,7 +2204,7 @@ export default function VeterinaryDashboard() {
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
             `}</style>
 
-            <ToastContainer toasts={toasts} removeToast={removeToast} />
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
 
             {/* Modals */}
             <AddDataModal 
@@ -2243,7 +2213,7 @@ export default function VeterinaryDashboard() {
                 onSave={handleAddNewData} 
                 onUpdate={handleUpdateData} 
                 initialData={editingItem} 
-                onToast={addToast}
+                onToast={addToast}
             />
             <CsvActionModal 
                 isOpen={isCsvModalOpen} 
@@ -2255,7 +2225,7 @@ export default function VeterinaryDashboard() {
                 isOpen={isOutbreakModalOpen} 
                 onClose={() => setIsOutbreakModalOpen(false)} 
                 onSave={handleAddOutbreak} 
-                onToast={addToast}
+                onToast={addToast}
             />
             <BackupSystemModal 
                 isOpen={isBackupModalOpen} 
@@ -2275,14 +2245,14 @@ export default function VeterinaryDashboard() {
                 onClose={() => setIsLoginModalOpen(false)} 
                 onLogin={handleLogin} 
                 apiBaseUrl={BASE_URL}  // ✅ เพิ่มบรรทัดนี้
-                onToast={addToast}
+                onToast={addToast}
             />
             <UserManagementModal 
                 isOpen={isUserMgmtOpen}
                 onClose={() => setIsUserMgmtOpen(false)}
                 token={user?.token}
                 apiBaseUrl={BASE_URL} // ✅ เพิ่มบรรทัดนี้
-                onToast={addToast}
+                onToast={addToast}
             />
             <PasswordConfirmModal 
                 isOpen={isConfirmPasswordOpen}
