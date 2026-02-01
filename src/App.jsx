@@ -230,25 +230,26 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl }) => {
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch(`${apiBaseUrl}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                onLogin(data);
-                onToast('success', 'เข้าสู่ระบบสำเร็จ'); // <--- ใช้ onToast
-                onClose();
-            } else {
-                onToast('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ'); // <--- ใช้ onToast
-            }
-        } catch (error) {
-            onToast('error', `Login Failed: ไม่สามารถเชื่อมต่อ Server ได้`); // <--- ใช้ onToast
-        }
-    };
+        e.preventDefault();
+        try {
+            const res = await fetch(`${apiBaseUrl}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                onLogin(data);
+                // เรียกใช้ onToast ได้อย่างถูกต้อง
+                if(onToast) onToast('success', 'เข้าสู่ระบบสำเร็จ');
+                onClose();
+            } else {
+                if(onToast) onToast('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ');
+            }
+        } catch (error) {
+            if(onToast) onToast('error', `Login Failed: ไม่สามารถเชื่อมต่อ Server ได้`);
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -331,25 +332,28 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     };
 
     const handleCreateUser = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch(`${apiBaseUrl}/api/users`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ username, password, role })
-            });
-            if (res.ok) {
-                setUsername(""); setPassword(""); fetchUsers();
-                onToast('success', 'สร้างบัญชีผู้ใช้สำเร็จ'); // <--- เปลี่ยน
-            } else {
-                const data = await res.json();
-                onToast('error', data.message || "สร้างไม่สำเร็จ"); // <--- เปลี่ยน
-            }
-        } catch (error) { alert("เชื่อมต่อ Server ไม่ได้"); }
-    };
+        e.preventDefault();
+        try {
+            const res = await fetch(`${apiBaseUrl}/api/users`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ username, password, role })
+            });
+            if (res.ok) {
+                setUsername(""); setPassword(""); fetchUsers();
+                if(onToast) onToast('success', 'สร้างบัญชีผู้ใช้สำเร็จ');
+            } else {
+                const data = await res.json();
+                if(onToast) onToast('error', data.message || "สร้างไม่สำเร็จ");
+            }
+        } catch (error) { 
+            // เปลี่ยน alert เป็น onToast
+            if(onToast) onToast('error', "เชื่อมต่อ Server ไม่ได้"); 
+        }
+    };
 
     const handleUpdateRole = async (userId, newRole) => {
         if(!window.confirm(`เปลี่ยนสิทธิ์เป็น ${newRole}?`)) return;
@@ -948,7 +952,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
 };
 
 // --- UPDATED ADD/EDIT DATA MODAL ---
-const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
+const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
     // ค่าเริ่มต้นสำหรับฟอร์มข้อมูลทั่วไป
     const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
