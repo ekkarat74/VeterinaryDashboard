@@ -9,7 +9,7 @@ const app = express();
 
 // --- 1. CONFIGURATION ---
 app.use(cors({
-  origin: ['https://veterinary-dashboard-mu.vercel.app/'], // ใน Production ควรระบุ domain ที่อนุญาต
+  origin: '*', // ใน Production ควรระบุ domain ที่อนุญาต
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
