@@ -944,14 +944,44 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
         };
     }, [breakdown]);
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImageFile(file);
-            const previewUrl = URL.createObjectURL(file);
-            setImagePreview(previewUrl);
-        }
-    };
+    // สร้าง Canvas เพื่อย่อรูป
+const resizeImage = (file) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // กำหนดความกว้างสูงสุด
+                const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // แปลงเป็น JPEG คุณภาพ 0.7
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+            }
+        }
+    });
+};
+
+// แก้ไข handleImageChange
+const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        try {
+            const resizedBase64 = await resizeImage(file);
+            setImagePreview(resizedBase64);
+            // ปรับ logic ให้ใช้ base64 string ตรงๆ แทน file object ใน state
+            setImageFile(resizedBase64); 
+        } catch (err) {
+            console.error(err);
+        }
+    }
+};
 
     const handleRemoveImage = () => {
         setImageFile(null);
