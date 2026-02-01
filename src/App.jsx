@@ -657,15 +657,22 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                                     </select>
                                                 </td>
                                                 <td className="p-3 text-right">
-                                                    
-                                                    <button onClick={() => handleDeleteUser(u._id)}
-                                                        // หมายเหตุ: ลบ opacity-0 ออกเพื่อให้เห็นปุ่มตลอดเวลา
-                                                        className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
-                                                        title="ลบผู้ใช้"
-                                                    >
-                                                        <Trash2 className="w-4 h-4"/>
-                                                    </button>
-                                                    
+                                                   <div className="flex justify-end gap-1">
+                                                        {/* [เพิ่ม] ปุ่มแก้ไข */}
+                                                        <button onClick={() => setEditingUser(u)}
+                                                            className="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all"
+                                                            title="แก้ไข / รีเซ็ตรหัสผ่าน"
+                                                        >
+                                                            <Edit className="w-4 h-4"/>
+                                                        </button>
+                                                        {/* ปุ่มลบ */}
+                                                        <button onClick={() => handleDeleteUser(u._id)}
+                                                            className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
+                                                            title="ลบถาวร"
+                                                        >
+                                                            <Trash2 className="w-4 h-4"/>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
