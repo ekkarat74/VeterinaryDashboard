@@ -58,7 +58,7 @@ const reportSchema = new mongoose.Schema({
     microchip: { type: Number, default: 0 },
     medical: { type: Number, default: 0 }
   },
-  details: { type: Object, default: {} }
+  details: { type: Object, default: {} },
   // [เพิ่ม] เก็บชื่อผู้สร้างและผู้แก้ไข
   createdBy: { type: String, default: 'System' },
   updatedBy: { type: String }
