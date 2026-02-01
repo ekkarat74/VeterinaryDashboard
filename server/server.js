@@ -15,7 +15,8 @@ app.use(cors({
 }));
 
 // เพิ่ม Limit เพื่อรองรับการส่งรูปภาพ Base64 ขนาดใหญ่
-app.use(express.json({ limit: '100mb' }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/vet_db';
