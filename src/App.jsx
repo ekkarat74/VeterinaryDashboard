@@ -2327,22 +2327,6 @@ export default function VeterinaryDashboard() {
     document.body.removeChild(link);
 };
 
-    // 3. รวม Header และ Rows
-    const csvString = [headers.join(","), ...csvRows].join("\n");
-
-    // 4. สร้าง Blob พร้อม BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้
-    const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
-    
-    // 5. สร้างลิงก์ดาวน์โหลด
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `VET_REPORT_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
     // Helpers
     const openAddModal = () => { setEditingItem(null); setIsModalOpen(true); };
     const openEditModal = (item) => { setEditingItem(item); setIsModalOpen(true); };
