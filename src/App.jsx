@@ -815,7 +815,7 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass })
     </div>
 );
 
-// ✅ [แก้ไข] ปรับปรุง LeafletMap ให้แม่นยำขึ้น
+// LeafletMap
 const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
   const centerPosition = [13.7563, 100.5018];
   const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);

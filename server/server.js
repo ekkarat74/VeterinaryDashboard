@@ -3,13 +3,25 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const http = require('http'); // 1. เพิ่ม http
-const { Server } = require("socket.io"); // 2. เพิ่ม socket.io
+const http = require('http');
+const { Server } = require("socket.io");
 require('dotenv').config();
+
+// --- SECURITY PACKAGES ---
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 
 const app = express();
 
-// ✅ 1. ย้าย allowedOrigins มาไว้ตรงนี้ (ก่อนที่จะถูกเรียกใช้)
+// --- CONFIGURATION ---
+const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/vet_db';
+const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
+
+// Allowed Origins (whitelist สำหรับ CORS)
 const allowedOrigins = [
   "https://veterinary-dashboard-mu.vercel.app", 
   "https://veterinary-dashboard-mu.vercel.app/", 
@@ -17,19 +29,15 @@ const allowedOrigins = [
   "http://localhost:3000"
 ];
 
-// --- 2. CONFIGURATION ---
-const server = http.createServer(app);
+// --- MIDDLEWARES ---
 
-// ✅ 2. ตอนนี้เรียกใช้ได้แล้ว เพราะประกาศไว้ข้างบนแล้ว
-const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins, 
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        credentials: true
-    }
-});
+// 1. Helmet: เพิ่ม HTTP Headers เพื่อความปลอดภัย
+// ปรับแต่งเพื่ออนุญาตให้โหลด resources ข้ามโดเมนได้ (จำเป็นสำหรับบางกรณี)
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+}));
 
-// ✅ 3. ตั้งค่า CORS ของ Express
+// 2. CORS Configuration
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -44,33 +52,64 @@ app.use(cors({
   credentials: true 
 }));
 
-// เพิ่ม Limit เพื่อรองรับการส่งรูปภาพ Base64 ขนาดใหญ่
+// 3. Rate Limiting: จำกัดการยิง API (ป้องกัน DDoS/Brute Force)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 นาที
+  max: 300, // จำกัด 300 requests ต่อ IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests from this IP, please try again later.' }
+});
+app.use('/api', apiLimiter);
+
+// Login Rate Limiter: เข้มงวดพิเศษสำหรับหน้า Login
+const loginLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 ชั่วโมง
+  max: 10, // อนุญาตให้ผิดพลาดได้ 10 ครั้งต่อชั่วโมง
+  message: { message: 'Login attempts exceeded. Please try again after an hour.' }
+});
+
+// 4. Data Sanitization: ป้องกัน NoSQL Injection
+app.use(mongoSanitize());
+
+// 5. Data Sanitization: ป้องกัน XSS (Cross-Site Scripting)
+app.use(xss());
+
+// 6. Parameter Pollution: ป้องกันการส่ง Parameter ซ้ำ
+app.use(hpp());
+
+// 7. Body Parser: รองรับ JSON และ URL Encoded (เพิ่ม limit สำหรับรูปภาพ Base64)
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/vet_db';
-const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
+// --- SOCKET.IO SETUP ---
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: allowedOrigins, 
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        credentials: true
+    }
+});
 
-// --- 2. DATABASE CONNECTION ---
+// --- DATABASE CONNECTION ---
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ Connection Error:', err));
 
-// --- 3. SCHEMAS & MODELS ---
+// --- SCHEMAS & MODELS ---
 
-// 3.1 User Schema
+// 1. User Model
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['superadmin', 'admin', 'user'], default: 'user' },
-  // [เพิ่ม] สถานะบัญชี
-  status: { type: String, enum: ['active', 'suspended'], default: 'active' }, 
-  lastLogin: { type: Date } // [เพิ่ม] เก็บเวลาล็อกอินล่าสุด (Optional)
+  status: { type: String, enum: ['active', 'suspended'], default: 'active' },
+  lastLogin: { type: Date }
 });
 const User = mongoose.model('User', userSchema);
 
-// 3.2 Report Schema (ข้อมูลปฏิบัติงาน)
+// 2. Report Model
 const reportSchema = new mongoose.Schema({
   date: { type: String, required: true },
   activity: String,
@@ -89,13 +128,12 @@ const reportSchema = new mongoose.Schema({
     medical: { type: Number, default: 0 }
   },
   details: { type: Object, default: {} },
-  // [เพิ่ม] เก็บชื่อผู้สร้างและผู้แก้ไข
   createdBy: { type: String, default: 'System' },
   updatedBy: { type: String }
 }, { timestamps: true });
 const Report = mongoose.model('Report', reportSchema);
 
-// 3.3 Outbreak Schema (แจ้งโรคระบาด)
+// 3. Outbreak Model
 const outbreakSchema = new mongoose.Schema({
   date: { type: String, required: true },
   location: String,
@@ -105,22 +143,20 @@ const outbreakSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 
-// --- 4. MIDDLEWARES ---
+// --- AUTH MIDDLEWARES ---
 
-// ตรวจสอบ Token (Authentication)
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.sendStatus(401); // Unauthorized
+  if (!token) return res.sendStatus(401);
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403); // Forbidden
+    if (err) return res.sendStatus(403);
     req.user = user;
     next();
   });
 };
 
-// ตรวจสอบ Role (Authorization)
 const authorizeRole = (roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -130,27 +166,48 @@ const authorizeRole = (roles) => {
   };
 };
 
-// --- 5. ROUTES ---
+// --- ROUTES ---
 
 // =======================
 // A. AUTHENTICATION
 // =======================
 
-// Login
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username });
-  if (!user) return res.status(400).json({ message: "ไม่พบผู้ใช้งาน" });
+// Login (ใช้ loginLimiter)
+app.post('/api/login', loginLimiter, async (req, res) => {
+  try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+          return res.status(400).json({ message: "กรุณาระบุชื่อผู้ใช้และรหัสผ่าน" });
+      }
 
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) return res.status(400).json({ message: "รหัสผ่านไม่ถูกต้อง" });
+      const user = await User.findOne({ username });
+      // Generic Error Message เพื่อความปลอดภัย
+      if (!user) return res.status(401).json({ message: "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง" });
 
-  const token = jwt.sign({ _id: user._id, username: user.username, role: user.role }, JWT_SECRET);
-  res.json({ token, role: user.role, username: user.username });
+      if (user.status === 'suspended') {
+          return res.status(403).json({ message: "บัญชีของคุณถูกระงับ กรุณาติดต่อผู้ดูแลระบบ" });
+      }
+
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) return res.status(401).json({ message: "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง" });
+
+      // Update Last Login
+      user.lastLogin = new Date();
+      await user.save();
+
+      // Token หมดอายุใน 12 ชั่วโมง
+      const token = jwt.sign({ _id: user._id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '12h' });
+      
+      res.json({ token, role: user.role, username: user.username });
+  } catch (err) {
+      res.status(500).json({ message: "Internal Server Error" });
+  }
 });
 
-// Setup Initial Admin (รันครั้งเดียวแล้วควร Comment ออก)
-/*app.get('/setup-admin', async (req, res) => {
+// Setup Initial Admin (เปิดใช้ครั้งแรกแล้วควร Comment ออก)
+/*
+app.get('/setup-admin', async (req, res) => {
     try {
         const exists = await User.findOne({ username: "superadmin" });
         if(exists) return res.send("SuperAdmin already exists.");
@@ -159,32 +216,18 @@ app.post('/api/login', async (req, res) => {
         const hashedPassword = await bcrypt.hash("admin1234", salt);
         const user = new User({ username: "superadmin", password: hashedPassword, role: "superadmin" });
         await user.save();
-        res.send("✅ SuperAdmin Created: username=superadmin, password=admin1234");
+        res.send("✅ SuperAdmin Created");
     } catch (err) {
         res.status(500).send(err.message);
     }
-});*/
+});
+*/
 
 // =======================
 // B. USER MANAGEMENT
 // =======================
 
-// Create User (SuperAdmin Only)
-app.post('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
-    try {
-        const { username, password, role } = req.body;
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        // status จะเป็น active โดย default
-        const newUser = new User({ username, password: hashedPassword, role }); 
-        await newUser.save();
-        res.status(201).json({ message: "สร้างผู้ใช้งานสำเร็จ" });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
-
-// Get All Users (SuperAdmin Only)
+// Get Users
 app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
   try {
     const users = await User.find({}, '-password').sort({ _id: -1 });
@@ -194,11 +237,29 @@ app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (r
   }
 });
 
+// Create User
+app.post('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
+        
+        // Basic Password Validation
+        if(password.length < 4) return res.status(400).json({ message: "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร" });
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const newUser = new User({ username, password: hashedPassword, role }); 
+        await newUser.save();
+        res.status(201).json({ message: "สร้างผู้ใช้งานสำเร็จ" });
+    } catch (err) {
+        res.status(400).json({ message: "Username อาจซ้ำ หรือข้อมูลไม่ถูกต้อง" });
+    }
+});
+
+// Update User Info
 app.put('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
     try {
         const { username, role, status } = req.body;
         
-        // ป้องกันการระงับบัญชีตัวเอง
         if (req.user._id === req.params.id && status === 'suspended') {
              return res.status(400).json({ message: "ไม่สามารถระงับบัญชีตัวเองได้" });
         }
@@ -215,6 +276,7 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), asyn
     }
 });
 
+// Reset Password (By Admin)
 app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
     try {
         const { newPassword } = req.body;
@@ -232,29 +294,33 @@ app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['supe
     }
 });
 
-// Update User Role (SuperAdmin Only)
-app.put('/api/users/:id/role', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
-  try {
-    const { role } = req.body;
-    // ป้องกันตัวเองเปลี่ยนสิทธิ์ตัวเองแล้วเข้าไม่ได้
-    if (req.user._id === req.params.id) {
-        return res.status(400).json({ message: "ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้ในหน้านี้" });
-    }
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id, 
-      { role }, 
-      { new: true }
-    ).select('-password');
+// Change Own Password
+app.post('/api/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user._id;
 
-    if (!updatedUser) return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
-    
-    res.json(updatedUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) return res.status(400).json({ message: "รหัสผ่านเดิมไม่ถูกต้อง" });
+
+        if (newPassword.length < 4) return res.status(400).json({ message: "รหัสผ่านใหม่สั้นเกินไป" });
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({ message: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
-// Delete User (SuperAdmin Only)
+// Delete User
 app.delete('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
     try {
       if (req.user._id === req.params.id) {
@@ -267,38 +333,10 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), a
     }
 });
 
-app.post('/api/change-password', authenticateToken, async (req, res) => {
-    try {
-        const { oldPassword, newPassword } = req.body;
-        const userId = req.user._id;
-
-        // หา User จาก Database
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
-
-        // ตรวจสอบรหัสผ่านเดิม
-        const isMatch = await bcrypt.compare(oldPassword, user.password);
-        if (!isMatch) return res.status(400).json({ message: "รหัสผ่านเดิมไม่ถูกต้อง" });
-
-        // Hash รหัสผ่านใหม่
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-        // บันทึก
-        user.password = hashedPassword;
-        await user.save();
-
-        res.json({ message: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว" });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
 // =======================
 // C. REPORTS (ข้อมูลปฏิบัติงาน)
 // =======================
 
-// Get Reports (Public/All) - เรียงล่าสุดก่อน
 app.get('/api/reports', async (req, res) => {
   try {
     const reports = await Report.find().sort({ date: -1 }); 
@@ -308,7 +346,6 @@ app.get('/api/reports', async (req, res) => {
   }
 });
 
-// Create Report (Admin/SuperAdmin)
 app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const newReport = new Report({
@@ -316,17 +353,13 @@ app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin'
         createdBy: req.user.username 
     });
     const savedReport = await newReport.save();
-
-    // ✅ แก้ไขชื่อให้ตรงกับ Frontend: จาก 'new_report' เป็น 'REPORT_ADDED'
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
-
     res.status(201).json(savedReport);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// Update Report (Admin/SuperAdmin)
 app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const updatedReport = await Report.findByIdAndUpdate(
@@ -338,32 +371,25 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadm
       { new: true }
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
-
-    // ✅ แก้ไขชื่อให้ตรงกับ Frontend: จาก 'update_report' เป็น 'REPORT_UPDATED'
     io.emit('server_data_update', { type: 'REPORT_UPDATED', data: updatedReport });
-
     res.json(updatedReport);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-// Delete Report (Admin/SuperAdmin)
 app.delete('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const deletedReport = await Report.findByIdAndDelete(req.params.id);
     if (!deletedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
-
-    // ✅ เพิ่ม: แจ้ง Frontend ให้ลบ ID นี้ออก (Real-time Delete)
     io.emit('server_data_update', { type: 'REPORT_DELETED', id: req.params.id });
-
     res.json({ message: "ลบข้อมูลสำเร็จ", id: req.params.id });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Delete ALL Reports (SuperAdmin Only)
+// ล้างข้อมูลทั้งหมด (SuperAdmin + Password Confirm)
 app.delete('/api/reports', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
   try {
     const { password } = req.body;
@@ -371,11 +397,9 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['superadmin']), asy
 
     const user = await User.findById(req.user._id);
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "รหัสผ่านไม่ถูกต้อง" });
+    if (!isMatch) return res.status(401).json({ message: "รหัสผ่านยืนยันไม่ถูกต้อง" });
 
     const result = await Report.deleteMany({});
-
-    // ✅ เพิ่ม: แจ้ง Frontend ให้ล้างหน้าจอทั้งหมด (Real-time Clear All)
     io.emit('server_data_update', { type: 'REPORTS_CLEARED' });
 
     res.json({ 
@@ -404,9 +428,7 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['admin', 'superadmi
   try {
     const newOutbreak = new Outbreak(req.body);
     const savedOutbreak = await newOutbreak.save();
-
     io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
-
     res.status(201).json(savedOutbreak);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -417,9 +439,7 @@ app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'sup
   try {
     const deletedOutbreak = await Outbreak.findByIdAndDelete(req.params.id);
     if (!deletedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
-
     io.emit('server_data_update', { type: 'OUTBREAK_DELETED', id: req.params.id });
-
     res.json({ message: "ลบข้อมูลเรียบร้อย", id: req.params.id });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -430,7 +450,6 @@ app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'sup
 // E. SYSTEM BACKUP & RESTORE
 // =======================
 
-// Backup (Admin/SuperAdmin)
 app.get('/api/system/backup', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
     try {
         const reports = await Report.find().sort({ date: -1 });
@@ -451,22 +470,23 @@ app.get('/api/system/backup', authenticateToken, authorizeRole(['admin', 'supera
     }
 });
 
-// Restore (SuperAdmin Only)
 app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
         const { reports, outbreaks } = req.body;
+        
+        // Basic Validation
         if (!Array.isArray(reports) || !Array.isArray(outbreaks)) {
             throw new Error("รูปแบบไฟล์ไม่ถูกต้อง");
         }
 
-        // ล้างข้อมูลเก่า
+        // Clear Old Data
         await Report.deleteMany({}, { session });
         await Outbreak.deleteMany({}, { session });
 
-        // นำเข้าข้อมูลใหม่
+        // Insert New Data
         if (reports.length > 0) await Report.insertMany(reports, { session });
         if (outbreaks.length > 0) await Outbreak.insertMany(outbreaks, { session });
 
@@ -486,5 +506,5 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin'])
     }
 });
 
-// --- 6. SERVER START ---
+// --- SERVER START ---
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
