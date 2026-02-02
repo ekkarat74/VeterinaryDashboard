@@ -16,6 +16,7 @@ import { 
     Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope, Key, ChevronRight, RotateCw, Info, Check, AlertCircle,
 } from 'lucide-react';
 import L from 'leaflet';
+import { io } from "socket.io-client";
 
 // --- CONSTANTS ---
 const UNIT_TYPES = ['หน่วยวัคซีน + ไมโครชิป', 'หน่วยกรงแมว', 'หน่วยสัตวแพทย์', 'หน่วยผู้ว่า'];
@@ -1980,19 +1981,42 @@ export default function VeterinaryDashboard() {
 
     // --- 3. DATA FETCHING ---
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                setReportData(Array.isArray(data) ? data : []);
-            } catch (error) {
-                console.error("Fetch Reports Error:", error);
-                setReportData([]);
-            }
-        };
-        fetchData();
-    }, [API_URL]);
+    const fetchData = useCallback(async () => {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            setReportData(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Fetch Reports Error:", error);
+            setReportData([]);
+        }
+    }, [API_URL]);
+
+    // useEffect ตัวเดิม เรียก fetchData ครั้งแรก
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+useEffect(() => {
+        // เชื่อมต่อ Socket ไปยัง Backend
+        const socket = io(BASE_URL);
+
+        // รอฟัง event ชื่อ 'server_data_update' จาก server
+        socket.on('server_data_update', (payload) => {
+            console.log("Realtime Update Received:", payload);
+            
+            // เมื่อมีข้อมูลใหม่ ให้โหลดข้อมูลใหม่ทันที โดยไม่ต้องรีเฟรช
+            fetchData(); 
+            
+            // (Optional) แจ้งเตือน Toast ให้ User รู้ว่ามีข้อมูลใหม่
+            addToast('info', 'มีการอัปเดตข้อมูลใหม่แบบ Real-time');
+        });
+
+        // Cleanup เมื่อปิดหน้าเว็บ
+        return () => {
+            socket.disconnect();
+        };
+    }, [BASE_URL, fetchData]); // dependency array
 
     useEffect(() => {
         const fetchOutbreaks = async () => {

@@ -3,16 +3,20 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const http = require('http'); // 1. เพิ่ม http
+const { Server } = require("socket.io"); // 2. เพิ่ม socket.io
 require('dotenv').config();
 
 const app = express();
 
 // --- 1. CONFIGURATION ---
-app.use(cors({
-  origin: '*', // ใน Production ควรระบุ domain ที่อนุญาต
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const server = http.createServer(app); // 3. สร้าง server ครอบ app
+const io = new Server(server, {
+    cors: {
+        origin: '*', // หรือระบุ domain ของ frontend
+        methods: ['GET', 'POST', 'PUT', 'DELETE']
+    }
+});
 
 // เพิ่ม Limit เพื่อรองรับการส่งรูปภาพ Base64 ขนาดใหญ่
 app.use(express.json({ limit: '500mb' }));
@@ -287,6 +291,9 @@ app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin'
         createdBy: req.user.username 
     });
     const savedReport = await newReport.save();
+
+    io.emit('server_data_update', { type: 'new_report', data: savedReport });
+
     res.status(201).json(savedReport);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -306,6 +313,9 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadm
       { new: true }
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+    io.emit('server_data_update', { type: 'update_report', data: updatedReport });
+
     res.json(updatedReport);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -437,4 +447,4 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin'])
 });
 
 // --- 6. SERVER START ---
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
