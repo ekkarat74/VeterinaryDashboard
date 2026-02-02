@@ -9,36 +9,39 @@ require('dotenv').config();
 
 const app = express();
 
-// --- 1. CONFIGURATION ---
+// ✅ 1. ย้าย allowedOrigins มาไว้ตรงนี้ (ก่อนที่จะถูกเรียกใช้)
+const allowedOrigins = [
+  "https://veterinary-dashboard-mu.vercel.app", 
+  "https://veterinary-dashboard-mu.vercel.app/", 
+  "http://localhost:5173", 
+  "http://localhost:3000"
+];
+
+// --- 2. CONFIGURATION ---
 const server = http.createServer(app);
+
+// ✅ 2. ตอนนี้เรียกใช้ได้แล้ว เพราะประกาศไว้ข้างบนแล้ว
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins, // ✅ ใช้ list เดียวกัน
+        origin: allowedOrigins, 
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
     }
 });
 
-const allowedOrigins = [
-  "https://veterinary-dashboard-mu.vercel.app", // ✅ อนุญาต Vercel ของคุณ
-  "https://veterinary-dashboard-mu.vercel.app/", // (เผื่อมี slash)
-  "http://localhost:5173", // อนุญาตเครื่องตัวเองตอนแก้โค้ด
-  "http://localhost:3000"
-];
-
+// ✅ 3. ตั้งค่า CORS ของ Express
 app.use(cors({
   origin: function (origin, callback) {
-    // อนุญาต request ที่ไม่มี origin (เช่น mobile app หรือ curl) หรืออยู่ใน list
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log("Blocked by CORS:", origin); // ดู Log ถ้าเชื่อมไม่ได้
+      console.log("Blocked by CORS:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // สำคัญมากสำหรับ Socket.io
+  credentials: true 
 }));
 
 // เพิ่ม Limit เพื่อรองรับการส่งรูปภาพ Base64 ขนาดใหญ่
