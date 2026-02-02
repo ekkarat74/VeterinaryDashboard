@@ -1997,26 +1997,67 @@ export default function VeterinaryDashboard() {
         fetchData();
     }, [fetchData]);
 
-useEffect(() => {
-        // เชื่อมต่อ Socket ไปยัง Backend
+    // --- REAL-TIME SOCKET LISTENER (UPDATED) ---
+    useEffect(() => {
+        // เชื่อมต่อ Socket
         const socket = io(BASE_URL);
 
-        // รอฟัง event ชื่อ 'server_data_update' จาก server
-        socket.on('server_data_update', (payload) => {
-            console.log("Realtime Update Received:", payload);
-            
-            // เมื่อมีข้อมูลใหม่ ให้โหลดข้อมูลใหม่ทันที โดยไม่ต้องรีเฟรช
-            fetchData(); 
-            
-            // (Optional) แจ้งเตือน Toast ให้ User รู้ว่ามีข้อมูลใหม่
-            addToast('info', 'มีการอัปเดตข้อมูลใหม่แบบ Real-time');
+        socket.on('connect', () => {
+            console.log("🟢 Connected to Real-time Server");
         });
 
-        // Cleanup เมื่อปิดหน้าเว็บ
+        // ✅ Handle Real-Time Logic แยกตามประเภทการกระทำ
+        socket.on('server_data_update', (payload) => {
+            console.log("⚡ Realtime Update:", payload);
+
+            switch (payload.type) {
+                // --- กรณีจัดการ Reports ---
+                case 'REPORT_ADDED':
+                    setReportData(prev => [payload.data, ...prev]);
+                    addToast('info', `📝 มีข้อมูลใหม่เข้ามา: ${payload.data.location}`);
+                    break;
+
+                case 'REPORT_UPDATED':
+                    setReportData(prev => prev.map(item => 
+                        item._id === payload.data._id ? payload.data : item
+                    ));
+                    addToast('info', `✏️ มีการแก้ไขข้อมูล: ${payload.data.location}`);
+                    break;
+
+                case 'REPORT_DELETED':
+                    setReportData(prev => prev.filter(item => item._id !== payload.id));
+                    // ไม่ต้อง Toast ก็ได้ถ้าลบแล้วหายไปเลย หรือจะแจ้งก็ได้
+                    break;
+
+                case 'REPORTS_CLEARED':
+                    setReportData([]); // ล้าง Array ทันที
+                    addToast('error', '⚠️ ข้อมูลทั้งหมดถูกล้างโดยผู้ดูแลระบบ');
+                    break;
+
+                // --- กรณีจัดการ Outbreaks ---
+                case 'OUTBREAK_ADDED':
+                    setOutbreakData(prev => [payload.data, ...prev]);
+                    addToast('error', `🚨 แจ้งเตือน: พบจุดเสี่ยงโรคระบาดใหม่!`);
+                    break;
+
+                case 'OUTBREAK_DELETED':
+                    setOutbreakData(prev => prev.filter(item => item._id !== payload.id));
+                    break;
+
+                // --- กรณี Restore ข้อมูล ---
+                case 'SYSTEM_RESTORED': // ถ้ามีการทำ event นี้ในอนาคต
+                    fetchData(); // กรณีนี้ให้โหลดใหม่ทั้งหมดปลอดภัยสุด
+                    break;
+
+                default:
+                    break;
+            }
+        });
+
         return () => {
             socket.disconnect();
         };
-    }, [BASE_URL, fetchData]); // dependency array
+    }, [BASE_URL]);
 
     useEffect(() => {
         const fetchOutbreaks = async () => {

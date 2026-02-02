@@ -311,14 +311,14 @@ app.get('/api/reports', async (req, res) => {
 // Create Report (Admin/SuperAdmin)
 app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
-    // [แก้ไข] เพิ่ม createdBy โดยดึงจาก req.user.username (ที่ได้จาก Token)
     const newReport = new Report({
         ...req.body,
         createdBy: req.user.username 
     });
     const savedReport = await newReport.save();
 
-    io.emit('server_data_update', { type: 'new_report', data: savedReport });
+    // ✅ แก้ไขชื่อให้ตรงกับ Frontend: จาก 'new_report' เป็น 'REPORT_ADDED'
+    io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
 
     res.status(201).json(savedReport);
   } catch (err) {
@@ -329,7 +329,6 @@ app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin'
 // Update Report (Admin/SuperAdmin)
 app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
-    // [แก้ไข] เพิ่ม updatedBy เมื่อมีการแก้ไข
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id, 
       { 
@@ -340,7 +339,8 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadm
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    io.emit('server_data_update', { type: 'update_report', data: updatedReport });
+    // ✅ แก้ไขชื่อให้ตรงกับ Frontend: จาก 'update_report' เป็น 'REPORT_UPDATED'
+    io.emit('server_data_update', { type: 'REPORT_UPDATED', data: updatedReport });
 
     res.json(updatedReport);
   } catch (err) {
@@ -353,13 +353,17 @@ app.delete('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'super
   try {
     const deletedReport = await Report.findByIdAndDelete(req.params.id);
     if (!deletedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+    // ✅ เพิ่ม: แจ้ง Frontend ให้ลบ ID นี้ออก (Real-time Delete)
+    io.emit('server_data_update', { type: 'REPORT_DELETED', id: req.params.id });
+
     res.json({ message: "ลบข้อมูลสำเร็จ", id: req.params.id });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Delete ALL Reports (SuperAdmin Only + Password Check)
+// Delete ALL Reports (SuperAdmin Only)
 app.delete('/api/reports', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
   try {
     const { password } = req.body;
@@ -370,6 +374,10 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['superadmin']), asy
     if (!isMatch) return res.status(401).json({ message: "รหัสผ่านไม่ถูกต้อง" });
 
     const result = await Report.deleteMany({});
+
+    // ✅ เพิ่ม: แจ้ง Frontend ให้ล้างหน้าจอทั้งหมด (Real-time Clear All)
+    io.emit('server_data_update', { type: 'REPORTS_CLEARED' });
+
     res.json({ 
       message: "ลบข้อมูลทั้งหมดเรียบร้อยแล้ว", 
       deletedCount: result.deletedCount 
@@ -396,6 +404,9 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['admin', 'superadmi
   try {
     const newOutbreak = new Outbreak(req.body);
     const savedOutbreak = await newOutbreak.save();
+
+    io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
+
     res.status(201).json(savedOutbreak);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -406,6 +417,9 @@ app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'sup
   try {
     const deletedOutbreak = await Outbreak.findByIdAndDelete(req.params.id);
     if (!deletedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+    io.emit('server_data_update', { type: 'OUTBREAK_DELETED', id: req.params.id });
+
     res.json({ message: "ลบข้อมูลเรียบร้อย", id: req.params.id });
   } catch (err) {
     res.status(500).json({ message: err.message });
