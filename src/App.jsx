@@ -2105,8 +2105,6 @@ export default function VeterinaryDashboard() {
             });
 
             if (response.ok) {
-                const savedRecord = await response.json();
-                setReportData(prev => [savedRecord, ...prev]);
                 addToast('success', "✅ บันทึกข้อมูลสำเร็จ!");
             } else {
                 addToast('error', "❌ บันทึกไม่สำเร็จ (อาจไม่มีสิทธิ์)");
@@ -2129,8 +2127,6 @@ export default function VeterinaryDashboard() {
             });
 
             if (response.ok) {
-                const savedRecord = await response.json();
-                setReportData(prev => prev.map(item => item._id === id ? savedRecord : item));
                 addToast('success', "✅ แก้ไขข้อมูลสำเร็จ!");
                 setEditingItem(null);
             } else {
@@ -2151,7 +2147,6 @@ export default function VeterinaryDashboard() {
                 });
 
                 if (response.ok) {
-                    setReportData(prev => prev.filter(item => item._id !== id));
                     addToast('success', "✅ ลบข้อมูลสำเร็จ");
                 } else {
                     addToast('error', "❌ ลบไม่สำเร็จ (อาจไม่มีสิทธิ์)");
@@ -2175,8 +2170,6 @@ export default function VeterinaryDashboard() {
             });
             
             if (response.ok) {
-                const savedRecord = await response.json();
-                setOutbreakData(prev => [savedRecord, ...prev]);
                 addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
             } else {
                 addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
@@ -2196,7 +2189,6 @@ export default function VeterinaryDashboard() {
                 });
 
                 if (response.ok) {
-                    setOutbreakData(prev => prev.filter(item => item._id !== id));
                     addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
                 } else {
                     addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้");
