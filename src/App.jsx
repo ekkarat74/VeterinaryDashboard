@@ -2559,35 +2559,42 @@ useEffect(() => {
     reader.readAsText(file);
 };
     
-    const exportToCSV = () => {
+    // --- [UPDATED] Export to CSV Function ---
+const exportToCSV = () => {
     // ใช้ข้อมูลที่กรองอยู่ปัจจุบัน (filteredData)
     if (!filteredData || filteredData.length === 0) {
         alert("ไม่มีข้อมูลสำหรับส่งออก (Export)");
         return;
     }
 
-    // 1. กำหนดหัวตาราง (Header) ให้ครบทุก Field
+    // 1. [แก้ไข] กำหนดหัวตาราง (Header) เป็นภาษาไทย
     const headers = [
-        "Date", 
-        "Location", 
-        "District", 
-        "Subdistrict", 
-        "Unit", 
-        "Total_Vaccine",    // เปลี่ยนชื่อให้ชัดว่ายอดรวม
-        "Total_Sterilize", 
-        "Total_Register", 
-        "Total_Microchip", 
-        "Total_Medical", 
-        "Latitude", 
-        "Longitude",
-        // --- เพิ่มส่วนรายละเอียด (Details) ---
-        "Dog_Vaccine", "Dog_MaleSterilize", "Dog_FemaleSterilize", "Dog_Register", "Dog_Microchip", "Dog_Medical",
-        "Cat_Vaccine", "Cat_MaleSterilize", "Cat_FemaleSterilize", "Cat_Register", "Cat_Microchip", "Cat_Medical",
-        "Other_Vaccine", "Other_Medical"
+        "วันที่", 
+        "สถานที่", 
+        "เขต", 
+        "แขวง", 
+        "หน่วยงาน", 
+        "ละติจูด", 
+        "ลองจิจูด",
+        "รวมวัคซีน", 
+        "รวมทำหมัน", 
+        "รวมขึ้นทะเบียน", 
+        "รวมฝังไมโครชิป", 
+        "รวมรักษา", 
+        // --- ส่วนรายละเอียด (Details) ---
+        "สุนัข_วัคซีน", "สุนัข_ทำหมัน(ผู้)", "สุนัข_ทำหมัน(เมีย)", "สุนัข_ขึ้นทะเบียน", "สุนัข_ฝังไมโครชิป", "สุนัข_รักษา",
+        "แมว_วัคซีน", "แมว_ทำหมัน(ผู้)", "แมว_ทำหมัน(เมีย)", "แมว_ขึ้นทะเบียน", "แมว_ฝังไมโครชิป", "แมว_รักษา",
+        "อื่นๆ_วัคซีน", "อื่นๆ_รักษา"
     ];
 
-    // 2. แปลงข้อมูลเป็น Rows
-    const csvRows = filteredData.map(item => {
+    // 2. [เพิ่ม] บังคับเรียงข้อมูลตามวันที่ (ใหม่ -> เก่า) ก่อนทำการ Map
+    // สร้าง Copy array ด้วย [...filteredData] เพื่อไม่ให้กระทบกับลำดับการแสดงผลหน้าเว็บ
+    const sortedData = [...filteredData].sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+    });
+
+    // 3. แปลงข้อมูลเป็น Rows (ใช้ sortedData แทน filteredData)
+    const csvRows = sortedData.map(item => {
         // จัดการกรณีที่มีเครื่องหมายคอมมา (,) ในข้อความ ให้ใส่เครื่องหมายคำพูดครอบ
         const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
         
@@ -2603,14 +2610,14 @@ useEffect(() => {
             item.district,
             item.subdistrict || "",
             item.unit,
+            item.lat,
+            item.long,
             // Stats (ยอดรวม)
             item.stats.vaccine || 0,
             item.stats.sterilize || 0,
             item.stats.register || 0,
             item.stats.microchip || 0,
             item.stats.medical || 0,
-            item.lat,
-            item.long,
             // Details: Dog
             dog.vaccine || 0,
             dog.maleSterilize || 0,
@@ -2631,17 +2638,17 @@ useEffect(() => {
         ].join(",");
     });
 
-    // 3. รวม Header และ Rows
+    // 4. รวม Header และ Rows
     const csvString = [headers.join(","), ...csvRows].join("\n");
 
-    // 4. สร้าง Blob พร้อม BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้
+    // 5. สร้าง Blob พร้อม BOM (\uFEFF) เพื่อให้ Excel อ่านภาษาไทยได้ถูกต้อง
     const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
     
-    // 5. สร้างลิงก์ดาวน์โหลด
+    // 6. สร้างลิงก์ดาวน์โหลด
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `VET_FULL_REPORT_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `VET_REPORT_${new Date().toISOString().split('T')[0]}.csv`; // ตั้งชื่อไฟล์
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
