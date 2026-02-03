@@ -93,9 +93,39 @@ const BANGKOK_SUBDISTRICTS = {
 
 // --- COMPONENTS ---
 
+// --- [NEW COMPONENT] Log Detail Modal (สำหรับดู JSON) ---
+const LogDetailModal = ({ isOpen, onClose, data }) => {
+    if (!isOpen || !data) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="bg-slate-900 px-5 py-3 flex justify-between items-center text-white shrink-0">
+                    <h3 className="font-bold flex items-center gap-2">
+                        <Database className="w-4 h-4 text-blue-400" /> รายละเอียดข้อมูล (Data Payload)
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5 hover:text-red-400" /></button>
+                </div>
+                <div className="p-0 overflow-auto bg-slate-50 custom-scrollbar">
+                    <pre className="text-xs font-mono text-slate-700 p-4 leading-relaxed">
+                        {JSON.stringify(data, null, 2)}
+                    </pre>
+                </div>
+                <div className="p-3 border-t border-slate-200 bg-white flex justify-end">
+                    <button onClick={onClose} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold">
+                        ปิดหน้าต่าง
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     const [logs, setLogs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    const [selectedLogData, setSelectedLogData] = useState(null);
 
     useEffect(() => {
         if (isOpen) fetchLogs();
@@ -129,56 +159,80 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-                <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-yellow-400" /> ประวัติการใช้งานระบบ (System Logs)
-                    </h3>
-                    <button onClick={onClose}><X className="w-5 h-5" /></button>
-                </div>
-                
-                <div className="flex-1 overflow-auto p-0 custom-scrollbar">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 shadow-sm">
-                            <tr>
-                                <th className="p-4">วัน-เวลา</th>
-                                <th className="p-4">ผู้ใช้งาน</th>
-                                <th className="p-4">การกระทำ</th>
-                                <th className="p-4">รายละเอียด</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {isLoading ? (
-                                <tr><td colSpan="4" className="p-8 text-center">กำลังโหลด...</td></tr>
-                            ) : logs.length === 0 ? (
-                                <tr><td colSpan="4" className="p-8 text-center text-slate-400">ไม่พบประวัติการใช้งาน</td></tr>
-                            ) : (
-                                logs.map((log) => (
-                                    <tr key={log._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-3 text-slate-500 whitespace-nowrap text-xs">
-                                            {new Date(log.createdAt).toLocaleString('th-TH')}
-                                        </td>
-                                        <td className="p-3">
-                                            <div className="font-bold text-slate-700">{log.user}</div>
-                                            <div className="text-[10px] text-slate-400 uppercase">{log.role}</div>
-                                        </td>
-                                        <td className="p-3">
-                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold border border-transparent ${getActionColor(log.action)}`}>
-                                                {log.action}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-slate-600 truncate max-w-xs" title={log.details}>
-                                            {log.details}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+        <>
+            {/* [เพิ่ม] เรียกใช้ Modal รายละเอียด */}
+            <LogDetailModal 
+                isOpen={!!selectedLogData} 
+                onClose={() => setSelectedLogData(null)} 
+                data={selectedLogData} 
+            />
+
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in">
+                <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"> {/* ขยายความกว้างเป็น max-w-5xl */}
+                    <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-yellow-400" /> ประวัติการใช้งานระบบ (System Logs)
+                        </h3>
+                        <button onClick={onClose}><X className="w-5 h-5" /></button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-auto p-0 custom-scrollbar">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 shadow-sm">
+                                <tr>
+                                    <th className="p-4 w-40">วัน-เวลา</th>
+                                    <th className="p-4 w-32">ผู้ใช้งาน</th>
+                                    <th className="p-4 w-24">การกระทำ</th>
+                                    <th className="p-4">รายละเอียด</th>
+                                    <th className="p-4 w-16 text-center">Data</th> {/* [เพิ่ม] คอลัมน์ใหม่ */}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {isLoading ? (
+                                    <tr><td colSpan="5" className="p-8 text-center">กำลังโหลด...</td></tr>
+                                ) : logs.length === 0 ? (
+                                    <tr><td colSpan="5" className="p-8 text-center text-slate-400">ไม่พบประวัติการใช้งาน</td></tr>
+                                ) : (
+                                    logs.map((log) => (
+                                        <tr key={log._id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="p-3 text-slate-500 whitespace-nowrap text-xs">
+                                                {new Date(log.createdAt).toLocaleString('th-TH')}
+                                            </td>
+                                            <td className="p-3">
+                                                <div className="font-bold text-slate-700">{log.user}</div>
+                                                <div className="text-[10px] text-slate-400 uppercase">{log.role}</div>
+                                            </td>
+                                            <td className="p-3">
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold border border-transparent ${getActionColor(log.action)}`}>
+                                                    {log.action}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 text-slate-600 truncate max-w-xs" title={log.details}>
+                                                {log.details}
+                                            </td>
+                                            {/* [เพิ่ม] ปุ่มกดดูรายละเอียด (เฉพาะที่มี metadata) */}
+                                            <td className="p-3 text-center">
+                                                {log.metadata && Object.keys(log.metadata).length > 0 ? (
+                                                    <button 
+                                                        onClick={() => setSelectedLogData(log.metadata)}
+                                                        className="p-1.5 text-blue-500 hover:text-white hover:bg-blue-500 rounded-lg transition-all shadow-sm border border-blue-100"
+                                                        title="ดูข้อมูลที่บันทึก"
+                                                    >
+                                                        <Search className="w-4 h-4" />
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-slate-300">-</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

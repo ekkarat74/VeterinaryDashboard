@@ -107,6 +107,7 @@ const logSchema = new mongoose.Schema({
     user: { type: String, required: true },   // Username
     role: { type: String, required: true },   // Role
     details: { type: String },                // รายละเอียดเพิ่มเติม
+    metadata: { type: Object },
     ip: String                                // IP Address
 }, { timestamps: true });
 const SystemLog = mongoose.model('SystemLog', logSchema);
@@ -114,7 +115,7 @@ const SystemLog = mongoose.model('SystemLog', logSchema);
 // --- HELPER FUNCTIONS ---
 
 // Function บันทึก Log (✅ ส่วนที่เพิ่มใหม่)
-const createLog = async (req, action, details) => {
+const createLog = async (req, action, details, metadata = null) => {
     try {
         const username = req.user ? req.user.username : (req.body.username || 'Unknown/System');
         const role = req.user ? req.user.role : 'Guest';
@@ -126,9 +127,9 @@ const createLog = async (req, action, details) => {
             user: username,
             role,
             details,
+            metadata, // <--- บันทึกลง Database
             ip
         });
-        // console.log(`[LOG] ${action} by ${username}`);
     } catch (err) {
         console.error("Log Error:", err);
     }
@@ -329,8 +330,8 @@ app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin'
     });
     const savedReport = await newReport.save();
 
-    // ✅ บันทึก Log
-    await createLog(req, 'CREATE_REPORT', `เพิ่มข้อมูลปฏิบัติงาน: ${savedReport.location} (${savedReport.date})`);
+    // ✅ [แก้ไข] ส่ง savedReport เป็น parameter ตัวที่ 4
+    await createLog(req, 'CREATE_REPORT', `เพิ่มข้อมูลปฏิบัติงาน: ${savedReport.location}`, savedReport);
 
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
     res.status(201).json(savedReport);
@@ -352,8 +353,8 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadm
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    // ✅ บันทึก Log
-    await createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id} (${updatedReport.location})`);
+    // ✅ [แก้ไข] ส่ง updatedReport เป็น parameter ตัวที่ 4
+    await createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id}`, updatedReport);
 
     io.emit('server_data_update', { type: 'REPORT_UPDATED', data: updatedReport });
     res.json(updatedReport);
@@ -416,8 +417,8 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['admin', 'superadmi
     const newOutbreak = new Outbreak(req.body);
     const savedOutbreak = await newOutbreak.save();
 
-    // ✅ บันทึก Log
-    await createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location} (${savedOutbreak.district})`);
+    // ✅ [แก้ไข] ส่ง savedOutbreak เป็น parameter ตัวที่ 4
+    await createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak);
 
     io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
     res.status(201).json(savedOutbreak);
