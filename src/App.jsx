@@ -23,18 +23,18 @@ const UNIT_TYPES = ['หน่วยวัคซีน + ไมโครชิ�
 
 // Updated District List as requested (50 Districts)
 const BANGKOK_DISTRICTS = [
-    // ฝั่งธนบุรี (15 เขต)
-    "เขตธนบุรี", "เขตบางกอกใหญ่", "เขตคลองสาน", "เขตตลิ่งชัน", "เขตบางกอกน้อย", 
-    "เขตบางขุนเทียน", "เขตภาษีเจริญ", "เขตหนองแขม", "เขตราษฎร์บูรณะ", "เขตบางพลัด", 
-    "เขตจอมทอง", "เขตบางแค", "เขตทวีวัฒนา", "เขตทุ่งครุ", "เขตบางบอน",
-    // ฝั่งพระนคร (35 เขต)
-    "เขตพระนคร", "เขตดุสิต", "เขตหนองจอก", "เขตบางรัก", "เขตบางเขน", 
-    "เขตบางกะปิ", "เขตปทุมวัน", "เขตป้อมปราบศัตรูพ่าย", "เขตพระโขนง", "เขตมีนบุรี", 
-    "เขตลาดกระบัง", "เขตยานนาวา", "เขตสัมพันธวงศ์", "เขตพญาไท", "เขตห้วยขวาง", 
-    "เขตดินแดง", "เขตบึงกุ่ม", "เขตสาทร", "เขตบางซื่อ", "เขตจตุจักร", 
-    "เขตบางคอแหลม", "เขตประเวศ", "เขตคลองเตย", "เขตสวนหลวง", "เขตดอนเมือง", 
-    "เขตราชเทวี", "เขตลาดพร้าว", "เขตวัฒนา", "เขตหลักสี่", "เขตสายไหม", 
-    "เขตคันนายาว", "เขตสะพานสูง", "เขตวังทองหลาง", "เขตคลองสามวา", "เขตบางนา"
+    // ฝั่งธนบุรี (15 เขต)
+    "เขตธนบุรี", "เขตบางกอกใหญ่", "เขตคลองสาน", "เขตตลิ่งชัน", "เขตบางกอกน้อย", 
+    "เขตบางขุนเทียน", "เขตภาษีเจริญ", "เขตหนองแขม", "เขตราษฎร์บูรณะ", "เขตบางพลัด", 
+    "เขตจอมทอง", "เขตบางแค", "เขตทวีวัฒนา", "เขตทุ่งครุ", "เขตบางบอน",
+    // ฝั่งพระนคร (35 เขต)
+    "เขตพระนคร", "เขตดุสิต", "เขตหนองจอก", "เขตบางรัก", "เขตบางเขน", 
+    "เขตบางกะปิ", "เขตปทุมวัน", "เขตป้อมปราบศัตรูพ่าย", "เขตพระโขนง", "เขตมีนบุรี", 
+    "เขตลาดกระบัง", "เขตยานนาวา", "เขตสัมพันธวงศ์", "เขตพญาไท", "เขตห้วยขวาง", 
+    "เขตดินแดง", "เขตบึงกุ่ม", "เขตสาทร", "เขตบางซื่อ", "เขตจตุจักร", 
+    "เขตบางคอแหลม", "เขตประเวศ", "เขตคลองเตย", "เขตสวนหลวง", "เขตดอนเมือง", 
+    "เขตราชเทวี", "เขตลาดพร้าว", "เขตวัฒนา", "เขตหลักสี่", "เขตสายไหม", 
+    "เขตคันนายาว", "เขตสะพานสูง", "เขตวังทองหลาง", "เขตคลองสามวา", "เขตบางนา"
 ];
 
 // [NEW] ข้อมูลแขวง ของแต่ละเขต (Key ต้องตรงกับ BANGKOK_DISTRICTS)
@@ -1932,6 +1932,8 @@ export default function VeterinaryDashboard() {
     const [rankingYear, setRankingYear] = useState('ทั้งหมด');
     const [rankingMonth, setRankingMonth] = useState('ทั้งหมด');
 
+    const [outbreakFilterYear, setOutbreakFilterYear] = useState('ทั้งหมด');
+
     // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
@@ -2434,18 +2436,34 @@ export default function VeterinaryDashboard() {
         return last10Months;
     }, [filteredData]);
 
-    const outbreakStats = useMemo(() => {
-        const total = outbreakData.length;
-        const grouped = outbreakData.reduce((acc, curr) => {
-            acc[curr.district] = (acc[curr.district] || 0) + 1;
-            return acc;
-        }, {});
-        const topDistricts = Object.keys(grouped)
-            .map(key => ({ name: key, count: grouped[key] }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-        return { total, topDistricts };
-    }, [outbreakData]);
+    // [NEW] ดึงปีที่มีทั้งหมดจากข้อมูล Outbreak
+    const availableOutbreakYears = useMemo(() => {
+        const years = outbreakData.map(item => {
+            // ถ้าไม่มีวันที่ ให้ใช้วันปัจจุบันหรือข้ามไป
+            return item.date ? item.date.split('-')[0] : null;
+        }).filter(y => y !== null);
+        return [...new Set(years)].sort().reverse();
+    }, [outbreakData]);
+
+    // [NEW] กรองข้อมูล Outbreak ตามปีที่เลือก
+    const filteredOutbreaks = useMemo(() => {
+        if (outbreakFilterYear === 'ทั้งหมด') return outbreakData;
+        return outbreakData.filter(item => item.date && item.date.startsWith(outbreakFilterYear));
+    }, [outbreakData, outbreakFilterYear]);
+
+    // [EDIT] แก้ไข outbreakStats ให้คำนวณจาก filteredOutbreaks แทน outbreakData เดิม
+    const outbreakStats = useMemo(() => {
+        const total = filteredOutbreaks.length; // <-- แก้ตรงนี้เป็น filteredOutbreaks
+        const grouped = filteredOutbreaks.reduce((acc, curr) => { // <-- แก้ตรงนี้เป็น filteredOutbreaks
+            acc[curr.district] = (acc[curr.district] || 0) + 1;
+            return acc;
+        }, {});
+        const topDistricts = Object.keys(grouped)
+            .map(key => ({ name: key, count: grouped[key] }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+        return { total, topDistricts };
+    }, [filteredOutbreaks]); // <-- เปลี่ยน dependency
 
     // Ranking Logic
     const rankingFilteredData = useMemo(() => {
@@ -3072,34 +3090,80 @@ const exportToCSV = () => {
 
                     {/* Map */}
                     <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                        <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} />
-                    </div>
+                        {/* [EDIT] ส่ง filteredOutbreaks ไปแทน outbreakData */}
+                        <LeafletMap 
+                            data={mapDisplayData} 
+                            outbreaks={filteredOutbreaks} 
+                            onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} 
+                        />
+                    </div>
                 </div>
 
                 {/* Rabies Section */}
-                {outbreakStats.total > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                        <div className="md:col-span-4 bg-red-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-2 opacity-90"><Siren className="w-5 h-5 animate-pulse"/> สถานการณ์ระบาด</div>
-                                <h3 className="text-5xl font-extrabold">{outbreakStats.total}</h3>
-                                <p className="text-sm opacity-90">จุดที่พบเชื้อ</p>
-                            </div>
-                        </div>
-                        <div className="md:col-span-8 bg-white border border-red-100 rounded-xl p-6 shadow-sm">
-                            <h4 className="font-bold text-slate-700 mb-4">พื้นที่เสี่ยงสูงสุด</h4>
-                            <div className="h-32">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={outbreakStats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={20}>
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={100} tick={{fontSize:11}} axisLine={false} tickLine={false}/>
-                                        <Bar dataKey="count" fill="#ef4444" radius={[0,4,4,0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* Rabies Section */}
+{/* [EDIT] เปลี่ยนเงื่อนไขแสดงผล: แสดงเมื่อมีข้อมูลดิบ (outbreakData) แม้จะ Filter แล้วเหลือ 0 ก็ให้แสดง UI เพื่อให้รู้ว่าไม่มีในปีนั้น */}
+{outbreakData.length > 0 && (
+    <div className="flex flex-col gap-4">
+        
+        {/* [NEW] Header และ Filter ปี สำหรับส่วนโรคระบาด */}
+        <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-red-100">
+            <div className="flex items-center gap-2 text-red-700 font-bold">
+                <Siren className="w-5 h-5" /> ข้อมูลการระบาด (Rabies Outbreak)
+            </div>
+            <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-bold">เลือกปี:</span>
+                <select 
+                    value={outbreakFilterYear} 
+                    onChange={(e) => setOutbreakFilterYear(e.target.value)} 
+                    className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg py-1.5 px-3 outline-none focus:ring-2 focus:ring-red-500 font-bold"
+                >
+                    <option value="ทั้งหมด">ทั้งหมด ({outbreakData.length})</option>
+                    {availableOutbreakYears.map(y => (
+                        <option key={y} value={y}>ปี {y}</option>
+                    ))}
+                </select>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-4 bg-red-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden transition-all">
+                <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2 opacity-90">
+                        <Siren className="w-5 h-5 animate-pulse"/> 
+                        {/* แสดงปีที่เลือก */}
+                        สถานการณ์ระบาด {outbreakFilterYear !== 'ทั้งหมด' ? `ปี ${outbreakFilterYear}` : '(สะสม)'}
+                    </div>
+                    <h3 className="text-5xl font-extrabold">{outbreakStats.total}</h3>
+                    <p className="text-sm opacity-90">จุดที่พบเชื้อ</p>
+                </div>
+                {/* Decoration BG */}
+                <Skull className="absolute -bottom-4 -right-4 w-32 h-32 text-red-800 opacity-30" />
+            </div>
+
+            <div className="md:col-span-8 bg-white border border-red-100 rounded-xl p-6 shadow-sm">
+                <h4 className="font-bold text-slate-700 mb-4 flex justify-between">
+                    <span>พื้นที่เสี่ยงสูงสุด {outbreakFilterYear !== 'ทั้งหมด' && <span className="text-red-500 text-xs">(ปี {outbreakFilterYear})</span>}</span>
+                </h4>
+                
+                {outbreakStats.total > 0 ? (
+                    <div className="h-32">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart layout="vertical" data={outbreakStats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={20}>
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" width={100} tick={{fontSize:11}} axisLine={false} tickLine={false}/>
+                                <Bar dataKey="count" fill="#ef4444" radius={[0,4,4,0]} label={{ position: 'right', fill: '#991b1b', fontSize: 10, fontWeight: 'bold' }} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                ) : (
+                    <div className="h-32 flex items-center justify-center text-slate-400 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                        ไม่พบข้อมูลการระบาดในปี {outbreakFilterYear}
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+)}
 
                 {/* Main Data Table */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
