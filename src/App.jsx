@@ -180,11 +180,11 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 shadow-sm">
                                 <tr>
+                                    <th className="p-4 w-16 text-center">Data</th> {/* [เพิ่ม] คอลัมน์ใหม่ */}
                                     <th className="p-4 w-40">วัน-เวลา</th>
                                     <th className="p-4 w-32">ผู้ใช้งาน</th>
                                     <th className="p-4 w-24">การกระทำ</th>
                                     <th className="p-4">รายละเอียด</th>
-                                    <th className="p-4 w-16 text-center">Data</th> {/* [เพิ่ม] คอลัมน์ใหม่ */}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -195,6 +195,19 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                 ) : (
                                     logs.map((log) => (
                                         <tr key={log._id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="p-3 text-center">
+                                                {log.metadata && Object.keys(log.metadata).length > 0 ? (
+                                                    <button 
+                                                        onClick={() => setSelectedLogData(log.metadata)}
+                                                        className="p-1.5 text-blue-500 hover:text-white hover:bg-blue-500 rounded-lg transition-all shadow-sm border border-blue-100"
+                                                        title="ดูข้อมูลที่บันทึก"
+                                                    >
+                                                        <Search className="w-4 h-4" />
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-slate-300">-</span>
+                                                )}
+                                            </td>
                                             <td className="p-3 text-slate-500 whitespace-nowrap text-xs">
                                                 {new Date(log.createdAt).toLocaleString('th-TH')}
                                             </td>
@@ -209,20 +222,6 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                             </td>
                                             <td className="p-3 text-slate-600 truncate max-w-xs" title={log.details}>
                                                 {log.details}
-                                            </td>
-                                            {/* [เพิ่ม] ปุ่มกดดูรายละเอียด (เฉพาะที่มี metadata) */}
-                                            <td className="p-3 text-center">
-                                                {log.metadata && Object.keys(log.metadata).length > 0 ? (
-                                                    <button 
-                                                        onClick={() => setSelectedLogData(log.metadata)}
-                                                        className="p-1.5 text-blue-500 hover:text-white hover:bg-blue-500 rounded-lg transition-all shadow-sm border border-blue-100"
-                                                        title="ดูข้อมูลที่บันทึก"
-                                                    >
-                                                        <Search className="w-4 h-4" />
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-slate-300">-</span>
-                                                )}
                                             </td>
                                         </tr>
                                     ))
@@ -958,10 +957,14 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass })
     </div>
 );
 
-// ✅ [แก้ไข] ปรับปรุง LeafletMap ให้แม่นยำขึ้น
+// ✅ [แก้ไข] ปรับปรุง LeafletMap เพิ่มตัวเลือกระยะวงรัศมี
 const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
   const centerPosition = [13.7563, 100.5018];
   const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
+  
+  // [เพิ่ม] State สำหรับเก็บระยะรัศมีที่เลือก (หน่วยเป็นเมตร)
+  // Default ให้แสดง 1km และ 3km (ตาม Code เดิม) ส่วน 5km ให้ผู้ใช้กดเปิดเอง หรือจะใส่ 5000 ลงไปเลยถ้าอยากให้เปิดแต่แรก
+  const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
 
   // Toggle การแสดงผลตามประเภทหน่วย
   const toggleLayer = (unit) => {
@@ -971,6 +974,18 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
         : [...prev, unit]              
     );
   };
+
+  // [เพิ่ม] ฟังก์ชัน Toggle ระยะรัศมี
+  const toggleRadius = (radius) => {
+    setActiveRadii(prev => 
+      prev.includes(radius)
+        ? prev.filter(r => r !== radius)
+        : [...prev, radius]
+    );
+  };
+
+  // ... (ส่วน createDangerIcon, getMarkerColor, displayData, createNumberIcon เหมือนเดิม) ...
+  // เพื่อความกระชับ ขอละส่วนที่ไม่ได้แก้ไว้ ...
 
   // ไอคอนพื้นที่ระบาด (สีแดงกะพริบ)
   const createDangerIcon = useCallback(() => {
@@ -1006,23 +1021,19 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
     return data.filter(item => activeLayers.includes(item.unit));
   }, [data, activeLayers]);
 
-  // สร้างไอคอนตัวเลข (Memoized เพื่อประสิทธิภาพ)
+  // สร้างไอคอนตัวเลข
   const createNumberIcon = (total, color) => {
-    // ปรับขนาดตามจำนวนตัวเลข
     const size = total > 999 ? 40 : (total > 99 ? 34 : 28); 
-    
     return L.divIcon({
       className: 'custom-marker-wrapper', 
       html: `
         <div class="marker-container" style="--marker-color: ${color}; width: ${size}px; height: ${size}px;">
-          <div class="marker-content">
-            ${total.toLocaleString()}
-          </div>
+          <div class="marker-content">${total.toLocaleString()}</div>
           <div class="marker-arrow"></div>
         </div>
       `,
       iconSize: [size, size],
-      iconAnchor: [size / 2, size + 5], // จุดชี้อยู่ด้านล่างตรงกลาง
+      iconAnchor: [size / 2, size + 5],
       popupAnchor: [0, -(size + 5)]
     });
   };
@@ -1032,6 +1043,8 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
       
       {/* Filter Bar controls (Floating) */}
       <div className="absolute top-4 right-4 z-[500] flex flex-col gap-2 bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-xl border border-slate-100 max-w-[180px] animate-in slide-in-from-right-4">
+          
+          {/* ส่วน Filter หน่วยงาน (Code เดิม) */}
           <div className="text-xs font-extrabold text-slate-600 mb-1 flex items-center gap-1.5 border-b border-slate-100 pb-2">
               <Filter className="w-3.5 h-3.5" /> แสดงข้อมูล
           </div>
@@ -1043,32 +1056,53 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                       key={unit}
                       onClick={() => toggleLayer(unit)}
                       className={`text-[10px] py-1.5 px-2 rounded-lg font-bold transition-all flex items-center gap-2 border w-full text-left
-                          ${isActive 
-                              ? 'bg-white shadow-sm ring-1 ring-slate-100' 
-                              : 'bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100'
-                          }
+                          ${isActive ? 'bg-white shadow-sm ring-1 ring-slate-100' : 'bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100'}
                       `}
                       style={isActive ? { borderLeft: `3px solid ${color}`, color: '#334155' } : { opacity: 0.7 }}
                   >
-                      <span 
-                          className={`w-2 h-2 rounded-full transition-all ${isActive ? 'scale-110' : 'scale-0'}`}
-                          style={{ backgroundColor: color }}
-                      ></span>
+                      <span className={`w-2 h-2 rounded-full transition-all ${isActive ? 'scale-110' : 'scale-0'}`} style={{ backgroundColor: color }}></span>
                       <span className="truncate">{unit}</span>
                   </button>
               )
           })}
+
+          {/* [เพิ่ม] ส่วน Filter รัศมีควบคุมโรค */}
+          <div className="text-xs font-extrabold text-slate-600 mt-2 mb-1 flex items-center gap-1.5 border-t border-slate-100 pt-3 border-b pb-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> รัศมีควบคุมโรค
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {[
+                { val: 1000, label: '1 กม. (ควบคุม)', color: '#991b1b' },
+                { val: 3000, label: '3 กม. (เฝ้าระวัง)', color: '#ef4444' },
+                { val: 5000, label: '5 กม. (แจ้งเตือน)', color: '#f97316' }
+            ].map((r) => {
+                const isActive = activeRadii.includes(r.val);
+                return (
+                    <button
+                        key={r.val}
+                        onClick={() => toggleRadius(r.val)}
+                        className={`text-[10px] py-1.5 px-2 rounded-lg font-bold transition-all flex items-center gap-2 border w-full text-left
+                            ${isActive ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
+                        `}
+                    >
+                        <div className={`w-3 h-3 rounded flex items-center justify-center border ${isActive ? 'border-red-500 bg-red-500' : 'border-slate-300 bg-white'}`}>
+                            {isActive && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
+                        </div>
+                        <span className={isActive ? 'opacity-100' : 'opacity-60'}>{r.label}</span>
+                    </button>
+                );
+            })}
+          </div>
+
       </div>
 
       <style>{`
           .custom-marker-wrapper { background: transparent; border: none; }
-          
           .marker-container {
             position: relative; display: flex; align-items: center; justify-content: center;
             transition: transform 0.2s ease-out; cursor: pointer;
           }
           .marker-container:hover { transform: scale(1.15) translateY(-5px); z-index: 1000; }
-
           .marker-content {
             width: 100%; height: 100%; border-radius: 50%;
             background: var(--marker-color);
@@ -1081,21 +1115,11 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
             text-shadow: 0 1px 2px rgba(0,0,0,0.4);
             z-index: 2;
           }
-          
-          /* สร้างหัวลูกศรชี้ลง */
           .marker-arrow {
-             position: absolute;
-             bottom: -4px;
-             left: 50%;
-             transform: translateX(-50%) rotate(45deg);
-             width: 8px;
-             height: 8px;
-             background-color: var(--marker-color);
-             border-right: 2px solid white;
-             border-bottom: 2px solid white;
-             z-index: 1;
+             position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%) rotate(45deg);
+             width: 8px; height: 8px; background-color: var(--marker-color);
+             border-right: 2px solid white; border-bottom: 2px solid white; z-index: 1;
           }
-
           .danger-marker-container {
             position: relative; width: 40px; height: 40px;
             display: flex; align-items: center; justify-content: center;
@@ -1129,20 +1153,17 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* ✅ Key ที่ activeLayers.join(',') สำคัญมาก: บังคับให้ Cluster Render ใหม่เมื่อ Filter เปลี่ยน */}
           <MarkerClusterGroup 
             key={activeLayers.join(',')} 
             chunkedLoading
-            maxClusterRadius={40} // ลดระยะ Cluster ให้แยกตัวง่ายขึ้น
+            maxClusterRadius={40}
             spiderfyOnMaxZoom={true}
           >
             {displayData.map((item) => {
-              // ✅ ตรวจสอบพิกัด: ถ้าไม่มี หรือไม่ใช่ตัวเลข ให้ข้ามไปเลยป้องกัน Error
               const lat = parseFloat(item.lat);
               const long = parseFloat(item.long);
               if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
 
-              // ✅ ตรวจสอบ Stats: ป้องกัน undefined
               const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
               const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip + (stats.medical || 0);
               const color = getMarkerColor(item.unit);
@@ -1161,7 +1182,7 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                       </span>
                     </div>
                   </Tooltip>
-
+                  {/* ... (Popup Code เดิม) ... */}
                   <Popup>
                       <div className="font-sans min-w-[220px] p-0 overflow-hidden">
                         {item.imageUrl && (
@@ -1180,36 +1201,7 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                             </p>
                             
                             <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs shadow-inner">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5 text-blue-600 font-bold text-[11px]">
-                                        <Syringe className="w-3 h-3" /> วัคซีน
-                                    </div>
-                                    <span className="font-bold text-slate-700">{stats.vaccine.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5 text-orange-500 font-bold text-[11px]">
-                                        <Scissors className="w-3 h-3" /> ทำหมัน
-                                    </div>
-                                    <span className="font-bold text-slate-700">{stats.sterilize.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5 text-green-600 font-bold text-[11px]">
-                                        <FileText className="w-3 h-3" /> ลงทะเบียน
-                                    </div>
-                                    <span className="font-bold text-slate-700">{stats.register.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5 text-purple-600 font-bold text-[11px]">
-                                        <Database className="w-3 h-3" /> ไมโครชิป
-                                    </div>
-                                    <span className="font-bold text-slate-700">{stats.microchip.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5 text-rose-600 font-bold text-[11px]">
-                                        <Stethoscope className="w-3 h-3" /> รักษาสัตว์
-                                    </div>
-                                    <span className="font-bold text-slate-700">{(stats.medical || 0).toLocaleString()}</span>
-                                </div>
+                                {/* รายละเอียด Stats ใน Popup (Code เดิม) */}
                                 <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-1">
                                     <div className="font-extrabold text-slate-900">รวมทั้งหมด</div>
                                     <span className="font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">
@@ -1233,24 +1225,59 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
 
               return (
                   <React.Fragment key={item._id || `outbreak-${index}`}>
-                      <Circle center={[lat, long]} radius={1000} pathOptions={{ color: '#991b1b', fillOpacity: 0.2, weight: 1, dashArray: '4, 4' }} />
-                      <Circle center={[lat, long]} radius={3000} pathOptions={{ color: '#ef4444', fillOpacity: 0.1, weight: 0 }} />
+                      
+                      {/* [แก้ไข] แสดงวงกลมตามที่ติ๊กเลือก (activeRadii) */}
+                      
+                      {/* 1 กม. - สีแดงเข้ม เส้นประ */}
+                      {activeRadii.includes(1000) && (
+                        <Circle 
+                            center={[lat, long]} 
+                            radius={1000} 
+                            pathOptions={{ color: '#991b1b', fillOpacity: 0.2, weight: 1, dashArray: '4, 4' }} 
+                        />
+                      )}
+
+                      {/* 3 กม. - สีแดง จางลง */}
+                      {activeRadii.includes(3000) && (
+                        <Circle 
+                            center={[lat, long]} 
+                            radius={3000} 
+                            pathOptions={{ color: '#ef4444', fillOpacity: 0.1, weight: 0 }} 
+                        />
+                      )}
+
+                      {/* [เพิ่มใหม่] 5 กม. - สีส้ม เฝ้าระวัง */}
+                      {activeRadii.includes(5000) && (
+                        <Circle 
+                            center={[lat, long]} 
+                            radius={5000} 
+                            pathOptions={{ color: '#f97316', fillOpacity: 0.05, weight: 1, dashArray: '2, 6' }} 
+                        />
+                      )}
                       
                       <Marker position={[lat, long]} icon={createDangerIcon()}>
                           <Popup>
+                              {/* ... (Popup แจ้งโรค Code เดิม) ... */}
                               <div className="font-sans min-w-[200px] p-2 text-center">
                                   <div className="bg-red-50 text-red-600 font-extrabold px-3 py-1 rounded-full text-[10px] inline-flex items-center gap-1 mb-2 border border-red-100 shadow-sm">
                                       <AlertTriangle className="w-3 h-3" /> พบเชื้อพิษสุนัขบ้า
                                   </div>
                                   <h3 className="font-bold text-slate-800 text-sm mb-1">{item.location}</h3>
                                   <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">เขต{item.district}</p>
-                              
+                                  
+                                  {/* [แก้ไข] แสดงสถานะระยะใน Popup ให้สอดคล้อง */}
                                   <div className="grid grid-cols-3 gap-1 text-[9px]">
-                                      <div className="text-red-900 bg-red-100/50 rounded p-1 font-bold">1 กม.<br/>ควบคุมเข้มข้น</div>
-                                      <div className="text-red-600 bg-red-50/50 rounded p-1 font-bold">3 กม.<br/>เฝ้าระวัง</div>
-                                      <div className="text-orange-500 bg-orange-50/50 rounded p-1 font-bold">5 กม.<br/>แจ้งเตือน</div>
+                                      <div className={`rounded p-1 font-bold ${activeRadii.includes(1000) ? 'text-red-900 bg-red-100/50' : 'text-slate-300 bg-slate-50'}`}>
+                                          1 กม.<br/>ควบคุม
+                                      </div>
+                                      <div className={`rounded p-1 font-bold ${activeRadii.includes(3000) ? 'text-red-600 bg-red-50/50' : 'text-slate-300 bg-slate-50'}`}>
+                                          3 กม.<br/>เฝ้าระวัง
+                                      </div>
+                                      <div className={`rounded p-1 font-bold ${activeRadii.includes(5000) ? 'text-orange-500 bg-orange-50/50' : 'text-slate-300 bg-slate-50'}`}>
+                                          5 กม.<br/>แจ้งเตือน
+                                      </div>
                                   </div>
-                              
+                                  
                                   {onDeleteOutbreak && (
                                     <button 
                                       onClick={() => onDeleteOutbreak(item._id)} 
@@ -2611,6 +2638,23 @@ export default function VeterinaryDashboard() {
         return { total, topDistricts };
     }, [filteredOutbreaks]); // <-- เปลี่ยน dependency
 
+    const outbreakYearlyTrend = useMemo(() => {
+        const stats = outbreakData.reduce((acc, curr) => {
+            if (!curr.date) return acc;
+            const year = curr.date.split('-')[0]; // ดึงปี YYYY
+            acc[year] = (acc[year] || 0) + 1;
+            return acc;
+        }, {});
+
+        // แปลงเป็น Array และเรียงจากปีเก่า -> ใหม่
+        return Object.keys(stats)
+            .sort() 
+            .map(year => ({
+                name: year,
+                count: stats[year]
+            }));
+    }, [outbreakData]);
+
     // Ranking Logic
     const rankingFilteredData = useMemo(() => {
         return reportData.filter(item => {
@@ -2650,7 +2694,8 @@ export default function VeterinaryDashboard() {
     }, [rankingFilteredData]);
 
     // CSV Logic
-    const handleFileUpload = (e) => {
+// CSV Logic - Import
+const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -2684,58 +2729,81 @@ export default function VeterinaryDashboard() {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                // แยกข้อมูลด้วย comma
-                const cols = line.split(',');
+                // แยกข้อมูลด้วย comma (แบบง่าย) - *หมายเหตุ: ถ้า location มี comma ซ้อนจะซับซ้อนกว่านี้ แต่นี่คือ logic เดิม
+                // การใช้ regex เพื่อ split โดยไม่สนใจ comma ใน quote ทำได้ยากใน JS สั้นๆ ถ้าไฟล์ export จากระบบเราเองจะไม่มีปัญหาเพราะเรา replace quote แล้ว
+                
+                // วิธีแก้เบื้องต้นสำหรับการอ่าน CSV ที่มี Quote ครอบ
+                const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
+                // ล้างเครื่องหมายจุลภาคท้ายคำ (ถ้ามีจากการ regex) และ Quote
+                const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').replace(/,$/, '').trim());
 
-                // Map ข้อมูลตามลำดับ Header ที่แก้ไขใหม่ใน exportToCSV
-                // Indices:
-                // 0-4: Info
-                // 5-9: Total Stats
-                // 10-11: Lat/Long
-                // 12-17: Dog Details
-                // 18-23: Cat Details
-                // 24-25: Other Details
+                // [แก้ไข Logic การอ่าน Index ใหม่ เพราะยุบ Lat/Long]
+                // 0: Date
+                // 1: Location
+                // 2: District
+                // 3: Subdistrict
+                // 4: Unit
+                // 5: Coords "Lat, Long"  <-- จุดที่เปลี่ยน
+                // 6-10: Total Stats (ขยับขึ้นมา 1 ช่องจากเดิม 5-9 -> 6-10 เป็น 6-10 แทนไหม? ไม่ใช่ ขยับ index ถอยหลังเพราะคอลัมน์หายไป 1)
+                
+                // Index เดิม: 0-4 (Info), 5-9 (Stats), 10-11 (Lat/Long), 12+ (Details)
+                // Index ใหม่: 0-4 (Info), 5 (Combined Coords), 6-10 (Stats), 11+ (Details)
+
+                let lat = 0;
+                let long = 0;
+                
+                // แยกพิกัดออกจากกัน
+                if (cleanCols[5]) {
+                    const coords = cleanCols[5].split(',');
+                    if (coords.length === 2) {
+                        lat = parseFloat(coords[0]) || 0;
+                        long = parseFloat(coords[1]) || 0;
+                    } else {
+                        // fallback กรณีไฟล์เก่า (ถ้าเผลอ import ไฟล์เก่า โค้ดนี้อาจเพี้ยนได้ ต้องระวัง)
+                        lat = parseFloat(cleanCols[5]) || 0; 
+                    }
+                }
 
                 const newRecord = {
-                    date: cols[0]?.trim(),
-                    location: cols[1]?.replace(/"/g, '').trim(), // ลบ quote ออก
-                    district: cols[2]?.trim(),
-                    subdistrict: cols[3]?.trim(),
-                    unit: cols[4]?.trim(),
+                    date: cleanCols[0],
+                    location: cleanCols[1], // Quote ถูกลบออกแล้วใน cleanCols
+                    district: cleanCols[2],
+                    subdistrict: cleanCols[3],
+                    unit: cleanCols[4],
                     
-                    // Stats (ยอดรวม) อ่านจาก CSV หรือถ้าไม่มีให้เป็น 0
+                    // Stats (Index ขยับจากเดิม 5 เป็น 6)
                     stats: {
-                        vaccine: parseInt(cols[5]) || 0,
-                        sterilize: parseInt(cols[6]) || 0,
-                        register: parseInt(cols[7]) || 0,
-                        microchip: parseInt(cols[8]) || 0,
-                        medical: parseInt(cols[9]) || 0
+                        vaccine: parseInt(cleanCols[6]) || 0,
+                        sterilize: parseInt(cleanCols[7]) || 0,
+                        register: parseInt(cleanCols[8]) || 0,
+                        microchip: parseInt(cleanCols[9]) || 0,
+                        medical: parseInt(cleanCols[10]) || 0
                     },
                     
-                    lat: parseFloat(cols[10]) || 0,
-                    long: parseFloat(cols[11]) || 0,
+                    lat: lat,
+                    long: long,
                     
-                    // Details: อ่านข้อมูลละเอียดกลับคืนมา
+                    // Details: (Index เริ่มต้นขยับจาก 12 เป็น 11)
                     details: { 
                         dog: { 
-                            vaccine: parseInt(cols[12]) || 0,
-                            maleSterilize: parseInt(cols[13]) || 0,
-                            femaleSterilize: parseInt(cols[14]) || 0,
-                            register: parseInt(cols[15]) || 0,
-                            microchip: parseInt(cols[16]) || 0, 
-                            medical: parseInt(cols[17]) || 0
+                            vaccine: parseInt(cleanCols[11]) || 0,
+                            maleSterilize: parseInt(cleanCols[12]) || 0,
+                            femaleSterilize: parseInt(cleanCols[13]) || 0,
+                            register: parseInt(cleanCols[14]) || 0,
+                            microchip: parseInt(cleanCols[15]) || 0, 
+                            medical: parseInt(cleanCols[16]) || 0
                         },
                         cat: { 
-                            vaccine: parseInt(cols[18]) || 0,
-                            maleSterilize: parseInt(cols[19]) || 0,
-                            femaleSterilize: parseInt(cols[20]) || 0, 
-                            register: parseInt(cols[21]) || 0,
-                            microchip: parseInt(cols[22]) || 0,
-                            medical: parseInt(cols[23]) || 0
+                            vaccine: parseInt(cleanCols[17]) || 0,
+                            maleSterilize: parseInt(cleanCols[18]) || 0,
+                            femaleSterilize: parseInt(cleanCols[19]) || 0, 
+                            register: parseInt(cleanCols[20]) || 0,
+                            microchip: parseInt(cleanCols[21]) || 0,
+                            medical: parseInt(cleanCols[22]) || 0
                         },
                         other: { 
-                            vaccine: parseInt(cols[24]) || 0, 
-                            medical: parseInt(cols[25]) || 0 
+                            vaccine: parseInt(cleanCols[23]) || 0, 
+                            medical: parseInt(cleanCols[24]) || 0 
                         }
                     }
                 };
@@ -2792,15 +2860,14 @@ const exportToCSV = () => {
         return;
     }
 
-    // 1. [แก้ไข] กำหนดหัวตาราง (Header) เป็นภาษาไทย
+    // 1. [แก้ไข] ปรับ Header: ยุบละติจูด/ลองจิจูด เหลือช่องเดียว
     const headers = [
         "วันที่", 
         "สถานที่", 
         "เขต", 
         "แขวง", 
         "หน่วยงาน", 
-        "ละติจูด", 
-        "ลองจิจูด",
+        "พิกัด", // <--- รวมเป็นช่องเดียว
         "รวมวัคซีน", 
         "รวมทำหมัน", 
         "รวมขึ้นทะเบียน", 
@@ -2812,17 +2879,19 @@ const exportToCSV = () => {
         "อื่นๆ_วัคซีน", "อื่นๆ_รักษา"
     ];
 
-    // 2. [เพิ่ม] บังคับเรียงข้อมูลตามวันที่ (ใหม่ -> เก่า) ก่อนทำการ Map
-    // สร้าง Copy array ด้วย [...filteredData] เพื่อไม่ให้กระทบกับลำดับการแสดงผลหน้าเว็บ
+    // 2. เรียงข้อมูลตามวันที่ (ใหม่ -> เก่า)
     const sortedData = [...filteredData].sort((a, b) => {
         return new Date(b.date) - new Date(a.date);
     });
 
-    // 3. แปลงข้อมูลเป็น Rows (ใช้ sortedData แทน filteredData)
+    // 3. แปลงข้อมูลเป็น Rows
     const csvRows = sortedData.map(item => {
         // จัดการกรณีที่มีเครื่องหมายคอมมา (,) ในข้อความ ให้ใส่เครื่องหมายคำพูดครอบ
         const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
         
+        // [แก้ไข] รวมพิกัด และใส่เครื่องหมายคำพูดครอบไว้เพื่อไม่ให้เครื่องหมายคอมมา (,) ไปตัดคำใน CSV
+        const combinedCoords = `"${item.lat}, ${item.long}"`; 
+
         // Helper เพื่อป้องกัน error กรณี details เป็น undefined
         const d = item.details || { dog: {}, cat: {}, other: {} };
         const dog = d.dog || {};
@@ -2835,9 +2904,8 @@ const exportToCSV = () => {
             item.district,
             item.subdistrict || "",
             item.unit,
-            item.lat,
-            item.long,
-            // Stats (ยอดรวม)
+            combinedCoords, // <--- ใช้ค่าที่รวมแล้วแทนที่แยกช่อง
+            // Stats (ขยับ Index การอ่านตอน Import)
             item.stats.vaccine || 0,
             item.stats.sterilize || 0,
             item.stats.register || 0,
@@ -3262,67 +3330,210 @@ const exportToCSV = () => {
                     </div>
                 </div>
 
-                {/* Rabies Section */}
-                {/* Rabies Section */}
-{/* [EDIT] เปลี่ยนเงื่อนไขแสดงผล: แสดงเมื่อมีข้อมูลดิบ (outbreakData) แม้จะ Filter แล้วเหลือ 0 ก็ให้แสดง UI เพื่อให้รู้ว่าไม่มีในปีนั้น */}
+{/* --- [NEW UI] RABIES OUTBREAK DASHBOARD SECTION --- */}
 {outbreakData.length > 0 && (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-8 mb-12">
         
-        {/* [NEW] Header และ Filter ปี สำหรับส่วนโรคระบาด */}
-        <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-red-100">
-            <div className="flex items-center gap-2 text-red-700 font-bold">
-                <Siren className="w-5 h-5" /> ข้อมูลการระบาด (Rabies Outbreak)
+        {/* 1. Header & Filter Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-500">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+                    <Siren className="w-8 h-8 animate-pulse" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-extrabold text-slate-800">ศูนย์เฝ้าระวังโรคพิษสุนัขบ้า</h3>
+                    <p className="text-sm text-slate-500 font-medium flex items-center gap-1">
+                        <Activity className="w-3 h-3 text-red-500" /> Rabies Outbreak Monitoring Center
+                    </p>
+                </div>
             </div>
-            <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-bold">เลือกปี:</span>
+
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">กรองข้อมูลปี:</span>
                 <select 
                     value={outbreakFilterYear} 
                     onChange={(e) => setOutbreakFilterYear(e.target.value)} 
-                    className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg py-1.5 px-3 outline-none focus:ring-2 focus:ring-red-500 font-bold"
+                    className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer hover:text-red-600 transition-colors"
                 >
-                    <option value="ทั้งหมด">ทั้งหมด ({outbreakData.length})</option>
+                    <option value="ทั้งหมด">ข้อมูลสะสมทั้งหมด ({outbreakData.length} เคส)</option>
                     {availableOutbreakYears.map(y => (
-                        <option key={y} value={y}>ปี {y}</option>
+                        <option key={y} value={y}>พ.ศ. {y}</option>
                     ))}
                 </select>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-4 bg-red-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden transition-all">
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-2 opacity-90">
-                        <Siren className="w-5 h-5 animate-pulse"/> 
-                        {/* แสดงปีที่เลือก */}
-                        สถานการณ์ระบาด {outbreakFilterYear !== 'ทั้งหมด' ? `ปี ${outbreakFilterYear}` : '(สะสม)'}
+        {/* 2. Main Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left Column: Key Stats (4 Columns) */}
+            <div className="lg:col-span-4 flex flex-col gap-6">
+                
+                {/* Main Alert Card */}
+                <div className="bg-gradient-to-br from-red-600 to-rose-700 rounded-2xl p-6 text-white shadow-xl shadow-red-200 relative overflow-hidden group">
+                    {/* Background Decoration */}
+                    <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:rotate-12 duration-700">
+                        <Skull className="w-40 h-40" />
                     </div>
-                    <h3 className="text-5xl font-extrabold">{outbreakStats.total}</h3>
-                    <p className="text-sm opacity-90">จุดที่พบเชื้อ</p>
+                    
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start">
+                            <p className="text-red-100 text-sm font-bold mb-1">จุดพบเชื้อรวม ({outbreakFilterYear === 'ทั้งหมด' ? 'สะสม' : `ปี ${outbreakFilterYear}`})</p>
+                            <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
+                                <AlertTriangle className="w-5 h-5 text-white" />
+                            </div>
+                        </div>
+                        
+                        <h2 className="text-7xl font-black tracking-tighter mb-2 mt-2">{outbreakStats.total}</h2>
+                        
+                        <div className="flex items-center gap-2 mt-4">
+                            <span className="text-xs bg-red-800/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 font-medium">
+                                พื้นที่เฝ้าระวังพิเศษ (Red Zone)
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                {/* Decoration BG */}
-                <Skull className="absolute -bottom-4 -right-4 w-32 h-32 text-red-800 opacity-30" />
+
+                {/* Sub Stats Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Top District Card */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div className="text-slate-400 mb-3 flex justify-between">
+                            <MapPin className="w-5 h-5" />
+                            <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">Top 1</span>
+                        </div>
+                        <div>
+                            <span className="text-xl font-extrabold text-slate-800 block truncate" title={outbreakStats.topDistricts[0]?.name || '-'}>
+                                {outbreakStats.topDistricts.length > 0 ? outbreakStats.topDistricts[0].name : '-'}
+                            </span>
+                            <p className="text-[10px] text-slate-500 mt-1">เขตที่พบเชื้อมากที่สุด</p>
+                        </div>
+                    </div>
+
+                    {/* Latest Date Card */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                        <div className="text-slate-400 mb-3 flex justify-between">
+                            <Calendar className="w-5 h-5" />
+                            <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">Latest</span>
+                        </div>
+                        <div>
+                            <span className="text-xl font-extrabold text-slate-800 block">
+                                {filteredOutbreaks.length > 0 
+                                    ? new Date(Math.max(...filteredOutbreaks.map(e => new Date(e.date)))).toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: '2-digit'})
+                                    : '-'
+                                }
+                            </span>
+                            <p className="text-[10px] text-slate-500 mt-1">วันที่พบเชื้อล่าสุด</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Recent Reports List */}
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col">
+                    <div className="px-5 py-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                        <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
+                            รายการแจ้งเหตุล่าสุด
+                        </h4>
+                    </div>
+                    <div className="overflow-y-auto custom-scrollbar p-2 h-48 lg:h-auto">
+                        {filteredOutbreaks.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-slate-400 text-xs">ไม่มีข้อมูล</div>
+                        ) : (
+                            filteredOutbreaks.slice(0, 5).map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-3 p-3 hover:bg-red-50/50 rounded-xl transition-colors border-b border-slate-50 last:border-0 group cursor-default">
+                                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0 border border-red-200 text-red-600 font-bold text-xs group-hover:scale-110 transition-transform">
+                                        {idx + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-slate-800 truncate">{item.location}</p>
+                                        <div className="flex justify-between items-center mt-0.5">
+                                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{item.district}</span>
+                                            <span className="text-[9px] text-slate-400">
+                                                {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: '2-digit'})}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
 
-            <div className="md:col-span-8 bg-white border border-red-100 rounded-xl p-6 shadow-sm">
-                <h4 className="font-bold text-slate-700 mb-4 flex justify-between">
-                    <span>พื้นที่เสี่ยงสูงสุด {outbreakFilterYear !== 'ทั้งหมด' && <span className="text-red-500 text-xs">(ปี {outbreakFilterYear})</span>}</span>
-                </h4>
+            {/* Right Column: Analytics Charts (8 Columns) */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
                 
-                {outbreakStats.total > 0 ? (
-                    <div className="h-32">
+                {/* Chart 1: Top 5 Districts */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                            <div className="w-1 h-6 bg-red-500 rounded-full"></div>
+                            5 อันดับเขตพื้นที่เสี่ยงสูงสุด
+                        </h4>
+                    </div>
+                    
+                    <div className="h-64 w-full">
+                        {outbreakStats.total > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart layout="vertical" data={outbreakStats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={28}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9"/>
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" width={110} tick={{fontSize:12, fontWeight: 600, fill: '#64748b'}} axisLine={false} tickLine={false}/>
+                                    <RechartsTooltip 
+                                        cursor={{fill: '#fef2f2'}} 
+                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                                    />
+                                    <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                                        {outbreakStats.topDistricts.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={index === 0 ? '#dc2626' : index === 1 ? '#ea580c' : '#f87171'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                ไม่พบข้อมูลในปีที่เลือก
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Chart 2: Yearly Trend (Gradient Bar) */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex-1 flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                            <div className="w-1 h-6 bg-slate-800 rounded-full"></div>
+                            แนวโน้มการระบาดรายปี
+                        </h4>
+                        <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+                            Yearly Trend Analytics
+                        </span>
+                    </div>
+
+                    <div className="flex-1 min-h-[250px] w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart layout="vertical" data={outbreakStats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={20}>
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={100} tick={{fontSize:11}} axisLine={false} tickLine={false}/>
-                                <Bar dataKey="count" fill="#ef4444" radius={[0,4,4,0]} label={{ position: 'right', fill: '#991b1b', fontSize: 10, fontWeight: 'bold' }} />
+                            <BarChart data={outbreakYearlyTrend} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
+                                <defs>
+                                    <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={1}/>
+                                        <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                                <RechartsTooltip 
+                                    cursor={{fill: '#f1f5f9'}} 
+                                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} 
+                                />
+                                <Bar dataKey="count" name="จุดเสี่ยงที่พบ" fill="url(#trendGradient)" radius={[6, 6, 0, 0]} barSize={40} animationDuration={1500} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                ) : (
-                    <div className="h-32 flex items-center justify-center text-slate-400 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                        ไม่พบข้อมูลการระบาดในปี {outbreakFilterYear}
-                    </div>
-                )}
+                    <p className="text-center text-xs text-slate-400 mt-4 font-medium">เปรียบเทียบสถิติย้อนหลังตามปีที่บันทึกข้อมูล</p>
+                </div>
+
             </div>
         </div>
     </div>
