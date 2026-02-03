@@ -93,6 +93,95 @@ const BANGKOK_SUBDISTRICTS = {
 
 // --- COMPONENTS ---
 
+const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
+    const [logs, setLogs] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) fetchLogs();
+    }, [isOpen]);
+
+    const fetchLogs = async () => {
+        try {
+            setIsLoading(true);
+            const res = await fetch(`${apiBaseUrl}/api/logs`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setLogs(data);
+            }
+        } catch (error) {
+            console.error("Fetch Logs Error", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    const getActionColor = (action) => {
+        if (action.includes('DELETE') || action.includes('CLEAR')) return 'text-red-600 bg-red-50';
+        if (action.includes('CREATE') || action.includes('ADD')) return 'text-green-600 bg-green-50';
+        if (action.includes('UPDATE') || action.includes('EDIT')) return 'text-blue-600 bg-blue-50';
+        if (action.includes('LOGIN')) return 'text-purple-600 bg-purple-50';
+        return 'text-slate-600 bg-slate-50';
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+                <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-yellow-400" /> ประวัติการใช้งานระบบ (System Logs)
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+                </div>
+                
+                <div className="flex-1 overflow-auto p-0 custom-scrollbar">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 shadow-sm">
+                            <tr>
+                                <th className="p-4">วัน-เวลา</th>
+                                <th className="p-4">ผู้ใช้งาน</th>
+                                <th className="p-4">การกระทำ</th>
+                                <th className="p-4">รายละเอียด</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {isLoading ? (
+                                <tr><td colSpan="4" className="p-8 text-center">กำลังโหลด...</td></tr>
+                            ) : logs.length === 0 ? (
+                                <tr><td colSpan="4" className="p-8 text-center text-slate-400">ไม่พบประวัติการใช้งาน</td></tr>
+                            ) : (
+                                logs.map((log) => (
+                                    <tr key={log._id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="p-3 text-slate-500 whitespace-nowrap text-xs">
+                                            {new Date(log.createdAt).toLocaleString('th-TH')}
+                                        </td>
+                                        <td className="p-3">
+                                            <div className="font-bold text-slate-700">{log.user}</div>
+                                            <div className="text-[10px] text-slate-400 uppercase">{log.role}</div>
+                                        </td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold border border-transparent ${getActionColor(log.action)}`}>
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-slate-600 truncate max-w-xs" title={log.details}>
+                                            {log.details}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- [UI UPGRADE] ChangePasswordModal ---
 const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
     const [oldPassword, setOldPassword] = useState("");
@@ -1979,6 +2068,9 @@ export default function VeterinaryDashboard() {
 
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
+  // [เพิ่ม] State สำหรับเปิด Modal Logs
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+
     // --- 2. AUTHENTICATION LOGIC ---
 
     // ตรวจสอบ Login เมื่อโหลดหน้าเว็บ
@@ -2820,6 +2912,12 @@ const exportToCSV = () => {
                 token={user?.token}
                 onToast={addToast}
             />
+            <ActivityLogModal 
+                isOpen={isLogModalOpen}
+                onClose={() => setIsLogModalOpen(false)}
+                token={user?.token}
+                apiBaseUrl={BASE_URL}
+            />
 
             {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
@@ -2854,6 +2952,17 @@ const exportToCSV = () => {
                                 <Unlock className="w-4 h-4" /> เจ้าหน้าที่ Login
                             </button>
                         )}
+
+                        {/* [เพิ่ม] ปุ่มกดดู Logs (แสดงเฉพาะ SuperAdmin) */}
+                        {isSuperAdmin && (
+                            <button 
+                                onClick={() => setIsLogModalOpen(true)} 
+                                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all" 
+                                title="ดูประวัติการใช้งาน (Logs)"
+                            >
+                                <FileText className="w-5 h-5" />
+                            </button>
+                        )}
 
                         {/* SuperAdmin: Manage Users */}
                         {isSuperAdmin && (
