@@ -427,6 +427,28 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['admin', 'superadmi
   }
 });
 
+app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const updatedOutbreak = await Outbreak.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    if (!updatedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+    // ✅ บันทึก Log
+    await createLog(req, 'UPDATE_OUTBREAK', `แก้ไขจุดแจ้งเหตุ: ${updatedOutbreak.location}`, updatedOutbreak);
+
+    // ส่ง Event ให้ Frontend ทราบว่ามีการแก้ไข
+    io.emit('server_data_update', { type: 'OUTBREAK_UPDATED', data: updatedOutbreak });
+    
+    res.json(updatedOutbreak);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const deletedOutbreak = await Outbreak.findByIdAndDelete(req.params.id);

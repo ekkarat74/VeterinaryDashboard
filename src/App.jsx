@@ -1286,6 +1286,7 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                                       <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
                                     </button>
                                   )}
+                                  
                               </div>
                           </Popup>
                       </Marker>
@@ -1327,8 +1328,10 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
   );
 };
 
-// --- [UPDATED COMPONENT] RABIES OUTBREAK MODAL ---
-const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
+// --- เปลี่ยน Component AddOutbreakModal ทั้งก้อนเป็นอันนี้ ---
+
+const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
+    // State สำหรับ Form
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         location: '',
@@ -1337,15 +1340,45 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
         long: ''
     });
 
+    // [เพิ่ม] useEffect เพื่อโหลดข้อมูลเดิมเมื่อเปิดในโหมดแก้ไข
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setFormData({
+                    date: initialData.date,
+                    location: initialData.location,
+                    district: initialData.district,
+                    lat: initialData.lat,
+                    long: initialData.long
+                });
+            } else {
+                // Reset form ถ้าเป็นการเพิ่มใหม่
+                setFormData({
+                    date: new Date().toISOString().split('T')[0],
+                    location: '',
+                    district: BANGKOK_DISTRICTS[0],
+                    lat: '',
+                    long: ''
+                });
+            }
+        }
+    }, [isOpen, initialData]);
+
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave({
+        const payload = {
             ...formData,
             lat: parseFloat(formData.lat),
             long: parseFloat(formData.long)
-        });
+        };
+
+        if (initialData) {
+            onUpdate(initialData._id, payload); // เรียกฟังก์ชันแก้ไข
+        } else {
+            onSave(payload); // เรียกฟังก์ชันบันทึกใหม่
+        }
         onClose();
     };
 
@@ -1354,12 +1387,14 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-red-500">
                 <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
                     <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Skull className="w-6 h-6" /> บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า
+                        <Skull className="w-6 h-6" /> 
+                        {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
                     </h3>
                     <button onClick={onClose}><X className="w-5 h-5" /></button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {/* ... (ส่วน Input Fields เหมือนเดิม) ... */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
                         <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
@@ -1380,7 +1415,6 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
                         </select>
                     </div>
 
-                    {/* ✅ ส่วนที่แก้ไข: รวม Lat/Long เป็นช่องเดียวเหมือน AddDataModal */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
                             <Navigation className="w-3 h-3 text-red-500" />
@@ -1391,9 +1425,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
                                 type="text"
                                 placeholder="เช่น 13.xxxx, 100.xxxx"
                                 className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono"
-                                // Logic การแสดงผลรวมค่า
                                 value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
-                                // Logic การแยกค่าเมื่อกรอก
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     if (value.includes(',')) {
@@ -1413,7 +1445,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave }) => {
                     <div className="pt-4 border-t border-slate-100 flex gap-3">
                         <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">ยกเลิก</button>
                         <button type="submit" className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all">
-                            <Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ
+                            {initialData ? <><Edit className="w-4 h-4" /> บันทึกแก้ไข</> : <><Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ</>}
                         </button>
                     </div>
                 </form>
@@ -2152,6 +2184,9 @@ export default function VeterinaryDashboard() {
   // [เพิ่ม] State สำหรับเปิด Modal Logs
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
+    // [เพิ่ม] State สำหรับเก็บข้อมูล Outbreak ที่กำลังแก้ไข
+    const [editingOutbreak, setEditingOutbreak] = useState(null);
+
     // --- 2. AUTHENTICATION LOGIC ---
 
     // ตรวจสอบ Login เมื่อโหลดหน้าเว็บ
@@ -2252,6 +2287,13 @@ export default function VeterinaryDashboard() {
                     fetchData(); // กรณีนี้ให้โหลดใหม่ทั้งหมดปลอดภัยสุด
                     break;
 
+                case 'OUTBREAK_UPDATED':
+                    setOutbreakData(prev => prev.map(item => 
+                        item._id === payload.data._id ? payload.data : item
+                    ));
+                    addToast('info', `📝 แก้ไขจุดเสี่ยงระบาด: ${payload.data.location}`);
+                    break;
+
                 default:
                     break;
             }
@@ -2276,6 +2318,41 @@ export default function VeterinaryDashboard() {
         };
         fetchOutbreaks();
     }, [BASE_URL]);
+
+    const handleUpdateOutbreak = async (id, updatedData) => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify(updatedData)
+            });
+
+            if (response.ok) {
+                addToast('success', "✅ แก้ไขข้อมูลจุดเสี่ยงสำเร็จ");
+                setEditingOutbreak(null); // Clear editing state
+            } else {
+                addToast('error', "❌ แก้ไขไม่สำเร็จ");
+            }
+        } catch (error) {
+            console.error("Update Outbreak Error:", error);
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        }
+    };
+
+    // [เพิ่ม] Helper สำหรับเปิด Modal แก้ไข Outbreak
+    const openEditOutbreakModal = (item) => {
+        setEditingOutbreak(item);
+        setIsOutbreakModalOpen(true);
+    };
+
+    // [แก้ไข] Helper สำหรับเปิด Modal เพิ่มใหม่ (ต้อง Clear editing state)
+    const openAddOutbreakModal = () => {
+        setEditingOutbreak(null);
+        setIsOutbreakModalOpen(true);
+    };
 
     // --- 4. API HANDLERS (WITH AUTH HEADER) ---
 
@@ -2853,6 +2930,7 @@ const handleFileUpload = (e) => {
 };
     
     // --- [UPDATED] Export to CSV Function ---
+// --- [UPDATED] Export to CSV Function ---
 const exportToCSV = () => {
     // ใช้ข้อมูลที่กรองอยู่ปัจจุบัน (filteredData)
     if (!filteredData || filteredData.length === 0) {
@@ -2860,23 +2938,20 @@ const exportToCSV = () => {
         return;
     }
 
-    // 1. [แก้ไข] ปรับ Header: ยุบละติจูด/ลองจิจูด เหลือช่องเดียว
+    // 1. [แก้ไข] ปรับ Header ให้ตรงตามความต้องการ
     const headers = [
-        "วันที่", 
-        "สถานที่", 
-        "เขต", 
-        "แขวง", 
-        "หน่วยงาน", 
-        "พิกัด", // <--- รวมเป็นช่องเดียว
-        "รวมวัคซีน", 
-        "รวมทำหมัน", 
-        "รวมขึ้นทะเบียน", 
-        "รวมฝังไมโครชิป", 
-        "รวมรักษา", 
+        "วันที่",
+        "สถานที่",
+        "เขต",
+        "แขวง",
+        "หน่วยงาน",
+        "พิกัด",
         // --- ส่วนรายละเอียด (Details) ---
-        "สุนัข_วัคซีน", "สุนัข_ทำหมัน(ผู้)", "สุนัข_ทำหมัน(เมีย)", "สุนัข_ขึ้นทะเบียน", "สุนัข_ฝังไมโครชิป", "สุนัข_รักษา",
-        "แมว_วัคซีน", "แมว_ทำหมัน(ผู้)", "แมว_ทำหมัน(เมีย)", "แมว_ขึ้นทะเบียน", "แมว_ฝังไมโครชิป", "แมว_รักษา",
-        "อื่นๆ_วัคซีน", "อื่นๆ_รักษา"
+        "สุนัข_วัคซีน", "แมว_วัคซีน", "อื่นๆ_วัคซีน", "รวมวัคซีน",
+        "สุนัข_ทำหมัน(ผู้)", "สุนัข_ทำหมัน(เมีย)", "แมว_ทำหมัน(ผู้)", "แมว_ทำหมัน(เมีย)", "รวมทำหมัน",
+        "สุนัข_ขึ้นทะเบียน", "แมว_ขึ้นทะเบียน", "รวมขึ้นทะเบียน",
+        "สุนัข_ฝังไมโครชิป", "แมว_ฝังไมโครชิป", "รวมฝังไมโครชิป",
+        "สุนัข_รักษา", "แมว_รักษา", "อื่นๆ_รักษา", "รวมรักษา"
     ];
 
     // 2. เรียงข้อมูลตามวันที่ (ใหม่ -> เก่า)
@@ -2884,12 +2959,12 @@ const exportToCSV = () => {
         return new Date(b.date) - new Date(a.date);
     });
 
-    // 3. แปลงข้อมูลเป็น Rows
+    // 3. แปลงข้อมูลเป็น Rows ให้ตรงกับ Header ด้านบน
     const csvRows = sortedData.map(item => {
         // จัดการกรณีที่มีเครื่องหมายคอมมา (,) ในข้อความ ให้ใส่เครื่องหมายคำพูดครอบ
         const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
         
-        // [แก้ไข] รวมพิกัด และใส่เครื่องหมายคำพูดครอบไว้เพื่อไม่ให้เครื่องหมายคอมมา (,) ไปตัดคำใน CSV
+        // รวมพิกัด และใส่เครื่องหมายคำพูดครอบ
         const combinedCoords = `"${item.lat}, ${item.long}"`; 
 
         // Helper เพื่อป้องกัน error กรณี details เป็น undefined
@@ -2899,35 +2974,42 @@ const exportToCSV = () => {
         const other = d.other || {};
 
         return [
+            // --- ข้อมูลทั่วไป ---
             item.date,
             safeLocation,
             item.district,
             item.subdistrict || "",
             item.unit,
-            combinedCoords, // <--- ใช้ค่าที่รวมแล้วแทนที่แยกช่อง
-            // Stats (ขยับ Index การอ่านตอน Import)
-            item.stats.vaccine || 0,
-            item.stats.sterilize || 0,
-            item.stats.register || 0,
-            item.stats.microchip || 0,
-            item.stats.medical || 0,
-            // Details: Dog
+            combinedCoords,
+
+            // --- 1. วัคซีน (Vaccine) ---
             dog.vaccine || 0,
+            cat.vaccine || 0,
+            other.vaccine || 0,
+            item.stats.vaccine || 0, // รวมวัคซีน
+
+            // --- 2. ทำหมัน (Sterilize) ---
             dog.maleSterilize || 0,
             dog.femaleSterilize || 0,
-            dog.register || 0,
-            dog.microchip || 0,
-            dog.medical || 0,
-            // Details: Cat
-            cat.vaccine || 0,
             cat.maleSterilize || 0,
             cat.femaleSterilize || 0,
+            item.stats.sterilize || 0, // รวมทำหมัน
+
+            // --- 3. ขึ้นทะเบียน (Register) ---
+            dog.register || 0,
             cat.register || 0,
+            item.stats.register || 0, // รวมขึ้นทะเบียน
+
+            // --- 4. ฝังไมโครชิป (Microchip) ---
+            dog.microchip || 0,
             cat.microchip || 0,
+            item.stats.microchip || 0, // รวมไมโครชิป
+
+            // --- 5. รักษา (Medical) ---
+            dog.medical || 0,
             cat.medical || 0,
-            // Details: Other
-            other.vaccine || 0,
-            other.medical || 0
+            other.medical || 0,
+            item.stats.medical || 0  // รวมรักษา
         ].join(",");
     });
 
@@ -3040,6 +3122,14 @@ const exportToCSV = () => {
                 token={user?.token}
                 apiBaseUrl={BASE_URL}
             />
+            <AddOutbreakModal 
+                isOpen={isOutbreakModalOpen} 
+                onClose={() => setIsOutbreakModalOpen(false)} 
+                onSave={handleAddOutbreak}
+                onUpdate={handleUpdateOutbreak} // ส่ง function update ไป
+                initialData={editingOutbreak}   // ส่งข้อมูลเดิมไป (ถ้ามี)
+                onToast={addToast}
+            />
 
             {/* Header */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
@@ -3102,7 +3192,7 @@ const exportToCSV = () => {
                                 <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="CSV Import/Export">
                                     <Download className="w-5 h-5" />
                                 </button>
-                                <button onClick={() => setIsOutbreakModalOpen(true)} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg animate-pulse">
+                                <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg animate-pulse">
                                     <AlertTriangle className="w-4 h-4" />
                                     <span className="hidden sm:inline">แจ้งโรค</span>
                                 </button>
@@ -3454,6 +3544,25 @@ const exportToCSV = () => {
                                             </span>
                                         </div>
                                     </div>
+                                    {/* [เพิ่ม] ส่วนปุ่ม Action สำหรับ Admin/SuperAdmin */}
+                                {canEdit && (
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); openEditOutbreakModal(item); }}
+                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="แก้ไข"
+                                        >
+                                            <Edit className="w-3 h-3" />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteOutbreak(item._id); }}
+                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="ลบ"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                )}
                                 </div>
                             ))
                         )}
