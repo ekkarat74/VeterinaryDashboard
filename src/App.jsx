@@ -3539,45 +3539,66 @@ const exportToCSV = () => {
                         </h4>
                     </div>
                     <div className="overflow-y-auto custom-scrollbar p-2 h-48 lg:h-auto">
-                        {filteredOutbreaks.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-slate-400 text-xs">ไม่มีข้อมูล</div>
-                        ) : (
-                            filteredOutbreaks.slice(0, 5).map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-3 p-3 hover:bg-red-50/50 rounded-xl transition-colors border-b border-slate-50 last:border-0 group cursor-default">
-                                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0 border border-red-200 text-red-600 font-bold text-xs group-hover:scale-110 transition-transform">
-                                        {idx + 1}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-slate-800 truncate">{item.location}</p>
-                                        <div className="flex justify-between items-center mt-0.5">
-                                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{item.district}</span>
-                                            <span className="text-[9px] text-slate-400">
-                                                {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: '2-digit'})}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {/* [เพิ่ม] ส่วนปุ่ม Action สำหรับ Admin/SuperAdmin */}
-                                {canEdit && (
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); openEditOutbreakModal(item); }}
-                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="แก้ไข"
-                                        >
-                                            <Edit className="w-3 h-3" />
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteOutbreak(item._id); }}
-                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="ลบ"
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                )}
-                                </div>
-                            ))
-                        )}
+                        {/* ... ในส่วน loop รายการแจ้งเหตุ (Recent Reports List) ... */}
+
+{filteredOutbreaks.slice(0, 5).map((item, idx) => {
+    // [เพิ่ม] เช็คว่ารายการนี้ถูกซ่อนอยู่หรือไม่
+    const isHidden = hiddenOutbreakIds.includes(item._id);
+
+    return (
+        <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl transition-all border-b border-slate-50 last:border-0 group cursor-default
+            ${isHidden ? 'bg-slate-100 opacity-60 grayscale' : 'hover:bg-red-50/50'}`} // [เพิ่ม] ปรับ Style เมื่อถูกซ่อน
+        >
+            {/* [เพิ่ม] ปุ่มดวงตาสำหรับ เปิด-ปิด จุดนี้ */}
+            <button 
+                onClick={(e) => { e.stopPropagation(); toggleOutbreakVisibility(item._id); }}
+                className={`p-1.5 rounded-lg transition-colors shrink-0 ${isHidden ? 'text-slate-400 hover:text-slate-600' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                title={isHidden ? "แสดงบนแผนที่" : "ซ่อนจากแผนที่"}
+            >
+                {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+
+            {/* เลขลำดับ (เหมือนเดิม) */}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border font-bold text-xs group-hover:scale-110 transition-transform
+                ${isHidden ? 'bg-slate-200 border-slate-300 text-slate-500' : 'bg-red-100 border-red-200 text-red-600'}`}>
+                {idx + 1}
+            </div>
+
+            {/* ข้อมูล Text (เหมือนเดิม) */}
+            <div className="flex-1 min-w-0">
+                <p className={`text-xs font-bold truncate ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
+                    {item.location} {isHidden && "(ซ่อน)"}
+                </p>
+                <div className="flex justify-between items-center mt-0.5">
+                    <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{item.district}</span>
+                    <span className="text-[9px] text-slate-400">
+                        {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: '2-digit'})}
+                    </span>
+                </div>
+            </div>
+
+            {/* ปุ่มจัดการ (Edit/Delete) - เหมือนเดิม แต่เพิ่มการ check hidden */}
+            {canEdit && !isHidden && (
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); openEditOutbreakModal(item); }}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="แก้ไข"
+                    >
+                        <Edit className="w-3 h-3" />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteOutbreak(item._id); }}
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="ลบ"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+})}
                     </div>
                 </div>
             </div>
