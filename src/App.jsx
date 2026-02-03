@@ -12,8 +12,9 @@ import { 
     Activity, Syringe, Scissors, FileText, MapPin, 
     Filter, Calendar, Database, Download, Users, 
     Map as MapIcon, ChevronDown, CheckCircle, Plus, X, Save,
-    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, Edit, Trash2, Zap, Eye, Lock, Unlock, 
-    Image as ImageIcon, Skull, AlertTriangle, Siren, Stethoscope, Key, ChevronRight, RotateCw, Info, Check, AlertCircle,
+    Calculator, Navigation, LocateFixed, Upload, Search, Pencil, 
+    Edit, Trash2, Zap, Eye, Lock, Unlock, Image as ImageIcon, Skull, AlertTriangle, 
+    Siren, Stethoscope, Key, ChevronRight, RotateCw, Info, Check, AlertCircle, EyeOff
 } from 'lucide-react';
 import L from 'leaflet';
 import { io } from "socket.io-client";
@@ -2187,6 +2188,9 @@ export default function VeterinaryDashboard() {
     // [เพิ่ม] State สำหรับเก็บข้อมูล Outbreak ที่กำลังแก้ไข
     const [editingOutbreak, setEditingOutbreak] = useState(null);
 
+    // [เพิ่ม] State เก็บรายการ ID ของจุดระบาดที่ถูกสั่งปิด (ซ่อน)
+    const [hiddenOutbreakIds, setHiddenOutbreakIds] = useState([]);
+
     // --- 2. AUTHENTICATION LOGIC ---
 
     // ตรวจสอบ Login เมื่อโหลดหน้าเว็บ
@@ -2318,6 +2322,14 @@ export default function VeterinaryDashboard() {
         };
         fetchOutbreaks();
     }, [BASE_URL]);
+
+    const toggleOutbreakVisibility = (id) => {
+        setHiddenOutbreakIds(prev => 
+            prev.includes(id) 
+                ? prev.filter(i => i !== id) // ถ้ามีอยู่แล้วให้เอาออก (แสดงกลับมา)
+                : [...prev, id]              // ถ้ายังไม่มีให้ใส่เข้าไป (ซ่อน)
+        );
+    };
 
     const handleUpdateOutbreak = async (id, updatedData) => {
         try {
@@ -3409,15 +3421,15 @@ const exportToCSV = () => {
 
                     </div>
 
-                    {/* Map */}
-                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                        {/* [EDIT] ส่ง filteredOutbreaks ไปแทน outbreakData */}
-                        <LeafletMap 
-                            data={mapDisplayData} 
-                            outbreaks={filteredOutbreaks} 
-                            onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} 
-                        />
-                    </div>
+                    {/* Map Section */}
+<div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+    <LeafletMap 
+        data={mapDisplayData} 
+        // [แก้ไข] กรองข้อมูล: ส่งเฉพาะจุดที่ ID ไม่อยู่ในรายการ hiddenOutbreakIds
+        outbreaks={filteredOutbreaks.filter(item => !hiddenOutbreakIds.includes(item._id))} 
+        onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} 
+    />
+</div>
                 </div>
 
 {/* --- [NEW UI] RABIES OUTBREAK DASHBOARD SECTION --- */}
