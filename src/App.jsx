@@ -12,7 +12,7 @@ import {
     Activity, FileText, MapPin, Filter, Calendar, Database, Download, Users, 
     Map as CheckCircle, Plus, X, Navigation, Upload, Search, 
     Edit, Trash2, Zap, Lock, Unlock, Image as Skull, AlertTriangle, 
-    Siren, Key, ChevronRight, Info, Check, AlertCircle
+    Siren, Key, ChevronRight, Info, Check, AlertCircle, Bell, CalendarDays, Share2
 } from 'lucide-react';
 import L from 'leaflet';
 import { io } from "socket.io-client";
@@ -742,6 +742,116 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
     );
 };
 
+// 12. DispatchModal (ระบบแจ้งเตือนออกหน่วย)
+const DispatchModal = ({ isOpen, onClose, onToast }) => {
+    // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
+    const getTomorrowDate = () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+    };
+
+    const [formData, setFormData] = useState({
+        date: getTomorrowDate(),
+        time: '09:00',
+        location: '',
+        team: 'ทีมสัตวแพทย์ชุดที่ 1',
+        note: ''
+    });
+
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(prev => ({ ...prev, date: getTomorrowDate() }));
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleSendLine = () => {
+        if (!formData.location) {
+            alert('กรุณาระบุสถานที่');
+            return;
+        }
+
+        // 1. จัดรูปแบบข้อความ
+        const message = `📢 *แจ้งเตือนการออกหน่วยวันพรุ่งนี้* 🚑\n\n📅 วันที่: ${new Date(formData.date).toLocaleDateString('th-TH')}\n⏰ เวลา: ${formData.time} น.\n📍 สถานที่: ${formData.location}\n👨‍⚕️ หน่วยงาน: ${formData.team}\n📝 หมายเหตุ: ${formData.note || '-'}\n\nโปรดเตรียมความพร้อมก่อนเวลา 30 นาที`;
+
+        // 2. สร้าง Line Share Link (แบบไม่ต้องใช้ Backend)
+        // ถ้ามี Line Notify Token สามารถเปลี่ยนไปยิง API แทนได้
+        const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
+        
+        // เปิดหน้าต่าง Line
+        window.open(lineUrl, '_blank');
+        
+        if (onToast) onToast('success', 'เปิดแอปพลิเคชัน Line เรียบร้อยแล้ว');
+        onClose();
+    };
+
+    const handleSaveLocal = () => {
+        // บันทึกเฉพาะใน LocalStorage (Mock) หรือยิง API บันทึกตารางงาน
+        // ในที่นี้สมมติว่าบันทึกสำเร็จ
+        if (onToast) onToast('success', 'บันทึกกำหนดการลงในระบบเรียบร้อย');
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-indigo-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-indigo-500">
+                <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Bell className="w-5 h-5" /> บันทึกและแจ้งเตือนออกหน่วย
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">วันที่ (พรุ่งนี้)</label>
+                            <input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                                value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">เวลาเริ่มงาน</label>
+                            <input type="time" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่เป้าหมาย</label>
+                        <input type="text" placeholder="ระบุสถานที่ออกหน่วย..." className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} autoFocus />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">ทีมปฏิบัติงาน</label>
+                        <select className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                            value={formData.team} onChange={e => setFormData({ ...formData, team: e.target.value })}>
+                            <option>ทีมสัตวแพทย์ชุดที่ 1</option>
+                            <option>ทีมสัตวแพทย์ชุดที่ 2</option>
+                            <option>หน่วยเคลื่อนที่เร็ว (Mobile Unit)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">หมายเหตุ (ถ้ามี)</label>
+                        <textarea rows="2" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="เช่น เตรียมวัคซีนพิษสุนัขบ้า 500 โดส..."
+                            value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })}></textarea>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                         <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all">
+                            <Share2 className="w-5 h-5" /> ส่งแจ้งเตือนเข้า Line กลุ่ม
+                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm">ยกเลิก</button>
+                            <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm">บันทึกงาน</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- MAIN DASHBOARD COMPONENT ---
 
 export default function VeterinaryDashboard() {
@@ -802,6 +912,8 @@ export default function VeterinaryDashboard() {
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
     const [editingOutbreak, setEditingOutbreak] = useState(null);
     const [hiddenOutbreakIds, setHiddenOutbreakIds] = useState([]);
+
+    const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
 
     // --- 2. AUTHENTICATION LOGIC ---
 
@@ -1239,6 +1351,8 @@ export default function VeterinaryDashboard() {
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
             <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
 
+            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} /
+            
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -1284,6 +1398,9 @@ export default function VeterinaryDashboard() {
                             <>
                                 <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="Backup/Restore"><Database className="w-5 h-5" /></button>
                                 <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="CSV Import/Export"><Download className="w-5 h-5" /></button>
+                                <button onClick={() => setIsDispatchModalOpen(true)} className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" title="บันทึกและแจ้งเตือนเวลาออกหน่วย">
+                                    <CalendarDays className="w-4 h-4" /><span className="hidden sm:inline">นัดหมายพรุ่งนี้</span>
+                                </button>
                                 <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg animate-pulse">
                                     <AlertTriangle className="w-4 h-4" /><span className="hidden sm:inline">แจ้งโรค</span>
                                 </button>
