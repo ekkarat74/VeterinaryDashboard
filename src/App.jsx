@@ -12,7 +12,8 @@ import {
     Activity, FileText, MapPin, Filter, Calendar, Database, Download, Users, 
     Map as CheckCircle, Plus, X, Navigation, Upload, Search, 
     Edit, Trash2, Zap, Lock, Unlock, Image as Skull, AlertTriangle, 
-    Siren, Key, ChevronRight, Info, Check, AlertCircle, Bell, CalendarDays, Share2
+    Siren, Key, ChevronRight, Info, Check, AlertCircle, Bell, CalendarDays, Share2,
+    ChevronLeft, Clock, List, Grid
 } from 'lucide-react';
 import L from 'leaflet';
 import { io } from "socket.io-client";
