@@ -788,8 +788,11 @@ const DispatchModal = ({ isOpen, onClose, onToast }) => {
     };
 
     const handleSaveLocal = () => {
-        // บันทึกเฉพาะใน LocalStorage (Mock) หรือยิง API บันทึกตารางงาน
-        // ในที่นี้สมมติว่าบันทึกสำเร็จ
+        // เพิ่มส่วนนี้: ส่งข้อมูลกลับไปที่ Main Component เพื่อบันทึกลง State
+        if (onSave) {
+            onSave(formData);
+        }
+        
         if (onToast) onToast('success', 'บันทึกกำหนดการลงในระบบเรียบร้อย');
         onClose();
     };
@@ -844,6 +847,157 @@ const DispatchModal = ({ isOpen, onClose, onToast }) => {
                         <div className="flex gap-2">
                             <button onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm">ยกเลิก</button>
                             <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm">บันทึกงาน</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- NEW COMPONENT: Dispatch Calendar & Dashboard ---
+const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
+    if (!isOpen) return null;
+
+    // Helper: หาจำนวนวันในเดือน
+    const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    // Helper: หาวันแรกของเดือนเริ่มที่วันอะไร (0=Sunday)
+    const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+
+    const changeMonth = (offset) => {
+        const newDate = new Date(currentDate.setMonth(currentDate.getMonth() + offset));
+        setCurrentDate(new Date(newDate));
+    };
+
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+    const daysArray = [...Array(daysInMonth + firstDay).keys()];
+
+    // Filter events for selected date
+    const selectedDateEvents = events.filter(e => 
+        e.date === selectedDate.toISOString().split('T')[0]
+    );
+
+    // Stats
+    const totalEvents = events.length;
+    const upcomingEvents = events.filter(e => new Date(e.date) >= new Date().setHours(0,0,0,0)).length;
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[2900] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <CalendarDays className="w-6 h-6" /> ตารางแผนงานออกหน่วย (Dispatch Dashboard)
+                    </h3>
+                    <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full transition"><X className="w-6 h-6" /></button>
+                </div>
+
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Left Panel: Dashboard & Actions */}
+                    <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto">
+                        
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <div className="text-slate-500 text-xs font-bold mb-1">งานทั้งหมด</div>
+                                <div className="text-2xl font-extrabold text-indigo-600">{totalEvents}</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <div className="text-slate-500 text-xs font-bold mb-1">รอปฏิบัติงาน</div>
+                                <div className="text-2xl font-extrabold text-orange-500">{upcomingEvents}</div>
+                            </div>
+                        </div>
+
+                        {/* Main Action Button */}
+                        <button 
+                            onClick={onOpenForm}
+                            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1"
+                        >
+                            <Plus className="w-6 h-6" />
+                            <span>เข้าบันทึกและแจ้งเตือนออกหน่วย</span>
+                        </button>
+
+                        <div className="border-t border-slate-200 pt-4 flex-1">
+                            <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                <List className="w-4 h-4" /> รายการวันที่ {selectedDate.toLocaleDateString('th-TH')}
+                            </h4>
+                            <div className="space-y-3">
+                                {selectedDateEvents.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 bg-white rounded-xl border border-dashed border-slate-300">
+                                        ไม่มีนัดหมายในวันนี้
+                                    </div>
+                                ) : (
+                                    selectedDateEvents.map((evt, idx) => (
+                                        <div key={idx} className="bg-white p-3 rounded-lg border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-all">
+                                            <div className="flex justify-between items-start">
+                                                <div className="font-bold text-slate-800 text-sm">{evt.location}</div>
+                                                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold">{evt.time}</span>
+                                            </div>
+                                            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                                <Users className="w-3 h-3" /> {evt.team}
+                                            </div>
+                                            {evt.note && <div className="text-[10px] text-slate-400 mt-2 bg-slate-50 p-1 rounded">Note: {evt.note}</div>}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Panel: Calendar */}
+                    <div className="w-2/3 p-6 bg-white flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-slate-800">
+                                {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
+                            </h2>
+                            <div className="flex gap-2">
+                                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-100 rounded-full border border-slate-200"><ChevronLeft className="w-5 h-5" /></button>
+                                <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100">วันนี้</button>
+                                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-100 rounded-full border border-slate-200"><ChevronRight className="w-5 h-5" /></button>
+                            </div>
+                        </div>
+
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-t-lg overflow-hidden">
+                            {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(d => (
+                                <div key={d} className="bg-slate-50 p-3 text-center text-sm font-bold text-slate-500">{d}</div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-7 grid-rows-6 gap-px bg-slate-200 border-x border-b border-slate-200 rounded-b-lg flex-1">
+                            {daysArray.map((day, i) => {
+                                if (i < firstDay) return <div key={i} className="bg-white/50" />;
+                                
+                                const dayNum = i - firstDay + 1;
+                                const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum).toISOString().split('T')[0];
+                                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                                const isSelected = dateStr === selectedDate.toISOString().split('T')[0];
+                                const dayEvents = events.filter(e => e.date === dateStr);
+
+                                return (
+                                    <div 
+                                        key={i} 
+                                        onClick={() => setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum))}
+                                        className={`bg-white p-2 min-h-[80px] cursor-pointer hover:bg-slate-50 transition-colors relative flex flex-col items-start gap-1
+                                            ${isSelected ? 'ring-2 ring-inset ring-indigo-500 z-10' : ''}
+                                        `}
+                                    >
+                                        <span className={`
+                                            w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
+                                            ${isToday ? 'bg-red-500 text-white' : 'text-slate-700'}
+                                        `}>{dayNum}</span>
+                                        
+                                        {dayEvents.map((evt, idx) => (
+                                            <div key={idx} className="w-full text-[9px] truncate px-1 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium">
+                                                {evt.time} {evt.location}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -914,6 +1068,19 @@ export default function VeterinaryDashboard() {
     const [hiddenOutbreakIds, setHiddenOutbreakIds] = useState([]);
 
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [dispatchEvents, setDispatchEvents] = useState([
+        // Mockup Data ตัวอย่าง (สามารถลบออกได้ถ้าต้องการเริ่มต้นว่างเปล่า)
+        { date: new Date().toISOString().split('T')[0], time: '09:00', location: 'วัดดอนเมือง', team: 'ทีม 1', note: 'ฉีดวัคซีน' },
+        { date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '13:00', location: 'ชุมชนร่มไทร', team: 'ทีม 2', note: 'ทำหมัน' }
+    ]);
+
+    const handleSaveDispatchEvent = (newEvent) => {
+        setDispatchEvents(prev => [...prev, newEvent]);
+        // ถ้าต้องการเปิดหน้าปฏิทินทันทีหลังจากบันทึก ให้ uncomment บรรทัดล่าง
+        // setIsCalendarOpen(true); 
+    };
 
     // --- 2. AUTHENTICATION LOGIC ---
 
@@ -1351,7 +1518,22 @@ export default function VeterinaryDashboard() {
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
             <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
 
-            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} />
+            <DispatchModal 
+                isOpen={isDispatchModalOpen} 
+                onClose={() => setIsDispatchModalOpen(false)} 
+                onToast={addToast}
+                onSave={handleSaveDispatchEvent} // เพิ่ม prop นี้
+            />
+            <DispatchCalendarDashboard 
+                isOpen={isCalendarOpen} 
+                onClose={() => setIsCalendarOpen(false)}
+                events={dispatchEvents}
+                onOpenForm={() => {
+                   // ปิดหน้า Calendar ชั่วคราวเพื่อให้ Modal บันทึกแสดง (หรือจะซ้อนกันก็ได้ถ้าจัดการ z-index ดีๆ)
+                   // แต่ในที่นี้เราจะเปิด Modal บันทึกทับเลย
+                   setIsDispatchModalOpen(true);
+                }}
+            />
             
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
