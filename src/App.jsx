@@ -1580,8 +1580,13 @@ export default function VeterinaryDashboard() {
                             <>
                                 <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="Backup/Restore"><Database className="w-5 h-5" /></button>
                                 <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="CSV Import/Export"><Download className="w-5 h-5" /></button>
-                                <button onClick={() => setIsDispatchModalOpen(true)} className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" title="บันทึกและแจ้งเตือนเวลาออกหน่วย">
-                                    <CalendarDays className="w-4 h-4" /><span className="hidden sm:inline">นัดหมายพรุ่งนี้</span>
+                                <button 
+                                    onClick={() => setIsCalendarOpen(true)} 
+                                    className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" 
+                                    title="ดูตารางงานและจัดการนัดหมาย"
+                                >
+                                    <CalendarDays className="w-4 h-4" />
+                                    <span className="hidden sm:inline">ปฏิทิน & ออกหน่วย</span>
                                 </button>
                                 <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg animate-pulse">
                                     <AlertTriangle className="w-4 h-4" /><span className="hidden sm:inline">แจ้งโรค</span>
