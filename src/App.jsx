@@ -1442,6 +1442,7 @@ export default function VeterinaryDashboard() {
                         </div>
                     </div>
 
+                    
                     <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
                         <LeafletMap 
                             data={mapDisplayData} 
