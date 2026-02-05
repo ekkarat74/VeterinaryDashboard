@@ -743,7 +743,35 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
     );
 };
 
-// 12. DispatchModal (แก้ไข: ตัดตัวเลือกหน่วยบูรณาการออก)
+// --- ส่วนที่เพิ่มใหม่: ย้าย StaffInputGroup ออกมาข้างนอก ---
+const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, color = "bg-slate-50" }) => (
+    <div className={`p-3 rounded-lg border border-slate-200 ${color} space-y-2`}>
+        <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-slate-700">{label}</label>
+            <button type="button" onClick={() => onAdd(roleKey)} className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded hover:bg-blue-200 transition">
+                + เพิ่มคน
+            </button>
+        </div>
+        {staffList.map((person, idx) => (
+            <div key={idx} className="flex gap-2">
+                <input 
+                    type="text" 
+                    placeholder={`ชื่อ-สกุล คนที่ ${idx + 1}`}
+                    className="flex-1 p-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
+                    value={person}
+                    onChange={(e) => onChange(roleKey, idx, e.target.value)}
+                />
+                {staffList.length > 1 && (
+                    <button type="button" onClick={() => onRemove(roleKey, idx)} className="text-slate-400 hover:text-red-500">
+                        <X className="w-3 h-3" />
+                    </button>
+                )}
+            </div>
+        ))}
+    </div>
+);
+
+// 12. DispatchModal (แก้ไข: เรียกใช้ Component ภายนอก)
 const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => { 
     // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
     const getTomorrowDate = () => {
@@ -752,16 +780,13 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         return tomorrow.toISOString().split('T')[0];
     };
 
-    // --- แก้ไข 1: กำหนดตัวเลือกหน่วย (เหลือแค่ 2 อย่าง) ---
     const UNIT_OPTIONS = [
         { value: 'sterilization', label: 'หน่วยทำหมัน (Sterilization)' },
         { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป' }
     ];
 
-    // State สำหรับเลือกประเภทหน่วย (Default เป็นทำหมัน)
     const [unitType, setUnitType] = useState('sterilization'); 
 
-    // State ข้อมูลทั่วไป
     const [generalInfo, setGeneralInfo] = useState({
         date: getTomorrowDate(),
         locationName: '',
@@ -771,7 +796,6 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         note: ''
     });
 
-    // State สำหรับรายชื่อผู้ปฏิบัติงาน
     const [staff, setStaff] = useState({
         vets: ['', ''],
         registration: [''],
@@ -790,7 +814,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         }
     }, [isOpen]);
 
-    // Helper Functions (คงเดิม)
+    // Helper Functions
     const handleStaffChange = (role, index, value) => {
         const newRoleList = [...staff[role]];
         newRoleList[index] = value;
@@ -807,33 +831,6 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         setStaff({ ...staff, [role]: newRoleList });
     };
 
-    const StaffInputGroup = ({ roleKey, label, color = "bg-slate-50" }) => (
-        <div className={`p-3 rounded-lg border border-slate-200 ${color} space-y-2`}>
-            <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-slate-700">{label}</label>
-                <button type="button" onClick={() => addStaffField(roleKey)} className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded hover:bg-blue-200 transition">
-                    + เพิ่มคน
-                </button>
-            </div>
-            {staff[roleKey].map((person, idx) => (
-                <div key={idx} className="flex gap-2">
-                    <input 
-                        type="text" 
-                        placeholder={`ชื่อ-สกุล คนที่ ${idx + 1}`}
-                        className="flex-1 p-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
-                        value={person}
-                        onChange={(e) => handleStaffChange(roleKey, idx, e.target.value)}
-                    />
-                    {staff[roleKey].length > 1 && (
-                        <button type="button" onClick={() => removeStaffField(roleKey, idx)} className="text-slate-400 hover:text-red-500">
-                            <X className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-
     if (!isOpen) return null;
 
     const handleSendLine = () => {
@@ -844,11 +841,9 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
 
         const formatStaffList = (list) => list.filter(s => s.trim()).join(', ') || '-';
         
-        // --- แก้ไข 2: ปรับ Logic เหลือแค่ 2 กรณี ---
         const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
         let staffDetails = "";
 
-        // Common fields
         const commonStaff = `👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
 
         if (unitType === 'sterilization') {
@@ -891,7 +886,7 @@ ${staffDetails}
             ...generalInfo,
             unitType,
             staff: staff, 
-            title: currentUnitLabel, // ใช้ชื่อจาก Option
+            title: currentUnitLabel,
             location: generalInfo.locationName,
             time: generalInfo.departureTime,
             team: staff.vets.filter(v => v).join(', ')
@@ -900,6 +895,13 @@ ${staffDetails}
         if (onSave) onSave(payload);
         if (onToast) onToast('success', 'บันทึกแผนงานเรียบร้อย');
         onClose();
+    };
+
+    // Props ที่ต้องส่งให้ StaffInputGroup (เพื่อลดการเขียนซ้ำ)
+    const commonProps = {
+        onAdd: addStaffField,
+        onRemove: removeStaffField,
+        onChange: handleStaffChange
     };
 
     return (
@@ -986,25 +988,25 @@ ${staffDetails}
                             
                             {/* ส่วนที่แสดงตลอด */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <StaffInputGroup roleKey="vets" label="👨‍⚕️ ทีมสัตวแพทย์" color="bg-indigo-50 border-indigo-200" />
-                                <StaffInputGroup roleKey="drivers" label="🚐 พนักงานขับรถ" />
+                                <StaffInputGroup roleKey="vets" label="👨‍⚕️ ทีมสัตวแพทย์" staffList={staff.vets} color="bg-indigo-50 border-indigo-200" {...commonProps} />
+                                <StaffInputGroup roleKey="drivers" label="🚐 พนักงานขับรถ" staffList={staff.drivers} {...commonProps} />
                             </div>
 
-                            {/* --- แก้ไข 3: แสดงตามประเภทที่เลือก --- */}
+                            {/* แสดงตามประเภทที่เลือก */}
                             {unitType === 'sterilization' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in">
-                                    <StaffInputGroup roleKey="registration" label="📝 ลงทะเบียน" />
-                                    <StaffInputGroup roleKey="prep_catch" label="🐕 เตรียมสัตว์ (จับ/วางยา)" />
-                                    <StaffInputGroup roleKey="prep_shave" label="✂️ เตรียมสัตว์ (โกนขน)" />
-                                    <StaffInputGroup roleKey="prep_lift" label="💪 เตรียมสัตว์ (ยกสัตว์)" />
-                                    <StaffInputGroup roleKey="vaccine_staff" label="💉 ฉีดวัคซีน" />
-                                    <StaffInputGroup roleKey="surgery_assist" label="🔪 ผู้ช่วยผ่าตัด" />
+                                    <StaffInputGroup roleKey="registration" label="📝 ลงทะเบียน" staffList={staff.registration} {...commonProps} />
+                                    <StaffInputGroup roleKey="prep_catch" label="🐕 เตรียมสัตว์ (จับ/วางยา)" staffList={staff.prep_catch} {...commonProps} />
+                                    <StaffInputGroup roleKey="prep_shave" label="✂️ เตรียมสัตว์ (โกนขน)" staffList={staff.prep_shave} {...commonProps} />
+                                    <StaffInputGroup roleKey="prep_lift" label="💪 เตรียมสัตว์ (ยกสัตว์)" staffList={staff.prep_lift} {...commonProps} />
+                                    <StaffInputGroup roleKey="vaccine_staff" label="💉 ฉีดวัคซีน" staffList={staff.vaccine_staff} {...commonProps} />
+                                    <StaffInputGroup roleKey="surgery_assist" label="🔪 ผู้ช่วยผ่าตัด" staffList={staff.surgery_assist} {...commonProps} />
                                 </div>
                             )}
 
                             {unitType === 'microchip' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in">
-                                    <StaffInputGroup roleKey="assistants" label="🙋 ผู้ช่วยงานทั่วไป" />
+                                    <StaffInputGroup roleKey="assistants" label="🙋 ผู้ช่วยงานทั่วไป" staffList={staff.assistants} {...commonProps} />
                                 </div>
                             )}
                         </div>
