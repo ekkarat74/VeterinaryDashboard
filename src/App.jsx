@@ -744,7 +744,7 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
 };
 
 // 12. DispatchModal (ระบบแจ้งเตือนออกหน่วย)
-const DispatchModal = ({ isOpen, onClose, onToast }) => {
+const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => { 
     // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
     const getTomorrowDate = () => {
         const tomorrow = new Date();
@@ -777,8 +777,7 @@ const DispatchModal = ({ isOpen, onClose, onToast }) => {
         // 1. จัดรูปแบบข้อความ
         const message = `📢 *แจ้งเตือนการออกหน่วยวันพรุ่งนี้* 🚑\n\n📅 วันที่: ${new Date(formData.date).toLocaleDateString('th-TH')}\n⏰ เวลา: ${formData.time} น.\n📍 สถานที่: ${formData.location}\n👨‍⚕️ หน่วยงาน: ${formData.team}\n📝 หมายเหตุ: ${formData.note || '-'}\n\nโปรดเตรียมความพร้อมก่อนเวลา 30 นาที`;
 
-        // 2. สร้าง Line Share Link (แบบไม่ต้องใช้ Backend)
-        // ถ้ามี Line Notify Token สามารถเปลี่ยนไปยิง API แทนได้
+        // 2. สร้าง Line Share Link
         const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
         
         // เปิดหน้าต่าง Line
@@ -791,7 +790,7 @@ const DispatchModal = ({ isOpen, onClose, onToast }) => {
     const handleSaveLocal = () => {
         // เพิ่มส่วนนี้: ส่งข้อมูลกลับไปที่ Main Component เพื่อบันทึกลง State
         if (onSave) {
-            onSave(formData);
+            onSave(formData); // ตอนนี้จะทำงานได้แล้วเพราะรับ prop onSave มาแล้ว
         }
         
         if (onToast) onToast('success', 'บันทึกกำหนดการลงในระบบเรียบร้อย');
