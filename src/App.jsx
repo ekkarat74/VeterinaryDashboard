@@ -13,7 +13,7 @@ import {
     Map as CheckCircle, Plus, X, Navigation, Upload, Search, 
     Edit, Trash2, Zap, Lock, Unlock, Image as Skull, AlertTriangle, 
     Siren, Key, ChevronRight, Info, Check, AlertCircle, Bell, CalendarDays, Share2,
-    ChevronLeft, Clock, List, Grid, Link, History
+    ChevronLeft, Clock, List, Grid
 } from 'lucide-react';
 import L from 'leaflet';
 import { io } from "socket.io-client";
@@ -744,7 +744,6 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
 };
 
 // 12. DispatchModal (ระบบแจ้งเตือนออกหน่วย)
-// 12. DispatchModal (ระบบแจ้งเตือนออกหน่วย - ปรับปรุงใหม่)
 const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => { 
     // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
     const getTomorrowDate = () => {
@@ -753,273 +752,102 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         return tomorrow.toISOString().split('T')[0];
     };
 
-    // State สำหรับเลือกประเภทหน่วย
-    const [unitType, setUnitType] = useState('sterilization'); // 'sterilization' | 'microchip'
-
-    // State ข้อมูลทั่วไป
-    const [generalInfo, setGeneralInfo] = useState({
+    const [formData, setFormData] = useState({
         date: getTomorrowDate(),
-        locationName: '',
-        mapLink: '',
-        departureTime: '07:30',
-        closingTime: '12:00',
+        time: '09:00',
+        location: '',
+        team: 'ทีมสัตวแพทย์ชุดที่ 1',
         note: ''
-    });
-
-    // State สำหรับรายชื่อผู้ปฏิบัติงาน (แยกเป็น Array เพื่อเพิ่ม/ลบได้)
-    const [staff, setStaff] = useState({
-        vets: ['', ''], // เริ่มต้น 2 คน
-        registration: [''],
-        prep_catch: [''],
-        prep_shave: [''],
-        prep_lift: [''],
-        vaccine_staff: [''],
-        surgery_assist: [''],
-        drivers: [''],
-        assistants: [''] // สำหรับหน่วยไมโครชิป
     });
 
     useEffect(() => {
         if (isOpen) {
-            setGeneralInfo(prev => ({ ...prev, date: getTomorrowDate() }));
+            setFormData(prev => ({ ...prev, date: getTomorrowDate() }));
         }
     }, [isOpen]);
-
-    // Helper: จัดการการเปลี่ยนแปลงข้อมูลเจ้าหน้าที่
-    const handleStaffChange = (role, index, value) => {
-        const newRoleList = [...staff[role]];
-        newRoleList[index] = value;
-        setStaff({ ...staff, [role]: newRoleList });
-    };
-
-    const addStaffField = (role) => {
-        setStaff({ ...staff, [role]: [...staff[role], ''] });
-    };
-
-    const removeStaffField = (role, index) => {
-        const newRoleList = [...staff[role]];
-        newRoleList.splice(index, 1);
-        setStaff({ ...staff, [role]: newRoleList });
-    };
-
-    // Sub-Component สำหรับ Input เจ้าหน้าที่แต่ละตำแหน่ง
-    const StaffInputGroup = ({ roleKey, label, color = "bg-slate-50" }) => (
-        <div className={`p-3 rounded-lg border border-slate-200 ${color} space-y-2`}>
-            <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-slate-700">{label}</label>
-                <button type="button" onClick={() => addStaffField(roleKey)} className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded hover:bg-blue-200 transition">
-                    + เพิ่มคน
-                </button>
-            </div>
-            {staff[roleKey].map((person, idx) => (
-                <div key={idx} className="flex gap-2">
-                    <input 
-                        type="text" 
-                        placeholder={`ชื่อ-สกุล คนที่ ${idx + 1}`}
-                        className="flex-1 p-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
-                        value={person}
-                        onChange={(e) => handleStaffChange(roleKey, idx, e.target.value)}
-                    />
-                    {staff[roleKey].length > 1 && (
-                        <button type="button" onClick={() => removeStaffField(roleKey, idx)} className="text-slate-400 hover:text-red-500">
-                            <X className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
 
     if (!isOpen) return null;
 
     const handleSendLine = () => {
-        if (!generalInfo.locationName) {
+        if (!formData.location) {
             alert('กรุณาระบุสถานที่');
             return;
         }
 
-        // จัด format ข้อความเจ้าหน้าที่
-        const formatStaffList = (list) => list.filter(s => s.trim()).join(', ') || '-';
+        // 1. จัดรูปแบบข้อความ
+        const message = `📢 *แจ้งเตือนการออกหน่วยวันพรุ่งนี้* 🚑\n\n📅 วันที่: ${new Date(formData.date).toLocaleDateString('th-TH')}\n⏰ เวลา: ${formData.time} น.\n📍 สถานที่: ${formData.location}\n👨‍⚕️ หน่วยงาน: ${formData.team}\n📝 หมายเหตุ: ${formData.note || '-'}\n\nโปรดเตรียมความพร้อมก่อนเวลา 30 นาที`;
 
-        let staffDetails = "";
-        if (unitType === 'sterilization') {
-            staffDetails = `
-👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}
-📝 ลงทะเบียน: ${formatStaffList(staff.registration)}
-🐕 จับ/วางยา: ${formatStaffList(staff.prep_catch)}
-✂️ โกนขน: ${formatStaffList(staff.prep_shave)}
-💪 ยกสัตว์: ${formatStaffList(staff.prep_lift)}
-💉 วัคซีน: ${formatStaffList(staff.vaccine_staff)}
-🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}
-🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
-        } else {
-            staffDetails = `
-👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}
-🙋 ผู้ช่วย: ${formatStaffList(staff.assistants)}
-🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
-        }
-
-        const message = `📢 *แจ้งเตือนการออกหน่วย (${unitType === 'sterilization' ? 'หน่วยทำหมัน' : 'หน่วยวัคซีน/ไมโครชิป'})* 🚑
-📅 วันที่: ${new Date(generalInfo.date).toLocaleDateString('th-TH')}
-📍 สถานที่: ${generalInfo.locationName}
-🗺️ แผนที่: ${generalInfo.mapLink || '-'}
-⏰ เวลารถออก: ${generalInfo.departureTime} น.
-🛑 เวลาปิดหน่วย: ${generalInfo.closingTime} น.
---------------------------------
-${staffDetails}
---------------------------------
-📝 หมายเหตุ: ${generalInfo.note || '-'}
-`;
-
+        // 2. สร้าง Line Share Link
         const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
+        
+        // เปิดหน้าต่าง Line
         window.open(lineUrl, '_blank');
-        if (onToast) onToast('success', 'เปิด Line เรียบร้อยแล้ว');
+        
+        if (onToast) onToast('success', 'เปิดแอปพลิเคชัน Line เรียบร้อยแล้ว');
         onClose();
     };
 
     const handleSaveLocal = () => {
-        const payload = {
-            ...generalInfo,
-            unitType,
-            staff: staff, // บันทึก object staff ทั้งหมด
-            title: unitType === 'sterilization' ? 'หน่วยทำหมัน' : 'หน่วยวัคซีน+ชิป', // สำหรับแสดงผลในปฏิทินแบบย่อ
-            location: generalInfo.locationName, // map ให้ตรงกับที่ Calendar ใช้
-            time: generalInfo.departureTime,
-            team: staff.vets.filter(v => v).join(', ') // ใช้ชื่อหมอเป็นชื่อทีมในปฏิทิน
-        };
-
-        if (onSave) onSave(payload);
-        if (onToast) onToast('success', 'บันทึกแผนงานเรียบร้อย');
+        // เพิ่มส่วนนี้: ส่งข้อมูลกลับไปที่ Main Component เพื่อบันทึกลง State
+        if (onSave) {
+            onSave(formData); // ตอนนี้จะทำงานได้แล้วเพราะรับ prop onSave มาแล้ว
+        }
+        
+        if (onToast) onToast('success', 'บันทึกกำหนดการลงในระบบเรียบร้อย');
         onClose();
     };
 
     return (
         <div className="fixed inset-0 bg-indigo-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border-2 border-indigo-500 flex flex-col max-h-[90vh]">
-                
-                {/* Header */}
-                <div className="bg-indigo-600 px-6 py-3 flex justify-between items-center text-white shrink-0">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-indigo-500">
+                <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <Bell className="w-5 h-5" /> บันทึกและแจ้งเตือนออกหน่วย
                     </h3>
                     <button onClick={onClose}><X className="w-5 h-5" /></button>
                 </div>
-
-                {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                    <div className="space-y-6">
-                        
-                        {/* 1. เลือกประเภทหน่วย */}
-                        <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
-                            <button 
-                                onClick={() => setUnitType('sterilization')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2 ${unitType === 'sterilization' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <Activity className="w-4 h-4" /> หน่วยทำหมัน
-                            </button>
-                            <button 
-                                onClick={() => setUnitType('microchip')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2 ${unitType === 'microchip' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <Database className="w-4 h-4" /> หน่วยไมโครชิป + วัคซีน
-                            </button>
-                        </div>
-
-                        {/* 2. ข้อมูลทั่วไป (วันที่/สถานที่/เวลา) */}
-                        <div className="space-y-4 border-b border-slate-100 pb-6">
-                            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2"><Info className="w-4 h-4" /> ข้อมูลการออกหน่วย</h4>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">วันที่ปฏิบัติงาน</label>
-                                    <input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
-                                        value={generalInfo.date} onChange={e => setGeneralInfo({ ...generalInfo, date: e.target.value })} />
-                                </div>
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">เวลารถออก</label>
-                                        <input type="time" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                                            value={generalInfo.departureTime} onChange={e => setGeneralInfo({ ...generalInfo, departureTime: e.target.value })} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">เวลาปิดหน่วย</label>
-                                        <input type="time" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
-                                            value={generalInfo.closingTime} onChange={e => setGeneralInfo({ ...generalInfo, closingTime: e.target.value })} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่ (พิมพ์เอง)</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input type="text" placeholder="ระบุชื่อสถานที่..." className="w-full pl-9 p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            value={generalInfo.locationName} onChange={e => setGeneralInfo({ ...generalInfo, locationName: e.target.value })} />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">ลิงก์แผนที่ (Google Maps)</label>
-                                    <div className="relative">
-                                        <Link className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input type="text" placeholder="วางลิงก์ Google Maps..." className="w-full pl-9 p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            value={generalInfo.mapLink} onChange={e => setGeneralInfo({ ...generalInfo, mapLink: e.target.value })} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 3. รายชื่อผู้ปฏิบัติงาน */}
-                        <div className="space-y-4">
-                            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2"><Users className="w-4 h-4" /> รายชื่อผู้ปฏิบัติงาน</h4>
-                            
-                            {/* ส่วนที่เหมือนกันทั้ง 2 หน่วย */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <StaffInputGroup roleKey="vets" label="👨‍⚕️ ทีมสัตวแพทย์" color="bg-indigo-50 border-indigo-200" />
-                                <StaffInputGroup roleKey="drivers" label="🚐 พนักงานขับรถ" />
-                            </div>
-
-                            {unitType === 'sterilization' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in">
-                                    <StaffInputGroup roleKey="registration" label="📝 ลงทะเบียน" />
-                                    <StaffInputGroup roleKey="prep_catch" label="🐕 เตรียมสัตว์ (จับ/วางยา)" />
-                                    <StaffInputGroup roleKey="prep_shave" label="✂️ เตรียมสัตว์ (โกนขน)" />
-                                    <StaffInputGroup roleKey="prep_lift" label="💪 เตรียมสัตว์ (ยกสัตว์)" />
-                                    <StaffInputGroup roleKey="vaccine_staff" label="💉 ฉีดวัคซีน" />
-                                    <StaffInputGroup roleKey="surgery_assist" label="🔪 ผู้ช่วยผ่าตัด" />
-                                </div>
-                            )}
-
-                            {unitType === 'microchip' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in">
-                                    <StaffInputGroup roleKey="assistants" label="🙋 ผู้ช่วยงานทั่วไป" />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* หมายเหตุ */}
+                <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">หมายเหตุเพิ่มเติม</label>
-                            <textarea rows="2" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="เช่น เตรียมอุปกรณ์พิเศษ, นัดหมายผู้นำชุมชน..."
-                                value={generalInfo.note} onChange={e => setGeneralInfo({ ...generalInfo, note: e.target.value })}></textarea>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">วันที่ (พรุ่งนี้)</label>
+                            <input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
+                                value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                         </div>
-
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">เวลาเริ่มงาน</label>
+                            <input type="time" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} />
+                        </div>
                     </div>
-                </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่เป้าหมาย</label>
+                        <input type="text" placeholder="ระบุสถานที่ออกหน่วย..." className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} autoFocus />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">ทีมปฏิบัติงาน</label>
+                        <select className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                            value={formData.team} onChange={e => setFormData({ ...formData, team: e.target.value })}>
+                            <option>ทีมสัตวแพทย์ชุดที่ 1</option>
+                            <option>ทีมสัตวแพทย์ชุดที่ 2</option>
+                            <option>หน่วยเคลื่อนที่เร็ว (Mobile Unit)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">หมายเหตุ (ถ้ามี)</label>
+                        <textarea rows="2" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="เช่น เตรียมวัคซีนพิษสุนัขบ้า 500 โดส..."
+                            value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })}></textarea>
+                    </div>
 
-                {/* Footer Buttons */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-2 shrink-0">
-                    <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all">
-                        <Share2 className="w-5 h-5" /> ส่งแจ้งเตือนเข้า Line กลุ่ม
-                    </button>
-                    <div className="flex gap-2">
-                        <button onClick={onClose} className="flex-1 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-50">
-                            ยกเลิก
+                    <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                         <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all">
+                            <Share2 className="w-5 h-5" /> ส่งแจ้งเตือนเข้า Line กลุ่ม
                         </button>
-                        <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow">
-                            บันทึกแผนงาน
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm">ยกเลิก</button>
+                            <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm">บันทึกงาน</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1049,9 +877,9 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] })
     const daysArray = [...Array(daysInMonth + firstDay).keys()];
 
     // Filter events for selected date
-const selectedDateEvents = Array.isArray(events) ? events.filter(e => 
-    e && e.date === selectedDate.toISOString().split('T')[0]
-) : [];
+    const selectedDateEvents = events.filter(e => 
+        e.date === selectedDate.toISOString().split('T')[0]
+    );
 
     // Stats
     const totalEvents = events.length;
@@ -1084,24 +912,14 @@ const selectedDateEvents = Array.isArray(events) ? events.filter(e =>
                             </div>
                         </div>
 
-                        {/* Action Buttons Group */}
-                        <div className="flex flex-col gap-3">
-                            <button 
-                                onClick={onOpenForm}
-                                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
-                            >
-                                <Plus className="w-5 h-5" />
-                                <span>เพิ่มการออกหน่วย</span>
-                            </button>
-
-                            <button 
-                                onClick={onOpenHistory}
-                                className="w-full py-3 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                            >
-                                <History className="w-5 h-5" />
-                                <span>ดูประวัติทั้งหมดที่บันทึกแล้ว</span>
-                            </button>
-                        </div>
+                        {/* Main Action Button */}
+                        <button 
+                            onClick={onOpenForm}
+                            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1"
+                        >
+                            <Plus className="w-6 h-6" />
+                            <span>เข้าบันทึกและแจ้งเตือนออกหน่วย</span>
+                        </button>
 
                         <div className="border-t border-slate-200 pt-4 flex-1">
                             <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
@@ -1188,77 +1006,6 @@ const selectedDateEvents = Array.isArray(events) ? events.filter(e =>
     );
 };
 
-// [เพิ่มใหม่] 13. DispatchHistoryModal (ดูประวัติการบันทึกออกหน่วย)
-const DispatchHistoryModal = ({ isOpen, onClose, events, onDelete, canEdit }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3100] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-slate-200">
-                <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <History className="w-5 h-5 text-indigo-400" /> ประวัติการบันทึกออกหน่วย
-                    </h3>
-                    <button onClick={onClose}><X className="w-5 h-5 hover:text-red-400 transition" /></button>
-                </div>
-                
-                <div className="flex-1 overflow-auto p-0 custom-scrollbar">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0 shadow-sm">
-                            <tr>
-                                <th className="p-4 w-32">วันที่</th>
-                                <th className="p-4 w-24">เวลา</th>
-                                <th className="p-4">สถานที่</th>
-                                <th className="p-4 w-32">ประเภท</th>
-                                <th className="p-4 w-40">ทีมงาน</th>
-                                <th className="p-4 w-20 text-center">จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {events.length === 0 ? (
-                                <tr><td colSpan="6" className="p-8 text-center text-slate-400">ไม่พบประวัติการออกหน่วย</td></tr>
-                            ) : (
-                                events.map((item) => (
-                                    <tr key={item._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="p-3 font-mono text-slate-600">
-                                            {new Date(item.date).toLocaleDateString('th-TH')}
-                                        </td>
-                                        <td className="p-3 text-slate-600">{item.time} น.</td>
-                                        <td className="p-3 font-bold text-slate-700">{item.location}</td>
-                                        <td className="p-3">
-                                            <span className={`px-2 py-1 rounded text-[10px] font-bold ${
-                                                item.type === 'sterilization' 
-                                                ? 'bg-indigo-100 text-indigo-700' 
-                                                : 'bg-green-100 text-green-700'
-                                            }`}>
-                                                {item.type === 'sterilization' ? 'หน่วยทำหมัน' : 'วัคซีน+ชิป'}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 text-xs text-slate-500 truncate max-w-[150px]" title={item.team}>
-                                            {item.team}
-                                        </td>
-                                        <td className="p-3 text-center">
-                                            {canEdit && (
-                                                <button 
-                                                    onClick={() => onDelete(item._id)}
-                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="ลบรายการ"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // --- MAIN DASHBOARD COMPONENT ---
 
 export default function VeterinaryDashboard() {
@@ -1323,79 +1070,19 @@ export default function VeterinaryDashboard() {
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
 
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-    const [dispatchEvents, setDispatchEvents] = useState([]);
+    const [dispatchEvents, setDispatchEvents] = useState([
+        // Mockup Data ตัวอย่าง (สามารถลบออกได้ถ้าต้องการเริ่มต้นว่างเปล่า)
+        { date: new Date().toISOString().split('T')[0], time: '09:00', location: 'วัดดอนเมือง', team: 'ทีม 1', note: 'ฉีดวัคซีน' },
+        { date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '13:00', location: 'ชุมชนร่มไทร', team: 'ทีม 2', note: 'ทำหมัน' }
+    ]);
 
-    const [isDispatchHistoryOpen, setIsDispatchHistoryOpen] = useState(false);
-
-    const handleSaveDispatchEvent = async (newEvent) => {
-        try {
-            const response = await fetch(`${BASE_URL}/api/dispatch-plans`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
-                },
-                body: JSON.stringify({
-                    date: newEvent.date,
-                    time: newEvent.time,
-                    location: newEvent.location,
-                    type: newEvent.unitType, // รับค่าจาก Modal
-                    team: newEvent.team,
-                    staff: newEvent.staff,
-                    note: newEvent.note
-                })
-            });
-            
-            if (response.ok) {
-                addToast('success', 'บันทึกแผนงานลงฐานข้อมูลเรียบร้อย');
-                // Data จะถูกอัปเดตผ่าน Socket หรือ State local ก็ได้
-            } else {
-                addToast('error', 'ไม่สามารถบันทึกข้อมูลได้');
-            }
-        } catch (error) {
-            addToast('error', 'Connection Error');
-        }
-    };
-
-    // [เพิ่มใหม่] ฟังก์ชันลบ Dispatch Plan
-    const handleDeleteDispatch = async (id) => {
-        if(!window.confirm("ยืนยันการลบประวัติการออกหน่วยนี้?")) return;
-        try {
-            const response = await fetch(`${BASE_URL}/api/dispatch-plans/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${user?.token}` }
-            });
-            if (response.ok) {
-                addToast('success', 'ลบรายการเรียบร้อย');
-            } else {
-                addToast('error', 'ลบรายการไม่สำเร็จ');
-            }
-        } catch (error) {
-            addToast('error', 'Connection Error');
-        }
+    const handleSaveDispatchEvent = (newEvent) => {
+        setDispatchEvents(prev => [...prev, newEvent]);
+        // ถ้าต้องการเปิดหน้าปฏิทินทันทีหลังจากบันทึก ให้ uncomment บรรทัดล่าง
+        // setIsCalendarOpen(true); 
     };
 
     // --- 2. AUTHENTICATION LOGIC ---
-
-    // [เพิ่มใหม่] Fetch Dispatch Plans
-useEffect(() => {
-    const fetchDispatchPlans = async () => {
-        try {
-            const res = await fetch(`${BASE_URL}/api/dispatch-plans`);
-            if (res.ok) {
-                const data = await res.json();
-                // ป้องกันจอขาว: ตรวจสอบว่าเป็น Array หรือไม่ ถ้าไม่ใช่ให้ใช้ []
-                setDispatchEvents(Array.isArray(data) ? data : []); 
-            } else {
-                setDispatchEvents([]); // ถ้า error ให้เป็น array ว่าง
-            }
-        } catch (error) {
-            console.error("Fetch Dispatch Error", error);
-            setDispatchEvents([]); // ถ้า crash ให้เป็น array ว่าง
-        }
-    };
-    fetchDispatchPlans();
-}, [BASE_URL]);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('vet_user');
@@ -1469,15 +1156,6 @@ useEffect(() => {
                     fetchData();
                     break;
                 default: break;
-            }
-        });
-        socket.on('server_data_update', (payload) => {
-            if (payload.type === 'DISPATCH_ADDED') {
-                setDispatchEvents(prev => [payload.data, ...prev].sort((a,b) => new Date(b.date) - new Date(a.date)));
-                addToast('info', `📅 เพิ่มแผนออกหน่วยใหม่: ${payload.data.location}`);
-            }
-            if (payload.type === 'DISPATCH_DELETED') {
-                setDispatchEvents(prev => prev.filter(item => item._id !== payload.id));
             }
         });
         return () => { socket.disconnect(); };
@@ -1840,34 +1518,22 @@ useEffect(() => {
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
             <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
 
-            {/* [เพิ่มใหม่] ใส่ History Modal ไว้ใน JSX */}
-            <DispatchHistoryModal 
-                isOpen={isDispatchHistoryOpen}
-                onClose={() => setIsDispatchHistoryOpen(false)}
-                events={dispatchEvents}
-                onDelete={handleDeleteDispatch}
-                canEdit={canEdit}
-            />
-
             <DispatchModal 
                 isOpen={isDispatchModalOpen} 
                 onClose={() => setIsDispatchModalOpen(false)} 
                 onToast={addToast}
-                onSave={handleSaveDispatchEvent} // ส่งฟังก์ชันที่แก้แล้วเข้าไป
+                onSave={handleSaveDispatchEvent} // เพิ่ม prop นี้
             />
-            
             <DispatchCalendarDashboard 
                 isOpen={isCalendarOpen} 
                 onClose={() => setIsCalendarOpen(false)}
-                events={dispatchEvents} // ส่ง Data จริงเข้าไป
+                events={dispatchEvents}
                 onOpenForm={() => {
+                   // ปิดหน้า Calendar ชั่วคราวเพื่อให้ Modal บันทึกแสดง (หรือจะซ้อนกันก็ได้ถ้าจัดการ z-index ดีๆ)
+                   // แต่ในที่นี้เราจะเปิด Modal บันทึกทับเลย
                    setIsDispatchModalOpen(true);
                 }}
-                onOpenHistory={() => {  // [เพิ่มใหม่] รับ Event เปิด History
-                    setIsDispatchHistoryOpen(true);
-                }}
             />
-
             
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
