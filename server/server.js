@@ -112,6 +112,19 @@ const logSchema = new mongoose.Schema({
 }, { timestamps: true });
 const SystemLog = mongoose.model('SystemLog', logSchema);
 
+const dispatchSchema = new mongoose.Schema({
+  date: { type: String, required: true },
+  time: String,
+  location: String,
+  mapLink: String,
+  type: { type: String, enum: ['sterilization', 'microchip'], default: 'sterilization' },
+  team: String, // ชื่อทีม หรือ หัวหน้าทีม
+  staff: Object, // เก็บรายชื่อเจ้าหน้าที่ทั้งหมด
+  note: String,
+  status: { type: String, default: 'pending' } // pending, completed, cancelled
+}, { timestamps: true });
+const Dispatch = mongoose.model('Dispatch', dispatchSchema);
+
 // --- HELPER FUNCTIONS ---
 
 // Function บันทึก Log (✅ ส่วนที่เพิ่มใหม่)
@@ -524,6 +537,48 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin'])
         session.endSession();
         res.status(500).json({ message: "Restore Failed: " + err.message });
     }
+});
+
+// =======================
+// F. DISPATCH (ระบบออกหน่วย)
+// =======================
+
+app.get('/api/dispatch', async (req, res) => {
+  try {
+    const events = await Dispatch.find().sort({ date: -1 });
+    res.json(events);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/dispatch', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const newDispatch = new Dispatch(req.body);
+    const savedDispatch = await newDispatch.save();
+    
+    await createLog(req, 'CREATE_DISPATCH', `เพิ่มแผนออกหน่วย: ${savedDispatch.location}`, savedDispatch);
+    
+    // แจ้งเตือน Realtime (ถ้าต้องการ)
+    io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
+    
+    res.status(201).json(savedDispatch);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+app.delete('/api/dispatch/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const deleted = await Dispatch.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+    await createLog(req, 'DELETE_DISPATCH', `ลบแผนออกหน่วย: ${deleted.location}`);
+    
+    res.json({ message: "ลบข้อมูลสำเร็จ", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // --- SERVER START ---
