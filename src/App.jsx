@@ -743,7 +743,7 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
     );
 };
 
-// 12. DispatchModal (ระบบแจ้งเตือนออกหน่วย - ปรับปรุงใหม่)
+// 12. DispatchModal (แก้ไข: ตัดตัวเลือกหน่วยบูรณาการออก)
 const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => { 
     // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
     const getTomorrowDate = () => {
@@ -752,8 +752,14 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         return tomorrow.toISOString().split('T')[0];
     };
 
-    // State สำหรับเลือกประเภทหน่วย
-    const [unitType, setUnitType] = useState('sterilization'); // 'sterilization' | 'microchip'
+    // --- แก้ไข 1: กำหนดตัวเลือกหน่วย (เหลือแค่ 2 อย่าง) ---
+    const UNIT_OPTIONS = [
+        { value: 'sterilization', label: 'หน่วยทำหมัน (Sterilization)' },
+        { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป' }
+    ];
+
+    // State สำหรับเลือกประเภทหน่วย (Default เป็นทำหมัน)
+    const [unitType, setUnitType] = useState('sterilization'); 
 
     // State ข้อมูลทั่วไป
     const [generalInfo, setGeneralInfo] = useState({
@@ -765,9 +771,9 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         note: ''
     });
 
-    // State สำหรับรายชื่อผู้ปฏิบัติงาน (แยกเป็น Array เพื่อเพิ่ม/ลบได้)
+    // State สำหรับรายชื่อผู้ปฏิบัติงาน
     const [staff, setStaff] = useState({
-        vets: ['', ''], // เริ่มต้น 2 คน
+        vets: ['', ''],
         registration: [''],
         prep_catch: [''],
         prep_shave: [''],
@@ -775,7 +781,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         vaccine_staff: [''],
         surgery_assist: [''],
         drivers: [''],
-        assistants: [''] // สำหรับหน่วยไมโครชิป
+        assistants: [''] 
     });
 
     useEffect(() => {
@@ -784,7 +790,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         }
     }, [isOpen]);
 
-    // Helper: จัดการการเปลี่ยนแปลงข้อมูลเจ้าหน้าที่
+    // Helper Functions (คงเดิม)
     const handleStaffChange = (role, index, value) => {
         const newRoleList = [...staff[role]];
         newRoleList[index] = value;
@@ -801,7 +807,6 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
         setStaff({ ...staff, [role]: newRoleList });
     };
 
-    // Sub-Component สำหรับ Input เจ้าหน้าที่แต่ละตำแหน่ง
     const StaffInputGroup = ({ roleKey, label, color = "bg-slate-50" }) => (
         <div className={`p-3 rounded-lg border border-slate-200 ${color} space-y-2`}>
             <div className="flex justify-between items-center">
@@ -837,28 +842,32 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
             return;
         }
 
-        // จัด format ข้อความเจ้าหน้าที่
         const formatStaffList = (list) => list.filter(s => s.trim()).join(', ') || '-';
-
+        
+        // --- แก้ไข 2: ปรับ Logic เหลือแค่ 2 กรณี ---
+        const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
         let staffDetails = "";
+
+        // Common fields
+        const commonStaff = `👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
+
         if (unitType === 'sterilization') {
             staffDetails = `
-👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}
+${commonStaff}
 📝 ลงทะเบียน: ${formatStaffList(staff.registration)}
 🐕 จับ/วางยา: ${formatStaffList(staff.prep_catch)}
 ✂️ โกนขน: ${formatStaffList(staff.prep_shave)}
 💪 ยกสัตว์: ${formatStaffList(staff.prep_lift)}
 💉 วัคซีน: ${formatStaffList(staff.vaccine_staff)}
-🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}
-🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
-        } else {
+🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}`;
+        } else if (unitType === 'microchip') {
             staffDetails = `
-👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}
-🙋 ผู้ช่วย: ${formatStaffList(staff.assistants)}
-🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
+${commonStaff}
+🙋 ผู้ช่วย: ${formatStaffList(staff.assistants)}`;
         }
 
-        const message = `📢 *แจ้งเตือนการออกหน่วย (${unitType === 'sterilization' ? 'หน่วยทำหมัน' : 'หน่วยวัคซีน/ไมโครชิป'})* 🚑
+        const message = `📢 *แจ้งเตือนการออกหน่วย*
+📌 *${currentUnitLabel}*
 📅 วันที่: ${new Date(generalInfo.date).toLocaleDateString('th-TH')}
 📍 สถานที่: ${generalInfo.locationName}
 🗺️ แผนที่: ${generalInfo.mapLink || '-'}
@@ -877,14 +886,15 @@ ${staffDetails}
     };
 
     const handleSaveLocal = () => {
+        const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
         const payload = {
             ...generalInfo,
             unitType,
-            staff: staff, // บันทึก object staff ทั้งหมด
-            title: unitType === 'sterilization' ? 'หน่วยทำหมัน' : 'หน่วยวัคซีน+ชิป', // สำหรับแสดงผลในปฏิทินแบบย่อ
-            location: generalInfo.locationName, // map ให้ตรงกับที่ Calendar ใช้
+            staff: staff, 
+            title: currentUnitLabel, // ใช้ชื่อจาก Option
+            location: generalInfo.locationName,
             time: generalInfo.departureTime,
-            team: staff.vets.filter(v => v).join(', ') // ใช้ชื่อหมอเป็นชื่อทีมในปฏิทิน
+            team: staff.vets.filter(v => v).join(', ')
         };
 
         if (onSave) onSave(payload);
@@ -908,23 +918,25 @@ ${staffDetails}
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     <div className="space-y-6">
                         
-                        {/* 1. เลือกประเภทหน่วย */}
-                        <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
-                            <button 
-                                onClick={() => setUnitType('sterilization')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2 ${unitType === 'sterilization' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <Activity className="w-4 h-4" /> หน่วยทำหมัน
-                            </button>
-                            <button 
-                                onClick={() => setUnitType('microchip')}
-                                className={`flex-1 py-2 text-sm font-bold rounded-md transition-all flex items-center justify-center gap-2 ${unitType === 'microchip' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <Database className="w-4 h-4" /> หน่วยไมโครชิป + วัคซีน
-                            </button>
+                        {/* --- Select Dropdown --- */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">ประเภทหน่วยงาน (Unit Type)</label>
+                            <div className="relative">
+                                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-600" />
+                                <select 
+                                    value={unitType} 
+                                    onChange={(e) => setUnitType(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm font-bold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer hover:bg-white transition-colors shadow-sm"
+                                >
+                                    {UNIT_OPTIONS.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                                <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90" />
+                            </div>
                         </div>
 
-                        {/* 2. ข้อมูลทั่วไป (วันที่/สถานที่/เวลา) */}
+                        {/* ข้อมูลทั่วไป */}
                         <div className="space-y-4 border-b border-slate-100 pb-6">
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2"><Info className="w-4 h-4" /> ข้อมูลการออกหน่วย</h4>
                             
@@ -968,16 +980,17 @@ ${staffDetails}
                             </div>
                         </div>
 
-                        {/* 3. รายชื่อผู้ปฏิบัติงาน */}
+                        {/* รายชื่อผู้ปฏิบัติงาน */}
                         <div className="space-y-4">
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2"><Users className="w-4 h-4" /> รายชื่อผู้ปฏิบัติงาน</h4>
                             
-                            {/* ส่วนที่เหมือนกันทั้ง 2 หน่วย */}
+                            {/* ส่วนที่แสดงตลอด */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <StaffInputGroup roleKey="vets" label="👨‍⚕️ ทีมสัตวแพทย์" color="bg-indigo-50 border-indigo-200" />
                                 <StaffInputGroup roleKey="drivers" label="🚐 พนักงานขับรถ" />
                             </div>
 
+                            {/* --- แก้ไข 3: แสดงตามประเภทที่เลือก --- */}
                             {unitType === 'sterilization' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in">
                                     <StaffInputGroup roleKey="registration" label="📝 ลงทะเบียน" />
