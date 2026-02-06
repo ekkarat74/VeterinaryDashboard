@@ -112,6 +112,18 @@ const logSchema = new mongoose.Schema({
 }, { timestamps: true });
 const SystemLog = mongoose.model('SystemLog', logSchema);
 
+// 5. Meeting Schema (เพิ่มใหม่: สำหรับบันทึกการประชุม)
+const meetingSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    date: { type: String, required: true },
+    startTime: String,
+    endTime: String,
+    link: String,
+    details: String,
+    createdBy: String
+}, { timestamps: true });
+const Meeting = mongoose.model('Meeting', meetingSchema);
+
 // --- HELPER FUNCTIONS ---
 
 // Function บันทึก Log (✅ ส่วนที่เพิ่มใหม่)
@@ -523,6 +535,45 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin'])
         await session.abortTransaction();
         session.endSession();
         res.status(500).json({ message: "Restore Failed: " + err.message });
+    }
+});
+
+// F. MEETINGS (เพิ่มใหม่)
+// =======================
+
+app.get('/api/meetings', async (req, res) => {
+    try {
+        const meetings = await Meeting.find().sort({ date: -1 });
+        res.json(meetings);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.post('/api/meetings', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const newMeeting = new Meeting({
+            ...req.body,
+            createdBy: req.user.username
+        });
+        const savedMeeting = await newMeeting.save();
+        
+        await createLog(req, 'CREATE_MEETING', `นัดหมายประชุม: ${savedMeeting.title}`);
+        io.emit('server_data_update', { type: 'MEETING_ADDED', data: savedMeeting });
+        
+        res.status(201).json(savedMeeting);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        await Meeting.findByIdAndDelete(req.params.id);
+        io.emit('server_data_update', { type: 'MEETING_DELETED', id: req.params.id });
+        res.json({ message: "ลบการประชุมสำเร็จ" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 

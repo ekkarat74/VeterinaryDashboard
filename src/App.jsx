@@ -1041,6 +1041,133 @@ ${staffDetails}
     );
 };
 
+// 13. MeetingModal (เพิ่มใหม่: บันทึกการประชุม + QR Code + LINE)
+const MeetingModal = ({ isOpen, onClose, onSave, onToast }) => {
+    const [formData, setFormData] = useState({
+        title: '',
+        date: new Date().toISOString().split('T')[0],
+        startTime: '09:00',
+        endTime: '10:00',
+        link: '',
+        details: ''
+    });
+
+    if (!isOpen) return null;
+
+    // สร้าง URL ของ QR Code (ใช้ API สาธารณะเพื่อความเบาของโค้ด)
+    const qrCodeUrl = formData.link 
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(formData.link)}` 
+        : null;
+
+    const handleSendLine = () => {
+        if (!formData.title || !formData.link) {
+            alert('กรุณาระบุหัวข้อและลิงก์การประชุม');
+            return;
+        }
+
+        const message = `📢 *นัดหมายการประชุม*
+📌 หัวข้อ: ${formData.title}
+📅 วันที่: ${new Date(formData.date).toLocaleDateString('th-TH')}
+⏰ เวลา: ${formData.startTime} - ${formData.endTime} น.
+📝 รายละเอียด: ${formData.details || '-'}
+--------------------------------
+🔗 ลิงก์เข้าร่วม: ${formData.link}
+`;
+        // หมายเหตุ: LINE แบบ Text Link ไม่สามารถส่งรูป QR Code โดยตรงได้ 
+        // ต้องใช้ LINE Bot API หากต้องการส่งรูป แต่โค้ดนี้จะส่งรายละเอียดครบถ้วน
+        const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
+        window.open(lineUrl, '_blank');
+        if (onToast) onToast('success', 'เปิด Line เพื่อส่งข้อมูลแล้ว');
+    };
+
+    const handleSubmit = () => {
+        if (!formData.title || !formData.date) {
+            alert("กรุณากรอกข้อมูลสำคัญให้ครบ");
+            return;
+        }
+        onSave(formData);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-blue-500 flex flex-col max-h-[90vh]">
+                <div className="bg-blue-600 px-6 py-3 flex justify-between items-center text-white shrink-0">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Users className="w-5 h-5" /> บันทึกการประชุม
+                    </h3>
+                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto custom-scrollbar space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">หัวข้อการประชุม</label>
+                        <input type="text" className="w-full p-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                            value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="เช่น ประชุมวางแผนประจำเดือน..." />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">วันที่</label>
+                            <input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-slate-500 mb-1">เริ่ม</label>
+                                <input type="time" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                    value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-slate-500 mb-1">สิ้นสุด</label>
+                                <input type="time" className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                    value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
+                            <Link className="w-3 h-3" /> ลิงก์การประชุม (URL)
+                        </label>
+                        <input type="url" className="w-full p-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono text-blue-600"
+                            value={formData.link} onChange={e => setFormData({...formData, link: e.target.value})} placeholder="https://meet.google.com/..." />
+                    </div>
+
+                    {/* QR Code Section */}
+                    {formData.link && (
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center gap-4">
+                            <div className="bg-white p-1 border rounded shrink-0">
+                                <img src={qrCodeUrl} alt="Meeting QR" className="w-20 h-20 object-contain" />
+                            </div>
+                            <div className="text-xs text-slate-500">
+                                <p className="font-bold text-slate-700 mb-1">QR Code สำหรับเข้าร่วม</p>
+                                <p>สแกนเพื่อเข้าสู่การประชุมได้ทันที</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">รายละเอียดเพิ่มเติม</label>
+                        <textarea rows="2" className="w-full p-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                            value={formData.details} onChange={e => setFormData({...formData, details: e.target.value})}></textarea>
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-2">
+                    <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all">
+                        <Share2 className="w-5 h-5" /> ส่งหัวข้อ+ลิงก์ เข้า LINE
+                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={onClose} className="flex-1 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-50">ยกเลิก</button>
+                        <button onClick={handleSubmit} className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow">บันทึกลงฐานข้อมูล</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- NEW COMPONENT: Dispatch Calendar & Dashboard ---
 const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -1262,6 +1389,10 @@ export default function VeterinaryDashboard() {
         { date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '13:00', location: 'ชุมชนร่มไทร', team: 'ทีม 2', note: 'ทำหมัน' }
     ]);
 
+    // --- เพิ่ม State สำหรับการประชุม ---
+    const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
+    const [meetings, setMeetings] = useState([]);
+
     const handleSaveDispatchEvent = (newEvent) => {
         setDispatchEvents(prev => [...prev, newEvent]);
         // ถ้าต้องการเปิดหน้าปฏิทินทันทีหลังจากบันทึก ให้ uncomment บรรทัดล่าง
@@ -1341,11 +1472,63 @@ export default function VeterinaryDashboard() {
                 case 'SYSTEM_RESTORED':
                     fetchData();
                     break;
+                case 'MEETING_ADDED':
+                    setMeetings(prev => [...prev, payload.data]);
+                    addToast('info', `📅 มีนัดหมายประชุมใหม่: ${payload.data.title}`);
+                    break;
+                case 'MEETING_DELETED':
+                    setMeetings(prev => prev.filter(m => m._id !== payload.id));
+                    break;
                 default: break;
             }
         });
         return () => { socket.disconnect(); };
     }, [BASE_URL, fetchData]);
+
+    useEffect(() => {
+        const fetchMeetings = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/api/meetings`);
+                const data = await res.json();
+                setMeetings(data);
+            } catch (error) {
+                console.error("Fetch Meetings Error", error);
+            }
+        };
+        fetchMeetings();
+    }, [BASE_URL]);
+
+    // --- เพิ่มฟังก์ชัน Save Meeting ---
+    const handleSaveMeeting = async (meetingData) => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/meetings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                body: JSON.stringify(meetingData)
+            });
+            if (res.ok) {
+                addToast('success', 'บันทึกการประชุมเรียบร้อย');
+                // ข้อมูลจะ update ผ่าน socket หรือ reload
+            } else {
+                addToast('error', 'บันทึกไม่สำเร็จ');
+            }
+        } catch (error) {
+            addToast('error', 'Error saving meeting');
+        }
+    };
+
+    const combinedEvents = [
+        ...dispatchEvents, // ข้อมูลเดิม (Mockup หรือจาก API อื่น)
+        ...meetings.map(m => ({
+            date: m.date,
+            time: m.startTime,
+            location: `[ประชุม] ${m.title}`, // ใส่ prefix ให้รู้ว่าเป็นประชุม
+            team: 'Online/Room',
+            note: m.link,
+            type: 'meeting', // เพิ่ม type เพื่อแยกสีได้ (ต้องไปแก้ Calendar เพิ่มถ้าอยากแยกสี)
+            _id: m._id
+        }))
+    ];
 
     useEffect(() => {
         const fetchOutbreaks = async () => {
@@ -1713,12 +1896,18 @@ export default function VeterinaryDashboard() {
             <DispatchCalendarDashboard 
                 isOpen={isCalendarOpen} 
                 onClose={() => setIsCalendarOpen(false)}
-                events={dispatchEvents}
+                events={combinedEvents} // ส่ง events ที่รวมแล้ว
                 onOpenForm={() => {
-                   // ปิดหน้า Calendar ชั่วคราวเพื่อให้ Modal บันทึกแสดง (หรือจะซ้อนกันก็ได้ถ้าจัดการ z-index ดีๆ)
-                   // แต่ในที่นี้เราจะเปิด Modal บันทึกทับเลย
+                   // เลือกเปิดฟอร์มไหนก็ได้ หรือสร้าง UI ให้เลือกใน Calendar
+                   // ตัวอย่างนี้เปิด DispatchModal เป็นหลักเหมือนเดิม
                    setIsDispatchModalOpen(true);
                 }}
+            />
+            <MeetingModal 
+                isOpen={isMeetingModalOpen} 
+                onClose={() => setIsMeetingModalOpen(false)} 
+                onSave={handleSaveMeeting}
+                onToast={addToast}
             />
             
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
@@ -1782,6 +1971,9 @@ export default function VeterinaryDashboard() {
                                 </button>
                                 <button onClick={handleGenerateMockData} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" title="สร้างข้อมูลจำลองเพื่อทดสอบระบบ">
                                     <Zap className="w-4 h-4 text-yellow-300" /><span className="hidden sm:inline">จำลอง 500 เคส</span>
+                                </button>
+                                <button onClick={() => setIsMeetingModalOpen(true)}className="flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
+                                    <Users className="w-4 h-4" /> <span className="hidden sm:inline">นัดประชุม</span>
                                 </button>
                             </>
                         )}
