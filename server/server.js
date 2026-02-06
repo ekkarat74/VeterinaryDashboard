@@ -567,6 +567,24 @@ app.post('/api/meetings', authenticateToken, authorizeRole(['admin', 'superadmin
     }
 });
 
+// Update Meeting (เพิ่มใหม่)
+app.put('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const updatedMeeting = await Meeting.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        if (!updatedMeeting) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+        await createLog(req, 'UPDATE_MEETING', `แก้ไขนัดหมายประชุม: ${updatedMeeting.title}`);
+        io.emit('server_data_update', { type: 'MEETING_UPDATED', data: updatedMeeting }); // ต้องไปเพิ่ม case ใน Frontend ด้วย
+        res.json(updatedMeeting);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
 app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
     try {
         await Meeting.findByIdAndDelete(req.params.id);
