@@ -18,8 +18,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
 const allowedOrigins = [
   "http://localhost:5173", 
   "http://localhost:3000",
-  "https://veterinary-bkk.vercel.app",
-  "https://veterinary-bkk.vercel.app/"
+  "https://veterinary-bkk.vercel.app",      
+  "https://veterinary-bkk.vercel.app/"      
 ];
 
 // --- SERVER & SOCKET.IO SETUP ---
