@@ -1300,9 +1300,9 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] })
                     <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full transition"><X className="w-6 h-6" /></button>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden overflow-y-auto lg:overflow-hidden bg-slate-100">
                     {/* Left Panel: Dashboard & Actions */}
-                    <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto">
+                    <div className="w-full lg:w-1/3 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-visible lg:overflow-y-auto order-2 lg:order-1 h-auto lg:h-full">
                         
                         {/* Stats Cards */}
                         <div className="grid grid-cols-2 gap-3">
@@ -1353,7 +1353,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] })
                     </div>
 
                     {/* Right Panel: Calendar */}
-                    <div className="w-2/3 p-6 bg-white flex flex-col">
+                    <div className="w-full lg:w-2/3 p-4 md:p-6 bg-white flex flex-col order-1 lg:order-2 h-auto lg:h-full min-h-[500px]">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-slate-800">
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
@@ -2057,7 +2057,7 @@ export default function VeterinaryDashboard() {
             />
             
             <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-auto py-3 md:h-20 md:py-0 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center space-x-4">
                         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
                             <Activity className="text-white w-6 h-6" />
@@ -2068,7 +2068,7 @@ export default function VeterinaryDashboard() {
                         </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center flex-wrap gap-2 md:gap-3 w-full md:w-auto">
                         {user ? (
                             <div className="flex items-center gap-3 mr-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
                                 <div className="flex flex-col items-end">
