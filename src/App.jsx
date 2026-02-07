@@ -2056,7 +2056,7 @@ export default function VeterinaryDashboard() {
                 }}
             />
             
-            {/* --- NEW HEADER DESIGN --- */}
+            {/* --- NEW HEADER DESIGN (แก้ไข: เพิ่มปุ่มนัดประชุมกลับมา) --- */}
             <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm transition-all">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row items-center justify-between h-auto py-3 md:h-20 md:py-0 gap-4">
@@ -2079,12 +2079,12 @@ export default function VeterinaryDashboard() {
                         {/* 2. Controls & Actions */}
                         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                             
-                            {/* Group A: System Tools (แสดงเฉพาะเมื่อ Login แล้ว) */}
+                            {/* Group A: System Tools */}
                             {user && (
                                 <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-lg border border-slate-200 overflow-x-auto max-w-full">
                                     {isSuperAdmin && (
                                         <>
-                                            <button onClick={() => setIsLogModalOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="ประวัติการใช้งาน (Logs)">
+                                            <button onClick={() => setIsLogModalOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="ประวัติการใช้งาน">
                                                 <FileText className="w-4 h-4" />
                                             </button>
                                             <button onClick={() => setIsUserMgmtOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="จัดการผู้ใช้งาน">
@@ -2095,13 +2095,13 @@ export default function VeterinaryDashboard() {
                                     )}
                                     {canEdit && (
                                         <>
-                                            <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="สำรอง/กู้คืนข้อมูล">
+                                            <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="สำรองข้อมูล">
                                                 <Database className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="CSV Import/Export">
+                                            <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="CSV">
                                                 <Download className="w-4 h-4" />
                                             </button>
-                                            <button onClick={handleGenerateMockData} className="p-2 text-slate-400 hover:text-purple-600 hover:bg-white rounded-md transition-all" title="จำลองข้อมูล (Mock Data)">
+                                            <button onClick={handleGenerateMockData} className="p-2 text-slate-400 hover:text-purple-600 hover:bg-white rounded-md transition-all" title="จำลองข้อมูล">
                                                 <Zap className="w-4 h-4" />
                                             </button>
                                         </>
@@ -2113,7 +2113,7 @@ export default function VeterinaryDashboard() {
                             <div className="flex items-center gap-2 flex-wrap justify-center">
                                 {user ? (
                                     <>
-                                        {/* Meeting & Calendar */}
+                                        {/* Meeting View Tools */}
                                         <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                                             <button onClick={() => setIsMeetingListOpen(true)} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition" title="ประวัติการประชุม">
                                                 <List className="w-4 h-4" />
@@ -2125,12 +2125,18 @@ export default function VeterinaryDashboard() {
                                             </button>
                                         </div>
 
-                                        {/* Primary Actions */}
+                                        {/* Primary Actions (เพิ่มปุ่มนัดประชุมกลับมาตรงนี้) */}
                                         {canEdit && (
                                             <>
+                                                {/* ปุ่มนัดประชุม */}
+                                                <button onClick={() => setIsMeetingModalOpen(true)} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg">
+                                                    <Users className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">นัดประชุม</span>
+                                                </button>
+
                                                 <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-sm hover:shadow">
                                                     <AlertTriangle className="w-4 h-4" />
-                                                    <span>แจ้งโรค</span>
+                                                    <span className="hidden sm:inline">แจ้งโรค</span>
                                                 </button>
                                                 <button onClick={openAddModal} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
                                                     <Plus className="w-4 h-4" />
@@ -2139,7 +2145,7 @@ export default function VeterinaryDashboard() {
                                             </>
                                         )}
 
-                                        {/* Profile Dropdown (Simplified) */}
+                                        {/* Profile Dropdown */}
                                         <div className="flex items-center gap-3 pl-3 border-l border-slate-200 ml-1">
                                             <div className="flex flex-col items-end hidden sm:flex">
                                                 <span className="text-xs font-bold text-slate-700">{user.username}</span>
