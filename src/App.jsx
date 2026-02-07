@@ -2056,76 +2056,114 @@ export default function VeterinaryDashboard() {
                 }}
             />
             
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-auto py-3 md:h-20 md:py-0 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center space-x-4">
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
-                            <Activity className="text-white w-6 h-6" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-extrabold text-slate-800 leading-tight tracking-tight">ระบบรายงานผลการปฏิบัติงานสัตวแพทย์</h1>
-                            <p className="text-xs font-medium text-slate-500">Veterinary & Animal Control Dashboard</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-center flex-wrap gap-2 md:gap-3 w-full md:w-auto">
-                        {user ? (
-                            <div className="flex items-center gap-3 mr-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                                <div className="flex flex-col items-end">
-                                    <span className="text-xs font-bold text-slate-700">{user.username}</span>
-                                    <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide bg-slate-200 px-1.5 rounded">{user.role}</span>
-                                </div>
-                                <button onClick={() => setIsChangePasswordOpen(true)} className="p-1.5 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition-colors" title="เปลี่ยนรหัสผ่าน">
-                                    <Key className="w-3 h-3" />
-                                </button>
-                                <button onClick={handleLogout} className="p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors" title="ออกจากระบบ">
-                                    <Lock className="w-3 h-3" />
-                                </button>
+            {/* --- NEW HEADER DESIGN --- */}
+            <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm transition-all">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between h-auto py-3 md:h-20 md:py-0 gap-4">
+                        
+                        {/* 1. Logo & Brand */}
+                        <div className="flex items-center gap-4 self-start md:self-auto">
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-500/20 shrink-0">
+                                <Activity className="text-white w-6 h-6" />
                             </div>
-                        ) : (
-                            <button onClick={() => setIsLoginModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-full shadow hover:bg-slate-900 transition-all">
-                                <Unlock className="w-4 h-4" /> เจ้าหน้าที่ Login
-                            </button>
-                        )}
-                        {isSuperAdmin && (
-                            <>
-                                <button onClick={() => setIsLogModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all" title="ดูประวัติการใช้งาน">
-                                    <FileText className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => setIsUserMgmtOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="จัดการผู้ใช้งาน">
-                                    <Users className="w-5 h-5" />
-                                </button>
-                            </>
-                        )}
-                        {canEdit && (
-                            <>
-                                <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="Backup/Restore"><Database className="w-5 h-5" /></button>
-                                <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-full" title="CSV Import/Export"><Download className="w-5 h-5" /></button>
-                                <button 
-                                    onClick={() => setIsCalendarOpen(true)} 
-                                    className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" 
-                                    title="ดูตารางงานและจัดการนัดหมาย"
-                                >
-                                    <CalendarDays className="w-4 h-4" />
-                                    <span className="hidden sm:inline">ปฏิทิน & ออกหน่วย</span>
-                                </button>
-                                <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg animate-pulse">
-                                    <AlertTriangle className="w-4 h-4" /><span className="hidden sm:inline">แจ้งโรค</span>
-                                </button>
-                                <button onClick={openAddModal} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg">
-                                    <Plus className="w-4 h-4" /><span className="hidden sm:inline">เพิ่มข้อมูล</span>
-                                </button>
-                                <button onClick={handleGenerateMockData} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all" title="สร้างข้อมูลจำลองเพื่อทดสอบระบบ">
-                                    <Zap className="w-4 h-4 text-yellow-300" /><span className="hidden sm:inline">จำลอง 500 เคส</span>
-                                </button>
-                                <button onClick={() => setIsMeetingModalOpen(true)}className="flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all">
-                                    <Users className="w-4 h-4" /> <span className="hidden sm:inline">นัดประชุม</span>
-                                </button>
-                                <button onClick={() => setIsMeetingListOpen(true)}className="p-2 bg-teal-100 text-teal-700 hover:bg-teal-200 rounded-full transition-colors"title="ดูประวัติการประชุม">
-                                    <List className="w-5 h-5" />
-                                </button>
-                            </>
-                        )}
+                            <div className="flex flex-col">
+                                <h1 className="text-lg md:text-xl font-extrabold text-slate-800 leading-tight tracking-tight">
+                                    ระบบรายงานสัตวแพทย์
+                                </h1>
+                                <p className="text-[10px] md:text-xs font-medium text-slate-500">
+                                    Veterinary & Animal Control Dashboard
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 2. Controls & Actions */}
+                        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                            
+                            {/* Group A: System Tools (แสดงเฉพาะเมื่อ Login แล้ว) */}
+                            {user && (
+                                <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-lg border border-slate-200 overflow-x-auto max-w-full">
+                                    {isSuperAdmin && (
+                                        <>
+                                            <button onClick={() => setIsLogModalOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="ประวัติการใช้งาน (Logs)">
+                                                <FileText className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => setIsUserMgmtOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="จัดการผู้ใช้งาน">
+                                                <Users className="w-4 h-4" />
+                                            </button>
+                                            <div className="w-px h-4 bg-slate-300 mx-1"></div>
+                                        </>
+                                    )}
+                                    {canEdit && (
+                                        <>
+                                            <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="สำรอง/กู้คืนข้อมูล">
+                                                <Database className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="CSV Import/Export">
+                                                <Download className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={handleGenerateMockData} className="p-2 text-slate-400 hover:text-purple-600 hover:bg-white rounded-md transition-all" title="จำลองข้อมูล (Mock Data)">
+                                                <Zap className="w-4 h-4" />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Group B: Operation Buttons */}
+                            <div className="flex items-center gap-2 flex-wrap justify-center">
+                                {user ? (
+                                    <>
+                                        {/* Meeting & Calendar */}
+                                        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                                            <button onClick={() => setIsMeetingListOpen(true)} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition" title="ประวัติการประชุม">
+                                                <List className="w-4 h-4" />
+                                            </button>
+                                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                                            <button onClick={() => setIsCalendarOpen(true)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
+                                                <CalendarDays className="w-4 h-4" />
+                                                <span className="hidden xl:inline">ตารางงาน</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Primary Actions */}
+                                        {canEdit && (
+                                            <>
+                                                <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-sm hover:shadow">
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    <span>แจ้งโรค</span>
+                                                </button>
+                                                <button onClick={openAddModal} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                                                    <Plus className="w-4 h-4" />
+                                                    <span>เพิ่มข้อมูล</span>
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {/* Profile Dropdown (Simplified) */}
+                                        <div className="flex items-center gap-3 pl-3 border-l border-slate-200 ml-1">
+                                            <div className="flex flex-col items-end hidden sm:flex">
+                                                <span className="text-xs font-bold text-slate-700">{user.username}</span>
+                                                <span className="text-[10px] text-slate-400 uppercase">{user.role}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => setIsChangePasswordOpen(true)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-colors" title="เปลี่ยนรหัสผ่าน">
+                                                    <Key className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="ออกจากระบบ">
+                                                    <Unlock className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <button onClick={() => setIsLoginModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-bold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                                        <Unlock className="w-4 h-4" />
+                                        <span>เข้าสู่ระบบเจ้าหน้าที่</span>
+                                    </button>
+                                )}
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </header>
