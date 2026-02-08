@@ -143,11 +143,21 @@ const RabiesOutbreakSection = ({
                                             </div>
                                         </div>
                                         {canEdit && !isHidden && (
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-3 h-3" /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); onDelete(item._id); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-3 h-3" /></button>
-                                            </div>
-                                        )}
+    <div className="flex gap-1 shrink-0"> 
+        <button 
+            onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
+            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+        >
+            <Edit className="w-3 h-3" />
+        </button>
+        <button 
+            onClick={(e) => { e.stopPropagation(); onDelete(item._id); }} 
+            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+        >
+            <Trash2 className="w-3 h-3" />
+        </button>
+    </div>
+)}
                                     </div>
                                 );
                             })}
