@@ -451,7 +451,7 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
             })}
           </MarkerClusterGroup>
 
-          {outbreaks.map((item, index) => {
+{outbreaks.map((item, index) => {
     const lat = parseFloat(item.lat);
     const long = parseFloat(item.long);
     if (isNaN(lat) || isNaN(long)) return null;
@@ -467,14 +467,14 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                         color: '#7f1d1d',       // สีเส้นขอบ: แดงเข้มมาก
                         fillColor: '#991b1b',   // สีพื้นที่ด้านใน
                         fillOpacity: 0.2,       
-                        weight: 3,              // ความหนาเส้นขอบ (เพิ่มขึ้น)
-                        opacity: 1,             // ความชัดของเส้นขอบ (ชัดสุด)
+                        weight: 3,              // ความหนาเส้นขอบ
+                        opacity: 1,             
                         dashArray: null         // เส้นทึบ
                     }} 
                 />
             )}
 
-            {/* --- 3 กม. (เฝ้าระวัง): สีแดงปกติ เส้นประ --- */}
+            {/* --- 3 กม. (เฝ้าระวัง): สีแดงปกติ เส้นทึบ (ลบเส้นประออก) --- */}
             {activeRadii.includes(3000) && (
                 <Circle 
                     center={[lat, long]} 
@@ -485,12 +485,12 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                         fillOpacity: 0.08, 
                         weight: 2,              // ความหนาเส้นขอบ
                         opacity: 0.8,
-                        dashArray: '10, 10'     // เส้นประ (ขีด 10, เว้น 10)
+                        dashArray: null         // ปรับเป็นเส้นทึบ
                     }} 
                 />
             )}
 
-            {/* --- 5 กม. (แจ้งเตือน): สีส้ม เส้นประห่าง --- */}
+            {/* --- 5 กม. (แจ้งเตือน): สีส้ม เส้นทึบ (ลบเส้นประออก) --- */}
             {activeRadii.includes(5000) && (
                 <Circle 
                     center={[lat, long]} 
@@ -501,34 +501,37 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                         fillOpacity: 0.05, 
                         weight: 2,              // ความหนาเส้นขอบ
                         opacity: 0.7,
-                        dashArray: '5, 15'      // เส้นจุดไข่ปลาห่างๆ
+                        dashArray: null         // ปรับเป็นเส้นทึบ
                     }} 
                 />
             )}
-                      <Marker position={[lat, long]} icon={createDangerIcon()}>
-                          <Popup>
-                              <div className="font-sans min-w-[200px] p-2 text-center">
-                                  <div className="bg-red-50 text-red-600 font-extrabold px-3 py-1 rounded-full text-[10px] inline-flex items-center gap-1 mb-2 border border-red-100 shadow-sm">
-                                      <AlertTriangle className="w-3 h-3" /> พบเชื้อพิษสุนัขบ้า
-                                  </div>
-                                  <h3 className="font-bold text-slate-800 text-sm mb-1">{item.location}</h3>
-                                  <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">เขต{item.district}</p>
-                                  <div className="grid grid-cols-3 gap-1 text-[9px]">
-                                      <div className={`rounded p-1 font-bold ${activeRadii.includes(1000) ? 'text-red-900 bg-red-100/50' : 'text-slate-300 bg-slate-50'}`}>1 กม.<br/>ควบคุม</div>
-                                      <div className={`rounded p-1 font-bold ${activeRadii.includes(3000) ? 'text-red-600 bg-red-50/50' : 'text-slate-300 bg-slate-50'}`}>3 กม.<br/>เฝ้าระวัง</div>
-                                      <div className={`rounded p-1 font-bold ${activeRadii.includes(5000) ? 'text-orange-500 bg-orange-50/50' : 'text-slate-300 bg-slate-50'}`}>5 กม.<br/>แจ้งเตือน</div>
-                                  </div>
-                                  {onDeleteOutbreak && (
-                                    <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-all shadow-sm hover:shadow">
-                                      <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
-                                    </button>
-                                  )}
-                              </div>
-                          </Popup>
-                      </Marker>
-                  </React.Fragment>
-              );
-          })}
+            <Marker position={[lat, long]} icon={createDangerIcon()}>
+                <Popup>
+                    <div className="font-sans min-w-[200px] p-2 text-center">
+                        <div className="bg-red-50 text-red-600 font-extrabold px-3 py-1 rounded-full text-[10px] inline-flex items-center gap-1 mb-2 border border-red-100 shadow-sm">
+                            <AlertTriangle className="w-3 h-3" /> พบเชื้อพิษสุนัขบ้า
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-sm mb-1">{item.location}</h3>
+                        <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">เขต{item.district}</p>
+                        
+                        {/* Legend ใน Popup (ปรับสีให้ตรงกับวงกลม) */}
+                        <div className="grid grid-cols-3 gap-1 text-[9px]">
+                            <div className={`rounded p-1 font-bold ${activeRadii.includes(1000) ? 'text-red-900 bg-red-100/50' : 'text-slate-300 bg-slate-50'}`}>1 กม.<br/>ควบคุม</div>
+                            <div className={`rounded p-1 font-bold ${activeRadii.includes(3000) ? 'text-red-600 bg-red-50/50' : 'text-slate-300 bg-slate-50'}`}>3 กม.<br/>เฝ้าระวัง</div>
+                            <div className={`rounded p-1 font-bold ${activeRadii.includes(5000) ? 'text-orange-500 bg-orange-50/50' : 'text-slate-300 bg-slate-50'}`}>5 กม.<br/>แจ้งเตือน</div>
+                        </div>
+
+                        {onDeleteOutbreak && (
+                            <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-all shadow-sm hover:shadow">
+                                <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
+                            </button>
+                        )}
+                    </div>
+                </Popup>
+            </Marker>
+        </React.Fragment>
+    );
+})}
         </MapContainer>
       </div>
     </div>
