@@ -10,10 +10,9 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { 
     Activity, FileText, MapPin, Filter, Calendar, Database, Download, Users, 
-    Map as CheckCircle, Plus, X, Navigation, Upload, Search, 
-    Edit, Trash2, Zap, Lock, Unlock, Image as Skull, AlertTriangle, 
-    Siren, Key, ChevronRight, Info, Check, AlertCircle, Bell, CalendarDays, Share2,
-    ChevronLeft, Clock, List, Grid, Link, Settings, ChevronDown
+    CheckCircle, Plus, X, Navigation, Upload, Search, Edit, Trash2, Zap, Lock, 
+    Unlock, Skull, AlertTriangle, Siren, Key, ChevronRight, Info, Check, AlertCircle, 
+    Bell, CalendarDays, Share2,ChevronLeft, Clock, List, Grid, Link, Settings, ChevronDown
 } from 'lucide-react';
 import L from 'leaflet';
 import { io } from "socket.io-client";
