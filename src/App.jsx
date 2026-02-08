@@ -452,15 +452,59 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
           </MarkerClusterGroup>
 
           {outbreaks.map((item, index) => {
-              const lat = parseFloat(item.lat);
-              const long = parseFloat(item.long);
-              if (isNaN(lat) || isNaN(long)) return null;
+    const lat = parseFloat(item.lat);
+    const long = parseFloat(item.long);
+    if (isNaN(lat) || isNaN(long)) return null;
 
-              return (
-                  <React.Fragment key={item._id || `outbreak-${index}`}>
-                      {activeRadii.includes(1000) && <Circle center={[lat, long]} radius={1000} pathOptions={{ color: '#991b1b', fillOpacity: 0.2, weight: 1, dashArray: '4, 4' }} />}
-                      {activeRadii.includes(3000) && <Circle center={[lat, long]} radius={3000} pathOptions={{ color: '#ef4444', fillOpacity: 0.1, weight: 0 }} />}
-                      {activeRadii.includes(5000) && <Circle center={[lat, long]} radius={5000} pathOptions={{ color: '#f97316', fillOpacity: 0.05, weight: 1, dashArray: '2, 6' }} />}
+    return (
+        <React.Fragment key={item._id || `outbreak-${index}`}>
+            {/* --- 1 กม. (ควบคุม): สีแดงเข้ม เส้นทึบหนา --- */}
+            {activeRadii.includes(1000) && (
+                <Circle 
+                    center={[lat, long]} 
+                    radius={1000} 
+                    pathOptions={{ 
+                        color: '#7f1d1d',       // สีเส้นขอบ: แดงเข้มมาก
+                        fillColor: '#991b1b',   // สีพื้นที่ด้านใน
+                        fillOpacity: 0.2,       
+                        weight: 3,              // ความหนาเส้นขอบ (เพิ่มขึ้น)
+                        opacity: 1,             // ความชัดของเส้นขอบ (ชัดสุด)
+                        dashArray: null         // เส้นทึบ
+                    }} 
+                />
+            )}
+
+            {/* --- 3 กม. (เฝ้าระวัง): สีแดงปกติ เส้นประ --- */}
+            {activeRadii.includes(3000) && (
+                <Circle 
+                    center={[lat, long]} 
+                    radius={3000} 
+                    pathOptions={{ 
+                        color: '#dc2626',       // สีเส้นขอบ: แดงสด
+                        fillColor: '#ef4444',
+                        fillOpacity: 0.08, 
+                        weight: 2,              // ความหนาเส้นขอบ
+                        opacity: 0.8,
+                        dashArray: '10, 10'     // เส้นประ (ขีด 10, เว้น 10)
+                    }} 
+                />
+            )}
+
+            {/* --- 5 กม. (แจ้งเตือน): สีส้ม เส้นประห่าง --- */}
+            {activeRadii.includes(5000) && (
+                <Circle 
+                    center={[lat, long]} 
+                    radius={5000} 
+                    pathOptions={{ 
+                        color: '#ea580c',       // สีเส้นขอบ: ส้มเข้ม
+                        fillColor: '#f97316',
+                        fillOpacity: 0.05, 
+                        weight: 2,              // ความหนาเส้นขอบ
+                        opacity: 0.7,
+                        dashArray: '5, 15'      // เส้นจุดไข่ปลาห่างๆ
+                    }} 
+                />
+            )}
                       <Marker position={[lat, long]} icon={createDangerIcon()}>
                           <Popup>
                               <div className="font-sans min-w-[200px] p-2 text-center">
