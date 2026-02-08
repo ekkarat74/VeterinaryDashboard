@@ -2056,123 +2056,142 @@ export default function VeterinaryDashboard() {
                 }}
             />
             
-            {/* --- NEW HEADER DESIGN (แก้ไข: เพิ่มปุ่มนัดประชุมกลับมา) --- */}
-            <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm transition-all">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between h-auto py-3 md:h-20 md:py-0 gap-4">
-                        
-                        {/* 1. Logo & Brand */}
-                        <div className="flex items-center gap-4 self-start md:self-auto">
-                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl shadow-lg shadow-blue-500/20 shrink-0">
-                                <Activity className="text-white w-6 h-6" />
-                            </div>
-                            <div className="flex flex-col">
-                                <h1 className="text-lg md:text-xl font-extrabold text-slate-800 leading-tight tracking-tight">
-                                    ระบบรายงานสัตวแพทย์
-                                </h1>
-                                <p className="text-[10px] md:text-xs font-medium text-slate-500">
-                                    Veterinary & Animal Control Dashboard
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* 2. Controls & Actions */}
-                        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                            
-                            {/* Group A: System Tools */}
-                            {user && (
-                                <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-lg border border-slate-200 overflow-x-auto max-w-full">
-                                    {isSuperAdmin && (
-                                        <>
-                                            <button onClick={() => setIsLogModalOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="ประวัติการใช้งาน">
-                                                <FileText className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => setIsUserMgmtOpen(true)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="จัดการผู้ใช้งาน">
-                                                <Users className="w-4 h-4" />
-                                            </button>
-                                            <div className="w-px h-4 bg-slate-300 mx-1"></div>
-                                        </>
-                                    )}
-                                    {canEdit && (
-                                        <>
-                                            <button onClick={() => setIsBackupModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="สำรองข้อมูล">
-                                                <Database className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => setIsCsvModalOpen(true)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="CSV">
-                                                <Download className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={handleGenerateMockData} className="p-2 text-slate-400 hover:text-purple-600 hover:bg-white rounded-md transition-all" title="จำลองข้อมูล">
-                                                <Zap className="w-4 h-4" />
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Group B: Operation Buttons */}
-                            <div className="flex items-center gap-2 flex-wrap justify-center">
-                                {user ? (
-                                    <>
-                                        {/* Meeting View Tools */}
-                                        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
-                                            <button onClick={() => setIsMeetingListOpen(true)} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition" title="ประวัติการประชุม">
-                                                <List className="w-4 h-4" />
-                                            </button>
-                                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                                            <button onClick={() => setIsCalendarOpen(true)} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
-                                                <CalendarDays className="w-4 h-4" />
-                                                <span className="hidden xl:inline">ตารางงาน</span>
-                                            </button>
-                                        </div>
-
-                                        {/* Primary Actions (เพิ่มปุ่มนัดประชุมกลับมาตรงนี้) */}
-                                        {canEdit && (
-                                            <>
-                                                {/* ปุ่มนัดประชุม */}
-                                                <button onClick={() => setIsMeetingModalOpen(true)} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg">
-                                                    <Users className="w-4 h-4" />
-                                                    <span className="hidden sm:inline">นัดประชุม</span>
-                                                </button>
-
-                                                <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-sm hover:shadow">
-                                                    <AlertTriangle className="w-4 h-4" />
-                                                    <span className="hidden sm:inline">แจ้งโรค</span>
-                                                </button>
-                                                <button onClick={openAddModal} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
-                                                    <Plus className="w-4 h-4" />
-                                                    <span>เพิ่มข้อมูล</span>
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {/* Profile Dropdown */}
-                                        <div className="flex items-center gap-3 pl-3 border-l border-slate-200 ml-1">
-                                            <div className="flex flex-col items-end hidden sm:flex">
-                                                <span className="text-xs font-bold text-slate-700">{user.username}</span>
-                                                <span className="text-[10px] text-slate-400 uppercase">{user.role}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => setIsChangePasswordOpen(true)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-colors" title="เปลี่ยนรหัสผ่าน">
-                                                    <Key className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="ออกจากระบบ">
-                                                    <Unlock className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <button onClick={() => setIsLoginModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-bold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
-                                        <Unlock className="w-4 h-4" />
-                                        <span>เข้าสู่ระบบเจ้าหน้าที่</span>
-                                    </button>
-                                )}
-                            </div>
-
-                        </div>
+            {/* --- RESPONSIVE HEADER: ปรับตามขนาดหน้าจอ --- */}
+<header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm transition-all">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ใช้ flex-col บนมือถือ (แนวตั้ง) และ md:flex-row บนจอใหญ่ (แนวนอน) */}
+        <div className="flex flex-col md:flex-row items-center justify-between py-3 md:h-20 md:py-0 gap-3 md:gap-4">
+            
+            {/* 1. Logo & Brand (+ Profile บนมือถือ) */}
+            <div className="w-full md:w-auto flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2 rounded-lg shadow-lg shadow-blue-500/20 shrink-0">
+                        <Activity className="text-white w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col">
+                        <h1 className="text-base font-extrabold text-slate-800 leading-tight">
+                            ระบบรายงานสัตวแพทย์
+                        </h1>
+                        <p className="text-[10px] font-medium text-slate-500">
+                            Veterinary & Animal Control
+                        </p>
                     </div>
                 </div>
-            </header>
+
+                {/* Mobile Profile Actions (แสดงเฉพาะบนมือถือ อยู่ขวาสุดของบรรทัดบน) */}
+                <div className="flex md:hidden items-center gap-2">
+                     {user && (
+                        <>
+                            <button onClick={() => setIsChangePasswordOpen(true)} className="p-2 text-slate-400 bg-slate-50 border border-slate-100 rounded-full hover:bg-orange-50 hover:text-orange-500 transition">
+                                <Key className="w-4 h-4" />
+                            </button>
+                            <button onClick={handleLogout} className="p-2 text-red-400 bg-slate-50 border border-slate-100 rounded-full hover:bg-red-50 hover:text-red-600 transition">
+                                <Unlock className="w-4 h-4" />
+                            </button>
+                        </>
+                     )}
+                     {!user && (
+                        <button onClick={() => setIsLoginModalOpen(true)} className="p-2 bg-blue-600 text-white rounded-full shadow-md">
+                            <Unlock className="w-4 h-4" />
+                        </button>
+                     )}
+                </div>
+            </div>
+
+            {/* 2. Controls & Actions */}
+            {/* บนมือถือ: กว้างเต็มจอและเลื่อนแนวนอนได้ (Scrollable) / บนจอใหญ่: เรียงชิดขวาปกติ */}
+            <div className="w-full md:w-auto overflow-x-auto md:overflow-visible pb-1 md:pb-0 no-scrollbar">
+                <div className="flex items-center gap-2 md:gap-3 min-w-max px-1">
+                    
+                    {/* System Tools (แสดงเฉพาะจอ Tablet ขึ้นไป เพื่อประหยัดที่บนมือถือ) */}
+                    {user && (
+                        <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                            {isSuperAdmin && (
+                                <>
+                                    <button onClick={() => setIsLogModalOpen(true)} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="ประวัติการใช้งาน">
+                                        <FileText className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setIsUserMgmtOpen(true)} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white rounded-md transition-all" title="จัดการผู้ใช้งาน">
+                                        <Users className="w-4 h-4" />
+                                    </button>
+                                    <div className="w-px h-3 bg-slate-300 mx-0.5"></div>
+                                </>
+                            )}
+                            {canEdit && (
+                                <>
+                                    <button onClick={() => setIsBackupModalOpen(true)} className="p-1.5 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="สำรองข้อมูล">
+                                        <Database className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setIsCsvModalOpen(true)} className="p-1.5 text-slate-500 hover:text-green-600 hover:bg-white rounded-md transition-all" title="CSV">
+                                        <Download className="w-4 h-4" />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Main Operations */}
+                    <div className="flex items-center gap-2">
+                        {user ? (
+                            <>
+                                {/* View Tools */}
+                                <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
+                                    <button onClick={() => setIsMeetingListOpen(true)} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition" title="ประวัติการประชุม">
+                                        <List className="w-4 h-4" />
+                                    </button>
+                                    <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
+                                    <button onClick={() => setIsCalendarOpen(true)} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition" title="ปฏิทิน">
+                                        <CalendarDays className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Actions Buttons */}
+                                {canEdit && (
+                                    <>
+                                        <button onClick={() => setIsMeetingModalOpen(true)} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white p-2 md:px-3 md:py-2 rounded-lg shadow-sm transition-all active:scale-95">
+                                            <Users className="w-4 h-4" />
+                                            {/* ซ่อนข้อความบนจอมือถือเล็ก แสดงบน Tablet/PC */}
+                                            <span className="hidden sm:inline text-xs font-bold">นัดประชุม</span>
+                                        </button>
+
+                                        <button onClick={openAddOutbreakModal} className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-2 md:px-3 md:py-2 rounded-lg shadow-sm transition-all active:scale-95">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            <span className="hidden sm:inline text-xs font-bold">แจ้งโรค</span>
+                                        </button>
+
+                                        <button onClick={openAddModal} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white p-2 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95">
+                                            <Plus className="w-4 h-4" />
+                                            <span className="hidden sm:inline text-xs font-bold">เพิ่มข้อมูล</span>
+                                        </button>
+                                    </>
+                                )}
+
+                                {/* Desktop Profile Menu (แสดงเฉพาะจอใหญ่) */}
+                                <div className="hidden md:flex ml-2 pl-2 border-l border-slate-200 items-center gap-1">
+                                    <div className="flex flex-col items-end mr-2">
+                                        <span className="text-[10px] font-bold text-slate-700 leading-none">{user.username}</span>
+                                        <span className="text-[9px] text-slate-400 uppercase leading-none">{user.role}</span>
+                                    </div>
+                                    <button onClick={() => setIsChangePasswordOpen(true)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-colors" title="เปลี่ยนรหัสผ่าน">
+                                        <Key className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="ออกจากระบบ">
+                                        <Unlock className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <button onClick={() => setIsLoginModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg transition-all w-full justify-center md:w-auto">
+                                <Unlock className="w-4 h-4" />
+                                <span>เข้าสู่ระบบเจ้าหน้าที่</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="space-y-4">
