@@ -426,25 +426,52 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                     </div>
                   </Tooltip>
                   <Popup>
-                      <div className="font-sans min-w-[220px] p-0 overflow-hidden">
-                        {item.imageUrl && (
-                          <div className="w-full h-32 overflow-hidden relative group cursor-pointer">
-                              <img src={item.imageUrl} alt="site" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-                          </div>
-                        )} 
-                        <div className="p-3">
-                            <h3 className="font-bold text-slate-800 text-sm mb-1 leading-tight">{item.unit}</h3>
-                            <p className="text-[11px] text-slate-500 mb-3 flex items-start gap-1"><MapPin className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" /> {item.location} ({item.district})</p>
-                            <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs shadow-inner">
-                                <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-1">
-                                    <div className="font-extrabold text-slate-900">รวมทั้งหมด</div>
-                                    <span className="font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">{totalActivity.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        </div>
-                      </div>
-                  </Popup>
+  <div className="font-sans min-w-[220px] p-0 overflow-hidden">
+    {item.imageUrl && (
+      <div className="w-full h-32 overflow-hidden relative group cursor-pointer">
+        <img src={item.imageUrl} alt="site" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+      </div>
+    )}
+    <div className="p-3">
+      <h3 className="font-bold text-slate-800 text-sm mb-1 leading-tight">{item.unit}</h3>
+      <p className="text-[11px] text-slate-500 mb-3 flex items-start gap-1">
+        <MapPin className="w-3 h-3 mt-0.5 shrink-0 text-slate-400" /> 
+        {item.location} ({item.district})
+      </p>
+
+      {/* --- ส่วนที่เพิ่มและแก้ไข: แสดงรายละเอียดสถิติย่อย --- */}
+      <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs shadow-inner">
+        
+        {/* Loop แสดงค่าสถิติแต่ละประเภท ถ้ามีค่ามากกว่า 0 */}
+        {[
+            { label: 'วัคซีน', val: stats.vaccine, color: 'text-blue-600' },
+            { label: 'ทำหมัน', val: stats.sterilize, color: 'text-orange-500' },
+            { label: 'ฝังไมโครชิป', val: stats.microchip, color: 'text-green-600' },
+            { label: 'ขึ้นทะเบียน', val: stats.register, color: 'text-purple-600' },
+            { label: 'รักษาสัตว์', val: stats.medical, color: 'text-rose-600' }
+        ].map((stat, idx) => (
+            stat.val > 0 && (
+                <div key={idx} className="flex justify-between items-center border-b border-slate-200/50 pb-1 last:border-0 last:pb-0">
+                    <span className="text-slate-500 font-medium">{stat.label}</span>
+                    <span className={`font-bold ${stat.color}`}>{stat.val.toLocaleString()}</span>
+                </div>
+            )
+        ))}
+
+        {/* ส่วนแสดงยอดรวม */}
+        <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-1">
+          <div className="font-extrabold text-slate-900">รวมทั้งหมด</div>
+          <span className="font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">
+            {totalActivity.toLocaleString()}
+          </span>
+        </div>
+      </div>
+      {/* ------------------------------------------------ */}
+
+    </div>
+  </div>
+</Popup>
                 </Marker>
               );
             })}
