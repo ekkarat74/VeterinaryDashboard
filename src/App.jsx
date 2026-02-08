@@ -1492,6 +1492,8 @@ export default function VeterinaryDashboard() {
         // setIsCalendarOpen(true); 
     };
 
+    const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
+    
     // --- 2. AUTHENTICATION LOGIC ---
 
     useEffect(() => {
