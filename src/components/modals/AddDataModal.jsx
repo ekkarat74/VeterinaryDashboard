@@ -30,6 +30,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     const [formData, setFormData] = useState(defaultFormData);
     const [breakdown, setBreakdown] = useState(defaultBreakdown);
 
+    const [coordInput, setCoordInput] = useState("");
+
     // State สำหรับจัดการรูปภาพ
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -47,6 +49,12 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     lat: initialData.lat,
                     long: initialData.long
                 });
+
+                if (initialData.lat && initialData.long) {
+                    setCoordInput(`${initialData.lat}, ${initialData.long}`);
+                } else {
+                    setCoordInput("");
+                }
 
                 // ✅ FIX: ใช้การ Merge Object เพื่อป้องกัน undefined กรณีข้อมูลเก่าไม่มีบาง field
                 if (initialData.details) {
@@ -68,6 +76,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
             } else {
                 setFormData(defaultFormData);
                 setBreakdown(defaultBreakdown);
+                setCoordInput("");
                 setImageFile(null);
                 setImagePreview(null);
             }
@@ -251,30 +260,55 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     </select>
 </div>
 
-                                <div className="md:col-span-6">
-                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
-                                        <Navigation className="w-3 h-3 text-blue-500" /> 
-                                            พิกัดภูมิศาสตร์ (Latitude, Longitude)
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <input type="text" placeholder="เช่น 13.6096, 100.4655" 
-                                                className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                                                value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    if (value.includes(',')) {
-                                                        const [lat, lng] = value.split(',').map(s => s.trim());
-                                                        setFormData({ ...formData, lat, long: lng });
-                                                    } else {
-                                                        setFormData({ ...formData, lat: value });
-                                                    }
-                                                }} 
-                                            />
-                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        </div>
-                                    </div>
-                                </div>
+                                // ในส่วน return JSX (ตรง input พิกัดภูมิศาสตร์)
+
+<div className="md:col-span-6">
+    <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
+        <Navigation className="w-3 h-3 text-blue-500" /> 
+            พิกัดภูมิศาสตร์ (Latitude, Longitude)
+    </label>
+    <div className="flex gap-2">
+        <div className="relative flex-1">
+            {/* --- [แก้ไข] Input พิกัด --- */}
+            <input 
+                type="text" 
+                placeholder="เช่น 13.6096, 100.4655" 
+                className="w-full p-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                
+                // ใช้ state แยก เพื่อไม่ให้ cursor กระโดดหรือเครื่องหมายหาย
+                value={coordInput} 
+                
+                onChange={(e) => {
+                    const value = e.target.value;
+                    setCoordInput(value); // อัปเดตสิ่งที่ตาเห็นทันที
+
+                    // Logic แยกพิกัดลง formData
+                    if (value.includes(',')) {
+                        const parts = value.split(',');
+                        // ตัดช่องว่างและเก็บค่า
+                        const latVal = parts[0].trim();
+                        const longVal = parts[1].trim();
+                        
+                        setFormData({ 
+                            ...formData, 
+                            lat: latVal, 
+                            long: longVal 
+                        });
+                    } else {
+                        // กรณีพิมพ์แค่ Latitude หรือยังไม่ใส่ลูกน้ำ
+                        setFormData({ 
+                            ...formData, 
+                            lat: value.trim(), 
+                            long: '' // เคลียร์ Longitude ไว้ก่อนกันค่าค้าง
+                        });
+                    }
+                }} 
+            />
+            {/* ------------------------- */}
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        </div>
+    </div>
+</div>
 
                                 {/* อัปโหลดรูปภาพ */}
                                 <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
