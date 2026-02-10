@@ -2028,29 +2028,69 @@ export default function VeterinaryDashboard() {
                 if (!confirmImport) return;
 
                 let successCount = 0; let failCount = 0;
+
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
-                    const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
-                    const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').replace(/,$/, '').trim());
+
+                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
+
+                    if (cleanCols.length < 6) continue;
 
                     let lat = 0; let long = 0;
                     if (cleanCols[5]) {
-                        const coords = cleanCols[5].split(',');
-                        if (coords.length === 2) { lat = parseFloat(coords[0]) || 0; long = parseFloat(coords[1]) || 0; }
-                        else { lat = parseFloat(cleanCols[5]) || 0; }
+                        if(cleanCols[5].includes(',')){
+                            const coords = cleanCols[5].split(',');
+                            lat = parseFloat(coords[0]) || 0;
+                            long = parseFloat(coords[1]) || 0;
+                        } else {
+                            lat = parseFloat(cleanCols[5]) || 0;
+                        }
                     }
 
+                    // Mapping ข้อมูลให้ตรงกับ exportToCSV (0-24 index)
                     const newRecord = {
-                        date: cleanCols[0], location: cleanCols[1], district: cleanCols[2], subdistrict: cleanCols[3], unit: cleanCols[4],
-                        stats: { vaccine: parseInt(cleanCols[6]) || 0, sterilize: parseInt(cleanCols[7]) || 0, register: parseInt(cleanCols[8]) || 0, microchip: parseInt(cleanCols[9]) || 0, medical: parseInt(cleanCols[10]) || 0 },
-                        lat: lat, long: long,
+                        date: cleanCols[0],
+                        location: cleanCols[1],
+                        district: cleanCols[2],
+                        subdistrict: cleanCols[3],
+                        unit: cleanCols[4],
+                        lat: lat,
+                        long: long,
+                        // --- แก้ไข: ดึงยอดรวมจากช่อง Total ของแต่ละหมวด ---
+                        stats: { 
+                            vaccine: parseInt(cleanCols[9]) || 0,   // รวมวัคซีน (Column 10)
+                            sterilize: parseInt(cleanCols[14]) || 0,// รวมทำหมัน (Column 15)
+                            microchip: parseInt(cleanCols[17]) || 0,// รวมฝังไมโครชิป (Column 18)
+                            register: parseInt(cleanCols[20]) || 0, // รวมขึ้นทะเบียน (Column 21)
+                            medical: parseInt(cleanCols[24]) || 0   // รวมรักษา (Column 25)
+                        },
+                        // --- แก้ไข: ดึงรายละเอียดรายตัวให้ตรงช่อง ---
                         details: { 
-                            dog: { vaccine: parseInt(cleanCols[11]) || 0, maleSterilize: parseInt(cleanCols[12]) || 0, femaleSterilize: parseInt(cleanCols[13]) || 0, register: parseInt(cleanCols[14]) || 0, microchip: parseInt(cleanCols[15]) || 0, medical: parseInt(cleanCols[16]) || 0 },
-                            cat: { vaccine: parseInt(cleanCols[17]) || 0, maleSterilize: parseInt(cleanCols[18]) || 0, femaleSterilize: parseInt(cleanCols[19]) || 0, register: parseInt(cleanCols[20]) || 0, microchip: parseInt(cleanCols[21]) || 0, medical: parseInt(cleanCols[22]) || 0 },
-                            other: { vaccine: parseInt(cleanCols[23]) || 0, medical: parseInt(cleanCols[24]) || 0 }
+                            dog: { 
+                                vaccine: parseInt(cleanCols[6]) || 0, 
+                                maleSterilize: parseInt(cleanCols[10]) || 0, 
+                                femaleSterilize: parseInt(cleanCols[11]) || 0, 
+                                microchip: parseInt(cleanCols[15]) || 0,
+                                register: parseInt(cleanCols[18]) || 0,
+                                medical: parseInt(cleanCols[21]) || 0 
+                            },
+                            cat: { 
+                                vaccine: parseInt(cleanCols[7]) || 0, 
+                                maleSterilize: parseInt(cleanCols[12]) || 0, 
+                                femaleSterilize: parseInt(cleanCols[13]) || 0, 
+                                microchip: parseInt(cleanCols[16]) || 0,
+                                register: parseInt(cleanCols[19]) || 0,
+                                medical: parseInt(cleanCols[22]) || 0 
+                            },
+                            other: { 
+                                vaccine: parseInt(cleanCols[8]) || 0, 
+                                medical: parseInt(cleanCols[23]) || 0 
+                            }
                         }
                     };
+
                     if (!newRecord.date || !newRecord.location) { failCount++; continue; }
 
                     try {
@@ -2064,7 +2104,10 @@ export default function VeterinaryDashboard() {
                 }
                 alert(`นำเข้าข้อมูลเสร็จสิ้น\n✅ สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว: ${failCount} รายการ`);
                 window.location.reload();
-            } catch (error) { alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV"); }
+            } catch (error) { 
+                console.error(error);
+                alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV"); 
+            }
         };
         reader.readAsText(file);
     };
