@@ -260,8 +260,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     </select>
 </div>
 
-                                // ในส่วน return JSX (ตรง input พิกัดภูมิศาสตร์)
-
 <div className="md:col-span-6">
     <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
         <Navigation className="w-3 h-3 text-blue-500" /> 
