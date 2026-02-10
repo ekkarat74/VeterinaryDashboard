@@ -98,6 +98,18 @@ const outbreakSchema = new mongoose.Schema({
   district: String,
   lat: { type: Number, required: true },
   long: { type: Number, required: true },
+  // --- [เพิ่มส่วนนี้] ---
+  stats: {
+    dog: { 
+      male: { type: Number, default: 0 }, 
+      female: { type: Number, default: 0 } 
+    },
+    cat: { 
+      male: { type: Number, default: 0 }, 
+      female: { type: Number, default: 0 } 
+    }
+  }
+  // ------------------
 }, { timestamps: true });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 

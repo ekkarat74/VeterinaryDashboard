@@ -135,6 +135,12 @@ const RabiesOutbreakSection = ({
                                             <p className={`text-xs font-bold truncate ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
                                                 {item.location} {isHidden && "(ซ่อน)"}
                                             </p>
+                                            {item.stats && (
+   <div className="flex gap-2 mt-1 text-[10px] text-slate-500">
+       <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐶 {(item.stats.dog?.male || 0) + (item.stats.dog?.female || 0)}</span></span>
+       <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐱 {(item.stats.cat?.male || 0) + (item.stats.cat?.female || 0)}</span></span>
+   </div>
+)}
                                             <div className="flex justify-between items-center mt-0.5">
                                                 <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{item.district}</span>
                                                 <span className="text-[9px] text-slate-400">

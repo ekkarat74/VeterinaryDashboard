@@ -540,6 +540,25 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                         <h3 className="font-bold text-slate-800 text-sm mb-1">{item.location}</h3>
                         <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">เขต{item.district}</p>
                         
+                        {/* --- [เพิ่ม] ส่วนแสดงยอดสัตว์ใน Popup --- */}
+{(item.stats) && (
+    <div className="mb-3 bg-red-50 p-2 rounded border border-red-100">
+        <div className="grid grid-cols-3 gap-1 text-[10px] text-center font-bold text-slate-600 mb-1 border-b border-red-200 pb-1">
+            <span>ชนิด</span><span>ผู้</span><span>เมีย</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1 text-[10px] text-center mb-1">
+            <span className="text-slate-500">สุนัข</span>
+            <span className="text-slate-800">{item.stats.dog?.male || 0}</span>
+            <span className="text-slate-800">{item.stats.dog?.female || 0}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
+            <span className="text-slate-500">แมว</span>
+            <span className="text-slate-800">{item.stats.cat?.male || 0}</span>
+            <span className="text-slate-800">{item.stats.cat?.female || 0}</span>
+        </div>
+    </div>
+)}
+
                         {/* Legend ใน Popup (ปรับสีให้ตรงกับวงกลม) */}
                         <div className="grid grid-cols-3 gap-1 text-[9px]">
                             <div className={`rounded p-1 font-bold ${activeRadii.includes(1000) ? 'text-red-900 bg-red-100/50' : 'text-slate-300 bg-slate-50'}`}>1 กม.<br/>ควบคุม</div>
@@ -587,7 +606,11 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
         location: '',
         district: BANGKOK_DISTRICTS[0],
         lat: '',
-        long: ''
+        long: '',
+        stats: {
+            dog: { male: 0, female: 0 },
+            cat: { male: 0, female: 0 }
+    }
     });
 
     // [เพิ่ม] State สำหรับควบคุม Input พิกัด เพื่อให้พิมพ์ลื่นไหล
@@ -601,7 +624,8 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     location: initialData.location,
                     district: initialData.district,
                     lat: initialData.lat,
-                    long: initialData.long
+                    long: initialData.long,
+                    stats: initialData.stats || { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
                 });
                 // [เพิ่ม] ตั้งค่าเริ่มต้นให้ coordInput
                 if (initialData.lat && initialData.long) {
@@ -615,7 +639,8 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     location: '',
                     district: BANGKOK_DISTRICTS[0],
                     lat: '',
-                    long: ''
+                    long: '',
+                    stats: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
                 });
                 setCoordInput("");
             }
@@ -652,7 +677,6 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     <button onClick={onClose}><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {/* ... (Date, Location, District Input เหมือนเดิม ไม่ต้องแก้) ... */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
                         <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
@@ -701,6 +725,67 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         </div>
                     </div>
+
+                    {/* --- [เพิ่ม] ส่วนกรอกจำนวนสัตว์ --- */}
+<div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
+    <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
+        <Activity className="w-3 h-3" /> จำนวนสัตว์ที่พบเชื้อ (ตัว)
+    </label>
+    
+    {/* แถวสุนัข */}
+    <div className="flex items-center gap-2">
+        <span className="text-xs font-bold w-12 text-slate-700">🐶 สุนัข</span>
+        <div className="flex-1 flex gap-2">
+             <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ผู้</span>
+                <input type="number" min="0" className="w-full pl-6 p-1.5 border border-slate-300 rounded text-sm text-center" 
+                    value={formData.stats.dog.male}
+                    onChange={e => setFormData({
+                        ...formData, 
+                        stats: { ...formData.stats, dog: { ...formData.stats.dog, male: parseInt(e.target.value) || 0 } }
+                    })}
+                />
+            </div>
+            <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">เมีย</span>
+                <input type="number" min="0" className="w-full pl-8 p-1.5 border border-slate-300 rounded text-sm text-center" 
+                    value={formData.stats.dog.female}
+                    onChange={e => setFormData({
+                        ...formData, 
+                        stats: { ...formData.stats, dog: { ...formData.stats.dog, female: parseInt(e.target.value) || 0 } }
+                    })}
+                />
+            </div>
+        </div>
+    </div>
+
+    {/* แถวแมว */}
+    <div className="flex items-center gap-2">
+        <span className="text-xs font-bold w-12 text-slate-700">🐱 แมว</span>
+        <div className="flex-1 flex gap-2">
+             <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ผู้</span>
+                <input type="number" min="0" className="w-full pl-6 p-1.5 border border-slate-300 rounded text-sm text-center" 
+                    value={formData.stats.cat.male}
+                    onChange={e => setFormData({
+                        ...formData, 
+                        stats: { ...formData.stats, cat: { ...formData.stats.cat, male: parseInt(e.target.value) || 0 } }
+                    })}
+                />
+            </div>
+            <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">เมีย</span>
+                <input type="number" min="0" className="w-full pl-8 p-1.5 border border-slate-300 rounded text-sm text-center" 
+                    value={formData.stats.cat.female}
+                    onChange={e => setFormData({
+                        ...formData, 
+                        stats: { ...formData.stats, cat: { ...formData.stats.cat, female: parseInt(e.target.value) || 0 } }
+                    })}
+                />
+            </div>
+        </div>
+    </div>
+</div>
                     
                     <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่ (คั่นด้วยเครื่องหมายจุลภาค ,)</p>
                     <div className="pt-4 border-t border-slate-100 flex gap-3">
