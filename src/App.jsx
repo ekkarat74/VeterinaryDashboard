@@ -580,7 +580,8 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
 };
 
 // 9. AddOutbreakModal
-const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) => {
+// ค้นหา const AddOutbreakModal และแทนที่ด้วยโค้ดนี้
+const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         location: '',
@@ -588,6 +589,9 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) =>
         lat: '',
         long: ''
     });
+
+    // [เพิ่ม] State สำหรับควบคุม Input พิกัด เพื่อให้พิมพ์ลื่นไหล
+    const [coordInput, setCoordInput] = useState("");
 
     useEffect(() => {
         if (isOpen) {
@@ -599,6 +603,12 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) =>
                     lat: initialData.lat,
                     long: initialData.long
                 });
+                // [เพิ่ม] ตั้งค่าเริ่มต้นให้ coordInput
+                if (initialData.lat && initialData.long) {
+                    setCoordInput(`${initialData.lat}, ${initialData.long}`);
+                } else {
+                    setCoordInput("");
+                }
             } else {
                 setFormData({
                     date: new Date().toISOString().split('T')[0],
@@ -607,6 +617,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) =>
                     lat: '',
                     long: ''
                 });
+                setCoordInput("");
             }
         }
     }, [isOpen, initialData]);
@@ -615,11 +626,14 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) =>
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // [แก้ไข] เพิ่มการตรวจสอบ isNaN เพื่อป้องกัน Database Error
         const payload = {
             ...formData,
-            lat: parseFloat(formData.lat),
-            long: parseFloat(formData.long)
+            lat: (formData.lat && !isNaN(formData.lat)) ? parseFloat(formData.lat) : 0,
+            long: (formData.long && !isNaN(formData.long)) ? parseFloat(formData.long) : 0
         };
+
         if (initialData) {
             onUpdate(initialData._id, payload);
         } else {
@@ -638,6 +652,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) =>
                     <button onClick={onClose}><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {/* ... (Date, Location, District Input เหมือนเดิม ไม่ต้องแก้) ... */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
                         <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
@@ -655,26 +670,38 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData }) =>
                             {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                     </div>
+
+                    {/* [แก้ไข] ส่วน Input พิกัดใหม่ */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
                             <Navigation className="w-3 h-3 text-red-500" /> พิกัดภูมิศาสตร์ (Latitude, Longitude)
                         </label>
                         <div className="relative">
-                            <input type="text" placeholder="เช่น 13.xxxx, 100.xxxx" className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono"
-                                value={formData.lat && formData.long ? `${formData.lat}, ${formData.long}` : (formData.lat || formData.long || "")}
+                            <input 
+                                type="text" 
+                                placeholder="เช่น 13.xxxx, 100.xxxx" 
+                                className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono"
+                                // ใช้ coordInput แทน formData โดยตรง
+                                value={coordInput} 
                                 onChange={(e) => {
                                     const value = e.target.value;
+                                    setCoordInput(value); // อัปเดต UI ทันที
+
+                                    // Logic แยกค่า Lat/Long
                                     if (value.includes(',')) {
-                                        const [lat, lng] = value.split(',').map(s => s.trim());
-                                        setFormData({ ...formData, lat, long: lng });
+                                        const parts = value.split(',');
+                                        const latVal = parts[0].trim();
+                                        const longVal = parts[1] ? parts[1].trim() : '';
+                                        setFormData({ ...formData, lat: latVal, long: longVal });
                                     } else {
-                                        setFormData({ ...formData, lat: value });
+                                        setFormData({ ...formData, lat: value.trim(), long: '' });
                                     }
                                 }}
                             />
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         </div>
                     </div>
+                    
                     <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่ (คั่นด้วยเครื่องหมายจุลภาค ,)</p>
                     <div className="pt-4 border-t border-slate-100 flex gap-3">
                         <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">ยกเลิก</button>
@@ -2017,6 +2044,37 @@ export default function VeterinaryDashboard() {
         return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 5);
     }, [rankingFilteredData]);
 
+    // --- [เพิ่ม] ฟังก์ชันแปลงวันที่จาก CSV ให้เป็น YYYY-MM-DD ---
+const parseCSVDate = (dateStr) => {
+    if (!dateStr) return new Date().toISOString().split('T')[0];
+
+    // ถ้าเป็น format YYYY-MM-DD อยู่แล้ว ให้ใช้เลย
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+    // รองรับ format DD/MM/YYYY หรือ DD-MM-YYYY
+    // เช่น 25/01/2567 หรือ 25-01-2024
+    const parts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    
+    if (parts) {
+        let day = parts[1].padStart(2, '0');
+        let month = parts[2].padStart(2, '0');
+        let year = parseInt(parts[3]);
+
+        // ตรวจสอบว่าเป็น พ.ศ. หรือไม่ (ถ้ามากกว่า 2400 สันนิษฐานว่าเป็น พ.ศ. ให้ลบ 543)
+        if (year > 2400) year -= 543;
+
+        return `${year}-${month}-${day}`;
+    }
+
+    // กรณีอื่น ๆ ลองให้ JS Date แปลง
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+    }
+
+    return new Date().toISOString().split('T')[0]; // กรณีแปลงไม่ได้ ให้ใช้วันปัจจุบัน
+};
+
     // CSV Import Logic
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -2060,7 +2118,7 @@ export default function VeterinaryDashboard() {
 
                     // Mapping ข้อมูล
                     const newRecord = {
-                        date: cleanCols[0],
+                        date: parseCSVDate(cleanCols[0]),
                         location: cleanCols[1],
                         district: cleanCols[2],
                         subdistrict: cleanCols[3],
