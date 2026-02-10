@@ -1651,6 +1651,10 @@ export default function VeterinaryDashboard() {
                     setMeetings(prev => prev.map(m => m._id === payload.data._id ? payload.data : m));
                     addToast('info', `📝 แก้ไขนัดหมายประชุม: ${payload.data.title}`);
                     break;
+                case 'REPORTS_IMPORTED': // เพิ่ม case นี้
+                    fetchData(); // โหลดข้อมูลใหม่ทั้งหมดทีเดียว
+                    addToast('success', `📥 มีการนำเข้าข้อมูลชุดใหญ่จำนวน ${payload.count} รายการ`);
+                    break;
                 default: break;
             }
         });
@@ -2018,25 +2022,30 @@ export default function VeterinaryDashboard() {
         const file = e.target.files[0];
         if (!file) return;
         if (file.type !== "text/csv" && !file.name.endsWith('.csv')) { alert("กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น"); return; }
+        
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
                 const text = event.target.result;
                 const lines = text.split('\n');
                 if (lines.length < 2) { alert("ไฟล์ไม่มีข้อมูล"); return; }
-                const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าหรือไม่? \n(ระบบจะอ่านข้อมูลรายละเอียดทั้งหมด)`);
+                
+                const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าทั้งหมดในครั้งเดียวหรือไม่?`);
                 if (!confirmImport) return;
 
-                let successCount = 0; let failCount = 0;
-
+                const bulkData = []; // สร้าง Array เพื่อรอรับข้อมูลทั้งหมด
+                let failCount = 0;
+                
+                // เริ่มที่ i = 1 เพื่อข้าม Header
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
 
+                    // ใช้ Regex แยก CSV (รองรับข้อมูลที่มี , อยู่ในเครื่องหมายคำพูด และช่องว่าง)
                     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
 
-                    if (cleanCols.length < 6) continue;
+                    if (cleanCols.length < 6) { failCount++; continue; }
 
                     let lat = 0; let long = 0;
                     if (cleanCols[5]) {
@@ -2049,7 +2058,7 @@ export default function VeterinaryDashboard() {
                         }
                     }
 
-                    // Mapping ข้อมูลให้ตรงกับ exportToCSV (0-24 index)
+                    // Mapping ข้อมูล
                     const newRecord = {
                         date: cleanCols[0],
                         location: cleanCols[1],
@@ -2058,15 +2067,13 @@ export default function VeterinaryDashboard() {
                         unit: cleanCols[4],
                         lat: lat,
                         long: long,
-                        // --- แก้ไข: ดึงยอดรวมจากช่อง Total ของแต่ละหมวด ---
                         stats: { 
-                            vaccine: parseInt(cleanCols[9]) || 0,   // รวมวัคซีน (Column 10)
-                            sterilize: parseInt(cleanCols[14]) || 0,// รวมทำหมัน (Column 15)
-                            microchip: parseInt(cleanCols[17]) || 0,// รวมฝังไมโครชิป (Column 18)
-                            register: parseInt(cleanCols[20]) || 0, // รวมขึ้นทะเบียน (Column 21)
-                            medical: parseInt(cleanCols[24]) || 0   // รวมรักษา (Column 25)
+                            vaccine: parseInt(cleanCols[9]) || 0,
+                            sterilize: parseInt(cleanCols[14]) || 0,
+                            microchip: parseInt(cleanCols[17]) || 0,
+                            register: parseInt(cleanCols[20]) || 0,
+                            medical: parseInt(cleanCols[24]) || 0
                         },
-                        // --- แก้ไข: ดึงรายละเอียดรายตัวให้ตรงช่อง ---
                         details: { 
                             dog: { 
                                 vaccine: parseInt(cleanCols[6]) || 0, 
@@ -2091,19 +2098,38 @@ export default function VeterinaryDashboard() {
                         }
                     };
 
-                    if (!newRecord.date || !newRecord.location) { failCount++; continue; }
-
-                    try {
-                        const response = await fetch(API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                            body: JSON.stringify(newRecord)
-                        });
-                        if (response.ok) successCount++; else failCount++;
-                    } catch (err) { failCount++; }
+                    if (newRecord.date && newRecord.location) {
+                        bulkData.push(newRecord); // เก็บลง Array แทนการยิง API ทันที
+                    } else {
+                        failCount++;
+                    }
                 }
-                alert(`นำเข้าข้อมูลเสร็จสิ้น\n✅ สำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว: ${failCount} รายการ`);
-                window.location.reload();
+
+                if (bulkData.length === 0) {
+                    alert("ไม่พบข้อมูลที่ถูกต้องสำหรับนำเข้า");
+                    return;
+                }
+
+                // ส่งข้อมูลทั้งหมดไปที่ API ครั้งเดียว
+                try {
+                    const response = await fetch(`${BASE_URL}/api/reports/bulk`, { // เรียก endpoint ใหม่
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                        body: JSON.stringify(bulkData)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${result.count} รายการ\n(ข้อมูลที่ไม่สมบูรณ์และถูกข้าม: ${failCount})`);
+                        window.location.reload();
+                    } else {
+                        alert("❌ เกิดข้อผิดพลาดจาก Server ในการบันทึกข้อมูล");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("❌ ไม่สามารถเชื่อมต่อกับ Server ได้");
+                }
+
             } catch (error) { 
                 console.error(error);
                 alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV"); 

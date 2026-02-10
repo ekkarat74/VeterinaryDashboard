@@ -41,8 +41,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                 setFormData({
                     date: initialData.date,
                     location: initialData.location,
-                    district: initialData.district,
-                    subdistrict: initialData.subdistrict || '',
+                    district: initialData.district ? initialData.district.trim() : '',
+                    subdistrict: initialData.subdistrict ? initialData.subdistrict.trim() : '', 
                     unit: initialData.unit,
                     lat: initialData.lat,
                     long: initialData.long
@@ -230,26 +230,26 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                     </select>
                                 </div>
 
-                                <div className="md:col-span-3">
-                                    <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
-                                    {/* [EDIT] เปลี่ยนจาก Input เป็น Select เพื่อเลือกแขวงตามเขต */}
-                                    <select 
-                                        required 
-                                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={formData.subdistrict} 
-                                        onChange={e => setFormData({...formData, subdistrict: e.target.value})}
-                                        disabled={!formData.district} // ปิดถ้ายังไม่เลือกเขต
-                                    >
-                                        <option value="">-- เลือกแขวง --</option>
-                                        {formData.district && BANGKOK_SUBDISTRICTS[formData.district] ? (
-                                            BANGKOK_SUBDISTRICTS[formData.district].map(sub => (
-                                                <option key={sub} value={sub}>{sub}</option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>ไม่มีข้อมูลแขวง</option>
-                                        )}
-                                    </select>
-                                </div>
+<div className="md:col-span-3">
+    <label className="block text-xs font-semibold text-slate-500 mb-1.5">แขวง (Sub-district)</label>
+    <select 
+        required 
+        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+        value={formData.subdistrict} 
+        onChange={e => setFormData({...formData, subdistrict: e.target.value})}
+        disabled={!formData.district} // ปิดถ้ายังไม่เลือกเขต
+    >
+        <option value="">-- เลือกแขวง --</option>
+        {/* ตรวจสอบว่ามีข้อมูลเขต และมี key ใน BANGKOK_SUBDISTRICTS หรือไม่ */}
+        {formData.district && BANGKOK_SUBDISTRICTS[formData.district] ? (
+            BANGKOK_SUBDISTRICTS[formData.district].map(sub => (
+                <option key={sub} value={sub}>{sub}</option>
+            ))
+        ) : (
+            <option value="" disabled>ไม่มีข้อมูลแขวง (ตรวจสอบชื่อเขต)</option>
+        )}
+    </select>
+</div>
 
                                 <div className="md:col-span-6">
                                     <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">

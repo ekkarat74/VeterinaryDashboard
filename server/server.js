@@ -595,5 +595,36 @@ app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'supe
     }
 });
 
+// Bulk Create Reports (เพิ่มใหม่สำหรับ Import ข้อมูลจำนวนมาก)
+app.post('/api/reports/bulk', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const reports = req.body; // รับ Array ของ objects
+        
+        if (!Array.isArray(reports)) {
+            return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
+        }
+
+        // เพิ่ม field createdBy ให้กับทุก record
+        const reportsWithUser = reports.map(report => ({
+            ...report,
+            createdBy: req.user.username
+        }));
+
+        // บันทึกลง Database ทีเดียว (ประสิทธิภาพสูงกว่าวน loop save)
+        const insertedReports = await Report.insertMany(reportsWithUser);
+
+        // ✅ บันทึก Log
+        await createLog(req, 'BULK_IMPORT_REPORTS', `นำเข้าข้อมูลจำนวน ${insertedReports.length} รายการ`);
+
+        // แจ้งเตือน Client ทั้งหมดว่ามีการอัปเดตข้อมูล (ส่งแบบ Bulk Event)
+        io.emit('server_data_update', { type: 'REPORTS_IMPORTED', count: insertedReports.length });
+
+        res.status(201).json({ message: "นำเข้าข้อมูลสำเร็จ", count: insertedReports.length });
+    } catch (err) {
+        console.error("Bulk Import Error:", err);
+        res.status(400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
+    }
+});
+
 // --- SERVER START ---
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
