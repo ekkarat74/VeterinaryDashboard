@@ -974,7 +974,9 @@ ${staffDetails}
 
                 {/* Footer Buttons */}
                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-2 shrink-0">
-                    <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all"></button>
+                    <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all">
+                        <Share2 className="w-5 h-5" /> ส่งแจ้งเตือนเข้า Line กลุ่ม
+                    </button>
                     <div className="flex gap-2">
                         {initialData && onDelete && (
                         <button onClick={() => onDelete(initialData._id)} className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-bold hover:bg-red-100">
