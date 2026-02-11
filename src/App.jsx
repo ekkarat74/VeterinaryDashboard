@@ -698,8 +698,8 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
     </div>
 );
 
-// 12. DispatchModal (แก้ไข: เรียกใช้ Component ภายนอก)
-const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => { 
+// 12. DispatchModal
+const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
     // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
     const getTomorrowDate = () => {
         const tomorrow = new Date();
