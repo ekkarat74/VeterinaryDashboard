@@ -1213,7 +1213,7 @@ const MeetingListModal = ({ isOpen, onClose, meetings, onEdit }) => {
 };
 
 // --- NEW COMPONENT: Dispatch Calendar & Dashboard ---
-const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] }) => {
+const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -1289,7 +1289,12 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [] })
                                     </div>
                                 ) : (
                                     selectedDateEvents.map((evt, idx) => (
-                                        <div key={idx} className="bg-white p-3 rounded-lg border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-all">
+                                        // [แก้ไข] เพิ่ม onClick และ cursor-pointer เพื่อให้คลิกได้
+                                        <div 
+                                            key={idx} 
+                                            onClick={() => onEventClick && onEventClick(evt)}
+                                            className="bg-white p-3 rounded-lg border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-all cursor-pointer hover:bg-indigo-50 active:scale-95"
+                                        >
                                             <div className="flex justify-between items-start">
                                                 <div className="font-bold text-slate-800 text-sm">{evt.location}</div>
                                                 <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold">{evt.time}</span>
@@ -1773,9 +1778,12 @@ export default function VeterinaryDashboard() {
             setViewingMeeting(evt.originalData);
             setIsMeetingModalOpen(true);
         } else {
-            setViewingDispatch(evt.originalData);
-            setIsDispatchModalOpen(true);
-            alert(`รายละเอียดงาน: ${evt.location}\nทีม: ${evt.team}`);
+            // กรณีเป็น Dispatch (แผนงานออกหน่วย)
+            setViewingDispatch(evt.originalData); // ส่งข้อมูลเดิมไปที่ Modal
+            setIsDispatchModalOpen(true);         // เปิด Modal
+            
+            // [ลบออก] alert(`รายละเอียดงาน: ${evt.location}\nทีม: ${evt.team}`); 
+            // ลบ alert เพื่อให้ UI เปิดหน้าต่างแก้ไขทันที ดูเป็นธรรมชาติกว่า
         }
     };
 
