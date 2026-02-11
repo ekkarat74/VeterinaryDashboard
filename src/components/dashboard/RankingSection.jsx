@@ -1,4 +1,3 @@
-import React from 'react';
 import { Filter, Activity, CheckCircle } from 'lucide-react';
 
 const RankingSection = ({
@@ -42,7 +41,7 @@ const RankingSection = ({
                     <Activity className="w-5 h-5 text-orange-500" /> สถิติการออกหน่วย
                 </h2>
                 <div className="overflow-x-auto flex-1 custom-scrollbar">
-                    <table className="w-full text-left text-xs min-w-[600px]"> {/* ปรับ min-w เพิ่มเล็กน้อยเผื่อคอลัมน์ใหม่ */}
+                    <table className="w-full text-left text-xs min-w-[600px]">
                         <thead className="bg-slate-50 font-bold text-slate-500 sticky top-0 z-10">
                             <tr>
                                 <th className="p-3 rounded-tl-lg rounded-bl-lg text-center w-10">#</th>
@@ -50,13 +49,9 @@ const RankingSection = ({
                                 <th className="p-3 text-center bg-yellow-50 text-yellow-700 border-x border-yellow-100">ออกหน่วย (ครั้ง)</th>
                                 <th className="p-3 text-center text-blue-600">วัคซีน</th>
                                 <th className="p-3 text-center text-orange-500">ทำหมัน</th>
-                                <th className="p-3 text-center text-purple-600">ชิป</th>
-                                
-                                {/* --- [ส่วนที่เพิ่ม] : หัวตาราง ขึ้นทะเบียน และ รักษา --- */}
+                                <th className="p-3 text-center text-purple-600">ไมโครชิป</th>
                                 <th className="p-3 text-center text-teal-600">ขึ้นทะเบียน</th>
                                 <th className="p-3 text-center text-pink-500">รักษา</th>
-                                {/* ------------------------------------------------ */}
-
                                 <th className="p-3 text-right rounded-tr-lg rounded-br-lg text-slate-800">ผลงานรวม</th>
                             </tr>
                         </thead>
@@ -67,28 +62,17 @@ const RankingSection = ({
                                         <span className={`flex items-center justify-center w-6 h-6 rounded-lg text-[10px] ${i === 0 ? 'bg-yellow-400 text-white shadow-md shadow-yellow-200' : i === 1 ? 'bg-slate-300 text-white' : i === 2 ? 'bg-orange-300 text-white' : 'bg-slate-100 text-slate-400'}`}>{i + 1}</span>
                                     </td>
                                     <td className="p-3 font-bold text-slate-700">{u.name}</td>
-                                    
-                                    <td className="p-3 text-center font-extrabold text-yellow-700 bg-yellow-50/30 border-x border-slate-100 text-sm">
-                                        {u.count.toLocaleString()}
-                                    </td>
-                                    
+                                    <td className="p-3 text-center font-extrabold text-yellow-700 bg-yellow-50/30 border-x border-slate-100 text-sm">{u.count.toLocaleString()}</td>
                                     <td className="p-3 text-center text-slate-500 group-hover:text-blue-600 transition-colors">{u.vaccine.toLocaleString()}</td>
                                     <td className="p-3 text-center text-slate-500 group-hover:text-orange-500 transition-colors">{u.sterilize.toLocaleString()}</td>
                                     <td className="p-3 text-center text-slate-500 group-hover:text-purple-600 transition-colors">{u.microchip.toLocaleString()}</td>
-                                    <td className="p-3 text-center text-slate-500 group-hover:text-teal-600 transition-colors">
-                                        {u.register.toLocaleString()}
-                                    </td>
-                                    <td className="p-3 text-center text-slate-500 group-hover:text-pink-500 transition-colors">
-                                        {u.medical.toLocaleString()}
-                                    </td>
-                                    {/* ------------------------------------------------ */}
-
+                                    <td className="p-3 text-center text-slate-500 group-hover:text-teal-600 transition-colors">{u.register.toLocaleString()}</td>
+                                    <td className="p-3 text-center text-slate-500 group-hover:text-pink-500 transition-colors">{u.medical.toLocaleString()}</td>
                                     <td className="p-3 text-right font-bold text-slate-800">{u.total.toLocaleString()}</td>
                                 </tr>
                             ))}
                             {rankingUnitStats.length === 0 && (
                                 <tr>
-                                    {/* ปรับ colSpan เป็น 9 ให้พอดีกับจำนวนคอลัมน์ใหม่ */}
                                     <td colSpan="9" className="p-4 text-center text-slate-400">ไม่พบข้อมูล</td>
                                 </tr>
                             )}

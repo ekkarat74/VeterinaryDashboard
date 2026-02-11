@@ -136,6 +136,23 @@ const meetingSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Meeting = mongoose.model('Meeting', meetingSchema);
 
+//6. Dispatch Plan Schema (แผนการออกหน่วย) ---
+const dispatchPlanSchema = new mongoose.Schema({
+    unitType: { type: String, required: true }, // sterilization, microchip
+    title: String,       // ชื่อหน่วยงานที่แสดง
+    date: { type: String, required: true },
+    time: String,        // เวลารถออก
+    closingTime: String, // เวลาปิดหน่วย
+    location: { type: String, required: true },
+    mapLink: String,
+    note: String,
+    staff: { type: Object, default: {} }, // เก็บรายชื่อเจ้าหน้าที่ทั้งหมด
+    team: String,        // ชื่อทีม (เช่น ทีม 1, หรือรายชื่อสัตวแพทย์)
+    createdBy: String
+}, { timestamps: true });
+
+const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);
+
 // --- HELPER FUNCTIONS ---
 
 // Function บันทึก Log (✅ ส่วนที่เพิ่มใหม่)
@@ -656,6 +673,73 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['admin', 'supe
     } catch (err) {
         console.error("Bulk Import Outbreak Error:", err);
         res.status(400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
+    }
+});
+
+// =======================
+// G. DISPATCH PLANS (เพิ่มใหม่)
+// =======================
+
+// 1. ดึงข้อมูลแผนงานทั้งหมด
+app.get('/api/dispatches', async (req, res) => {
+    try {
+        // เรียงวันที่จากใหมไปเก่า
+        const plans = await DispatchPlan.find().sort({ date: -1 });
+        res.json(plans);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 2. บันทึกแผนงานใหม่
+app.post('/api/dispatches', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const newPlan = new DispatchPlan({
+            ...req.body,
+            createdBy: req.user.username
+        });
+        const savedPlan = await newPlan.save();
+
+        // Log และแจ้ง Socket
+        await createLog(req, 'CREATE_DISPATCH', `สร้างแผนออกหน่วย: ${savedPlan.location}`);
+        io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedPlan });
+
+        res.status(201).json(savedPlan);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// 3. แก้ไขแผนงาน
+app.put('/api/dispatches/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const updatedPlan = await DispatchPlan.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        if (!updatedPlan) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+        await createLog(req, 'UPDATE_DISPATCH', `แก้ไขแผนออกหน่วย: ${updatedPlan.location}`);
+        io.emit('server_data_update', { type: 'DISPATCH_UPDATED', data: updatedPlan });
+
+        res.json(updatedPlan);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// 4. ลบแผนงาน
+app.delete('/api/dispatches/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const deletedPlan = await DispatchPlan.findByIdAndDelete(req.params.id);
+        
+        await createLog(req, 'DELETE_DISPATCH', `ลบแผนออกหน่วย: ${deletedPlan?.location}`);
+        io.emit('server_data_update', { type: 'DISPATCH_DELETED', id: req.params.id });
+
+        res.json({ message: "ลบแผนงานเรียบร้อย" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 

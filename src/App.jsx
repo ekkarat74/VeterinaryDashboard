@@ -1,15 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle} from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import MarkerClusterGroup from 'react-leaflet-cluster';
 import { 
-    Activity, FileText, MapPin, Filter, Database, Download, Users, Plus, X, Navigation, 
-    Upload, Search, Edit, Trash2, Lock, Skull, AlertTriangle, Siren, Key, ChevronRight, 
-    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link,
+    Activity, FileText, MapPin, Database, Download, Users, Plus, X, Navigation, 
+    Upload, Search, Edit, Trash2, Lock, Skull, Siren, Key, ChevronRight, 
+    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link
 } from 'lucide-react';
-import L from 'leaflet';
 import { io } from "socket.io-client";
 
 // --- Custom Components & Constants (Assumed imports) ---
@@ -25,6 +19,7 @@ import Header from './components/layout/Header';
 import FilterBar from './components/dashboard/FilterBar.jsx';
 import StatisticsCharts from './components/dashboard/StatisticsCharts.jsx';
 import RankingSection from './components/dashboard/RankingSection';
+import LeafletMap from './components/modals/LeafletMap';
 
 // --- SUB-COMPONENTS DEFINITION ---
 
@@ -317,289 +312,6 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
             </div>
         </div>
     );
-};
-
-// 7. LeafletMap
-const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
-  const centerPosition = [13.7563, 100.5018];
-  const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
-  const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
-
-  const toggleLayer = (unit) => {
-    setActiveLayers(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit]);
-  };
-
-  const toggleRadius = (radius) => {
-    setActiveRadii(prev => prev.includes(radius) ? prev.filter(r => r !== radius) : [...prev, radius]);
-  };
-
-  const createDangerIcon = useCallback(() => {
-    return L.divIcon({
-      className: 'custom-danger-marker',
-      html: `
-        <div class="relative w-10 h-10 flex items-center justify-center">
-            <div class="absolute inset-0 bg-red-500 rounded-full opacity-20 animate-ping"></div>
-            <div class="relative z-10 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-        </div>
-      `,
-      iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20]
-    });
-  }, []);
-
-  const getMarkerColor = (unit) => {
-    switch (unit) {
-      case 'หน่วยผู้ว่า': return '#a855f7';
-      case 'หน่วยสัตวแพทย์': return '#3b82f6';
-      case 'หน่วยวัคซีน + ไมโครชิป': return '#22c55e';
-      case 'หน่วยกรงแมว': return '#f97316';
-      default: return '#64748b';
-    }
-  };
-
-  const displayData = useMemo(() => {
-    return data.filter(item => activeLayers.includes(item.unit));
-  }, [data, activeLayers]);
-
-  const createNumberIcon = (total, color) => {
-    // ใช้สี Gradient ตามประเภท
-    const getGradient = (c) => {
-        if(c === '#a855f7') return 'from-purple-500 to-indigo-600'; // ผู้ว่า
-        if(c === '#3b82f6') return 'from-blue-500 to-blue-600';     // สัตวแพทย์
-        if(c === '#22c55e') return 'from-green-500 to-emerald-600'; // วัคซีน
-        if(c === '#f97316') return 'from-orange-400 to-orange-600'; // กรงแมว
-        return 'from-slate-500 to-slate-600';
-    };
-
-    const bgGradient = getGradient(color);
-    const size = total > 999 ? 42 : (total > 99 ? 36 : 30);
-    
-    return L.divIcon({
-      className: 'custom-marker-wrapper', 
-      html: `
-        <div class="relative transition-transform hover:scale-110 duration-200 ease-out" style="width: ${size}px; height: ${size}px;">
-            <div class="absolute inset-0 rounded-full bg-gradient-to-br ${bgGradient} shadow-md border-2 border-white flex items-center justify-center">
-                <span class="text-white font-extrabold font-sans text-[${size > 36 ? '11px' : '10px'}] drop-shadow-sm">${total.toLocaleString()}</span>
-            </div>
-            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-r border-b border-slate-200"></div>
-        </div>`,
-      iconSize: [size, size], iconAnchor: [size / 2, size + 5], popupAnchor: [0, -(size + 5)]
-    });
-  };
-
-  return (
-    <div className="w-full h-full flex flex-col relative z-0 rounded-xl overflow-hidden border border-slate-200 shadow-inner">
-      <div className="absolute top-4 right-4 z-[500] flex flex-col gap-2 bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-xl border border-slate-100 max-w-[180px] animate-in slide-in-from-right-4">
-          <div className="text-xs font-extrabold text-slate-600 mb-1 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <Filter className="w-3.5 h-3.5" /> แสดงข้อมูล
-          </div>
-          {UNIT_TYPES.map((unit) => {
-              const color = getMarkerColor(unit);
-              const isActive = activeLayers.includes(unit);
-              return (
-                  <button key={unit} onClick={() => toggleLayer(unit)}
-                      className={`text-[10px] py-1.5 px-2 rounded-lg font-bold transition-all flex items-center gap-2 border w-full text-left ${isActive ? 'bg-white shadow-sm ring-1 ring-slate-100' : 'bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100'}`}
-                      style={isActive ? { borderLeft: `3px solid ${color}`, color: '#334155' } : { opacity: 0.7 }}>
-                      <span className={`w-2 h-2 rounded-full transition-all ${isActive ? 'scale-110' : 'scale-0'}`} style={{ backgroundColor: color }}></span>
-                      <span className="truncate">{unit}</span>
-                  </button>
-              )
-          })}
-          <div className="text-xs font-extrabold text-slate-600 mt-2 mb-1 flex items-center gap-1.5 border-t border-slate-100 pt-3 border-b pb-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> รัศมีควบคุมโรค
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {[
-                { val: 1000, label: '1 กม. (ควบคุม)', color: '#991b1b' },
-                { val: 3000, label: '3 กม. (เฝ้าระวัง)', color: '#ef4444' },
-                { val: 5000, label: '5 กม. (แจ้งเตือน)', color: '#f97316' }
-            ].map((r) => {
-                const isActive = activeRadii.includes(r.val);
-                return (
-                    <button key={r.val} onClick={() => toggleRadius(r.val)}
-                        className={`text-[10px] py-1.5 px-2 rounded-lg font-bold transition-all flex items-center gap-2 border w-full text-left ${isActive ? 'bg-red-50 text-red-700 ring-1 ring-red-100' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
-                        <div className={`w-3 h-3 rounded flex items-center justify-center border ${isActive ? 'border-red-500 bg-red-500' : 'border-slate-300 bg-white'}`}>
-                            {isActive && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
-                        </div>
-                        <span className={isActive ? 'opacity-100' : 'opacity-60'}>{r.label}</span>
-                    </button>
-                );
-            })}
-          </div>
-      </div>
-
-      <style>{`
-          .custom-marker-wrapper { background: transparent; border: none; }
-          .marker-container { position: relative; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease-out; cursor: pointer; }
-          .marker-container:hover { transform: scale(1.15) translateY(-5px); z-index: 1000; }
-          .marker-content { width: 100%; height: 100%; border-radius: 50%; background: var(--marker-color); background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), var(--marker-color)); border: 2px solid white; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 11px; font-family: 'Sarabun', sans-serif; text-shadow: 0 1px 2px rgba(0,0,0,0.4); z-index: 2; }
-          .marker-arrow { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 8px; height: 8px; background-color: var(--marker-color); border-right: 2px solid white; border-bottom: 2px solid white; z-index: 1; }
-          .danger-marker-container { position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
-          .danger-content { position: relative; z-index: 2; width: 32px; height: 32px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.5); border: 2px solid white; }
-          .danger-pulse { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(239, 68, 68, 0.6); border-radius: 50%; animation: pulse-red 1.5s infinite; }
-          @keyframes pulse-red { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.0); opacity: 0; } }
-      `}</style>
-
-      <div className="flex-1 w-full h-full">
-        <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} style={{ height: "100%", width: "100%", background: "#f1f5f9", zIndex: 0 }}>
-          <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          
-          <MarkerClusterGroup key={activeLayers.join(',')} chunkedLoading maxClusterRadius={40} spiderfyOnMaxZoom={true}>
-            {displayData.map((item) => {
-              const lat = parseFloat(item.lat);
-              const long = parseFloat(item.long);
-              if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
-              const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
-              const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip + (stats.medical || 0);
-              const color = getMarkerColor(item.unit);
-
-              return (
-                <Marker key={item._id} position={[lat, long]} icon={createNumberIcon(totalActivity, color)}>
-                  <Tooltip direction="top" offset={[0, -35]} opacity={1} className="custom-tooltip">
-                    <div className="text-center">
-                      <span className="font-bold text-slate-800 text-xs block">{item.location}</span>
-                      <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full inline-block mt-1">รวม: {totalActivity.toLocaleString()}</span>
-                    </div>
-                  </Tooltip>
-                  <Popup>
-      <div className="font-sans flex flex-col">
-        {item.imageUrl && (
-          <div className="w-full h-32 overflow-hidden relative">
-            <img src={item.imageUrl} alt="site" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-            <span className="absolute bottom-2 left-2 text-white text-xs font-bold drop-shadow-md">{item.unit}</span>
-          </div>
-        )}
-        <div className="p-4">
-          <div className="flex items-start justify-between mb-2">
-             <div>
-                <h3 className="font-bold text-slate-800 text-sm leading-tight">{item.location}</h3>
-                <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3"/> {item.district}</p>
-             </div>
-             <div className="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold text-slate-600 border border-slate-200">
-                รวม {totalActivity}
-             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100">
-             {stats.vaccine > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>💉 วัคซีน</span> <span className="font-bold">{stats.vaccine}</span></div>}
-             {stats.sterilize > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>✂️ ทำหมัน</span> <span className="font-bold">{stats.sterilize}</span></div>}
-             {stats.microchip > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>🎫 ไมโครชิป</span> <span className="font-bold">{stats.microchip}</span></div>}
-             {stats.medical > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>💊 รักษา</span> <span className="font-bold">{stats.medical}</span></div>}
-          </div>
-        </div>
-      </div>
-  </Popup>
-                </Marker>
-              );
-            })}
-          </MarkerClusterGroup>
-
-{outbreaks.map((item, index) => {
-    const lat = parseFloat(item.lat);
-    const long = parseFloat(item.long);
-    if (isNaN(lat) || isNaN(long)) return null;
-
-    return (
-        <React.Fragment key={item._id || `outbreak-${index}`}>
-            {/* --- 1 กม. (ควบคุม): สีแดงเข้ม เส้นทึบหนา --- */}
-            {activeRadii.includes(1000) && (
-                <Circle 
-                    center={[lat, long]} 
-                    radius={1000} 
-                    pathOptions={{ 
-                        color: '#7f1d1d',       // สีเส้นขอบ: แดงเข้มมาก
-                        fillColor: '#991b1b',   // สีพื้นที่ด้านใน
-                        fillOpacity: 0.2,       
-                        weight: 3,              // ความหนาเส้นขอบ
-                        opacity: 1,             
-                        dashArray: null         // เส้นทึบ
-                    }} 
-                />
-            )}
-
-            {/* --- 3 กม. (เฝ้าระวัง): สีแดงปกติ เส้นทึบ (ลบเส้นประออก) --- */}
-            {activeRadii.includes(3000) && (
-                <Circle 
-                    center={[lat, long]} 
-                    radius={3000} 
-                    pathOptions={{ 
-                        color: '#dc2626',       // สีเส้นขอบ: แดงสด
-                        fillColor: '#ef4444',
-                        fillOpacity: 0.08, 
-                        weight: 2,              // ความหนาเส้นขอบ
-                        opacity: 0.8,
-                        dashArray: null         // ปรับเป็นเส้นทึบ
-                    }} 
-                />
-            )}
-
-            {/* --- 5 กม. (แจ้งเตือน): สีส้ม เส้นทึบ (ลบเส้นประออก) --- */}
-            {activeRadii.includes(5000) && (
-                <Circle 
-                    center={[lat, long]} 
-                    radius={5000} 
-                    pathOptions={{ 
-                        color: '#ea580c',       // สีเส้นขอบ: ส้มเข้ม
-                        fillColor: '#f97316',
-                        fillOpacity: 0.05, 
-                        weight: 2,              // ความหนาเส้นขอบ
-                        opacity: 0.7,
-                        dashArray: null         // ปรับเป็นเส้นทึบ
-                    }} 
-                />
-            )}
-            <Marker position={[lat, long]} icon={createDangerIcon()}>
-                <Popup>
-                    <div className="font-sans min-w-[200px] p-2 text-center">
-                        <div className="bg-red-50 text-red-600 font-extrabold px-3 py-1 rounded-full text-[10px] inline-flex items-center gap-1 mb-2 border border-red-100 shadow-sm">
-                            <AlertTriangle className="w-3 h-3" /> พบเชื้อพิษสุนัขบ้า
-                        </div>
-                        <h3 className="font-bold text-slate-800 text-sm mb-1">{item.location}</h3>
-                        <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">เขต{item.district}</p>
-                        
-                        {/* --- [เพิ่ม] ส่วนแสดงยอดสัตว์ใน Popup --- */}
-{(item.stats) && (
-    <div className="mb-3 bg-red-50 p-2 rounded border border-red-100">
-        <div className="grid grid-cols-3 gap-1 text-[10px] text-center font-bold text-slate-600 mb-1 border-b border-red-200 pb-1">
-            <span>ชนิด</span><span>ผู้</span><span>เมีย</span>
-        </div>
-        <div className="grid grid-cols-3 gap-1 text-[10px] text-center mb-1">
-            <span className="text-slate-500">สุนัข</span>
-            <span className="text-slate-800">{item.stats.dog?.male || 0}</span>
-            <span className="text-slate-800">{item.stats.dog?.female || 0}</span>
-        </div>
-        <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
-            <span className="text-slate-500">แมว</span>
-            <span className="text-slate-800">{item.stats.cat?.male || 0}</span>
-            <span className="text-slate-800">{item.stats.cat?.female || 0}</span>
-        </div>
-    </div>
-)}
-
-                        {/* Legend ใน Popup (ปรับสีให้ตรงกับวงกลม) */}
-                        <div className="grid grid-cols-3 gap-1 text-[9px]">
-                            <div className={`rounded p-1 font-bold ${activeRadii.includes(1000) ? 'text-red-900 bg-red-100/50' : 'text-slate-300 bg-slate-50'}`}>1 กม.<br/>ควบคุม</div>
-                            <div className={`rounded p-1 font-bold ${activeRadii.includes(3000) ? 'text-red-600 bg-red-50/50' : 'text-slate-300 bg-slate-50'}`}>3 กม.<br/>เฝ้าระวัง</div>
-                            <div className={`rounded p-1 font-bold ${activeRadii.includes(5000) ? 'text-orange-500 bg-orange-50/50' : 'text-slate-300 bg-slate-50'}`}>5 กม.<br/>แจ้งเตือน</div>
-                        </div>
-
-                        {onDeleteOutbreak && (
-                            <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-all shadow-sm hover:shadow">
-                                <Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้
-                            </button>
-                        )}
-                    </div>
-                </Popup>
-            </Marker>
-        </React.Fragment>
-    );
-})}
-        </MapContainer>
-      </div>
-    </div>
-  );
 };
 
 // 8. ImagePreviewModal
@@ -1001,9 +713,8 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
     ];
 
     const [unitType, setUnitType] = useState('sterilization'); 
-
     const [generalInfo, setGeneralInfo] = useState({
-        date: getTomorrowDate(),
+        date: new Date().toISOString().split('T')[0], // Default วันนี้
         locationName: '',
         mapLink: '',
         departureTime: '07:30',
@@ -1024,10 +735,35 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave }) => {
     });
 
     useEffect(() => {
-        if (isOpen) {
-            setGeneralInfo(prev => ({ ...prev, date: getTomorrowDate() }));
+        if (isOpen && initialData) {
+            // โหมดแก้ไข: แตกข้อมูลจาก initialData มาใส่ State
+            setUnitType(initialData.unitType || 'sterilization');
+            setGeneralInfo({
+                date: initialData.date,
+                locationName: initialData.location,
+                mapLink: initialData.mapLink || '',
+                departureTime: initialData.time || '07:30',
+                closingTime: initialData.closingTime || '12:00',
+                note: initialData.note || ''
+            });
+            if (initialData.staff) {
+                setStaff(initialData.staff); // โหลดรายชื่อพนักงานเดิม
+            }
+        } else if (isOpen && !initialData) {
+            // โหมดเพิ่มใหม่: Reset ค่า
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            setGeneralInfo({
+                date: tomorrow.toISOString().split('T')[0],
+                locationName: '',
+                mapLink: '',
+                departureTime: '07:30',
+                closingTime: '12:00',
+                note: ''
+            });
+            setStaff({ vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
         }
-    }, [isOpen]);
+    }, [isOpen, initialData]);
 
     // Helper Functions
     const handleStaffChange = (role, index, value) => {
@@ -1098,6 +834,7 @@ ${staffDetails}
     const handleSaveLocal = () => {
         const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
         const payload = {
+            _id: initialData?._id,
             ...generalInfo,
             unitType,
             staff: staff, 
@@ -1108,8 +845,6 @@ ${staffDetails}
         };
 
         if (onSave) onSave(payload);
-        if (onToast) onToast('success', 'บันทึกแผนงานเรียบร้อย');
-        onClose();
     };
 
     // Props ที่ต้องส่งให้ StaffInputGroup (เพื่อลดการเขียนซ้ำ)
@@ -1179,7 +914,7 @@ ${staffDetails}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่ (พิมพ์เอง)</label>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่</label>
                                     <div className="relative">
                                         <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input type="text" placeholder="ระบุชื่อสถานที่..." className="w-full pl-9 p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -1239,15 +974,16 @@ ${staffDetails}
 
                 {/* Footer Buttons */}
                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-2 shrink-0">
-                    <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all">
-                        <Share2 className="w-5 h-5" /> ส่งแจ้งเตือนเข้า Line กลุ่ม
-                    </button>
+                    <button onClick={handleSendLine} className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all"></button>
                     <div className="flex gap-2">
-                        <button onClick={onClose} className="flex-1 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-50">
-                            ยกเลิก
+                        {initialData && onDelete && (
+                        <button onClick={() => onDelete(initialData._id)} className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-bold hover:bg-red-100">
+                            <Trash2 className="w-4 h-4" />
                         </button>
+                    )}
+                        <button onClick={onClose} className="flex-1 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-50">ยกเลิก</button>
                         <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow">
-                            บันทึกแผนงาน
+                            {initialData ? 'บันทึกแก้ไข' : 'บันทึกแผนงาน'}
                         </button>
                     </div>
                 </div>
@@ -1689,11 +1425,8 @@ export default function VeterinaryDashboard() {
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
 
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-    const [dispatchEvents, setDispatchEvents] = useState([
-        // Mockup Data ตัวอย่าง (สามารถลบออกได้ถ้าต้องการเริ่มต้นว่างเปล่า)
-        { date: new Date().toISOString().split('T')[0], time: '09:00', location: 'วัดดอนเมือง', team: 'ทีม 1', note: 'ฉีดวัคซีน' },
-        { date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '13:00', location: 'ชุมชนร่มไทร', team: 'ทีม 2', note: 'ทำหมัน' }
-    ]);
+    const [dispatchEvents, setDispatchEvents] = useState([]);
+    const [viewingDispatch, setViewingDispatch] = useState(null);
 
     // --- เพิ่ม State สำหรับการประชุม ---
     const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
@@ -1701,10 +1434,51 @@ export default function VeterinaryDashboard() {
     const [isMeetingListOpen, setIsMeetingListOpen] = useState(false); // เพิ่ม State เปิด/ปิด List
     const [viewingMeeting, setViewingMeeting] = useState(null);
 
-    const handleSaveDispatchEvent = (newEvent) => {
-        setDispatchEvents(prev => [...prev, newEvent]);
-        // ถ้าต้องการเปิดหน้าปฏิทินทันทีหลังจากบันทึก ให้ uncomment บรรทัดล่าง
-        // setIsCalendarOpen(true); 
+    // --- [แก้ไข] ฟังก์ชันบันทึกลง Database ---
+    const handleSaveDispatchEvent = async (payload) => {
+        try {
+            const method = payload._id ? 'PUT' : 'POST';
+            const url = payload._id 
+                ? `${BASE_URL}/api/dispatches/${payload._id}` 
+                : `${BASE_URL}/api/dispatches`;
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${user?.token}` 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
+                // ไม่ต้อง setDispatchEvents เอง เพราะรอ Socket อัปเดตให้
+                setIsDispatchModalOpen(false);
+            } else {
+                const err = await res.json();
+                addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
+            }
+        } catch (error) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+
+    // --- [เพิ่ม] ฟังก์ชันลบงาน (ส่งให้ Modal ใช้) ---
+    const handleDeleteDispatch = async (id) => {
+        if (!confirm('ยืนยันลบแผนงานนี้?')) return;
+        try {
+            const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${user?.token}` }
+            });
+            if (res.ok) {
+                addToast('success', 'ลบแผนงานเรียบร้อย');
+                setIsDispatchModalOpen(false);
+            }
+        } catch (error) {
+            addToast('error', 'ลบไม่สำเร็จ');
+        }
     };
 
     const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
@@ -1712,6 +1486,19 @@ export default function VeterinaryDashboard() {
     const [csvMode, setCsvMode] = useState('report');
     
     // --- 2. AUTHENTICATION LOGIC ---
+
+    useEffect(() => {
+        const fetchDispatches = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/api/dispatches`);
+                const data = await res.json();
+                setDispatchEvents(data);
+            } catch (error) {
+                console.error("Fetch Dispatches Error", error);
+            }
+        };
+        fetchDispatches();
+    }, [BASE_URL]);
 
     const handleOutbreakFileUpload = (e) => {
         const file = e.target.files[0];
@@ -1887,6 +1674,17 @@ export default function VeterinaryDashboard() {
                     fetchData(); // โหลดข้อมูลใหม่ทั้งหมดทีเดียว
                     addToast('success', `📥 มีการนำเข้าข้อมูลชุดใหญ่จำนวน ${payload.count} รายการ`);
                     break;
+                case 'DISPATCH_ADDED':
+                    setDispatchEvents(prev => [...prev, payload.data]);
+                    addToast('info', `🚐 แผนออกหน่วยใหม่: ${payload.data.location}`);
+                    break;
+                case 'DISPATCH_UPDATED':
+                    setDispatchEvents(prev => prev.map(ev => ev._id === payload.data._id ? payload.data : ev));
+                    addToast('info', `📝 แก้ไขแผนออกหน่วย: ${payload.data.location}`);
+                    break;
+                case 'DISPATCH_DELETED':
+                    setDispatchEvents(prev => prev.filter(ev => ev._id !== payload.id));
+                    break;
                 default: break;
             }
         });
@@ -1951,7 +1749,11 @@ export default function VeterinaryDashboard() {
     };
 
     const combinedEvents = [
-        ...dispatchEvents, 
+        ...dispatchEvents.map(d => ({
+        ...d,
+        type: 'dispatch', // ระบุประเภท
+        originalData: d
+    })),
         ...meetings.map(m => ({
             date: m.date,
             time: m.startTime,
@@ -1969,7 +1771,8 @@ export default function VeterinaryDashboard() {
             setViewingMeeting(evt.originalData);
             setIsMeetingModalOpen(true);
         } else {
-            // กรณีเป็น Dispatch Event (ถ้าต้องการให้ดูได้ด้วยก็เพิ่ม logic ตรงนี้)
+            setViewingDispatch(evt.originalData);
+            setIsDispatchModalOpen(true);
             alert(`รายละเอียดงาน: ${evt.location}\nทีม: ${evt.team}`);
         }
     };
@@ -2471,17 +2274,20 @@ const parseCSVDate = (dateStr) => {
                 isOpen={isDispatchModalOpen} 
                 onClose={() => setIsDispatchModalOpen(false)} 
                 onToast={addToast}
-                onSave={handleSaveDispatchEvent} // เพิ่ม prop นี้
+                onSave={handleSaveDispatchEvent}
+                onDelete={handleDeleteDispatch} // ส่ง function ลบ
+                initialData={viewingDispatch}   // ส่งข้อมูลเดิม
             />
             <DispatchCalendarDashboard 
                 isOpen={isCalendarOpen} 
                 onClose={() => setIsCalendarOpen(false)}
                 events={combinedEvents} 
                 onOpenForm={() => {
-                   setViewingMeeting(null); // Reset เป็นเพิ่มใหม่
+                   setViewingMeeting(null); 
+                   setViewingDispatch(null); // Reset เป็นเพิ่มใหม่
                    setIsDispatchModalOpen(true);
                 }}
-                onEventClick={handleCalendarEventClick} // ส่ง Handler ไป
+                onEventClick={handleCalendarEventClick} 
             />
             <MeetingModal 
                 isOpen={isMeetingModalOpen} 
