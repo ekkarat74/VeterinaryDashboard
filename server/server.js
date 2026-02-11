@@ -646,14 +646,10 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['admin', 'supe
             return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
         }
 
-        // บันทึกลง Database
         const insertedOutbreaks = await Outbreak.insertMany(outbreaks);
 
-        // บันทึก Log
         await createLog(req, 'BULK_IMPORT_OUTBREAKS', `นำเข้าจุดระบาดจำนวน ${insertedOutbreaks.length} รายการ`);
 
-        // แจ้งเตือน Client (เลือกใช้ Event ใหม่ หรือใช้ OUTBREAK_ADDED แบบวนลูปก็ได้ แต่วิธีนี้ประหยัดกว่า)
-        // หมายเหตุ: Frontend ต้อง handle การ refresh ข้อมูลเอง หรือ reload หน้าเว็บ
         io.emit('server_data_update', { type: 'OUTBREAKS_IMPORTED', count: insertedOutbreaks.length });
 
         res.status(201).json({ message: "นำเข้าข้อมูลสำเร็จ", count: insertedOutbreaks.length });

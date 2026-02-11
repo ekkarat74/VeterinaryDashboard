@@ -599,7 +599,6 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
 };
 
 // 9. AddOutbreakModal
-// ค้นหา const AddOutbreakModal และแทนที่ด้วยโค้ดนี้
 const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -625,15 +624,27 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     district: initialData.district,
                     lat: initialData.lat,
                     long: initialData.long,
-                    stats: initialData.stats || { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
+                    // --- [แก้ไข] ใช้ Optional Chaining (?.) และค่า Default ป้องกัน Crash ---
+                    stats: {
+                        dog: { 
+                            male: initialData.stats?.dog?.male || 0, 
+                            female: initialData.stats?.dog?.female || 0 
+                        },
+                        cat: { 
+                            male: initialData.stats?.cat?.male || 0, 
+                            female: initialData.stats?.cat?.female || 0 
+                        }
+                    }
+                // -------------------------------------------------------------
                 });
-                // [เพิ่ม] ตั้งค่าเริ่มต้นให้ coordInput
+            
                 if (initialData.lat && initialData.long) {
                     setCoordInput(`${initialData.lat}, ${initialData.long}`);
                 } else {
                     setCoordInput("");
                 }
             } else {
+                // กรณีเพิ่มใหม่
                 setFormData({
                     date: new Date().toISOString().split('T')[0],
                     location: '',
@@ -1686,30 +1697,35 @@ export default function VeterinaryDashboard() {
     const handleOutbreakFileUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
                 const text = event.target.result;
-                const lines = text.split('\n');
-                if (lines.length < 2) { alert("ไฟล์ไม่มีข้อมูล"); return; }
+                const lines = text.split(/\r?\n/);
                 
+                if (lines.length < 2) { alert("ไฟล์ไม่มีข้อมูล"); return; }
+
                 const confirmImport = window.confirm(`ต้องการนำเข้าข้อมูลจุดระบาด ${lines.length - 1} รายการใช่หรือไม่?`);
                 if (!confirmImport) return;
 
                 const bulkData = [];
                 
-                // เริ่มที่ i = 1 เพื่อข้าม Header
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
 
-                    // Regex แยก CSV
+                    // Regex แยก CSV ป้องกันกรณีมี comma ใน quote
                     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
 
-                    // ตรวจสอบจำนวนคอลัมน์ (อย่างน้อยต้องมี วันที่, สถานที่, เขต, lat, long)
+                    // ตรวจสอบจำนวนคอลัมน์ขั้นต่ำ (วันที่, สถานที่, เขต, lat, long)
                     if (cleanCols.length < 5) continue;
+
+                    const parseNum = (val) => {
+                        const num = parseInt(val);
+                        return isNaN(num) ? 0 : num;
+                    };
 
                     const newRecord = {
                         date: parseCSVDate(cleanCols[0]),
@@ -1718,28 +1734,29 @@ export default function VeterinaryDashboard() {
                         lat: parseFloat(cleanCols[3]) || 0,
                         long: parseFloat(cleanCols[4]) || 0,
                         stats: {
-                            dog: {
-                                male: parseInt(cleanCols[5]) || 0,
-                                female: parseInt(cleanCols[6]) || 0
+                            dog: { 
+                                male: parseNum(cleanCols[5]), 
+                                female: parseNum(cleanCols[6]) 
                             },
-                            cat: {
-                                male: parseInt(cleanCols[7]) || 0,
-                                female: parseInt(cleanCols[8]) || 0
+                            cat: { 
+                                male: parseNum(cleanCols[7]), 
+                                female: parseNum(cleanCols[8]) 
                             }
                         }
                     };
 
+                    // ต้องมีพิกัดเท่านั้นถึงจะนำเข้า
                     if (newRecord.lat !== 0 && newRecord.long !== 0) {
                         bulkData.push(newRecord);
                     }
                 }
 
                 if (bulkData.length === 0) {
-                    alert("ไม่พบข้อมูลที่ถูกต้อง (กรุณาตรวจสอบ Lat/Long)");
+                    alert("ไม่พบข้อมูลที่ถูกต้อง (กรุณาตรวจสอบ Lat/Long ในไฟล์ CSV)");
                     return;
                 }
 
-                // ส่งไป Backend
+                // ส่ง API
                 const response = await fetch(`${BASE_URL}/api/outbreaks/bulk`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
@@ -1748,10 +1765,13 @@ export default function VeterinaryDashboard() {
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert(`✅ นำเข้าจุดระบาดสำเร็จ ${result.count} รายการ`);
-                    window.location.reload(); // หรือเรียก fetchOutbreaks()
+                    addToast('success', `✅ นำเข้าจุดระบาดสำเร็จ ${result.count} รายการ`);
+                    // รีโหลดข้อมูลใหม่
+                    const res = await fetch(`${BASE_URL}/api/outbreaks`);
+                    const data = await res.json();
+                    setOutbreakData(Array.isArray(data) ? data : (data.data || []));
                 } else {
-                    alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+                    addToast('error', "❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
                 }
 
             } catch (error) {
@@ -2210,35 +2230,19 @@ export default function VeterinaryDashboard() {
         return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 5);
     }, [rankingFilteredData]);
 
-    // --- [เพิ่ม] ฟังก์ชันแปลงวันที่จาก CSV ให้เป็น YYYY-MM-DD ---
 const parseCSVDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
-
-    // ถ้าเป็น format YYYY-MM-DD อยู่แล้ว ให้ใช้เลย
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-
-    // รองรับ format DD/MM/YYYY หรือ DD-MM-YYYY
-    // เช่น 25/01/2567 หรือ 25-01-2024
     const parts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    
     if (parts) {
         let day = parts[1].padStart(2, '0');
         let month = parts[2].padStart(2, '0');
         let year = parseInt(parts[3]);
-
-        // ตรวจสอบว่าเป็น พ.ศ. หรือไม่ (ถ้ามากกว่า 2400 สันนิษฐานว่าเป็น พ.ศ. ให้ลบ 543)
-        if (year > 2400) year -= 543;
-
+        if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
         return `${year}-${month}-${day}`;
     }
-
-    // กรณีอื่น ๆ ลองให้ JS Date แปลง
     const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-        return d.toISOString().split('T')[0];
-    }
-
-    return new Date().toISOString().split('T')[0]; // กรณีแปลงไม่ได้ ให้ใช้วันปัจจุบัน
+    return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 };
 
     // CSV Import Logic
@@ -2516,22 +2520,17 @@ const parseCSVDate = (dateStr) => {
                                                         setIsCsvModalOpen(true); 
                                                         setIsSystemMenuOpen(false); 
                                                     }} 
-                                                    className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors text-left"
-        >
-            <Download className="w-4 h-4 text-red-500" /> นำเข้า/ส่งออก จุดระบาด (CSV)
-        </button>
-
-        {/* [แก้ไขปุ่มเดิม] ให้ตั้งโหมดเป็น report */}
-        <button 
-            onClick={() => { 
-                setCsvMode('report'); // ตั้งโหมดเป็น report (ข้อมูลทั่วไป)
-                setIsCsvModalOpen(true); 
-                setIsSystemMenuOpen(false); 
-            }} 
-            className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-left"
-        >
-            <Download className="w-4 h-4 text-emerald-500" /> นำเข้า/ส่งออก รายงาน (CSV)
-        </button>
+                                                    className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors text-left">
+                                                        <Download className="w-4 h-4 text-red-500" /> นำเข้า/ส่งออก จุดระบาด (CSV)
+                                                    </button>
+                                                    <button onClick={() => { 
+                                                        setCsvMode('report'); // ตั้งโหมดเป็น report (ข้อมูลทั่วไป)
+                                                        setIsCsvModalOpen(true); 
+                                                        setIsSystemMenuOpen(false); 
+                                                    }} 
+                                                    className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-left">
+                                                        <Download className="w-4 h-4 text-emerald-500" /> นำเข้า/ส่งออก รายงาน (CSV)
+                                                    </button>
                                                     <button onClick={() => { handleGenerateMockData(); setIsSystemMenuOpen(false); }} className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors text-left">
                                                         <Zap className="w-4 h-4 text-purple-500" /> จำลองข้อมูล (Mock Data)
                                                     </button>

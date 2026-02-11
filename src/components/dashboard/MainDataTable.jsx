@@ -1,4 +1,3 @@
-import React from 'react';
 import { Database, Trash2, Users, Pencil, X } from 'lucide-react';
 
 const MainDataTable = ({ 

@@ -44,7 +44,6 @@ export const exportToCSV = (data) => {
     document.body.removeChild(link);
 };
 
-// --- [เพิ่มใหม่] ฟังก์ชัน Export CSV สำหรับจุดระบาด ---
 export const exportOutbreaksToCSV = (data) => {
     if (!data || data.length === 0) {
         alert("ไม่มีข้อมูลจุดแจ้งเหตุสำหรับส่งออก");
