@@ -24,7 +24,7 @@ import {UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from './constants/
 import AddDataModal from './components/modals/AddDataModal';
 import RabiesOutbreakSection from './components/dashboard/RabiesOutbreakSection';
 import MainDataTable from './components/dashboard/MainDataTable';
-import { exportToCSV } from './utils/csvUtils';
+import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils';
 import ChangePasswordModal from './components/modals/ChangePasswordModal'; // ปรับ path ตามจริง
 
 // --- SUB-COMPONENTS DEFINITION ---
@@ -1678,8 +1678,89 @@ export default function VeterinaryDashboard() {
     };
 
     const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
+
+    const [csvMode, setCsvMode] = useState('report');
     
     // --- 2. AUTHENTICATION LOGIC ---
+
+    const handleOutbreakFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const text = event.target.result;
+                const lines = text.split('\n');
+                if (lines.length < 2) { alert("ไฟล์ไม่มีข้อมูล"); return; }
+                
+                const confirmImport = window.confirm(`ต้องการนำเข้าข้อมูลจุดระบาด ${lines.length - 1} รายการใช่หรือไม่?`);
+                if (!confirmImport) return;
+
+                const bulkData = [];
+                
+                // เริ่มที่ i = 1 เพื่อข้าม Header
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Regex แยก CSV
+                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
+
+                    // ตรวจสอบจำนวนคอลัมน์ (อย่างน้อยต้องมี วันที่, สถานที่, เขต, lat, long)
+                    if (cleanCols.length < 5) continue;
+
+                    const newRecord = {
+                        date: parseCSVDate(cleanCols[0]),
+                        location: cleanCols[1],
+                        district: cleanCols[2],
+                        lat: parseFloat(cleanCols[3]) || 0,
+                        long: parseFloat(cleanCols[4]) || 0,
+                        stats: {
+                            dog: {
+                                male: parseInt(cleanCols[5]) || 0,
+                                female: parseInt(cleanCols[6]) || 0
+                            },
+                            cat: {
+                                male: parseInt(cleanCols[7]) || 0,
+                                female: parseInt(cleanCols[8]) || 0
+                            }
+                        }
+                    };
+
+                    if (newRecord.lat !== 0 && newRecord.long !== 0) {
+                        bulkData.push(newRecord);
+                    }
+                }
+
+                if (bulkData.length === 0) {
+                    alert("ไม่พบข้อมูลที่ถูกต้อง (กรุณาตรวจสอบ Lat/Long)");
+                    return;
+                }
+
+                // ส่งไป Backend
+                const response = await fetch(`${BASE_URL}/api/outbreaks/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                    body: JSON.stringify(bulkData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`✅ นำเข้าจุดระบาดสำเร็จ ${result.count} รายการ`);
+                    window.location.reload(); // หรือเรียก fetchOutbreaks()
+                } else {
+                    alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("รูปแบบไฟล์ CSV ไม่ถูกต้อง");
+            }
+        };
+        reader.readAsText(file);
+    };
 
     useEffect(() => {
         const storedUser = localStorage.getItem('vet_user');
@@ -2297,7 +2378,14 @@ const parseCSVDate = (dateStr) => {
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
-            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleFileUpload} onExport={() => exportToCSV(filteredData)} />
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={csvMode === 'outbreak' ? handleOutbreakFileUpload : handleFileUpload} onExport={() => {
+            if (csvMode === 'outbreak') {
+                exportOutbreaksToCSV(outbreakData); // เรียกฟังก์ชัน Export ใหม่
+            } else {
+                exportToCSV(filteredData); // เรียกฟังก์ชัน Export เดิม
+                }
+            }} 
+            />
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
@@ -2423,9 +2511,27 @@ const parseCSVDate = (dateStr) => {
                                                     <button onClick={() => { setIsBackupModalOpen(true); setIsSystemMenuOpen(false); }} className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-left">
                                                         <Database className="w-4 h-4 text-emerald-500" /> สำรอง/กู้คืนข้อมูล
                                                     </button>
-                                                    <button onClick={() => { setIsCsvModalOpen(true); setIsSystemMenuOpen(false); }} className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-left">
-                                                        <Download className="w-4 h-4 text-emerald-500" /> นำเข้า/ส่งออก CSV
-                                                    </button>
+                                                    <button onClick={() => { 
+                                                        setCsvMode('outbreak'); // ตั้งโหมดเป็น outbreak
+                                                        setIsCsvModalOpen(true); 
+                                                        setIsSystemMenuOpen(false); 
+                                                    }} 
+                                                    className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors text-left"
+        >
+            <Download className="w-4 h-4 text-red-500" /> นำเข้า/ส่งออก จุดระบาด (CSV)
+        </button>
+
+        {/* [แก้ไขปุ่มเดิม] ให้ตั้งโหมดเป็น report */}
+        <button 
+            onClick={() => { 
+                setCsvMode('report'); // ตั้งโหมดเป็น report (ข้อมูลทั่วไป)
+                setIsCsvModalOpen(true); 
+                setIsSystemMenuOpen(false); 
+            }} 
+            className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-left"
+        >
+            <Download className="w-4 h-4 text-emerald-500" /> นำเข้า/ส่งออก รายงาน (CSV)
+        </button>
                                                     <button onClick={() => { handleGenerateMockData(); setIsSystemMenuOpen(false); }} className="w-full flex items-center gap-3 p-2.5 text-xs font-bold text-slate-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors text-left">
                                                         <Zap className="w-4 h-4 text-purple-500" /> จำลองข้อมูล (Mock Data)
                                                     </button>

@@ -638,5 +638,30 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['admin', 'supera
     }
 });
 
+app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+    try {
+        const outbreaks = req.body;
+        
+        if (!Array.isArray(outbreaks)) {
+            return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
+        }
+
+        // บันทึกลง Database
+        const insertedOutbreaks = await Outbreak.insertMany(outbreaks);
+
+        // บันทึก Log
+        await createLog(req, 'BULK_IMPORT_OUTBREAKS', `นำเข้าจุดระบาดจำนวน ${insertedOutbreaks.length} รายการ`);
+
+        // แจ้งเตือน Client (เลือกใช้ Event ใหม่ หรือใช้ OUTBREAK_ADDED แบบวนลูปก็ได้ แต่วิธีนี้ประหยัดกว่า)
+        // หมายเหตุ: Frontend ต้อง handle การ refresh ข้อมูลเอง หรือ reload หน้าเว็บ
+        io.emit('server_data_update', { type: 'OUTBREAKS_IMPORTED', count: insertedOutbreaks.length });
+
+        res.status(201).json({ message: "นำเข้าข้อมูลสำเร็จ", count: insertedOutbreaks.length });
+    } catch (err) {
+        console.error("Bulk Import Outbreak Error:", err);
+        res.status(400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
+    }
+});
+
 // --- SERVER START ---
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

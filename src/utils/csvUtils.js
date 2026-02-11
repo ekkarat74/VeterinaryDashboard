@@ -43,3 +43,50 @@ export const exportToCSV = (data) => {
     link.click();
     document.body.removeChild(link);
 };
+
+// --- [เพิ่มใหม่] ฟังก์ชัน Export CSV สำหรับจุดระบาด ---
+export const exportOutbreaksToCSV = (data) => {
+    if (!data || data.length === 0) {
+        alert("ไม่มีข้อมูลจุดแจ้งเหตุสำหรับส่งออก");
+        return;
+    }
+
+    const headers = [
+        "วันที่", "สถานที่", "เขต", "ละติจูด", "ลองจิจูด",
+        "สุนัข(ผู้)", "สุนัข(เมีย)", "แมว(ผู้)", "แมว(เมีย)"
+    ];
+
+    const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const csvRows = sortedData.map(item => {
+        const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
+        
+        // ดึงข้อมูลสัตว์ (ถ้าไม่มีให้เป็น 0)
+        const dogMale = item.stats?.dog?.male || 0;
+        const dogFemale = item.stats?.dog?.female || 0;
+        const catMale = item.stats?.cat?.male || 0;
+        const catFemale = item.stats?.cat?.female || 0;
+
+        return [
+            item.date, 
+            safeLocation, 
+            item.district || "", 
+            item.lat, 
+            item.long,
+            dogMale,
+            dogFemale,
+            catMale,
+            catFemale
+        ].join(",");
+    });
+
+    const csvString = [headers.join(","), ...csvRows].join("\n");
+    const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `OUTBREAK_REPORT_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
