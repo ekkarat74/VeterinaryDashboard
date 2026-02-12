@@ -6,8 +6,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { 
-    Filter, AlertTriangle, ChevronDown, Map as MapIcon, 
-    PawPrint, MapPin, Trash2 
+    Filter, AlertTriangle, ChevronDown, ChevronUp, 
+    Map as MapIcon, PawPrint, MapPin, Trash2 
 } from 'lucide-react';
 
 import { UNIT_TYPES } from '../../constants/locations'; 
@@ -17,6 +17,8 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
     const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [expandedUnit, setExpandedUnit] = useState(null);
+
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const toggleLayer = (unit) => {
         setActiveLayers(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit]);
@@ -103,99 +105,103 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
         <div className="w-full h-full flex flex-col relative z-0 rounded-xl overflow-hidden border border-slate-200 shadow-inner">
             
             {/* --- UI Control Panel (ขวาบน) --- */}
-            <div className="absolute top-4 right-4 z-[500] flex flex-col gap-3 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-2xl border border-white/50 w-[240px] animate-in slide-in-from-right-4 duration-500">
-                
+            <div className={`absolute top-4 right-4 z-[500] flex flex-col gap-3 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-auto p-3' : 'w-[240px] p-4'}`}> 
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Filter className="w-3.5 h-3.5 text-indigo-500" /> Layers & Stats
+                <div className={`flex items-center justify-between ${isCollapsed ? '' : 'border-b border-slate-100 pb-3'}`}>
+                    <div 
+                        className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                    >
+                        <Filter className="w-3.5 h-3.5 text-indigo-500" /> 
+                        {!isCollapsed && <span>Layers & Stats</span>}
                     </div>
-                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">{UNIT_TYPES.length} หน่วย</span>
+
+                    <div className="flex items-center gap-2">
+                        {!isCollapsed && (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
+                                {UNIT_TYPES.length} หน่วย
+                            </span>
+                        )}
+
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }} 
+                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
+                            title={isCollapsed ? "ขยาย" : "ย่อ"}
+                        >
+                            {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </div>
                 
-                {/* Unit List & Stats Dropdown */}
-                <div className="flex flex-col gap-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
-                    {UNIT_TYPES.map((unit) => {
-                        const color = getMarkerColor(unit);
-                        const isActive = activeLayers.includes(unit);
-                        const isExpanded = expandedUnit === unit;
-                        const stats = getUnitStats(unit);
+                {!isCollapsed && (
+                    <div className="animate-in slide-in-from-top-2 fade-in duration-300">
+                        {/* Unit List & Stats Dropdown */}
+                        <div className="flex flex-col gap-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
+                            {UNIT_TYPES.map((unit) => {
+                                // ... (โค้ดภายใน Loop เดิม ไม่ต้องแก้) ...
+                                const color = getMarkerColor(unit);
+                                const isActive = activeLayers.includes(unit);
+                                const isExpanded = expandedUnit === unit;
+                                const stats = getUnitStats(unit);
 
-                        return (
-                            <div key={unit} className={`rounded-xl transition-all duration-300 border ${isExpanded ? 'bg-white shadow-lg border-slate-100 ring-1 ring-slate-100' : 'bg-slate-50/50 border-transparent hover:bg-white hover:shadow-sm'}`}>
-                                {/* Top Row: Toggle & Dropdown Trigger */}
-                                <div className="flex items-center p-1.5">
-                                    {/* Left: Checkbox Toggle */}
-                                    <button onClick={() => toggleLayer(unit)} className="flex-1 flex items-center gap-2.5 text-left group">
-                                        <div className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-300 flex items-center ${isActive ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${isActive ? 'translate-x-3' : 'translate-x-0'}`} />
-                                        </div>
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <span className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: color }}></span>
-                                            <span className={`text-[11px] font-bold truncate transition-colors ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{unit}</span>
-                                        </div>
-                                    </button>
-
-                                    {/* Right: Dropdown Arrow */}
-                                    <button onClick={() => setExpandedUnit(isExpanded ? null : unit)} className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${isExpanded ? 'bg-slate-100 text-slate-600 rotate-180' : 'text-slate-400 hover:bg-white hover:shadow-sm'}`}>
-                                        <ChevronDown className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-
-                                {/* Dropdown Content (Stats) */}
-                                {isExpanded && (
-                                    <div className="px-3 pb-3 pt-1 animate-in slide-in-from-top-2 fade-in duration-300">
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {/* Stat 1: จำนวนครั้ง */}
-                                            <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center text-center group hover:border-slate-200 transition-colors"
-                                                style={{ backgroundColor: `${color}10` }}>
-                                                <div className="text-[10px] text-slate-500 font-medium mb-0.5 flex items-center gap-1">
-                                                    <MapIcon className="w-3 h-3 opacity-50" /> ออกหน่วย
+                                return (
+                                    <div key={unit} className={`rounded-xl transition-all duration-300 border ${isExpanded ? 'bg-white shadow-lg border-slate-100 ring-1 ring-slate-100' : 'bg-slate-50/50 border-transparent hover:bg-white hover:shadow-sm'}`}>
+                                        <div className="flex items-center p-1.5">
+                                            <button onClick={() => toggleLayer(unit)} className="flex-1 flex items-center gap-2.5 text-left group">
+                                                <div className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-300 flex items-center ${isActive ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${isActive ? 'translate-x-3' : 'translate-x-0'}`} />
                                                 </div>
-                                                <div className="text-sm font-black text-slate-700 group-hover:scale-110 transition-transform">
-                                                    {stats.totalTimes.toLocaleString()}
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <span className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: color }}></span>
+                                                    <span className={`text-[11px] font-bold truncate transition-colors ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{unit}</span>
+                                                </div>
+                                            </button>
+                                            <button onClick={() => setExpandedUnit(isExpanded ? null : unit)} className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${isExpanded ? 'bg-slate-100 text-slate-600 rotate-180' : 'text-slate-400 hover:bg-white hover:shadow-sm'}`}>
+                                                <ChevronDown className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                        {isExpanded && (
+                                            <div className="px-3 pb-3 pt-1 animate-in slide-in-from-top-2 fade-in duration-300">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center text-center group hover:border-slate-200 transition-colors" style={{ backgroundColor: `${color}10` }}>
+                                                        <div className="text-[10px] text-slate-500 font-medium mb-0.5 flex items-center gap-1"><MapIcon className="w-3 h-3 opacity-50" /> ออกหน่วย</div>
+                                                        <div className="text-sm font-black text-slate-700 group-hover:scale-110 transition-transform">{stats.totalTimes.toLocaleString()}</div>
+                                                    </div>
+                                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center text-center group hover:border-slate-200 transition-colors" style={{ backgroundColor: `${color}15` }}>
+                                                        <div className="text-[10px] text-slate-500 font-medium mb-0.5 flex items-center gap-1"><PawPrint className="w-3 h-3 opacity-50" /> สัตว์รวม</div>
+                                                        <div className="text-sm font-black group-hover:scale-110 transition-transform" style={{ color: color }}>{stats.totalAnimals.toLocaleString()}</div>
+                                                    </div>
                                                 </div>
                                             </div>
-
-                                            {/* Stat 2: จำนวนสัตว์ */}
-                                            <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center text-center group hover:border-slate-200 transition-colors"
-                                                style={{ backgroundColor: `${color}15` }}>
-                                                <div className="text-[10px] text-slate-500 font-medium mb-0.5 flex items-center gap-1">
-                                                    <PawPrint className="w-3 h-3 opacity-50" /> สัตว์รวม
-                                                </div>
-                                                <div className="text-sm font-black group-hover:scale-110 transition-transform" style={{ color: color }}>
-                                                    {stats.totalAnimals.toLocaleString()}
-                                                </div>
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        )
-                    })}
-                </div>
+                                )
+                            })}
+                        </div>
 
-                {/* Radius Control */}
-                <div className="pt-3 border-t border-slate-100">
-                    <div className="text-xs font-extrabold text-slate-600 mb-2 flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-orange-500" /> รัศมี (Radius)
+                        {/* Radius Control */}
+                        <div className="pt-3 mt-3 border-t border-slate-100">
+                            <div className="text-xs font-extrabold text-slate-600 mb-2 flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5 text-orange-500" /> รัศมี (Radius)
+                            </div>
+                            <div className="flex gap-1">
+                                {[
+                                    { val: 1000, label: '1km', color: 'bg-red-600' },
+                                    { val: 3000, label: '3km', color: 'bg-red-400' },
+                                    { val: 5000, label: '5km', color: 'bg-orange-400' }
+                                ].map((r) => {
+                                    const isActive = activeRadii.includes(r.val);
+                                    return (
+                                        <button key={r.val} onClick={() => toggleRadius(r.val)}
+                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm border ${isActive ? `${r.color} text-white border-transparent shadow-md transform scale-105` : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}`}>
+                                            {r.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex gap-1">
-                        {[
-                            { val: 1000, label: '1km', color: 'bg-red-600' },
-                            { val: 3000, label: '3km', color: 'bg-red-400' },
-                            { val: 5000, label: '5km', color: 'bg-orange-400' }
-                        ].map((r) => {
-                            const isActive = activeRadii.includes(r.val);
-                            return (
-                                <button key={r.val} onClick={() => toggleRadius(r.val)}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm border ${isActive ? `${r.color} text-white border-transparent shadow-md transform scale-105` : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}`}>
-                                    {r.label}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* CSS Injection for Custom Marker */}
