@@ -429,8 +429,8 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     };
 
     const UNIT_OPTIONS = [
-        { value: 'sterilization', label: 'หน่วยทำหมัน (Sterilization)' },
-        { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป' },
+        { value: 'sterilization', label: 'หน่วยสัตว์แพทย์ (Veterinary Unit)' },
+        { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป (Vaccine unit + microchip)' },
         { value: 'governor', label: 'หน่วยผู้ว่า (Governor Unit)' },
         { value: 'cat_cage', label: 'หน่วยกรงแมว (Cat Cage Unit)' },
         { value: 'other', label: 'หน่วยอื่น ๆ (Other)' }
@@ -964,7 +964,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 
     if (!isOpen) return null;
 
-    // Fix: Timezone handling
+    // ฟังก์ชันแปลงวันที่
     const toLocalISOString = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -972,6 +972,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
         return `${year}-${month}-${day}`;
     };
 
+    // คำนวณวัน
     const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
@@ -984,6 +985,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     const firstDay = getFirstDayOfMonth(currentDate);
     const daysArray = [...Array(daysInMonth + firstDay).keys()];
 
+    // กรองเหตุการณ์
     const selectedDateEvents = events.filter(e => 
         e.date === toLocalISOString(selectedDate)
     );
@@ -993,32 +995,34 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[2900] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] overflow-hidden flex flex-col">
                 {/* Header */}
-                <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <div className="bg-[#545BE8] px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <CalendarDays className="w-6 h-6" /> ตารางแผนงานออกหน่วย (Dispatch Dashboard)
                     </h3>
                     <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full transition"><X className="w-6 h-6" /></button>
                 </div>
 
-                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden overflow-y-auto lg:overflow-hidden bg-slate-100">
-                    {/* Left Panel ... (เหมือนเดิม) ... */}
-                    <div className="w-full lg:w-1/3 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-visible lg:overflow-y-auto order-2 lg:order-1 h-auto lg:h-full">
+                {/* --- แก้ไขจุดที่ 1: เอา overflow-hidden ของ layout หลักออก เพื่อให้จัดการ scroll แยกส่วนได้ดีขึ้น --- */}
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-slate-100">
+                    
+                    {/* Left Panel */}
+                    <div className="w-full lg:w-1/3 bg-white border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto order-2 lg:order-1 custom-scrollbar">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                                 <div className="text-slate-500 text-xs font-bold mb-1">งานทั้งหมด</div>
-                                <div className="text-2xl font-extrabold text-indigo-600">{totalEvents}</div>
+                                <div className="text-2xl font-extrabold text-[#545BE8]">{totalEvents}</div>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                                <div className="text-slate-500 text-xs font-bold mb-1">รอปฏิบัติงาน</div>
+                                <div className="text-slate-500 text-xs font-bold mb-1">รอบปฏิบัติงาน</div>
                                 <div className="text-2xl font-extrabold text-orange-500">{upcomingEvents}</div>
                             </div>
                         </div>
 
                         <button 
                             onClick={onOpenForm}
-                            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1"
+                            className="w-full py-3 bg-[#545BE8] hover:bg-[#4349c2] text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
                         >
                             <Plus className="w-6 h-6" />
                             <span>เข้าบันทึกและแจ้งเตือนออกหน่วย</span>
@@ -1030,24 +1034,26 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                             </h4>
                             <div className="space-y-3">
                                 {selectedDateEvents.length === 0 ? (
-                                    <div className="text-center py-8 text-slate-400 bg-white rounded-xl border border-dashed border-slate-300">
-                                        ไม่มีนัดหมายในวันนี้
+                                    <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                        - ไม่มีงานในวันนี้ -
                                     </div>
                                 ) : (
                                     selectedDateEvents.map((evt, idx) => (
                                         <div 
                                             key={idx} 
                                             onClick={() => onEventClick && onEventClick(evt)}
-                                            className="bg-white p-3 rounded-lg border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-all cursor-pointer hover:bg-indigo-50 active:scale-95"
+                                            className={`
+                                                p-4 rounded-xl border-l-4 shadow-sm cursor-pointer hover:shadow-md transition-all bg-white
+                                                ${evt.type === 'meeting' ? 'border-teal-500' : 'border-[#545BE8]'}
+                                            `}
                                         >
-                                            <div className="flex justify-between items-start">
-                                                <div className="font-bold text-slate-800 text-sm">{evt.location}</div>
-                                                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold">{evt.time}</span>
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="font-bold text-slate-800 text-sm line-clamp-2">{evt.location}</div>
+                                                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">{evt.time}</span>
                                             </div>
-                                            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                            <div className="text-xs text-slate-500 flex items-center gap-1">
                                                 <Users className="w-3 h-3" /> {evt.team}
                                             </div>
-                                            {evt.note && <div className="text-[10px] text-slate-400 mt-2 bg-slate-50 p-1 rounded">Note: {evt.note}</div>}
                                         </div>
                                     ))
                                 )}
@@ -1055,66 +1061,71 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                         </div>
                     </div>
 
-                    {/* Right Panel: Calendar */}
-                    <div className="w-full lg:w-2/3 p-4 md:p-6 bg-white flex flex-col order-1 lg:order-2 h-auto lg:h-full min-h-[500px]">
+                    {/* --- Right Panel: ปฏิทิน --- */}
+                    {/* --- แก้ไขจุดที่ 2: เพิ่ม overflow-y-auto และ custom-scrollbar เพื่อให้ส่วนปฏิทินเลื่อนลงได้เมื่อจอเล็ก --- */}
+                    <div className="w-full lg:w-2/3 p-4 md:p-8 bg-white flex flex-col order-1 lg:order-2 h-auto lg:h-full min-h-[500px] overflow-y-auto custom-scrollbar">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-slate-800">
+                            <h2 className="text-3xl font-bold text-slate-800">
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
                             </h2>
-                            <div className="flex gap-2">
-                                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-100 rounded-full border border-slate-200"><ChevronLeft className="w-5 h-5" /></button>
-                                <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100">วันนี้</button>
-                                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-100 rounded-full border border-slate-200"><ChevronRight className="w-5 h-5" /></button>
+                            <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
+                                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white rounded-md transition shadow-sm"><ChevronLeft className="w-5 h-5 text-slate-600" /></button>
+                                <button onClick={() => setCurrentDate(new Date())} className="px-3 text-sm font-bold text-slate-600 hover:bg-white rounded-md transition">วันนี้</button>
+                                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white rounded-md transition shadow-sm"><ChevronRight className="w-5 h-5 text-slate-600" /></button>
                             </div>
                         </div>
 
-                        {/* Calendar Grid */}
-                        <div className="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-t-lg overflow-hidden">
-                            {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(d => (
-                                <div key={d} className="bg-slate-50 p-3 text-center text-sm font-bold text-slate-500">{d}</div>
+                        {/* ชื่อวัน */}
+                        <div className="grid grid-cols-7 mb-2 shrink-0"> {/* เพิ่ม shrink-0 ป้องกัน header หด */}
+                            {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map(d => (
+                                <div key={d} className="text-center text-sm text-slate-400 font-bold py-2">{d}</div>
                             ))}
                         </div>
-                        <div className="grid grid-cols-7 grid-rows-6 gap-px bg-slate-200 border-x border-b border-slate-200 rounded-b-lg flex-1">
+
+                        {/* ตารางวันที่ */}
+                        <div className="grid grid-cols-7 grid-rows-6 gap-2 flex-1 min-h-[500px]"> {/* เพิ่ม min-h ให้ Grid */}
                             {daysArray.map((day, i) => {
-                                if (i < firstDay) return <div key={i} className="bg-white/50" />;
+                                if (i < firstDay) return <div key={i} />;
                                 
                                 const dayNum = i - firstDay + 1;
                                 const dObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
-                                const dateStr = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+                                const dateStr = toLocalISOString(dObj);
 
                                 const isToday = dateStr === toLocalISOString(new Date());
                                 const isSelected = dateStr === toLocalISOString(selectedDate);
                                 const dayEvents = events.filter(e => e.date === dateStr);
 
-                                // ✅ เพิ่ม: ดึงชื่อวันภาษาไทย (เช่น จ., อ.)
-                                const dayName = dObj.toLocaleDateString('th-TH', { weekday: 'short' });
-
                                 return (
                                     <div 
                                         key={i} 
                                         onClick={() => setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum))}
-                                        className={`bg-white p-2 min-h-[80px] cursor-pointer hover:bg-slate-50 transition-colors relative flex flex-col items-start gap-1
-                                            ${isSelected ? 'ring-2 ring-inset ring-indigo-500 z-10' : ''}
+                                        className={`
+                                            relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 min-h-[80px]
+                                            ${isSelected ? 'border-[#545BE8] ring-1 ring-[#545BE8] bg-indigo-50/30' : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50'}
                                         `}
                                     >
-                                        {/* ✅ แก้ไข: จัด Layout ให้แสดงวันที่และชื่อวันคู่กัน */}
-                                        <div className="flex justify-between items-start w-full mb-1">
+                                        <div className="flex justify-between items-start">
                                             <span className={`
-                                                w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0
-                                                ${isToday ? 'bg-red-500 text-white' : 'text-slate-700'}
-                                            `}>{dayNum}</span>
-                                            
-                                            {/* แสดงชื่อวันตรงนี้ */}
-                                            <span className="text-[10px] text-slate-400 font-medium">
-                                                {dayName}
+                                                w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold
+                                                ${isToday ? 'bg-[#ff4d4f] text-white shadow-md' : 'text-slate-700'}
+                                            `}>
+                                                {dayNum}
                                             </span>
                                         </div>
                                         
-                                        {dayEvents.map((evt, idx) => (
-                                            <div key={idx} className="w-full text-[9px] truncate px-1 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium">
-                                                {evt.time} {evt.location}
-                                            </div>
-                                        ))}
+                                        <div className="flex flex-col gap-1 mt-1 overflow-hidden">
+                                            {dayEvents.slice(0, 3).map((evt, idx) => (
+                                                <div key={idx} className={`
+                                                    text-[9px] px-1.5 py-0.5 rounded truncate font-medium
+                                                    ${evt.type === 'meeting' ? 'bg-teal-100 text-teal-700' : 'bg-indigo-100 text-indigo-700'}
+                                                `}>
+                                                    {evt.time} {evt.location}
+                                                </div>
+                                            ))}
+                                            {dayEvents.length > 3 && (
+                                                <div className="text-[9px] text-slate-400 pl-1">+ อีก {dayEvents.length - 3} งาน</div>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -2132,7 +2143,7 @@ const parseCSVDate = (dateStr) => {
                     thaiMonths={THAI_MONTHS}
                 />
 
-                <KPISection totals={totals} />
+                <KPISection totals={totals} unitStats={unitStats} />
 
                 <StatisticsCharts trendData={trendData} unitStats={unitStats} />
 

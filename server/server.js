@@ -144,6 +144,7 @@ const dispatchPlanSchema = new mongoose.Schema({
     time: String,        // เวลารถออก
     closingTime: String, // เวลาปิดหน่วย
     location: { type: String, required: true },
+    district: String,
     mapLink: String,
     note: String,
     staff: { type: Object, default: {} }, // เก็บรายชื่อเจ้าหน้าที่ทั้งหมด
