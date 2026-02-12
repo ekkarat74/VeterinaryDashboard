@@ -9,7 +9,7 @@ import { io } from "socket.io-client";
 // --- Custom Components & Constants (Assumed imports) ---
 import KPISection from './components/KPICards';
 import UserManagementModal from './components/UserManagementModal';
-import {UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from './constants/locations';
+import {UNIT_TYPES, BANGKOK_DISTRICTS} from './constants/locations';
 import AddDataModal from './components/modals/AddDataModal';
 import RabiesOutbreakSection from './components/dashboard/RabiesOutbreakSection';
 import MainDataTable from './components/dashboard/MainDataTable';
@@ -20,6 +20,8 @@ import FilterBar from './components/dashboard/FilterBar.jsx';
 import StatisticsCharts from './components/dashboard/StatisticsCharts.jsx';
 import RankingSection from './components/dashboard/RankingSection';
 import LeafletMap from './components/modals/LeafletMap';
+import LoginModal from './components/modals/LoginModal';
+import AddOutbreakModal from './components/modals/AddOutbreakModal';
 
 // --- SUB-COMPONENTS DEFINITION ---
 
@@ -195,7 +197,7 @@ const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) =>
     const [isLoading, setIsLoading] = useState(false);
 
     if (!isOpen) return null;
-
+     
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
@@ -238,82 +240,6 @@ const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) =>
     );
 };
 
-// 6. LoginModal
-const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-
-    if (!isOpen) return null;
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch(`${apiBaseUrl}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                onLogin(data);
-                if(onToast) onToast('success', 'เข้าสู่ระบบสำเร็จ');
-                onClose();
-            } else {
-                if(onToast) onToast('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ');
-            }
-        } catch (error) {
-            if(onToast) onToast('error', `Login Failed: ไม่สามารถเชื่อมต่อ Server ได้`);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative overflow-hidden border border-white/20">
-                {/* Background Decoration */}
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                
-                <div className="text-center mb-8 relative z-10">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30 transform -rotate-3">
-                        <Lock className="w-8 h-8 text-white" />
-                    </div>
-                    <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">เข้าสู่ระบบ</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">ระบบรายงานสัตวแพทย์</p>
-                </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 ml-1">ชื่อผู้ใช้งาน</label>
-                        <div className="relative group">
-                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                            <input className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
-                                placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)} />
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 ml-1">รหัสผ่าน</label>
-                        <div className="relative group">
-                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                            <input className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
-                                type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} />
-                        </div>
-                    </div>
-
-                    <div className="pt-4">
-                        <button type="submit" className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-xl shadow-slate-200 hover:shadow-2xl transition-all flex items-center justify-center gap-2 transform active:scale-95">
-                            <span>เข้าสู่ระบบ</span> <ChevronRight className="w-4 h-4" />
-                        </button>
-                        <button type="button" onClick={onClose} className="w-full mt-3 py-2 text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">
-                            ยกเลิก
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
 // 8. ImagePreviewModal
 const ImagePreviewModal = ({ imageUrl, onClose }) => {
     if (!imageUrl) return null;
@@ -327,219 +253,6 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
         </div>
     </div>
   );
-};
-
-// 9. AddOutbreakModal
-const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
-    const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
-        location: '',
-        district: BANGKOK_DISTRICTS[0],
-        lat: '',
-        long: '',
-        stats: {
-            dog: { male: 0, female: 0 },
-            cat: { male: 0, female: 0 }
-    }
-    });
-
-    // [เพิ่ม] State สำหรับควบคุม Input พิกัด เพื่อให้พิมพ์ลื่นไหล
-    const [coordInput, setCoordInput] = useState("");
-
-    useEffect(() => {
-        if (isOpen) {
-            if (initialData) {
-                setFormData({
-                    date: initialData.date,
-                    location: initialData.location,
-                    district: initialData.district,
-                    lat: initialData.lat,
-                    long: initialData.long,
-                    // --- [แก้ไข] ใช้ Optional Chaining (?.) และค่า Default ป้องกัน Crash ---
-                    stats: {
-                        dog: { 
-                            male: initialData.stats?.dog?.male || 0, 
-                            female: initialData.stats?.dog?.female || 0 
-                        },
-                        cat: { 
-                            male: initialData.stats?.cat?.male || 0, 
-                            female: initialData.stats?.cat?.female || 0 
-                        }
-                    }
-                // -------------------------------------------------------------
-                });
-            
-                if (initialData.lat && initialData.long) {
-                    setCoordInput(`${initialData.lat}, ${initialData.long}`);
-                } else {
-                    setCoordInput("");
-                }
-            } else {
-                // กรณีเพิ่มใหม่
-                setFormData({
-                    date: new Date().toISOString().split('T')[0],
-                    location: '',
-                    district: BANGKOK_DISTRICTS[0],
-                    lat: '',
-                    long: '',
-                    stats: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
-                });
-                setCoordInput("");
-            }
-        }
-    }, [isOpen, initialData]);
-
-    if (!isOpen) return null;
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        
-        // [แก้ไข] เพิ่มการตรวจสอบ isNaN เพื่อป้องกัน Database Error
-        const payload = {
-            ...formData,
-            lat: (formData.lat && !isNaN(formData.lat)) ? parseFloat(formData.lat) : 0,
-            long: (formData.long && !isNaN(formData.long)) ? parseFloat(formData.long) : 0
-        };
-
-        if (initialData) {
-            onUpdate(initialData._id, payload);
-        } else {
-            onSave(payload);
-        }
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-red-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-red-500">
-                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Skull className="w-6 h-6" /> {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
-                    </h3>
-                    <button onClick={onClose}><X className="w-5 h-5" /></button>
-                </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
-                        <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                            value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่พบ (Location)</label>
-                        <input required type="text" placeholder="ระบุสถานที่" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                            value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">เขตพื้นที่ (District)</label>
-                        <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                            value={formData.district} onChange={e => setFormData({ ...formData, district: e.target.value })}>
-                            {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                    </div>
-
-                    {/* [แก้ไข] ส่วน Input พิกัดใหม่ */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
-                            <Navigation className="w-3 h-3 text-red-500" /> พิกัดภูมิศาสตร์ (Latitude, Longitude)
-                        </label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                placeholder="เช่น 13.xxxx, 100.xxxx" 
-                                className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono"
-                                // ใช้ coordInput แทน formData โดยตรง
-                                value={coordInput} 
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setCoordInput(value); // อัปเดต UI ทันที
-
-                                    // Logic แยกค่า Lat/Long
-                                    if (value.includes(',')) {
-                                        const parts = value.split(',');
-                                        const latVal = parts[0].trim();
-                                        const longVal = parts[1] ? parts[1].trim() : '';
-                                        setFormData({ ...formData, lat: latVal, long: longVal });
-                                    } else {
-                                        setFormData({ ...formData, lat: value.trim(), long: '' });
-                                    }
-                                }}
-                            />
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        </div>
-                    </div>
-
-                    {/* --- [เพิ่ม] ส่วนกรอกจำนวนสัตว์ --- */}
-<div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
-    <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
-        <Activity className="w-3 h-3" /> จำนวนสัตว์ที่พบเชื้อ (ตัว)
-    </label>
-    
-    {/* แถวสุนัข */}
-    <div className="flex items-center gap-2">
-        <span className="text-xs font-bold w-12 text-slate-700">🐶 สุนัข</span>
-        <div className="flex-1 flex gap-2">
-             <div className="relative flex-1">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ผู้</span>
-                <input type="number" min="0" className="w-full pl-6 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                    value={formData.stats.dog.male}
-                    onChange={e => setFormData({
-                        ...formData, 
-                        stats: { ...formData.stats, dog: { ...formData.stats.dog, male: parseInt(e.target.value) || 0 } }
-                    })}
-                />
-            </div>
-            <div className="relative flex-1">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">เมีย</span>
-                <input type="number" min="0" className="w-full pl-8 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                    value={formData.stats.dog.female}
-                    onChange={e => setFormData({
-                        ...formData, 
-                        stats: { ...formData.stats, dog: { ...formData.stats.dog, female: parseInt(e.target.value) || 0 } }
-                    })}
-                />
-            </div>
-        </div>
-    </div>
-
-    {/* แถวแมว */}
-    <div className="flex items-center gap-2">
-        <span className="text-xs font-bold w-12 text-slate-700">🐱 แมว</span>
-        <div className="flex-1 flex gap-2">
-             <div className="relative flex-1">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ผู้</span>
-                <input type="number" min="0" className="w-full pl-6 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                    value={formData.stats.cat.male}
-                    onChange={e => setFormData({
-                        ...formData, 
-                        stats: { ...formData.stats, cat: { ...formData.stats.cat, male: parseInt(e.target.value) || 0 } }
-                    })}
-                />
-            </div>
-            <div className="relative flex-1">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">เมีย</span>
-                <input type="number" min="0" className="w-full pl-8 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                    value={formData.stats.cat.female}
-                    onChange={e => setFormData({
-                        ...formData, 
-                        stats: { ...formData.stats, cat: { ...formData.stats.cat, female: parseInt(e.target.value) || 0 } }
-                    })}
-                />
-            </div>
-        </div>
-    </div>
-</div>
-                    
-                    <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่ (คั่นด้วยเครื่องหมายจุลภาค ,)</p>
-                    <div className="pt-4 border-t border-slate-100 flex gap-3">
-                        <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">ยกเลิก</button>
-                        <button type="submit" className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all">
-                            {initialData ? <><Edit className="w-4 h-4" /> บันทึกแก้ไข</> : <><Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ</>}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
 };
 
 // 10. CsvActionModal
@@ -670,7 +383,6 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
     );
 };
 
-// --- ส่วนที่เพิ่มใหม่: ย้าย StaffInputGroup ออกมาข้างนอก ---
 const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, color = "bg-slate-50" }) => (
     <div className={`p-3 rounded-lg border border-slate-200 ${color} space-y-2`}>
         <div className="flex justify-between items-center">
@@ -700,6 +412,15 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
 
 // 12. DispatchModal
 const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
+
+    const formatDateLocal = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     // คำนวณวันพรุ่งนี้เป็นค่าเริ่มต้น
     const getTomorrowDate = () => {
         const tomorrow = new Date();
@@ -709,13 +430,17 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 
     const UNIT_OPTIONS = [
         { value: 'sterilization', label: 'หน่วยทำหมัน (Sterilization)' },
-        { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป' }
+        { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป' },
+        { value: 'governor', label: 'หน่วยผู้ว่า (Governor Unit)' },
+        { value: 'cat_cage', label: 'หน่วยกรงแมว (Cat Cage Unit)' },
+        { value: 'other', label: 'หน่วยอื่น ๆ (Other)' }
     ];
 
     const [unitType, setUnitType] = useState('sterilization'); 
     const [generalInfo, setGeneralInfo] = useState({
         date: new Date().toISOString().split('T')[0], // Default วันนี้
         locationName: '',
+        district: '',
         mapLink: '',
         departureTime: '07:30',
         closingTime: '12:00',
@@ -736,26 +461,30 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 
     useEffect(() => {
         if (isOpen && initialData) {
-            // โหมดแก้ไข: แตกข้อมูลจาก initialData มาใส่ State
+            // โหมดแก้ไข:
             setUnitType(initialData.unitType || 'sterilization');
             setGeneralInfo({
-                date: initialData.date,
+                date: initialData.date.split('T')[0], 
                 locationName: initialData.location,
+                district: initialData.district || '',
                 mapLink: initialData.mapLink || '',
                 departureTime: initialData.time || '07:30',
                 closingTime: initialData.closingTime || '12:00',
                 note: initialData.note || ''
             });
             if (initialData.staff) {
-                setStaff(initialData.staff); // โหลดรายชื่อพนักงานเดิม
+                setStaff(initialData.staff);
             }
         } else if (isOpen && !initialData) {
-            // โหมดเพิ่มใหม่: Reset ค่า
+            // โหมดเพิ่มใหม่:
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
+            
             setGeneralInfo({
-                date: tomorrow.toISOString().split('T')[0],
+                // ✅ แก้ไข: ใช้ฟังก์ชัน formatDateLocal แทน toISOString()
+                date: formatDateLocal(tomorrow), 
                 locationName: '',
+                district: '',
                 mapLink: '',
                 departureTime: '07:30',
                 closingTime: '12:00',
@@ -816,6 +545,7 @@ ${commonStaff}
 📌 *${currentUnitLabel}*
 📅 วันที่: ${new Date(generalInfo.date).toLocaleDateString('th-TH')}
 📍 สถานที่: ${generalInfo.locationName}
+bankok เขต: ${generalInfo.district || '-'}
 🗺️ แผนที่: ${generalInfo.mapLink || '-'}
 ⏰ เวลารถออก: ${generalInfo.departureTime} น.
 🛑 เวลาปิดหน่วย: ${generalInfo.closingTime} น.
@@ -840,6 +570,7 @@ ${staffDetails}
             staff: staff, 
             title: currentUnitLabel,
             location: generalInfo.locationName,
+            district: generalInfo.district,
             time: generalInfo.departureTime,
             team: staff.vets.filter(v => v).join(', ')
         };
@@ -886,6 +617,20 @@ ${staffDetails}
                                 </select>
                                 <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90" />
                             </div>
+                            {/* --- [เพิ่ม] Dropdown เลือกเขต --- */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
+                                    <select 
+                                        className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                        value={generalInfo.district} 
+                                        onChange={e => setGeneralInfo({ ...generalInfo, district: e.target.value })}
+                                    >
+                                        <option value="">-- ระบุเขต --</option>
+                                        {BANGKOK_DISTRICTS.map((d, i) => (
+                                            <option key={i} value={d}>{d}</option>
+                                        ))}
+                                    </select>
+                                </div>
                         </div>
 
                         {/* ข้อมูลทั่วไป */}
@@ -954,7 +699,7 @@ ${staffDetails}
                                 </div>
                             )}
 
-                            {unitType === 'microchip' && (
+                            {(unitType === 'microchip' || unitType === 'governor' || unitType === 'cat_cage' || unitType === 'other') && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in fade-in">
                                     <StaffInputGroup roleKey="assistants" label="🙋 ผู้ช่วยงานทั่วไป" staffList={staff.assistants} {...commonProps} />
                                 </div>
@@ -1219,9 +964,15 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 
     if (!isOpen) return null;
 
-    // Helper: หาจำนวนวันในเดือน
+    // Fix: Timezone handling
+    const toLocalISOString = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    // Helper: หาวันแรกของเดือนเริ่มที่วันอะไร (0=Sunday)
     const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
     const changeMonth = (offset) => {
@@ -1233,14 +984,12 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     const firstDay = getFirstDayOfMonth(currentDate);
     const daysArray = [...Array(daysInMonth + firstDay).keys()];
 
-    // Filter events for selected date
     const selectedDateEvents = events.filter(e => 
-        e.date === selectedDate.toISOString().split('T')[0]
+        e.date === toLocalISOString(selectedDate)
     );
 
-    // Stats
     const totalEvents = events.length;
-    const upcomingEvents = events.filter(e => new Date(e.date) >= new Date().setHours(0,0,0,0)).length;
+    const upcomingEvents = events.filter(e => e.date >= toLocalISOString(new Date())).length;
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[2900] flex items-center justify-center p-4 animate-in fade-in">
@@ -1254,10 +1003,8 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                 </div>
 
                 <div className="flex flex-col lg:flex-row flex-1 overflow-hidden overflow-y-auto lg:overflow-hidden bg-slate-100">
-                    {/* Left Panel: Dashboard & Actions */}
+                    {/* Left Panel ... (เหมือนเดิม) ... */}
                     <div className="w-full lg:w-1/3 bg-slate-50 border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-visible lg:overflow-y-auto order-2 lg:order-1 h-auto lg:h-full">
-                        
-                        {/* Stats Cards */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                                 <div className="text-slate-500 text-xs font-bold mb-1">งานทั้งหมด</div>
@@ -1269,7 +1016,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                             </div>
                         </div>
 
-                        {/* Main Action Button */}
                         <button 
                             onClick={onOpenForm}
                             className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-1"
@@ -1289,7 +1035,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                     </div>
                                 ) : (
                                     selectedDateEvents.map((evt, idx) => (
-                                        // [แก้ไข] เพิ่ม onClick และ cursor-pointer เพื่อให้คลิกได้
                                         <div 
                                             key={idx} 
                                             onClick={() => onEventClick && onEventClick(evt)}
@@ -1334,10 +1079,15 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                 if (i < firstDay) return <div key={i} className="bg-white/50" />;
                                 
                                 const dayNum = i - firstDay + 1;
-                                const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum).toISOString().split('T')[0];
-                                const isToday = dateStr === new Date().toISOString().split('T')[0];
-                                const isSelected = dateStr === selectedDate.toISOString().split('T')[0];
+                                const dObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
+                                const dateStr = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+
+                                const isToday = dateStr === toLocalISOString(new Date());
+                                const isSelected = dateStr === toLocalISOString(selectedDate);
                                 const dayEvents = events.filter(e => e.date === dateStr);
+
+                                // ✅ เพิ่ม: ดึงชื่อวันภาษาไทย (เช่น จ., อ.)
+                                const dayName = dObj.toLocaleDateString('th-TH', { weekday: 'short' });
 
                                 return (
                                     <div 
@@ -1347,10 +1097,18 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                             ${isSelected ? 'ring-2 ring-inset ring-indigo-500 z-10' : ''}
                                         `}
                                     >
-                                        <span className={`
-                                            w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
-                                            ${isToday ? 'bg-red-500 text-white' : 'text-slate-700'}
-                                        `}>{dayNum}</span>
+                                        {/* ✅ แก้ไข: จัด Layout ให้แสดงวันที่และชื่อวันคู่กัน */}
+                                        <div className="flex justify-between items-start w-full mb-1">
+                                            <span className={`
+                                                w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0
+                                                ${isToday ? 'bg-red-500 text-white' : 'text-slate-700'}
+                                            `}>{dayNum}</span>
+                                            
+                                            {/* แสดงชื่อวันตรงนี้ */}
+                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                {dayName}
+                                            </span>
+                                        </div>
                                         
                                         {dayEvents.map((evt, idx) => (
                                             <div key={idx} className="w-full text-[9px] truncate px-1 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium">
@@ -1997,9 +1755,21 @@ export default function VeterinaryDashboard() {
 
     const unitStats = useMemo(() => {
         const grouped = filteredData.reduce((acc, curr) => {
-            if (!acc[curr.unit]) acc[curr.unit] = { name: curr.unit, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
-            acc[curr.unit].vaccine += (curr.stats.vaccine || 0); acc[curr.unit].sterilize += (curr.stats.sterilize || 0); acc[curr.unit].register += (curr.stats.register || 0);
-            acc[curr.unit].microchip += (curr.stats.microchip || 0); acc[curr.unit].medical += (curr.stats.medical || 0);
+            if (!acc[curr.unit]) {
+                acc[curr.unit] = { 
+                    name: curr.unit, 
+                    count: 0, // [เพิ่ม] ตัวแปรเก็บจำนวนครั้งที่ออกหน่วย
+                    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 
+                };
+            }
+            
+            acc[curr.unit].count += 1; // [เพิ่ม] บวกจำนวนครั้งเพิ่มทีละ 1
+
+            acc[curr.unit].vaccine += (curr.stats.vaccine || 0); 
+            acc[curr.unit].sterilize += (curr.stats.sterilize || 0); 
+            acc[curr.unit].register += (curr.stats.register || 0);
+            acc[curr.unit].microchip += (curr.stats.microchip || 0); 
+            acc[curr.unit].medical += (curr.stats.medical || 0);
             acc[curr.unit].total += ((curr.stats.vaccine||0) + (curr.stats.sterilize||0) + (curr.stats.register||0) + (curr.stats.microchip||0) + (curr.stats.medical||0));
             return acc;
         }, {});

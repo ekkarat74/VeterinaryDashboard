@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
     Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-    Legend, ResponsiveContainer, Area, ComposedChart
+    Legend, ResponsiveContainer, Area, ComposedChart, LabelList // [เพิ่ม] Import LabelList
 } from 'recharts';
 import { Calendar, Users } from 'lucide-react';
 
@@ -35,16 +35,26 @@ const StatisticsCharts = ({ trendData, unitStats }) => {
             {/* Unit Comparison Chart */}
             <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-600" /> เปรียบเทียบหน่วย
+                    <Users className="w-5 h-5 text-purple-600" /> เปรียบเทียบหน่วย (ยอดรวม/จำนวนครั้ง)
                 </h2>
                 <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={unitStats} layout="vertical" margin={{top:5, right:30, left:20, bottom:5}}>
+                        {/* [แก้ไข] เพิ่ม margin right เพื่อให้มีที่สำหรับตัวเลข */}
+                        <BarChart data={unitStats} layout="vertical" margin={{top:5, right:40, left:20, bottom:5}}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" width={100} tick={{fontSize:10}} axisLine={false} tickLine={false} />
-                            <RechartsTooltip />
-                            <Bar dataKey="total" fill="#8b5cf6" radius={[0,4,4,0]} barSize={15} />
+                            <RechartsTooltip cursor={{fill: 'transparent'}} />
+                            
+                            <Bar dataKey="total" fill="#8b5cf6" radius={[0,4,4,0]} barSize={15}>
+                                {/* [เพิ่ม] ส่วนแสดงตัวเลขจำนวนครั้งที่ปลายแท่ง */}
+                                <LabelList 
+                                    dataKey="count" 
+                                    position="right" 
+                                    formatter={(value) => `${value} ครั้ง`}
+                                    style={{ fontSize: '10px', fill: '#64748b', fontWeight: 'bold' }}
+                                />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
