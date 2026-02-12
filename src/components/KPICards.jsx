@@ -1,4 +1,4 @@
-import { Syringe, Scissors, FileText, Database, Stethoscope, Activity, Truck } from 'lucide-react';
+import { Syringe, Scissors, FileText, Database, Stethoscope, Activity, Truck, BarChart3} from 'lucide-react';
 
 // --- Sub-Component: การ์ดแต่ละใบ ---
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass }) => (
@@ -26,7 +26,6 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass })
 const KPISection = ({ totals, unitStats = [] }) => {
     return (
         <div className="space-y-6">
-            {/* 2. ส่วนเพิ่มใหม่: แสดงจำนวนครั้งที่ออกหน่วย แยกตามทีม */}
             {unitStats.length > 0 && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -38,10 +37,9 @@ const KPISection = ({ totals, unitStats = [] }) => {
                             <KPICard 
                                 key={index}
                                 title={`หน่วย ${unit.name}`} 
-                                value={unit.count} // ใช้ค่า count ที่คำนวณไว้
+                                value={unit.count}
                                 subtext="ครั้ง (Times)" 
                                 icon={Activity} 
-                                // สลับสีการ์ดเล็กน้อยเพื่อให้ดูแยกง่าย
                                 colorClass={`bg-gradient-to-br ${
                                     index % 2 === 0 ? 'from-indigo-500 to-indigo-700' : 'from-teal-500 to-teal-700'
                                 }`}
@@ -51,48 +49,54 @@ const KPISection = ({ totals, unitStats = [] }) => {
                     </div>
                 </div>
             )}
-            {/* 1. ส่วนแสดงยอดรวมทั้งหมด (Existing) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <KPICard 
-                    title="จำนวนวัคซีนทั้งหมด" 
-                    value={totals.vaccine} 
-                    subtext="สะสมรวมทุกหน่วย" 
-                    icon={Syringe} 
-                    colorClass="bg-gradient-to-br from-blue-500 to-blue-700" 
-                    shadowClass="shadow-lg shadow-blue-500/30"
-                />
-                <KPICard 
-                    title="จำนวนการทำหมัน" 
-                    value={totals.sterilize} 
-                    subtext="สุนัขและแมว" 
-                    icon={Scissors} 
-                    colorClass="bg-gradient-to-br from-orange-400 to-orange-600" 
-                    shadowClass="shadow-lg shadow-orange-500/30"
-                />
-                <KPICard 
-                    title="ขึ้นทะเบียนสัตว์เลี้ยง" 
-                    value={totals.register} 
-                    subtext="ลงระบบฐานข้อมูล" 
-                    icon={FileText} 
-                    colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" 
-                    shadowClass="shadow-lg shadow-emerald-500/30"
-                />
-                <KPICard 
-                    title="ฝังไมโครชิป" 
-                    value={totals.microchip} 
-                    subtext="ระบุตัวตนสัตว์" 
-                    icon={Database} 
-                    colorClass="bg-gradient-to-br from-purple-500 to-purple-700" 
-                    shadowClass="shadow-lg shadow-purple-500/30"
-                />
-                <KPICard 
-                    title="จำนวนการรักษาสัตว์" 
-                    value={totals.medical} 
-                    subtext="บริการรักษาพยาบาล" 
-                    icon={Stethoscope} 
-                    colorClass="bg-gradient-to-br from-rose-400 to-rose-600" 
-                    shadowClass="shadow-lg shadow-rose-500/30"
-                />
+
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                    สรุปยอดรวมการให้บริการ (Overall Statistics)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <KPICard 
+                        title="จำนวนวัคซีนทั้งหมด" 
+                        value={totals.vaccine} 
+                        subtext="สะสมรวมทุกหน่วย" 
+                        icon={Syringe} 
+                        colorClass="bg-gradient-to-br from-blue-500 to-blue-700" 
+                        shadowClass="shadow-lg shadow-blue-500/30"
+                    />
+                    <KPICard 
+                        title="จำนวนการทำหมัน" 
+                        value={totals.sterilize} 
+                        subtext="สุนัขและแมว" 
+                        icon={Scissors} 
+                        colorClass="bg-gradient-to-br from-orange-400 to-orange-600" 
+                        shadowClass="shadow-lg shadow-orange-500/30"
+                    />
+                    <KPICard 
+                        title="ขึ้นทะเบียนสัตว์เลี้ยง" 
+                        value={totals.register} 
+                        subtext="ลงระบบฐานข้อมูล" 
+                        icon={FileText} 
+                        colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" 
+                        shadowClass="shadow-lg shadow-emerald-500/30"
+                    />
+                    <KPICard 
+                        title="ฝังไมโครชิป" 
+                        value={totals.microchip} 
+                        subtext="ระบุตัวตนสัตว์" 
+                        icon={Database} 
+                        colorClass="bg-gradient-to-br from-purple-500 to-purple-700" 
+                        shadowClass="shadow-lg shadow-purple-500/30"
+                    />
+                    <KPICard 
+                        title="จำนวนการรักษาสัตว์" 
+                        value={totals.medical} 
+                        subtext="บริการรักษาพยาบาล" 
+                        icon={Stethoscope} 
+                        colorClass="bg-gradient-to-br from-rose-400 to-rose-600" 
+                        shadowClass="shadow-lg shadow-rose-500/30"
+                    />
+                </div>
             </div>
         </div>
     );
