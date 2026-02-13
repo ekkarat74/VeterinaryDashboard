@@ -898,6 +898,155 @@ const MeetingModal = ({ isOpen, onClose, onSave, onDelete, initialData, onToast 
     );
 };
 
+// --- NEW COMPONENT: Meeting Calendar (แยกปฏิทินประชุม) ---
+const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
+
+    if (!isOpen) return null;
+
+    const toLocalISOString = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+
+    const changeMonth = (offset) => {
+        const newDate = new Date(currentDate.setMonth(currentDate.getMonth() + offset));
+        setCurrentDate(new Date(newDate));
+    };
+
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+    const daysArray = [...Array(daysInMonth + firstDay).keys()];
+
+    const selectedDateEvents = events.filter(e => e.date === toLocalISOString(selectedDate));
+    const totalEvents = events.length;
+    const upcomingEvents = events.filter(e => e.date >= toLocalISOString(new Date())).length;
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[95vh] h-[90vh] border-2 border-teal-500">
+                {/* Header สีเขียว Teal */}
+                <div className="bg-teal-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <CalendarDays className="w-6 h-6" /> ปฏิทินนัดหมายประชุม (Meeting Calendar)
+                    </h3>
+                    <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full transition"><X className="w-6 h-6" /></button>
+                </div>
+
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-slate-100">
+                    {/* Left Panel */}
+                    <div className="w-full lg:w-1/3 bg-white border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto order-2 lg:order-1 custom-scrollbar">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <div className="text-slate-500 text-xs font-bold mb-1">นัดหมายทั้งหมด</div>
+                                <div className="text-2xl font-extrabold text-teal-600">{totalEvents}</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <div className="text-slate-500 text-xs font-bold mb-1">ที่กำลังจะมาถึง</div>
+                                <div className="text-2xl font-extrabold text-orange-500">{upcomingEvents}</div>
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={onOpenForm}
+                            className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
+                        >
+                            <Plus className="w-6 h-6" />
+                            <span>สร้างนัดหมายประชุมใหม่</span>
+                        </button>
+
+                        <div className="border-t border-slate-200 pt-4 flex-1">
+                            <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                <List className="w-4 h-4" /> รายการวันที่ {selectedDate.toLocaleDateString('th-TH')}
+                            </h4>
+                            <div className="space-y-3">
+                                {selectedDateEvents.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                        - ไม่มีนัดหมาย -
+                                    </div>
+                                ) : (
+                                    selectedDateEvents.map((evt, idx) => (
+                                        <div key={idx} onClick={() => onEventClick && onEventClick(evt)}
+                                            className="p-4 rounded-xl border-l-4 border-teal-500 shadow-sm cursor-pointer hover:shadow-md transition-all bg-white group">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="font-bold text-slate-800 text-sm line-clamp-2 group-hover:text-teal-700">{evt.location}</div> {/* location ในที่นี้คือ Title */}
+                                                <span className="text-[10px] bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">{evt.time}</span>
+                                            </div>
+                                            <div className="text-xs text-slate-500 flex items-center gap-1">
+                                                <Users className="w-3 h-3" /> {evt.team}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Panel: Calendar Grid */}
+                    <div className="w-full lg:w-2/3 p-4 md:p-8 bg-white flex flex-col order-1 lg:order-2 h-auto lg:h-full min-h-[500px] overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-3xl font-bold text-slate-800">
+                                {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
+                            </h2>
+                            <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
+                                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white rounded-md transition shadow-sm"><ChevronLeft className="w-5 h-5 text-slate-600" /></button>
+                                <button onClick={() => setCurrentDate(new Date())} className="px-3 text-sm font-bold text-slate-600 hover:bg-white rounded-md transition">วันนี้</button>
+                                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white rounded-md transition shadow-sm"><ChevronRight className="w-5 h-5 text-slate-600" /></button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-7 mb-2 shrink-0">
+                            {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map(d => (
+                                <div key={d} className="text-center text-sm text-slate-400 font-bold py-2">{d}</div>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-7 grid-rows-6 gap-2 flex-1 min-h-[500px]">
+                            {daysArray.map((day, i) => {
+                                if (i < firstDay) return <div key={i} />;
+                                const dayNum = i - firstDay + 1;
+                                const dObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
+                                const dateStr = toLocalISOString(dObj);
+                                const isToday = dateStr === toLocalISOString(new Date());
+                                const isSelected = dateStr === toLocalISOString(selectedDate);
+                                const dayEvents = events.filter(e => e.date === dateStr);
+
+                                return (
+                                    <div key={i} onClick={() => setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum))}
+                                        className={`relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 min-h-[80px]
+                                            ${isSelected ? 'border-teal-500 ring-1 ring-teal-500 bg-teal-50/30' : 'border-slate-100 hover:border-teal-200 hover:bg-slate-50'}
+                                        `}>
+                                        <div className="flex justify-between items-start">
+                                            <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold ${isToday ? 'bg-teal-500 text-white shadow-md' : 'text-slate-700'}`}>
+                                                {dayNum}
+                                            </span>
+                                            {dayEvents.length > 0 && <span className="w-2 h-2 rounded-full bg-teal-500"></span>}
+                                        </div>
+                                        <div className="flex flex-col gap-1 mt-1 overflow-hidden">
+                                            {dayEvents.slice(0, 3).map((evt, idx) => (
+                                                <div key={idx} className="text-[9px] px-1.5 py-0.5 rounded truncate font-medium bg-teal-100 text-teal-700">
+                                                    {evt.time} {evt.location}
+                                                </div>
+                                            ))}
+                                            {dayEvents.length > 3 && <div className="text-[9px] text-slate-400 pl-1">+{dayEvents.length - 3}</div>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // 14. MeetingListModal (เพิ่มใหม่: ตารางประวัติการประชุม)
 const MeetingListModal = ({ isOpen, onClose, meetings, onEdit }) => {
     if (!isOpen) return null;
@@ -1184,6 +1333,8 @@ export default function VeterinaryDashboard() {
     // Confirm Password
     const [isConfirmPasswordOpen, setIsConfirmPasswordOpen] = useState(false);
 
+    const [isMeetingCalendarOpen, setIsMeetingCalendarOpen] = useState(false);
+
     // Toast
     const [toasts, setToasts] = useState([]);
     const addToast = (type, message) => {
@@ -1209,6 +1360,23 @@ export default function VeterinaryDashboard() {
     const [meetings, setMeetings] = useState([]);
     const [isMeetingListOpen, setIsMeetingListOpen] = useState(false); // เพิ่ม State เปิด/ปิด List
     const [viewingMeeting, setViewingMeeting] = useState(null);
+
+    const dispatchEventsOnly = dispatchEvents.map(d => ({
+        ...d,
+        type: 'dispatch',
+        originalData: d
+    }));
+
+    const meetingEventsOnly = meetings.map(m => ({
+        date: m.date,
+        time: m.startTime,
+        location: m.title, // ใช้ Title เป็น Location ในปฏิทินเพื่อให้เห็นชื่อประชุมชัดๆ
+        team: 'Online/Room',
+        note: m.link,
+        type: 'meeting',
+        _id: m._id,
+        originalData: m
+    }));
 
     // --- [แก้ไข] ฟังก์ชันบันทึกลง Database ---
     const handleSaveDispatchEvent = async (payload) => {
@@ -2161,13 +2329,28 @@ const parseCSVDate = (dateStr) => {
             <DispatchCalendarDashboard 
                 isOpen={isCalendarOpen} 
                 onClose={() => setIsCalendarOpen(false)}
-                events={combinedEvents} 
+                events={dispatchEventsOnly} // ส่งเฉพาะงานออกหน่วย
                 onOpenForm={() => {
-                   setViewingMeeting(null); 
-                   setViewingDispatch(null); // Reset เป็นเพิ่มใหม่
-                   setIsDispatchModalOpen(true);
+                    setViewingDispatch(null);
+                    setIsDispatchModalOpen(true);
                 }}
-                onEventClick={handleCalendarEventClick} 
+                onEventClick={(evt) => {
+                    setViewingDispatch(evt.originalData);
+                    setIsDispatchModalOpen(true);
+                }} 
+            />
+            <MeetingCalendarDashboard
+                isOpen={isMeetingCalendarOpen}
+                onClose={() => setIsMeetingCalendarOpen(false)}
+                events={meetingEventsOnly} // ส่งเฉพาะงานประชุม
+                onOpenForm={() => {
+                    setViewingMeeting(null);
+                    setIsMeetingModalOpen(true);
+                }}
+                onEventClick={(evt) => {
+                    setViewingMeeting(evt.originalData);
+                    setIsMeetingModalOpen(true);
+                }}
             />
             <MeetingModal 
                 isOpen={isMeetingModalOpen} 
@@ -2208,6 +2391,7 @@ const parseCSVDate = (dateStr) => {
                 // Views
                 onOpenMeetingList={() => setIsMeetingListOpen(true)}
                 onOpenCalendar={() => setIsCalendarOpen(true)}
+                onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
                 // Actions
                 onOpenMeetingModal={() => setIsMeetingModalOpen(true)}
                 onOpenAddOutbreak={openAddOutbreakModal}

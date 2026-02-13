@@ -24,6 +24,7 @@ const Header = ({
     // View Actions
     onOpenMeetingList,
     onOpenCalendar,
+    onOpenMeetingCalendar,
     // Main Actions
     onOpenMeetingModal,
     onOpenAddOutbreak,
@@ -132,14 +133,26 @@ const Header = ({
                         {/* View Tools Group */}
                         {user && (
                             <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
-                                <button onClick={onOpenMeetingList} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition relative group" title="ประวัติการประชุม">
+                                {/* ปุ่มดูประวัติ (List) */}
+                                <button onClick={onOpenMeetingList} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition relative group">
                                     <List className="w-4 h-4" />
                                     <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] text-white bg-slate-800 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">ประวัติประชุม</span>
                                 </button>
+                                
                                 <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
-                                <button onClick={onOpenCalendar} className="p-2 hover:bg-slate-50 text-slate-600 rounded-md transition relative group" title="ปฏิทิน">
+                                
+                                {/* [แก้ไข] ปุ่มปฏิทินออกหน่วย (สี Indigo) */}
+                                <button onClick={onOpenCalendar} className="p-2 hover:bg-slate-50 text-indigo-600 rounded-md transition relative group">
                                     <CalendarDays className="w-4 h-4" />
-                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] text-white bg-slate-800 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">ตารางงาน</span>
+                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] text-white bg-slate-800 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">แผนออกหน่วย</span>
+                                </button>
+
+                                <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
+
+                                {/* [เพิ่ม] ปุ่มปฏิทินประชุม (สี Teal) */}
+                                <button onClick={onOpenMeetingCalendar} className="p-2 hover:bg-slate-50 text-teal-600 rounded-md transition relative group">
+                                    <CalendarDays className="w-4 h-4" />
+                                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] text-white bg-slate-800 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">ปฏิทินประชุม</span>
                                 </button>
                             </div>
                         )}
@@ -147,11 +160,6 @@ const Header = ({
                         {/* Main Actions */}
                         {user && canEdit && (
                             <>
-                                <button onClick={onOpenMeetingModal} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white p-2 md:px-3 md:py-2 rounded-lg shadow-sm transition-all active:scale-95">
-                                    <Users className="w-4 h-4" />
-                                    <span className="hidden sm:inline text-xs font-bold">นัดประชุม</span>
-                                </button>
-
                                 <button onClick={onOpenAddOutbreak} className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 p-2 md:px-3 md:py-2 rounded-lg shadow-sm transition-all active:scale-95">
                                     <AlertTriangle className="w-4 h-4" />
                                     <span className="hidden sm:inline text-xs font-bold">แจ้งโรค</span>
