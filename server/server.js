@@ -17,7 +17,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
 // Allowed Origins (Frontend URLs)
 const allowedOrigins = [
   "http://localhost:5173", 
-  "http://localhost:5174",
   "http://localhost:3000",
   "https://veterinary-bkk.vercel.app",      
   "https://veterinary-bkk.vercel.app/"      

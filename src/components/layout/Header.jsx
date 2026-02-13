@@ -38,12 +38,7 @@ const Header = ({
                     <div className="w-full md:w-auto flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2 rounded-lg shadow-lg shadow-blue-500/20 shrink-0">
-                                {/* แก้ไข: เพิ่ม className เพื่อกำหนดขนาดรูปภาพ (w-10 h-10 คือ 40px) */}
-                                <img 
-                                    src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
-                                    alt="" 
-                                    className="w-10 h-10 object-cover rounded-md bg-white/10"
-                                />
+                                <Activity className="text-white w-5 h-5" />
                             </div>
                             <div className="flex flex-col">
                                 <h1 className="text-base font-extrabold text-slate-800 leading-tight">

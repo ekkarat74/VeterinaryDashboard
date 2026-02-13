@@ -5,7 +5,6 @@ import {
     Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link
 } from 'lucide-react';
 import { io } from "socket.io-client";
-import { Routes, Route } from 'react-router-dom';
 
 // --- Custom Components & Constants (Assumed imports) ---
 import KPISection from './components/KPICards';
@@ -412,7 +411,7 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
 );
 
 // 12. DispatchModal
-const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData, readOnly = false }) => {
+const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
 
     const formatDateLocal = (date) => {
         const d = new Date(date);
@@ -600,8 +599,7 @@ ${staffDetails}
 
                 {/* Content - Scrollable */}
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                    <fieldset disabled={readOnly} className="space-y-6">
-                        <div className="space-y-6">
+                    <div className="space-y-6">
                         
                         {/* --- Select Dropdown --- */}
                         <div>
@@ -717,7 +715,6 @@ ${staffDetails}
                         </div>
 
                     </div>
-                    </fieldset>
                 </div>
 
                 {/* Footer Buttons */}
@@ -726,17 +723,15 @@ ${staffDetails}
                         <Share2 className="w-5 h-5" /> ส่งแจ้งเตือนเข้า Line กลุ่ม
                     </button>
                     <div className="flex gap-2">
-                        {!readOnly && initialData && onDelete && (
-                            <button onClick={() => onDelete(initialData._id)} className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-bold hover:bg-red-100">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        )}
-                            <button onClick={onClose} className="flex-1 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-50">ยกเลิก</button>
-                        {!readOnly && (    
-                            <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow">
-                                {initialData ? 'บันทึกแก้ไข' : 'บันทึกแผนงาน'}
-                            </button>
-                        )}
+                        {initialData && onDelete && (
+                        <button onClick={() => onDelete(initialData._id)} className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-bold hover:bg-red-100">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+                        <button onClick={onClose} className="flex-1 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-50">ยกเลิก</button>
+                        <button onClick={handleSaveLocal} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-sm shadow">
+                            {initialData ? 'บันทึกแก้ไข' : 'บันทึกแผนงาน'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -963,7 +958,7 @@ const MeetingListModal = ({ isOpen, onClose, meetings, onEdit }) => {
 };
 
 // --- NEW COMPONENT: Dispatch Calendar & Dashboard ---
-const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick, readOnly }) => {
+const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -998,16 +993,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     const totalEvents = events.length;
     const upcomingEvents = events.filter(e => e.date >= toLocalISOString(new Date())).length;
 
-    const containerClass = isOpen 
-        ? "fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[2900] flex items-center justify-center p-4 animate-in fade-in"
-        : "min-h-screen bg-slate-100 p-4 flex flex-col"; // แบบ Full Page
-
-    const innerClass = isOpen
-        ? "bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] overflow-hidden flex flex-col"
-        : "bg-white rounded-2xl shadow-2xl w-full max-w-7xl mx-auto h-[90vh] overflow-hidden flex flex-col";
-
-    if (!isOpen && !readOnly) return null;
-
     return (
         <div className={containerClass}>    
             <div className={innerClass}>
@@ -1016,8 +1001,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <CalendarDays className="w-6 h-6" /> ตารางแผนงานออกหน่วย (Dispatch Dashboard)
                     </h3>
-                    {/* ซ่อนปุ่มปิด ถ้าเปิดเป็นหน้าแยก */}
-                    {!readOnly && <button onClick={onClose}><X className="w-6 h-6" /></button>}
+                    <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full transition"><X className="w-6 h-6" /></button>
                 </div>
 
                 {/* --- แก้ไขจุดที่ 1: เอา overflow-hidden ของ layout หลักออก เพื่อให้จัดการ scroll แยกส่วนได้ดีขึ้น --- */}
@@ -1035,7 +1019,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                 <div className="text-2xl font-extrabold text-orange-500">{upcomingEvents}</div>
                             </div>
                         </div>
-                        {!readOnly && (
+
                         <button 
                             onClick={onOpenForm}
                             className="w-full py-3 bg-[#545BE8] hover:bg-[#4349c2] text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95"
@@ -1043,7 +1027,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                             <Plus className="w-6 h-6" />
                             <span>เข้าบันทึกและแจ้งเตือนออกหน่วย</span>
                         </button>
-                        )}
 
                         <div className="border-t border-slate-200 pt-4 flex-1">
                             <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
@@ -1154,6 +1137,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     );
 };
 
+<<<<<<< HEAD
 // --- NEW COMPONENT: หน้าแยกสำหรับดูตารางแผนงาน (Password Protected) ---
 const DispatchPageWrapper = () => {
 
@@ -1291,9 +1275,11 @@ export default function App() {
   );
 }
 
+=======
+>>>>>>> parent of 70b30ec (Update)
 // --- MAIN DASHBOARD COMPONENT ---
 
-function VeterinaryDashboard() {
+export default function VeterinaryDashboard() {
     // --- 1. STATE MANAGEMENT ---
     
     // Data States
@@ -1331,9 +1317,7 @@ function VeterinaryDashboard() {
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
     // Constants
-    const BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000' 
-  : 'https://veterinarydashboard-hwho.onrender.com';
+    const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
     const API_URL = `${BASE_URL}/api/reports`;
     const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
@@ -1697,11 +1681,6 @@ function VeterinaryDashboard() {
             originalData: m // เก็บข้อมูลดิบไว้ส่งให้ Modal
         }))
     ];
-
-    const handleOpenDispatchNewTab = () => {
-        // ใช้ window.open เพื่อเปิดแท็บใหม่ไปที่ path /dispatch-view
-        window.open('/dispatch-view', '_blank');
-    };
 
     const handleCalendarEventClick = (evt) => {
         if (evt.type === 'meeting') {
@@ -2349,7 +2328,7 @@ const parseCSVDate = (dateStr) => {
                     setIsMeetingModalOpen(true); // เปิด Modal รายละเอียด
                 }}
             />
-            
+
             <Header 
                 user={user}
                 isSuperAdmin={isSuperAdmin}
@@ -2368,7 +2347,7 @@ const parseCSVDate = (dateStr) => {
                 onGenerateMock={handleGenerateMockData}
                 // Views
                 onOpenMeetingList={() => setIsMeetingListOpen(true)}
-                onOpenCalendar={handleOpenDispatchNewTab}
+                onOpenCalendar={() => setIsCalendarOpen(true)}
                 // Actions
                 onOpenMeetingModal={() => setIsMeetingModalOpen(true)}
                 onOpenAddOutbreak={openAddOutbreakModal}
