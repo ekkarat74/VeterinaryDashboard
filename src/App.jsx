@@ -994,8 +994,8 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     const upcomingEvents = events.filter(e => e.date >= toLocalISOString(new Date())).length;
 
     return (
-        <div className={containerClass}>    
-            <div className={innerClass}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[95vh] h-[90vh]">
                 {/* Header */}
                 <div className="bg-[#545BE8] px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <h3 className="text-lg font-bold flex items-center gap-2">
