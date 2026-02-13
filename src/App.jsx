@@ -1158,7 +1158,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 const DispatchPageWrapper = () => {
 
     const BASE_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5174' 
+        ? 'http://localhost:5000' 
         : 'https://veterinarydashboard-hwho.onrender.com';
 
     const [isAuthenticated, setIsAuthenticated] = useState(false);
