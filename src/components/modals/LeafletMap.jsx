@@ -7,7 +7,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { 
     Filter, AlertTriangle, ChevronDown, ChevronUp, 
-    Map as MapIcon, PawPrint, MapPin, Trash2 
+    Map as MapIcon, PawPrint, MapPin, Trash2, Layers, Activity
 } from 'lucide-react';
 
 import { UNIT_TYPES } from '../../constants/locations'; 
@@ -17,7 +17,6 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
     const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [expandedUnit, setExpandedUnit] = useState(null);
-
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const toggleLayer = (unit) => {
@@ -28,149 +27,155 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
         setActiveRadii(prev => prev.includes(radius) ? prev.filter(r => r !== radius) : [...prev, radius]);
     };
 
-    // --- Logic: Calculate Stats per Unit ---
+    // --- Stats Logic ---
     const getUnitStats = (unitName) => {
-        // กรองข้อมูลเฉพาะหน่วยงานนั้น
         const unitData = data.filter(d => d.unit === unitName);
         const totalTimes = unitData.length;
         const totalAnimals = unitData.reduce((sum, item) => {
             const s = item.stats || {};
             return sum + (s.vaccine||0) + (s.sterilize||0) + (s.register||0) + (s.microchip||0) + (s.medical||0);
         }, 0);
-
         return { totalTimes, totalAnimals };
     };
 
-    // --- Logic: Custom Icons ---
+    // --- Styles & Colors ---
+    const getMarkerColor = (unit) => {
+        switch (unit) {
+            case 'หน่วยผู้ว่า': return { bg: '#8b5cf6', ring: '#ddd6fe' }; // Violet
+            case 'หน่วยสัตวแพทย์': return { bg: '#3b82f6', ring: '#dbeafe' }; // Blue
+            case 'หน่วยวัคซีน + ไมโครชิป': return { bg: '#10b981', ring: '#d1fae5' }; // Emerald
+            case 'หน่วยกรงแมว': return { bg: '#f97316', ring: '#ffedd5' }; // Orange
+            case 'หน่วยทำหมัน': return { bg: '#ec4899', ring: '#fce7f3' }; // Pink
+            case 'หน่วยอื่น ๆ': return { bg: '#06b6d4', ring: '#cffafe' }; // Cyan
+            default: return { bg: '#64748b', ring: '#e2e8f0' };
+        }
+    };
+
     const createDangerIcon = useCallback(() => {
         return L.divIcon({
             className: 'custom-danger-marker',
             html: `
-                <div class="relative w-10 h-10 flex items-center justify-center">
-                    <div class="absolute inset-0 bg-red-500 rounded-full opacity-20 animate-ping"></div>
-                    <div class="relative z-10 w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div class="relative w-12 h-12 flex items-center justify-center group">
+                    <div class="absolute inset-0 bg-red-500 rounded-full opacity-30 animate-ping"></div>
+                    <div class="absolute inset-0 bg-red-500/20 rounded-full animate-pulse"></div>
+                    <div class="relative z-10 w-9 h-9 bg-gradient-to-br from-red-500 to-red-700 rounded-full border-[3px] border-white shadow-xl flex items-center justify-center text-white transform transition-transform group-hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     </div>
                 </div>
             `,
-            iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20]
+            iconSize: [48, 48], iconAnchor: [24, 24], popupAnchor: [0, -24]
         });
     }, []);
 
-    const getMarkerColor = (unit) => {
-        switch (unit) {
-            case 'หน่วยผู้ว่า': return '#a855f7';
-            case 'หน่วยสัตวแพทย์': return '#3b82f6';
-            case 'หน่วยวัคซีน + ไมโครชิป': return '#22c55e';
-            case 'หน่วยกรงแมว': return '#f97316';
-            case 'หน่วยทำหมัน': return '#db2777';
-            case 'หน่วยอื่น ๆ': return '#0d9488';
-            default: return '#64748b';
-        }
+    const createNumberIcon = (total, colorSet) => {
+        const size = total > 999 ? 44 : (total > 99 ? 38 : 34);
+        return L.divIcon({
+            className: 'custom-marker-wrapper', 
+            html: `
+                <div class="relative transition-all hover:scale-110 duration-200 ease-out drop-shadow-lg" style="width: ${size}px; height: ${size}px;">
+                    <div class="absolute inset-0 rounded-full border-[3px] border-white flex items-center justify-center" style="background-color: ${colorSet.bg};">
+                        <span class="text-white font-black font-sans tracking-tight" style="font-size: ${size > 38 ? '11px' : '10px'}">${total.toLocaleString()}</span>
+                    </div>
+                    <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 rounded-sm shadow-sm"></div>
+                    <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 rounded-sm" style="background-color: ${colorSet.bg}; clip-path: polygon(0 0, 100% 0, 0 100%);"></div>
+                </div>`,
+            iconSize: [size, size], iconAnchor: [size / 2, size + 8], popupAnchor: [0, -(size + 5)]
+        });
     };
 
     const displayData = useMemo(() => {
         return data.filter(item => activeLayers.includes(item.unit));
     }, [data, activeLayers]);
 
-    const createNumberIcon = (total, color) => {
-        // ใช้สี Gradient ตามประเภท
-        const getGradient = (c) => {
-            if(c === '#a855f7') return 'from-purple-500 to-indigo-600'; // ผู้ว่า
-            if(c === '#3b82f6') return 'from-blue-500 to-blue-600';      // สัตวแพทย์
-            if(c === '#22c55e') return 'from-green-500 to-emerald-600'; // วัคซีน
-            if(c === '#f97316') return 'from-orange-400 to-orange-600'; // กรงแมว
-            if(c === '#db2777') return 'from-pink-500 to-rose-600';      // ทำหมัน
-            if(c === '#0d9488') return 'from-teal-500 to-cyan-600';      // อื่นๆ
-            return 'from-slate-500 to-slate-600';
-        };
-
-        const bgGradient = getGradient(color);
-        const size = total > 999 ? 42 : (total > 99 ? 36 : 30);
-        
-        return L.divIcon({
-            className: 'custom-marker-wrapper', 
-            html: `
-                <div class="relative transition-transform hover:scale-110 duration-200 ease-out" style="width: ${size}px; height: ${size}px;">
-                    <div class="absolute inset-0 rounded-full bg-gradient-to-br ${bgGradient} shadow-md border-2 border-white flex items-center justify-center">
-                        <span class="text-white font-extrabold font-sans text-[${size > 36 ? '11px' : '10px'}] drop-shadow-sm">${total.toLocaleString()}</span>
-                    </div>
-                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-r border-b border-slate-200"></div>
-                </div>`,
-            iconSize: [size, size], iconAnchor: [size / 2, size + 5], popupAnchor: [0, -(size + 5)]
-        });
-    };
-
     return (
-        <div className="w-full h-full flex flex-col relative z-0 rounded-xl overflow-hidden border border-slate-200 shadow-inner">
+        <div className="w-full h-full relative z-0 rounded-2xl overflow-hidden border border-slate-200 shadow-xl bg-slate-50 font-sans">
             
-            {/* --- UI Control Panel (ขวาบน) --- */}
-            <div className={`absolute top-4 right-4 z-[500] flex flex-col gap-3 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-auto p-3' : 'w-[240px] p-4'}`}> 
-                {/* Header */}
-                <div className={`flex items-center justify-between ${isCollapsed ? '' : 'border-b border-slate-100 pb-3'}`}>
-                    <div 
-                        className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
-                        onClick={() => setIsCollapsed(!isCollapsed)}
-                    >
-                        <Filter className="w-3.5 h-3.5 text-indigo-500" /> 
-                        {!isCollapsed && <span>Layers & Stats</span>}
-                    </div>
+            {/* --- Global Styles Override for Leaflet Popup --- */}
+            <style>{`
+                .leaflet-popup-content-wrapper { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border: 1px solid rgba(255,255,255,0.5); padding: 0; overflow: hidden; }
+                .leaflet-popup-content { margin: 0; width: auto !important; }
+                .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); }
+                .leaflet-container a.leaflet-popup-close-button { top: 8px; right: 8px; padding: 4px; color: #94a3b8; font-size: 18px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; }
+                .leaflet-container a.leaflet-popup-close-button:hover { color: #ef4444; background: #fee2e2; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            `}</style>
 
-                    <div className="flex items-center gap-2">
-                        {!isCollapsed && (
-                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
-                                {UNIT_TYPES.length} หน่วย
-                            </span>
-                        )}
-
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }} 
-                            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
-                            title={isCollapsed ? "ขยาย" : "ย่อ"}
-                        >
-                            {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                        </button>
-                    </div>
-                </div>
+            {/* --- Floating Control Panel --- */}
+            <div className={`absolute top-4 right-4 z-[500] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
                 
+                {/* Header / Collapse Button */}
+                <div 
+                    className={`flex items-center justify-between cursor-pointer ${isCollapsed ? 'w-full h-full justify-center' : 'p-4 border-b border-slate-100/80'}`}
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                >
+                    {isCollapsed ? (
+                        <Layers className="w-5 h-5 text-indigo-600" />
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <div className="bg-indigo-100 p-1.5 rounded-lg">
+                                <Filter className="w-4 h-4 text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-800 leading-none">ตัวกรองแผนที่</h3>
+                                <span className="text-[10px] text-slate-500 font-medium">แสดง {activeLayers.length} จาก {UNIT_TYPES.length} ประเภท</span>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {!isCollapsed && (
+                        <div className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <ChevronUp className="w-4 h-4" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Content */}
                 {!isCollapsed && (
-                    <div className="animate-in slide-in-from-top-2 fade-in duration-300">
-                        {/* Unit List & Stats Dropdown */}
-                        <div className="flex flex-col gap-2 max-h-[55vh] overflow-y-auto custom-scrollbar pr-1">
+                    <div className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300">
+                        {/* Unit List */}
+                        <div className="max-h-[50vh] overflow-y-auto custom-scrollbar p-3 space-y-1.5">
                             {UNIT_TYPES.map((unit) => {
-                                // ... (โค้ดภายใน Loop เดิม ไม่ต้องแก้) ...
-                                const color = getMarkerColor(unit);
+                                const colorSet = getMarkerColor(unit);
                                 const isActive = activeLayers.includes(unit);
                                 const isExpanded = expandedUnit === unit;
                                 const stats = getUnitStats(unit);
 
                                 return (
-                                    <div key={unit} className={`rounded-xl transition-all duration-300 border ${isExpanded ? 'bg-white shadow-lg border-slate-100 ring-1 ring-slate-100' : 'bg-slate-50/50 border-transparent hover:bg-white hover:shadow-sm'}`}>
-                                        <div className="flex items-center p-1.5">
-                                            <button onClick={() => toggleLayer(unit)} className="flex-1 flex items-center gap-2.5 text-left group">
-                                                <div className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-300 flex items-center ${isActive ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                                                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${isActive ? 'translate-x-3' : 'translate-x-0'}`} />
+                                    <div key={unit} className={`group rounded-xl transition-all duration-200 border ${isExpanded ? 'bg-white shadow-md border-slate-100' : 'bg-transparent border-transparent hover:bg-white/60'}`}>
+                                        <div className="flex items-center p-2">
+                                            <button onClick={() => toggleLayer(unit)} className="flex-1 flex items-center gap-3 text-left">
+                                                {/* Custom Checkbox */}
+                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${isActive ? 'bg-slate-800 border-slate-800' : 'bg-white border-slate-300 group-hover:border-slate-400'}`}>
+                                                    {isActive && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
                                                 </div>
-                                                <div className="flex items-center gap-2 overflow-hidden">
-                                                    <span className="w-2 h-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: color }}></span>
-                                                    <span className={`text-[11px] font-bold truncate transition-colors ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{unit}</span>
+                                                
+                                                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm`} style={{ backgroundColor: colorSet.bg }}></span>
+                                                    <span className={`text-xs font-semibold truncate transition-colors ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{unit}</span>
                                                 </div>
                                             </button>
-                                            <button onClick={() => setExpandedUnit(isExpanded ? null : unit)} className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${isExpanded ? 'bg-slate-100 text-slate-600 rotate-180' : 'text-slate-400 hover:bg-white hover:shadow-sm'}`}>
-                                                <ChevronDown className="w-3.5 h-3.5" />
+
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setExpandedUnit(isExpanded ? null : unit); }} 
+                                                className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isExpanded ? 'bg-slate-100 text-slate-800' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-600'}`}
+                                            >
+                                                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                                             </button>
                                         </div>
+
+                                        {/* Expanded Stats */}
                                         {isExpanded && (
-                                            <div className="px-3 pb-3 pt-1 animate-in slide-in-from-top-2 fade-in duration-300">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center text-center group hover:border-slate-200 transition-colors" style={{ backgroundColor: `${color}10` }}>
-                                                        <div className="text-[10px] text-slate-500 font-medium mb-0.5 flex items-center gap-1"><MapIcon className="w-3 h-3 opacity-50" /> ออกหน่วย</div>
-                                                        <div className="text-sm font-black text-slate-700 group-hover:scale-110 transition-transform">{stats.totalTimes.toLocaleString()}</div>
-                                                    </div>
-                                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 flex flex-col items-center justify-center text-center group hover:border-slate-200 transition-colors" style={{ backgroundColor: `${color}15` }}>
-                                                        <div className="text-[10px] text-slate-500 font-medium mb-0.5 flex items-center gap-1"><PawPrint className="w-3 h-3 opacity-50" /> สัตว์รวม</div>
-                                                        <div className="text-sm font-black group-hover:scale-110 transition-transform" style={{ color: color }}>{stats.totalAnimals.toLocaleString()}</div>
-                                                    </div>
+                                            <div className="px-2 pb-2 mx-2 mb-1 border-t border-slate-100/80 pt-2 grid grid-cols-2 gap-2">
+                                                <div className="bg-slate-50 rounded-lg p-2 text-center border border-slate-100">
+                                                    <div className="text-[10px] text-slate-500 mb-1 flex items-center justify-center gap-1"><Activity className="w-3 h-3"/> ครั้ง</div>
+                                                    <div className="text-sm font-bold text-slate-700">{stats.totalTimes.toLocaleString()}</div>
+                                                </div>
+                                                <div className="rounded-lg p-2 text-center border" style={{ backgroundColor: colorSet.ring, borderColor: colorSet.bg + '30' }}>
+                                                    <div className="text-[10px] opacity-80 mb-1 flex items-center justify-center gap-1" style={{ color: colorSet.bg }}><PawPrint className="w-3 h-3"/> สัตว์</div>
+                                                    <div className="text-sm font-bold" style={{ color: colorSet.bg }}>{stats.totalAnimals.toLocaleString()}</div>
                                                 </div>
                                             </div>
                                         )}
@@ -179,21 +184,24 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                             })}
                         </div>
 
-                        {/* Radius Control */}
-                        <div className="pt-3 mt-3 border-t border-slate-100">
-                            <div className="text-xs font-extrabold text-slate-600 mb-2 flex items-center gap-1.5">
-                                <AlertTriangle className="w-3.5 h-3.5 text-orange-500" /> รัศมี (Radius)
+                        {/* Footer / Radius Control */}
+                        <div className="p-3 bg-slate-50/80 border-t border-slate-100 rounded-b-2xl backdrop-blur-sm">
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> รัศมีแจ้งเตือน
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex bg-slate-200/50 p-1 rounded-lg">
                                 {[
-                                    { val: 1000, label: '1km', color: 'bg-red-600' },
-                                    { val: 3000, label: '3km', color: 'bg-red-400' },
-                                    { val: 5000, label: '5km', color: 'bg-orange-400' }
+                                    { val: 1000, label: '1 กม.', color: 'text-red-600 bg-white shadow-sm' },
+                                    { val: 3000, label: '3 กม.', color: 'text-red-500 bg-white shadow-sm' },
+                                    { val: 5000, label: '5 กม.', color: 'text-orange-500 bg-white shadow-sm' }
                                 ].map((r) => {
                                     const isActive = activeRadii.includes(r.val);
                                     return (
-                                        <button key={r.val} onClick={() => toggleRadius(r.val)}
-                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all shadow-sm border ${isActive ? `${r.color} text-white border-transparent shadow-md transform scale-105` : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'}`}>
+                                        <button 
+                                            key={r.val} 
+                                            onClick={() => toggleRadius(r.val)}
+                                            className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold transition-all duration-200 ${isActive ? r.color : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
                                             {r.label}
                                         </button>
                                     );
@@ -204,113 +212,144 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                 )}
             </div>
 
-            {/* CSS Injection for Custom Marker */}
-            <style>{`
-                .custom-marker-wrapper { background: transparent; border: none; }
-            `}</style>
-
-            {/* --- MAP CONTAINER --- */}
-            <div className="flex-1 w-full h-full">
-                <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} style={{ height: "100%", width: "100%", background: "#f1f5f9", zIndex: 0 }}>
-                    <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    
-                    {/* 1. General Reports with Clustering */}
-                    <MarkerClusterGroup key={activeLayers.join(',')} chunkedLoading maxClusterRadius={40} spiderfyOnMaxZoom={true}>
-                        {displayData.map((item) => {
-                            const lat = parseFloat(item.lat);
-                            const long = parseFloat(item.long);
-                            if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
-                            
-                            const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
-                            const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip + (stats.medical || 0);
-                            const color = getMarkerColor(item.unit);
-
-                            return (
-                                <Marker key={item._id} position={[lat, long]} icon={createNumberIcon(totalActivity, color)}>
-                                    <Tooltip direction="top" offset={[0, -35]} opacity={1} className="custom-tooltip">
-                                        <div className="text-center">
-                                            <span className="font-bold text-slate-800 text-xs block">{item.location}</span>
-                                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full inline-block mt-1">รวม: {totalActivity.toLocaleString()}</span>
-                                        </div>
-                                    </Tooltip>
-                                    <Popup>
-                                        <div className="font-sans flex flex-col">
-                                            {item.imageUrl && (
-                                                <div className="w-full h-32 overflow-hidden relative">
-                                                    <img src={item.imageUrl} alt="site" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                                                    <span className="absolute bottom-2 left-2 text-white text-xs font-bold drop-shadow-md">{item.unit}</span>
-                                                </div>
-                                            )}
-                                            <div className="p-4">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div>
-                                                        <h3 className="font-bold text-slate-800 text-sm leading-tight">{item.location}</h3>
-                                                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3"/> {item.district}</p>
-                                                    </div>
-                                                    <div className="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold text-slate-600 border border-slate-200">
-                                                        รวม {totalActivity}
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100">
-                                                    {stats.vaccine > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>💉 วัคซีน</span> <span className="font-bold">{stats.vaccine}</span></div>}
-                                                    {stats.sterilize > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>✂️ ทำหมัน</span> <span className="font-bold">{stats.sterilize}</span></div>}
-                                                    {stats.microchip > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>🎫 ไมโครชิป</span> <span className="font-bold">{stats.microchip}</span></div>}
-                                                    {stats.medical > 0 && <div className="text-[10px] text-slate-600 flex justify-between"><span>💊 รักษา</span> <span className="font-bold">{stats.medical}</span></div>}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            );
-                        })}
-                    </MarkerClusterGroup>
-
-                    {/* 2. Outbreaks Layer (Radius & Markers) */}
-                    {outbreaks.map((item, index) => {
+            {/* --- MAP --- */}
+            <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100">
+                <TileLayer 
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" // ใช้ Map Style ที่สะอาดขึ้น (Voyager)
+                />
+                
+                {/* 1. Unit Markers */}
+                <MarkerClusterGroup 
+                    key={activeLayers.join(',')} 
+                    chunkedLoading 
+                    maxClusterRadius={45}
+                    showCoverageOnHover={false}
+                    polygonOptions={{ fillColor: '#94a3b8', color: '#64748b', weight: 1, opacity: 0.5, fillOpacity: 0.2 }}
+                >
+                    {displayData.map((item) => {
                         const lat = parseFloat(item.lat);
                         const long = parseFloat(item.long);
-                        if (isNaN(lat) || isNaN(long)) return null;
+                        if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
+                        
+                        const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
+                        const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip + (stats.medical || 0);
+                        const colorSet = getMarkerColor(item.unit);
 
                         return (
-                            <React.Fragment key={item._id || `outbreak-${index}`}>
-                                {activeRadii.includes(1000) && ( <Circle center={[lat, long]} radius={1000} pathOptions={{ color: '#7f1d1d', fillColor: '#991b1b', fillOpacity: 0.2, weight: 3, opacity: 1, dashArray: null }} /> )}
-                                {activeRadii.includes(3000) && ( <Circle center={[lat, long]} radius={3000} pathOptions={{ color: '#dc2626', fillColor: '#ef4444', fillOpacity: 0.08, weight: 2, opacity: 0.8, dashArray: null }} /> )}
-                                {activeRadii.includes(5000) && ( <Circle center={[lat, long]} radius={5000} pathOptions={{ color: '#ea580c', fillColor: '#f97316', fillOpacity: 0.05, weight: 2, opacity: 0.7, dashArray: null }} /> )}
-                                
-                                <Marker position={[lat, long]} icon={createDangerIcon()}>
-                                    <Popup>
-                                        <div className="font-sans min-w-[200px] p-2 text-center">
-                                            <div className="bg-red-50 text-red-600 font-extrabold px-3 py-1 rounded-full text-[10px] inline-flex items-center gap-1 mb-2 border border-red-100 shadow-sm">
-                                                <AlertTriangle className="w-3 h-3" /> พบเชื้อพิษสุนัขบ้า
-                                            </div>
-                                            <h3 className="font-bold text-slate-800 text-sm mb-1">{item.location}</h3>
-                                            <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">เขต{item.district}</p>
-                                            
-                                            {(item.stats) && (
-                                                <div className="mb-3 bg-red-50 p-2 rounded border border-red-100">
-                                                    <div className="grid grid-cols-3 gap-1 text-[10px] text-center font-bold text-slate-600 mb-1 border-b border-red-200 pb-1"><span>ชนิด</span><span>ผู้</span><span>เมีย</span></div>
-                                                    <div className="grid grid-cols-3 gap-1 text-[10px] text-center mb-1"><span className="text-slate-500">สุนัข</span><span className="text-slate-800">{item.stats.dog?.male || 0}</span><span className="text-slate-800">{item.stats.dog?.female || 0}</span></div>
-                                                    <div className="grid grid-cols-3 gap-1 text-[10px] text-center"><span className="text-slate-500">แมว</span><span className="text-slate-800">{item.stats.cat?.male || 0}</span><span className="text-slate-800">{item.stats.cat?.female || 0}</span></div>
+                            <Marker key={item._id} position={[lat, long]} icon={createNumberIcon(totalActivity, colorSet)}>
+                                <Tooltip direction="top" offset={[0, -38]} opacity={1} className="!bg-slate-800 !text-white !border-0 !rounded-md !px-2 !py-1 !font-bold !text-xs !shadow-lg">
+                                    {item.location}
+                                </Tooltip>
+                                <Popup>
+                                    <div className="font-sans flex flex-col w-[260px]">
+                                        {/* Popup Header Image */}
+                                        <div className="w-full h-32 bg-slate-100 relative group overflow-hidden">
+                                            {item.imageUrl ? (
+                                                <img src={item.imageUrl} alt="site" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-300">
+                                                    <MapIcon className="w-12 h-12 opacity-50" />
                                                 </div>
                                             )}
-
-                                            <div className="grid grid-cols-3 gap-1 text-[9px]">
-                                                <div className={`rounded p-1 font-bold ${activeRadii.includes(1000) ? 'text-red-900 bg-red-100/50' : 'text-slate-300 bg-slate-50'}`}>1 กม.<br/>ควบคุม</div>
-                                                <div className={`rounded p-1 font-bold ${activeRadii.includes(3000) ? 'text-red-600 bg-red-50/50' : 'text-slate-300 bg-slate-50'}`}>3 กม.<br/>เฝ้าระวัง</div>
-                                                <div className={`rounded p-1 font-bold ${activeRadii.includes(5000) ? 'text-orange-500 bg-orange-50/50' : 'text-slate-300 bg-slate-50'}`}>5 กม.<br/>แจ้งเตือน</div>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+                                            <div className="absolute bottom-3 left-3 right-3">
+                                                <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold text-white mb-1 shadow-sm" style={{ backgroundColor: colorSet.bg }}>
+                                                    {item.unit}
+                                                </span>
+                                                <h3 className="font-bold text-white text-base leading-tight drop-shadow-md truncate">{item.location}</h3>
                                             </div>
-                                            {onDeleteOutbreak && (
-                                                <button onClick={() => onDeleteOutbreak(item._id)} className="mt-3 w-full flex items-center justify-center gap-1 bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold py-1.5 rounded transition-all shadow-sm hover:shadow"><Trash2 className="w-3 h-3" /> ลบแจ้งเหตุนี้</button>
-                                            )}
                                         </div>
-                                    </Popup>
-                                </Marker>
-                            </React.Fragment>
+
+                                        {/* Popup Content */}
+                                        <div className="p-4">
+                                            <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
+                                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                                <span>{item.district || 'ไม่ระบุเขต'}</span>
+                                            </div>
+
+                                            {/* Stats Grid */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {stats.vaccine > 0 && (
+                                                    <div className="bg-emerald-50 rounded-lg p-2 flex flex-col items-center justify-center border border-emerald-100">
+                                                        <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">วัคซีน</span>
+                                                        <span className="text-lg font-black text-emerald-700">{stats.vaccine}</span>
+                                                    </div>
+                                                )}
+                                                {stats.sterilize > 0 && (
+                                                    <div className="bg-pink-50 rounded-lg p-2 flex flex-col items-center justify-center border border-pink-100">
+                                                        <span className="text-[10px] text-pink-600 font-bold uppercase tracking-wider">ทำหมัน</span>
+                                                        <span className="text-lg font-black text-pink-700">{stats.sterilize}</span>
+                                                    </div>
+                                                )}
+                                                {stats.microchip > 0 && (
+                                                    <div className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center border border-blue-100">
+                                                        <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">ไมโครชิป</span>
+                                                        <span className="text-lg font-black text-blue-700">{stats.microchip}</span>
+                                                    </div>
+                                                )}
+                                                {stats.medical > 0 && (
+                                                    <div className="bg-orange-50 rounded-lg p-2 flex flex-col items-center justify-center border border-orange-100">
+                                                        <span className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">รักษา</span>
+                                                        <span className="text-lg font-black text-orange-700">{stats.medical}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+                                                <span className="text-[10px] text-slate-400 font-medium">กิจกรรมรวมทั้งสิ้น</span>
+                                                <div className="text-2xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Popup>
+                            </Marker>
                         );
                     })}
-                </MapContainer>
-            </div>
+                </MarkerClusterGroup>
+
+                {/* 2. Outbreaks Layer */}
+                {outbreaks.map((item, index) => {
+                    const lat = parseFloat(item.lat);
+                    const long = parseFloat(item.long);
+                    if (isNaN(lat) || isNaN(long)) return null;
+
+                    return (
+                        <React.Fragment key={item._id || `outbreak-${index}`}>
+                            {activeRadii.includes(1000) && <Circle center={[lat, long]} radius={1000} pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.1, weight: 1, dashArray: '4 4' }} />}
+                            {activeRadii.includes(3000) && <Circle center={[lat, long]} radius={3000} pathOptions={{ color: '#f97316', fillColor: '#f97316', fillOpacity: 0.05, weight: 1, dashArray: '2 6' }} />}
+                            {activeRadii.includes(5000) && <Circle center={[lat, long]} radius={5000} pathOptions={{ color: '#eab308', fillColor: '#eab308', fillOpacity: 0.03, weight: 1 }} />}
+                            
+                            <Marker position={[lat, long]} icon={createDangerIcon()}>
+                                <Popup>
+                                    <div className="w-[220px] p-1 font-sans text-center">
+                                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2 text-red-600">
+                                            <AlertTriangle className="w-6 h-6" />
+                                        </div>
+                                        <h3 className="font-bold text-slate-800 text-base">{item.location}</h3>
+                                        <p className="text-xs text-slate-500 mb-3">{item.district}</p>
+                                        
+                                        <div className="bg-red-50 rounded border border-red-100 p-2 mb-3">
+                                            <span className="text-[10px] font-bold text-red-600 block mb-1">สถิติสัตว์ติดเชื้อ</span>
+                                            <div className="flex justify-center gap-4 text-xs font-semibold text-slate-700">
+                                                <div className="flex flex-col"><span>🐶 สุนัข</span><span>{ (item.stats?.dog?.male||0) + (item.stats?.dog?.female||0) }</span></div>
+                                                <div className="w-px bg-red-200"></div>
+                                                <div className="flex flex-col"><span>🐱 แมว</span><span>{ (item.stats?.cat?.male||0) + (item.stats?.cat?.female||0) }</span></div>
+                                            </div>
+                                        </div>
+
+                                        {onDeleteOutbreak && (
+                                            <button onClick={() => onDeleteOutbreak(item._id)} className="w-full py-1.5 rounded-md text-xs font-bold bg-white text-red-500 border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-1">
+                                                <Trash2 className="w-3 h-3" /> ลบข้อมูล
+                                            </button>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        </React.Fragment>
+                    );
+                })}
+            </MapContainer>
         </div>
     );
 };

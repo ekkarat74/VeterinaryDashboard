@@ -38,14 +38,18 @@ const Header = ({
                     {/* 1. Logo & Brand */}
                     <div className="w-full md:w-auto flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2 rounded-lg shadow-lg shadow-blue-500/20 shrink-0">
-                                {/* แก้ไข: เพิ่ม className เพื่อกำหนดขนาดรูปภาพ (w-10 h-10 คือ 40px) */}
+                            
+                            {/* --- แก้ไขตรงนี้: ลบพื้นหลังสีฟ้าออก --- */}
+                            <div className="shrink-0">
                                 <img 
                                     src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
                                     alt="" 
-                                    className="w-10 h-10 object-cover rounded-md bg-white/10"
+                                    // ปรับขนาดรูปภาพเล็กน้อย หรือคงเดิมไว้ (w-12 h-12 หรือ w-10 h-10)
+                                    className="w-12 h-12 object-cover rounded-md"
                                 />
                             </div>
+                            {/* ------------------------------------- */}
+
                             <div className="flex flex-col">
                                 <h1 className="text-base font-extrabold text-slate-800 leading-tight">
                                     ระบบรายงานสัตวแพทย์
