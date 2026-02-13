@@ -1009,8 +1009,8 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     if (!isOpen && !readOnly) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[2900] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] overflow-hidden flex flex-col">
+        <div className={containerClass}>    
+            <div className={innerClass}>
                 {/* Header */}
                 <div className="bg-[#545BE8] px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <h3 className="text-lg font-bold flex items-center gap-2">
