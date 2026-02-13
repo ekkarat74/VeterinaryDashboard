@@ -36,7 +36,7 @@ const KPISection = ({ totals, unitStats = [] }) => {
                         {unitStats.map((unit, index) => (
                             <KPICard 
                                 key={index}
-                                title={`หน่วย ${unit.name}`} 
+                                title={`${unit.name}`} 
                                 value={unit.count}
                                 subtext="ครั้ง (Times)" 
                                 icon={Activity} 

@@ -1737,8 +1737,10 @@ export default function VeterinaryDashboard() {
 
     // --- 5. CALCULATIONS ---
 
+    // 1. ประกาศ availableYears ก่อน
     const availableYears = useMemo(() => [...new Set(reportData.map(item => item.date.split('-')[0]))].sort().reverse(), [reportData]);
 
+    // 2. ประกาศ filteredData (ตัวสำคัญที่ dispatchStats ต้องใช้)
     const filteredData = useMemo(() => {
         return reportData.filter(item => {
             const lowerSearch = searchTerm.toLowerCase();
@@ -1756,6 +1758,93 @@ export default function VeterinaryDashboard() {
             return textMatch && dateMatch && unitMatch && districtMatch;
         });
     }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
+
+    const dispatchStats = useMemo(() => {
+        // Helper: สร้าง Object เริ่มต้น
+        const initStats = () => ({ 
+            count: 0, 
+            sterilization: 0, 
+            microchip: 0, 
+            governor: 0, 
+            cat_cage: 0, 
+            other: 0 
+        });
+
+        // Helper: ฟังก์ชันจัดกลุ่มหน่วยงาน (Mapping) ให้ฉลาดขึ้น
+        const getUnitKey = (unitName) => {
+            if (!unitName) return 'other';
+            const lower = String(unitName).toLowerCase(); // แปลงเป็นตัวเล็กทั้งหมดก่อนเช็ค
+
+            // 1. เช็คตรงๆ (Direct Match)
+            if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
+
+            // 2. เช็คจากคำค้นหา (Keyword Match) รองรับภาษาไทยและอังกฤษ
+            if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
+            if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
+            if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
+            if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
+
+            // ถ้าไม่เข้าพวกเลย ให้เป็น Other
+            return 'other';
+        };
+
+        // 1. เตรียมข้อมูลรายเดือน (Monthly Data)
+        const monthMap = {};
+        filteredData.forEach(item => {
+            const m = item.date.substring(0, 7); // YYYY-MM
+            if (!monthMap[m]) monthMap[m] = initStats();
+            
+            monthMap[m].count += 1;
+            const uKey = getUnitKey(item.unit); // ใช้ฟังก์ชันใหม่ที่แก้แล้ว
+            monthMap[m][uKey] += 1;
+        });
+
+        const monthlyData = [];
+        for (let i = 9; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const key = `${year}-${month}`;
+            
+            monthlyData.push({
+                name: key,
+                ...initStats(),
+                ...(monthMap[key] || {})
+            });
+        }
+
+        // 2. เตรียมข้อมูลรายวัน (Daily Data)
+        const dayMap = {};
+        filteredData.forEach(item => {
+            const day = item.date; // YYYY-MM-DD
+            if (!dayMap[day]) dayMap[day] = initStats();
+
+            dayMap[day].count += 1;
+            const uKey = getUnitKey(item.unit); // ใช้ฟังก์ชันใหม่ที่แก้แล้ว
+            dayMap[day][uKey] += 1;
+        });
+
+        const dailyData = [];
+        for (let i = 13; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const key = `${year}-${month}-${day}`;
+            const displayDate = `${day}/${month}`;
+            
+            dailyData.push({
+                name: displayDate,
+                fullDate: key,
+                ...initStats(),
+                ...(dayMap[key] || {})
+            });
+        }
+
+        return { monthly: monthlyData, daily: dailyData };
+    }, [filteredData]);
 
     const mapDisplayData = useMemo(() => filteredData, [filteredData]);
 
@@ -2145,7 +2234,7 @@ const parseCSVDate = (dateStr) => {
 
                 <KPISection totals={totals} unitStats={unitStats} />
 
-                <StatisticsCharts trendData={trendData} unitStats={unitStats} />
+                <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <RankingSection 
