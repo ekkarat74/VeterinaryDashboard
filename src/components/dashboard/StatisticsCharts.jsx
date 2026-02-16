@@ -3,13 +3,13 @@ import {
     Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
     Legend, ResponsiveContainer, Area, ComposedChart, LabelList 
 } from 'recharts';
-import { Calendar, Users, BarChart3, Filter } from 'lucide-react';
+import { Calendar, Users, BarChart3 } from 'lucide-react';
 
 const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
     const [freqFilter, setFreqFilter] = useState('monthly'); 
     const currentFreqData = freqFilter === 'monthly' ? dispatchStats.monthly : dispatchStats.daily;
 
-    // Custom Tooltip เพื่อความสวยงาม
+    // Custom Tooltip (ใช้ร่วมกันได้ทั้ง 3 กราฟ)
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
@@ -45,7 +45,7 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                     </div>
                 </div>
                 
-                <div className="h-80 w-100">
+                <div className="h-80 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart data={trendData} margin={{top:10, right:10, left: -20, bottom:0}}>
                             <defs>
@@ -123,120 +123,120 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                 </div>
             </div>
 
-            {/* 3. Unit Comparison Chart - ปรับปรุงใหม่ให้โชว์จำนวนครั้ง */}
-<div className="lg:col-span-2 bg-slate-900 p-8 rounded-3xl shadow-xl overflow-hidden relative">
-    {/* Background Decoration */}
-    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-    
-    <div className="relative z-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                    <div className="p-2 bg-indigo-500/20 rounded-lg">
-                        <Users className="w-6 h-6 text-indigo-400" />
+            {/* 3. Unit Comparison Chart - ปรับเป็นธีมสีอ่อน (Light Theme) */}
+            <div className="lg:col-span-2 bg-indigo-50 p-8 rounded-3xl shadow-sm border border-indigo-100 overflow-hidden relative">
+                {/* Background Decoration (ปรับให้จางลงมาก) */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/20 rounded-full -mr-32 -mt-32 blur-3xl" />
+                
+                <div className="relative z-10">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+                                <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500">
+                                    <Users className="w-6 h-6" />
+                                </div>
+                                ประสิทธิภาพและจำนวนครั้งที่ออกหน่วย
+                            </h2>
+                            <p className="text-sm text-slate-500 mt-1 ml-12">
+                                เปรียบเทียบยอดบริการสะสม กับจำนวนครั้งที่ลงพื้นที่แยกตามหน่วย
+                            </p>
+                        </div>
+                        {/* Legend */}
+                        <div className="flex gap-4 text-xs ml-12 md:ml-0">
+                            <div className="flex items-center gap-2 text-slate-600">
+                                <div className="w-3 h-3 bg-indigo-500 rounded-sm" /> ยอดบริการรวม
+                            </div>
+                            <div className="flex items-center gap-2 text-indigo-600 font-bold">
+                                [ตัวเลข] ครั้ง = จำนวนที่ออกหน่วย
+                            </div>
+                        </div>
                     </div>
-                    ประสิทธิภาพและจำนวนครั้งที่ออกหน่วย
-                </h2>
-                <p className="text-sm text-slate-400 mt-1 ml-12">
-                    เปรียบเทียบยอดบริการสะสม กับจำนวนครั้งที่ลงพื้นที่แยกตามหน่วย
-                </p>
-            </div>
-            {/* Legend แบบ Custom สำหรับ Dark Mode */}
-            <div className="flex gap-4 text-xs ml-12 md:ml-0">
-                <div className="flex items-center gap-2 text-slate-300">
-                    <div className="w-3 h-3 bg-indigo-500 rounded-sm" /> ยอดบริการรวม
-                </div>
-                <div className="flex items-center gap-2 text-indigo-400 font-bold">
-                    [ตัวเลข] ครั้ง = จำนวนที่ออกหน่วย
-                </div>
-            </div>
-        </div>
-        
-        <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                    data={unitStats} 
-                    layout="vertical" 
-                    margin={{top: 5, right: 100, left: 20, bottom: 5}}
-                >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#1e293b" opacity={0.5} />
-                    <XAxis type="number" hide />
-                    <YAxis 
-                        dataKey="name" 
-                        type="category" 
-                        width={110} 
-                        tick={{fontSize: 13, fill: '#f1f5f9', fontWeight: 500}} 
-                        axisLine={false} 
-                        tickLine={false} 
-                    />
-                    <RechartsTooltip 
-                        cursor={{fill: 'rgba(255,255,255,0.03)'}}
-                        content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                                const data = payload[0].payload;
-                                return (
-                                    <div className="bg-slate-800 border border-slate-700 p-3 rounded-xl shadow-2xl">
-                                        <p className="text-indigo-400 font-bold mb-1">{label}</p>
-                                        <div className="text-xs text-slate-300 space-y-1">
-                                            <p>ยอดบริการ: <span className="text-white font-mono">{data.total.toLocaleString()}</span> เคส</p>
-                                            <p>ออกหน่วย: <span className="text-white font-mono">{data.count}</span> ครั้ง</p>
-                                            <p className="pt-1 border-t border-slate-700 mt-1 text-slate-400 italic">
-                                                เฉลี่ย: {(data.total / data.count).toFixed(1)} เคส/ครั้ง
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        }}
-                    />
                     
-                    <Bar 
-                        dataKey="total" 
-                        fill="#6366f1" 
-                        radius={[0, 12, 12, 0]} 
-                        barSize={28}
-                        animationDuration={1500}
-                    >
-                        <LabelList 
-                            dataKey="total" 
-                            position="right" 
-                            content={(props) => {
-                                const { x, y, width, value, index } = props;
-                                const count = unitStats[index].count; // ดึงค่าจำนวนครั้งจาก data
-                                return (
-                                    <g>
-                                        {/* ยอดบริการรวม */}
-                                        <text 
-                                            x={x + width + 10} 
-                                            y={y + 18} 
-                                            fill="#fff" 
-                                            fontSize="14" 
-                                            fontWeight="bold"
-                                            className="font-mono"
-                                        >
-                                            {value.toLocaleString()}
-                                        </text>
-                                        {/* จำนวนครั้งที่ออกหน่วย */}
-                                        <text 
-                                            x={x + width + 55} 
-                                            y={y + 18} 
-                                            fill="#818cf8" 
-                                            fontSize="12"
-                                            fontWeight="500"
-                                        >
-                                            | {count} ครั้ง
-                                        </text>
-                                    </g>
-                                );
-                            }}
-                        />
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    </div>
-</div>
+                    <div className="h-96">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart 
+                                data={unitStats} 
+                                layout="vertical" 
+                                margin={{top: 5, right: 100, left: 20, bottom: 5}}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                                <XAxis type="number" hide />
+                                <YAxis 
+                                    dataKey="name" 
+                                    type="category" 
+                                    width={110} 
+                                    tick={{fontSize: 13, fill: '#475569', fontWeight: 600}} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                />
+                                <RechartsTooltip 
+                                    cursor={{fill: 'rgba(99, 102, 241, 0.05)'}}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                                <div className="bg-white border border-slate-100 p-3 rounded-xl shadow-xl">
+                                                    <p className="text-indigo-600 font-bold mb-1">{label}</p>
+                                                    <div className="text-xs text-slate-600 space-y-1">
+                                                        <p>ยอดบริการ: <span className="text-slate-900 font-mono font-bold">{data.total.toLocaleString()}</span> เคส</p>
+                                                        <p>ออกหน่วย: <span className="text-slate-900 font-mono font-bold">{data.count}</span> ครั้ง</p>
+                                                        <p className="pt-1 border-t border-slate-100 mt-1 text-slate-400 italic">
+                                                            เฉลี่ย: {(data.total / data.count).toFixed(1)} เคส/ครั้ง
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                
+                                <Bar 
+                                    dataKey="total" 
+                                    fill="#6366f1" 
+                                    radius={[0, 12, 12, 0]} 
+                                    barSize={28}
+                                    animationDuration={1500}
+                                >
+                                    <LabelList 
+                                        dataKey="total" 
+                                        position="right" 
+                                        content={(props) => {
+                                            const { x, y, width, value, index } = props;
+                                            const count = unitStats[index]?.count || 0;
+                                            return (
+                                                <g>
+                                                    {/* ยอดบริการรวม (สีเข้ม) */}
+                                                    <text 
+                                                        x={x + width + 10} 
+                                                        y={y + 18} 
+                                                        fill="#334155" 
+                                                        fontSize="14" 
+                                                        fontWeight="bold"
+                                                        className="font-mono"
+                                                    >
+                                                        {value.toLocaleString()}
+                                                    </text>
+                                                    {/* จำนวนครั้งที่ออกหน่วย (สี Indigo) */}
+                                                    <text 
+                                                        x={x + width + 55} 
+                                                        y={y + 18} 
+                                                        fill="#6366f1" 
+                                                        fontSize="12"
+                                                        fontWeight="600"
+                                                    >
+                                                        | {count} ครั้ง
+                                                    </text>
+                                                </g>
+                                            );
+                                        }}
+                                    />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
 
         </div>
     );

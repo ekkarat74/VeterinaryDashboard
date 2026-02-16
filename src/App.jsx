@@ -16,7 +16,6 @@ import MainDataTable from './components/dashboard/MainDataTable';
 import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils';
 import ChangePasswordModal from './components/modals/ChangePasswordModal';
 import Header from './components/layout/Header';
-import FilterBar from './components/dashboard/FilterBar.jsx';
 import StatisticsCharts from './components/dashboard/StatisticsCharts.jsx';
 import RankingSection from './components/dashboard/RankingSection';
 import LeafletMap from './components/modals/LeafletMap';
@@ -382,6 +381,23 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
         </div>
     );
 };
+
+// --- Helper Function: getUnitKey (เพิ่มส่วนนี้) ---
+    const getUnitKey = (unitName) => {
+        if (!unitName) return 'other';
+        const lower = String(unitName).toLowerCase();
+        
+        // เช็ค key หลัก
+        if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
+        
+        // เช็คคำใกล้เคียงภาษาไทย/อังกฤษ
+        if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
+        if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
+        if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
+        if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
+
+        return 'other';
+    };
 
 const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, color = "bg-slate-50" }) => (
     <div className={`p-3 rounded-lg border border-slate-200 ${color} space-y-2`}>
@@ -1408,6 +1424,7 @@ export default function VeterinaryDashboard() {
         }
     };
 
+
     // --- [เพิ่ม] ฟังก์ชันลบงาน (ส่งให้ Modal ใช้) ---
     const handleDeleteDispatch = async (id) => {
         if (!confirm('ยืนยันลบแผนงานนี้?')) return;
@@ -1916,91 +1933,93 @@ export default function VeterinaryDashboard() {
 
         return reportData.filter(item => {
             try {
-                // Safety Check 1: ถ้าไม่มี item หรือข้อมูลสำคัญเสียหาย ให้ข้ามไปเลย
+                // Safety Check 1: ข้ามถ้ารายการนี้เป็น null
                 if (!item) return false;
 
-                // เตรียมข้อมูลสำหรับการค้นหา (จัดการค่า null ให้เป็น string ว่าง หรือค่า Default)
-                const lowerSearch = searchTerm ? String(searchTerm).toLowerCase().trim() : '';
-                
-                // ✅ ป้องกัน crash: ถ้าไม่มี location/district ให้ใช้ string ว่างแทน
+                // --- เตรียมข้อมูล (Handle Null/Undefined ป้องกันจอขาว) ---
                 const itemLocation = item.location ? String(item.location).toLowerCase() : '';
+                
+                // ✅ จุดสำคัญ: ถ้าไม่มีเขต ให้เป็นค่าว่างไว้ อย่าให้ undefined จนพัง
                 const itemDistrict = item.district ? String(item.district).trim() : 'ไม่ระบุ'; 
+                
                 const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
                 const itemUnit = item.unit ? String(item.unit) : '';
 
-                // 1. Text Search Logic
+                // --- 1. Text Search Logic ---
+                const lowerSearch = searchTerm ? String(searchTerm).toLowerCase().trim() : '';
                 const textMatch = !lowerSearch || 
                     itemLocation.includes(lowerSearch) || 
                     itemDistrict.toLowerCase().includes(lowerSearch) || 
                     itemSubdistrict.includes(lowerSearch);
 
-                // 2. Date Logic
+                // --- 2. Date Logic ---
                 let dateMatch = true;
+
                 if (searchDate) { 
+                    // ถ้ามีการระบุวันที่เป๊ะๆ
                     dateMatch = item.date === searchDate; 
                 } else {
-                    if (!item.date) return false; // ไม่มีวันที่ ไม่เอามาคำนวณ
+                    // ถ้าไม่มีวันที่ (item.date) ให้ถือว่าไม่ผ่านกรอง ยกเว้นว่าเป็นข้อมูลเก่าที่ยอมรับได้
+                    // (แต่เพื่อความชัวร์ของกราฟ ควรมีวันที่)
+                    if (!item.date) {
+                        // ถ้าปีและเดือนเลือก "ทั้งหมด" เราอาจจะยอมให้ผ่านได้ถ้าต้องการ
+                        // แต่ปกติกราฟต้องใช้วันที่ ขอ return false ถ้าไม่มีวันที่
+                        return false; 
+                    }
+
                     const dateParts = String(item.date).split('-');
                     if (dateParts.length >= 2) {
                         const [itemYear, itemMonth] = dateParts;
+                        
+                        // ✅ Logic อิสระ:
+                        // ถ้าเลือก Year = 'ทั้งหมด' -> yearMatch เป็น true เสมอ
+                        // ถ้าเลือก Month = 'ทั้งหมด' -> monthMatch เป็น true เสมอ
                         const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === String(selectedYear);
                         const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
+                        
                         dateMatch = yearMatch && monthMatch;
+                    } else {
+                        dateMatch = false; // รูปแบบวันที่ผิด
                     }
                 }
 
-                // 3. Unit Filter
+                // --- 3. Unit Filter ---
                 const unitMatch = selectedUnit === 'ทั้งหมด' || itemUnit === selectedUnit;
                 
-                // 4. District Filter (จุดสำคัญที่ทำให้จอขาวถ้าข้อมูลเขตเพี้ยน)
-                // ✅ กรองเขตที่เป็นค่าว่างทิ้งด้วย หรือถ้าเลือก 'ทั้งหมด' ก็ให้ผ่านหมด
+                // --- 4. District Filter (ตัวกรองเขต) ---
+                // ✅ Logic: ถ้า selectedDistrict เป็น 'ทั้งหมด' ให้ผ่าน
+                // ถ้าเลือกเขตเฉพาะเจาะจง ก็เช็คว่าตรงกันไหม (โดยไม่สนว่าปีไหน ถ้าปีเลือกทั้งหมดไว้)
                 const districtMatch = selectedDistrict === 'ทั้งหมด' || itemDistrict === selectedDistrict;
 
+                // นำผลลัพธ์ทั้งหมดมา AND กัน
                 return textMatch && dateMatch && unitMatch && districtMatch;
 
             } catch (error) {
+                // ✅ Catch Error: ถ้าข้อมูลแถวไหนพัง ให้ข้ามไปเลย ไม่ต้องทำหน้าจอขาว
                 console.warn("Skipping invalid item causing filter error:", item, error);
-                return false; // ถ้า Error ให้ข้ามรายการนี้ไปเลย ไม่ทำให้จอขาว
+                return false; 
             }
         });
     }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
 
     const dispatchStats = useMemo(() => {
-        // Helper: สร้าง Object เริ่มต้น
-        const initStats = () => ({ 
-            count: 0, 
-            sterilization: 0, 
-            microchip: 0, 
-            governor: 0, 
-            cat_cage: 0, 
-            other: 0 
-        });
+        // Helper สร้าง object เริ่มต้น
+        const initStats = () => ({ count: 0, sterilization: 0, microchip: 0, governor: 0, cat_cage: 0, other: 0 });
 
-const getUnitKey = (unitName) => {
-    // Safety Check: ถ้าไม่มีชื่อหน่วยงาน ให้โยนไปกลุ่ม 'other' ทันที ห้ามคืนค่า null
-    if (!unitName) return 'other';
-    
-    const lower = String(unitName).toLowerCase(); 
-
-    // เช็ค Keyword เพื่อจัดกลุ่ม
-    if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
-    if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
-    if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
-    if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
-    if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
-
-    return 'other';
-};
-
-        // 1. เตรียมข้อมูลรายเดือน (Monthly Data)
+        // 1. Monthly Data
         const monthMap = {};
         filteredData.forEach(item => {
-            const m = item.date.substring(0, 7); // YYYY-MM
+            const m = item.date.substring(0, 7);
             if (!monthMap[m]) monthMap[m] = initStats();
             
-            monthMap[m].count += 1;
-            const uKey = getUnitKey(item.unit); // ใช้ฟังก์ชันใหม่ที่แก้แล้ว
-            monthMap[m][uKey] += 1;
+            monthMap[m].count += 1; // นับจำนวนงานรวม
+            
+            const uKey = getUnitKey(item.unit); // เรียกฟังก์ชันที่เพิ่มเข้ามา
+            if (monthMap[m][uKey] !== undefined) {
+                monthMap[m][uKey] += 1;
+            } else {
+                monthMap[m]['other'] += 1;
+            }
         });
 
         const monthlyData = [];
@@ -2018,15 +2037,18 @@ const getUnitKey = (unitName) => {
             });
         }
 
-        // 2. เตรียมข้อมูลรายวัน (Daily Data)
+        // 2. Daily Data
         const dayMap = {};
         filteredData.forEach(item => {
-            const day = item.date; // YYYY-MM-DD
+            const day = item.date;
             if (!dayMap[day]) dayMap[day] = initStats();
-
+            
             dayMap[day].count += 1;
-            const uKey = getUnitKey(item.unit); // ใช้ฟังก์ชันใหม่ที่แก้แล้ว
-            dayMap[day][uKey] += 1;
+            
+            const uKey = getUnitKey(item.unit);
+            if (dayMap[day][uKey] !== undefined) {
+                 dayMap[day][uKey] += 1;
+            }
         });
 
         const dailyData = [];
@@ -2086,7 +2108,7 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
             
             acc[curr.unit].count += 1; // [เพิ่ม] บวกจำนวนครั้งเพิ่มทีละ 1
 
-            acc[curr.unit].vaccine += (curr.stats.vaccine || 0); 
+            acc[curr.unit].vaccine += (curr.stats?.vaccine || 0); // ใส่ ?.
             acc[curr.unit].sterilize += (curr.stats.sterilize || 0); 
             acc[curr.unit].register += (curr.stats.register || 0);
             acc[curr.unit].microchip += (curr.stats.microchip || 0); 
@@ -2100,17 +2122,27 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
     const trendData = useMemo(() => {
         const dataMap = filteredData.reduce((acc, curr) => {
             const month = curr.date.substring(0, 7);
-            if (!acc[month]) acc[month] = { name: month, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
-            acc[month].vaccine += (curr.stats.vaccine || 0); acc[month].sterilize += (curr.stats.sterilize || 0); acc[month].register += (curr.stats.register || 0);
-            acc[month].microchip += (curr.stats.microchip || 0); acc[month].medical += (curr.stats.medical || 0);
-            acc[month].total += ((curr.stats.vaccine||0) + (curr.stats.sterilize||0) + (curr.stats.register||0) + (curr.stats.microchip||0) + (curr.stats.medical||0));
+            
+            // เพิ่ม count: 0 ในค่าเริ่มต้น
+            if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
+            
+            acc[month].count += 1; // เพิ่มบรรทัดนี้เพื่อแก้ Error reading 'count'
+            
+            acc[month].vaccine += (curr.stats?.vaccine || 0);
+            acc[month].sterilize += (curr.stats?.sterilize || 0);
+            acc[month].register += (curr.stats?.register || 0);
+            acc[month].microchip += (curr.stats?.microchip || 0);
+            acc[month].medical += (curr.stats?.medical || 0);
+            acc[month].total += ((curr.stats?.vaccine||0) + (curr.stats?.sterilize||0) + (curr.stats?.register||0) + (curr.stats?.microchip||0) + (curr.stats?.medical||0));
             return acc;
         }, {});
+
         const last10Months = [];
         for (let i = 9; i >= 0; i--) {
             const d = new Date(); d.setMonth(d.getMonth() - i);
             const monthStr = d.toISOString().substring(0, 7);
-            last10Months.push(dataMap[monthStr] || { name: monthStr, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
+            // ใส่ count: 0 ในค่า default ด้วย
+            last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
         }
         return last10Months;
     }, [filteredData]);
@@ -2147,6 +2179,66 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
             }
         });
     }, [reportData, rankingYear, rankingMonth]);
+
+    const rankingNestedStats = useMemo(() => {
+        const grouped = rankingFilteredData.reduce((acc, curr) => {
+            const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
+            const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
+            
+            // คำนวณยอดรวมของ Row นี้
+            const vaccine = (curr.stats?.vaccine || 0);
+            const sterilize = (curr.stats?.sterilize || 0);
+            const register = (curr.stats?.register || 0);
+            const microchip = (curr.stats?.microchip || 0);
+            const medical = (curr.stats?.medical || 0);
+            const workTotal = vaccine + sterilize + register + microchip + medical;
+
+            if (!acc[unitName]) {
+                acc[unitName] = { 
+                    name: unitName, 
+                    totalWork: 0, 
+                    count: 0, 
+                    districts: {},
+                    // [เพิ่ม] เก็บยอดแยกประเภทบริการ
+                    stats: {
+                        vaccine: 0,
+                        sterilize: 0,
+                        register: 0,
+                        microchip: 0,
+                        medical: 0
+                    }
+                };
+            }
+            
+            // บวกยอดรวม
+            acc[unitName].totalWork += workTotal;
+            acc[unitName].count += 1;
+
+            // [เพิ่ม] บวกยอดแยกประเภทบริการ
+            acc[unitName].stats.vaccine += vaccine;
+            acc[unitName].stats.sterilize += sterilize;
+            acc[unitName].stats.register += register;
+            acc[unitName].stats.microchip += microchip;
+            acc[unitName].stats.medical += medical;
+
+            if (!acc[unitName].districts[districtName]) {
+                acc[unitName].districts[districtName] = 0;
+            }
+            acc[unitName].districts[districtName] += workTotal;
+            return acc;
+        }, {});
+
+        return Object.values(grouped)
+            .sort((a, b) => b.totalWork - a.totalWork)
+            .slice(0, 5)
+            .map(unit => {
+                const sortedDistricts = Object.entries(unit.districts)
+                    .map(([dName, dTotal]) => ({ name: dName, total: dTotal }))
+                    .sort((a, b) => b.total - a.total)
+                    .slice(0, 5);
+                return { ...unit, topDistricts: sortedDistricts };
+            });
+    }, [rankingFilteredData]);
 
     // ✅ [แก้ไข] Ranking Unit Stats: เพิ่มการเช็ค null ของชื่อหน่วยงาน
     const rankingUnitStats = useMemo(() => {
@@ -2479,22 +2571,103 @@ const parseCSVDate = (dateStr) => {
             />
             
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <FilterBar 
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    searchDate={searchDate}
-                    setSearchDate={setSearchDate}
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                    selectedMonth={selectedMonth}
-                    setSelectedMonth={setSelectedMonth}
-                    selectedUnit={selectedUnit}
-                    setSelectedUnit={setSelectedUnit}
-                    selectedDistrict={selectedDistrict}
-                    setSelectedDistrict={setSelectedDistrict}
-                    availableYears={availableYears}
-                    thaiMonths={THAI_MONTHS}
-                />
+                
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                    <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
+                        <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Data Filters)
+                    </h3>
+                    <button 
+                        onClick={() => {
+                            setSearchTerm('');
+                            setSelectedYear('ทั้งหมด');
+                            setSelectedMonth('ทั้งหมด');
+                            setSelectedUnit('ทั้งหมด');
+                            setSelectedDistrict('ทั้งหมด');
+                            setSearchDate('');
+                        }}
+                        className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors"
+                    >
+                        <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* 1. ค้นหาด้วยข้อความ */}
+                    <div className="relative">
+                        <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input 
+                                type="text" 
+                                placeholder="พิมพ์คำค้นหา..." 
+                                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 2. ตัวกรองปี */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
+                        <select 
+                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                        >
+                            <option value="ทั้งหมด">ทุกปี</option>
+                            {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
+                        </select>
+                    </div>
+
+                    {/* 3. ตัวกรองเดือน */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
+                        <select 
+                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                            <option value="ทั้งหมด">ทุกเดือน</option>
+                            {THAI_MONTHS.map((m, i) => (
+                                <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* 4. ตัวกรองหน่วยงาน */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
+                        <select 
+                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                            value={selectedUnit}
+                            onChange={(e) => setSelectedUnit(e.target.value)}
+                        >
+                            <option value="ทั้งหมด">ทุกหน่วยงาน</option>
+                            {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                        </select>
+                    </div>
+
+                    {/* 5. ตัวกรองเขต */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
+                        <select 
+                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                            value={selectedDistrict}
+                            onChange={(e) => setSelectedDistrict(e.target.value)}
+                        >
+                            <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
+                            {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                </div>
+            </div>
 
                 <KPISection totals={totals} unitStats={unitStats} />
 
@@ -2509,7 +2682,7 @@ const parseCSVDate = (dateStr) => {
                         availableYears={availableYears}
                         thaiMonths={THAI_MONTHS}
                         rankingUnitStats={rankingUnitStats}
-                        rankingDistrictStats={rankingDistrictStats}
+                        rankingNestedStats={rankingNestedStats} // <--- เพิ่ม Prop นี้
                     />
                     
                     <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
@@ -2526,7 +2699,7 @@ const parseCSVDate = (dateStr) => {
                     stats={outbreakStats} filteredOutbreaks={filteredOutbreaks} yearlyTrend={outbreakYearlyTrend} hiddenIds={hiddenOutbreakIds} 
                     toggleVisibility={toggleOutbreakVisibility} onEdit={openEditOutbreakModal} onDelete={handleDeleteOutbreak} canEdit={canEdit} 
                 />
-                
+
                 <MainDataTable 
                     data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} 
                     onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} 

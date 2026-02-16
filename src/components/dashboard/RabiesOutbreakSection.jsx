@@ -135,11 +135,11 @@ const RabiesOutbreakSection = ({
                                                 {item.location} {isHidden && "(ซ่อน)"}
                                             </p>
                                             {item.stats && (
-   <div className="flex gap-2 mt-1 text-[10px] text-slate-500">
-       <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐶 {(item.stats.dog?.male || 0) + (item.stats.dog?.female || 0)}</span></span>
-       <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐱 {(item.stats.cat?.male || 0) + (item.stats.cat?.female || 0)}</span></span>
-   </div>
-)}
+                                                <div className="flex gap-2 mt-1 text-[10px] text-slate-500">
+                                                    <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐶 {(item.stats.dog?.male || 0) + (item.stats.dog?.female || 0)}</span></span>
+                                                    <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐱 {(item.stats.cat?.male || 0) + (item.stats.cat?.female || 0)}</span></span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between items-center mt-0.5">
                                                 <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{item.district}</span>
                                                 <span className="text-[9px] text-slate-400">
@@ -148,21 +148,21 @@ const RabiesOutbreakSection = ({
                                             </div>
                                         </div>
                                         {canEdit && !isHidden && (
-    <div className="flex gap-1 shrink-0"> 
-        <button 
-            onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
-            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-        >
-            <Edit className="w-3 h-3" />
-        </button>
-        <button 
-            onClick={(e) => { e.stopPropagation(); onDelete(item._id); }} 
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-        >
-            <Trash2 className="w-3 h-3" />
-        </button>
-    </div>
-)}
+                                            <div className="flex gap-1 shrink-0"> 
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
+                                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                >
+                                                    <Edit className="w-3 h-3" />
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); onDelete(item._id); }} 
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -180,9 +180,10 @@ const RabiesOutbreakSection = ({
                                 5 อันดับเขตพื้นที่เสี่ยงสูงสุด
                             </h4>
                         </div>
-                        <div className="h-64 w-full">
+                        {/* แก้ไข: เพิ่ม min-w-0 และ minWidth={0} */}
+                        <div className="h-64 w-full min-w-0">
                             {stats.total > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                     <BarChart layout="vertical" data={stats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={28}>
                                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9"/>
                                         <XAxis type="number" hide />
@@ -211,8 +212,9 @@ const RabiesOutbreakSection = ({
                                 แนวโน้มการระบาดรายปี
                             </h4>
                         </div>
-                         <div className="flex-1 min-h-[250px] w-full mt-4">
-                            <ResponsiveContainer width="100%" height="100%">
+                         {/* แก้ไข: เพิ่ม min-w-0 และ minWidth={0} */}
+                         <div className="flex-1 min-h-[250px] w-full min-w-0 mt-4">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <BarChart data={yearlyTrend} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
                                     <defs>
                                         <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
