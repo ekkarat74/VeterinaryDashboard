@@ -1905,54 +1905,66 @@ export default function VeterinaryDashboard() {
 
     // --- 5. CALCULATIONS ---
 
-    // 1. ประกาศ availableYears ก่อน
-    const availableYears = useMemo(() => [...new Set(reportData.map(item => item.date.split('-')[0]))].sort().reverse(), [reportData]);
+    // 1. ประกาศ availableYears
+    const availableYears = useMemo(() => {
+        if (!Array.isArray(reportData)) return [];
+        return [...new Set(reportData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y))].sort().reverse();
+    }, [reportData]);
 
     const filteredData = useMemo(() => {
+        if (!Array.isArray(reportData)) return [];
+
         return reportData.filter(item => {
-            // เตรียมข้อมูลสำหรับค้นหา (ป้องกัน null crash)
-            const itemLocation = item.location ? item.location.toLowerCase() : '';
-            const itemDistrict = item.district || '';
-            const itemSubdistrict = item.subdistrict || '';
-            const lowerSearch = searchTerm ? searchTerm.toLowerCase() : '';
+            try {
+                // Safety Check 1: ถ้าไม่มี item หรือข้อมูลสำคัญเสียหาย ให้ข้ามไปเลย
+                if (!item) return false;
 
-            // 1. Text Search Logic
-            const textMatch = !searchTerm || 
-                itemLocation.includes(lowerSearch) || 
-                itemDistrict.includes(searchTerm) || 
-                itemSubdistrict.includes(searchTerm);
+                // เตรียมข้อมูลสำหรับการค้นหา (จัดการค่า null ให้เป็น string ว่าง หรือค่า Default)
+                const lowerSearch = searchTerm ? String(searchTerm).toLowerCase().trim() : '';
+                
+                // ✅ ป้องกัน crash: ถ้าไม่มี location/district ให้ใช้ string ว่างแทน
+                const itemLocation = item.location ? String(item.location).toLowerCase() : '';
+                const itemDistrict = item.district ? String(item.district).trim() : 'ไม่ระบุ'; 
+                const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
+                const itemUnit = item.unit ? String(item.unit) : '';
 
-            // 2. Date Logic
-            let dateMatch = true;
-            if (searchDate) { 
-                dateMatch = item.date === searchDate; 
-            } else {
-                // ถ้าข้อมูลไม่มีวันที่ ให้ข้ามไปเลย หรือถือว่าไม่ตรงเงื่อนไข
-                if (!item.date) return false;
+                // 1. Text Search Logic
+                const textMatch = !lowerSearch || 
+                    itemLocation.includes(lowerSearch) || 
+                    itemDistrict.toLowerCase().includes(lowerSearch) || 
+                    itemSubdistrict.includes(lowerSearch);
 
-                const dateParts = item.date.split('-');
-                // ป้องกันกรณี format วันที่ผิดเพี้ยน
-                if (dateParts.length < 2) return false;
+                // 2. Date Logic
+                let dateMatch = true;
+                if (searchDate) { 
+                    dateMatch = item.date === searchDate; 
+                } else {
+                    if (!item.date) return false; // ไม่มีวันที่ ไม่เอามาคำนวณ
+                    const dateParts = String(item.date).split('-');
+                    if (dateParts.length >= 2) {
+                        const [itemYear, itemMonth] = dateParts;
+                        const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === String(selectedYear);
+                        const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
+                        dateMatch = yearMatch && monthMatch;
+                    }
+                }
 
-                const itemYear = dateParts[0];
-                const itemMonth = dateParts[1];
+                // 3. Unit Filter
+                const unitMatch = selectedUnit === 'ทั้งหมด' || itemUnit === selectedUnit;
+                
+                // 4. District Filter (จุดสำคัญที่ทำให้จอขาวถ้าข้อมูลเขตเพี้ยน)
+                // ✅ กรองเขตที่เป็นค่าว่างทิ้งด้วย หรือถ้าเลือก 'ทั้งหมด' ก็ให้ผ่านหมด
+                const districtMatch = selectedDistrict === 'ทั้งหมด' || itemDistrict === selectedDistrict;
 
-                const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === selectedYear;
-                const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
-                dateMatch = yearMatch && monthMatch;
+                return textMatch && dateMatch && unitMatch && districtMatch;
+
+            } catch (error) {
+                console.warn("Skipping invalid item causing filter error:", item, error);
+                return false; // ถ้า Error ให้ข้ามรายการนี้ไปเลย ไม่ทำให้จอขาว
             }
-
-            // 3. Unit Logic
-            const itemUnit = item.unit || ''; // ป้องกัน unit เป็น null
-            const unitMatch = selectedUnit === 'ทั้งหมด' || itemUnit === selectedUnit;
-
-            // 4. District Logic
-            const districtMatch = selectedDistrict === 'ทั้งหมด' || itemDistrict === selectedDistrict;
-
-            return textMatch && dateMatch && unitMatch && districtMatch;
         });
     }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
-    
+
     const dispatchStats = useMemo(() => {
         // Helper: สร้าง Object เริ่มต้น
         const initStats = () => ({ 
@@ -1964,23 +1976,21 @@ export default function VeterinaryDashboard() {
             other: 0 
         });
 
-        // Helper: ฟังก์ชันจัดกลุ่มหน่วยงาน (Mapping) ให้ฉลาดขึ้น
-        const getUnitKey = (unitName) => {
-            if (!unitName) return 'other';
-            const lower = String(unitName).toLowerCase(); // แปลงเป็นตัวเล็กทั้งหมดก่อนเช็ค
+const getUnitKey = (unitName) => {
+    // Safety Check: ถ้าไม่มีชื่อหน่วยงาน ให้โยนไปกลุ่ม 'other' ทันที ห้ามคืนค่า null
+    if (!unitName) return 'other';
+    
+    const lower = String(unitName).toLowerCase(); 
 
-            // 1. เช็คตรงๆ (Direct Match)
-            if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
+    // เช็ค Keyword เพื่อจัดกลุ่ม
+    if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
+    if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
+    if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
+    if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
+    if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
 
-            // 2. เช็คจากคำค้นหา (Keyword Match) รองรับภาษาไทยและอังกฤษ
-            if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
-            if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
-            if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
-            if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
-
-            // ถ้าไม่เข้าพวกเลย ให้เป็น Other
-            return 'other';
-        };
+    return 'other';
+};
 
         // 1. เตรียมข้อมูลรายเดือน (Monthly Data)
         const monthMap = {};
@@ -2040,12 +2050,29 @@ export default function VeterinaryDashboard() {
         return { monthly: monthlyData, daily: dailyData };
     }, [filteredData]);
 
-    const mapDisplayData = useMemo(() => filteredData, [filteredData]);
+    const mapDisplayData = useMemo(() => {
+        if (!Array.isArray(filteredData)) return [];
+        
+        return filteredData.filter(d => 
+            d.lat !== undefined && d.lat !== null && d.lat !== '' &&
+            d.long !== undefined && d.long !== null && d.long !== '' &&
+            !isNaN(parseFloat(d.lat)) && 
+            !isNaN(parseFloat(d.long)) &&
+            // เพิ่มการเช็คว่า lat/long ไม่อยู่ในจุดที่เป็น 0,0 (กลางทะเล) ถ้าไม่ต้องการแสดง
+            (parseFloat(d.lat) !== 0 || parseFloat(d.long) !== 0)
+        );
+    }, [filteredData]);
 
-    const totals = useMemo(() => filteredData.reduce((acc, curr) => ({
-        vaccine: acc.vaccine + (curr.stats.vaccine || 0), sterilize: acc.sterilize + (curr.stats.sterilize || 0), register: acc.register + (curr.stats.register || 0),
-        microchip: acc.microchip + (curr.stats.microchip || 0), medical: acc.medical + (curr.stats.medical || 0),
-    }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }), [filteredData]);
+const totals = useMemo(() => filteredData.reduce((acc, curr) => {
+    // ใช้ ?. เพื่อเช็คว่ามี stats หรือไม่ ถ้าไม่มีให้ใช้ 0 แทน
+    return {
+        vaccine: acc.vaccine + (curr.stats?.vaccine || 0), 
+        sterilize: acc.sterilize + (curr.stats?.sterilize || 0), 
+        register: acc.register + (curr.stats?.register || 0),
+        microchip: acc.microchip + (curr.stats?.microchip || 0), 
+        medical: acc.medical + (curr.stats?.medical || 0),
+    };
+}, { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }), [filteredData]);
 
     const unitStats = useMemo(() => {
         const grouped = filteredData.reduce((acc, curr) => {
@@ -2101,52 +2128,77 @@ export default function VeterinaryDashboard() {
         return Object.keys(stats).sort().map(year => ({ name: year, count: stats[year] }));
     }, [outbreakData]);
 
-    const rankingFilteredData = useMemo(() => reportData.filter(item => {
-        const [itemYear, itemMonth] = item.date.split('-');
-        return (rankingYear === 'ทั้งหมด' || itemYear === rankingYear) && (rankingMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(rankingMonth));
-    }), [reportData, rankingYear, rankingMonth]);
+    const rankingFilteredData = useMemo(() => {
+        if (!Array.isArray(reportData)) return [];
+        
+        return reportData.filter(item => {
+            // Safety Check: ถ้าไม่มี item หรือ ไม่มีวันที่ ห้าม split เด็ดขาด
+            if (!item || !item.date) return false;
 
+            try {
+                const dateParts = item.date.split('-');
+                if (dateParts.length < 2) return false; // Format ผิด
+
+                const [itemYear, itemMonth] = dateParts;
+                return (rankingYear === 'ทั้งหมด' || itemYear === rankingYear) && 
+                       (rankingMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(rankingMonth));
+            } catch (e) {
+                return false;
+            }
+        });
+    }, [reportData, rankingYear, rankingMonth]);
+
+    // ✅ [แก้ไข] Ranking Unit Stats: เพิ่มการเช็ค null ของชื่อหน่วยงาน
     const rankingUnitStats = useMemo(() => {
         const grouped = rankingFilteredData.reduce((acc, curr) => {
-            if (!acc[curr.unit]) {
-                acc[curr.unit] = { 
-                    name: curr.unit, 
-                    count: 0, // <--- 1. เพิ่มตัวแปรนี้: เพื่อนับจำนวนครั้ง
+            // ถ้าไม่มีชื่อหน่วยงาน ให้ตั้งเป็น 'ไม่ระบุ' เพื่อป้องกัน Key เป็น undefined
+            const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
+
+            if (!acc[unitName]) {
+                acc[unitName] = { 
+                    name: unitName, 
+                    count: 0, 
                     vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 
                 };
             }
             
-            // 2. บวกเพิ่มจำนวนครั้งทุกครั้งที่เจอข้อมูลหน่วยงานนี้
-            acc[curr.unit].count += 1; 
+            acc[unitName].count += 1; 
 
-            // บวกยอดผลงานอื่นๆ ตามเดิม
-            acc[curr.unit].vaccine += (curr.stats.vaccine || 0); 
-            acc[curr.unit].sterilize += (curr.stats.sterilize || 0); 
-            acc[curr.unit].register += (curr.stats.register || 0);
-            acc[curr.unit].microchip += (curr.stats.microchip || 0); 
-            acc[curr.unit].medical += (curr.stats.medical || 0);
-            acc[curr.unit].total += ((curr.stats.vaccine||0) + (curr.stats.sterilize||0) + (curr.stats.register||0) + (curr.stats.microchip||0) + (curr.stats.medical||0));
+            // ใช้ Optional chaining (?.) ป้องกัน crash กรณีไม่มี object stats
+            acc[unitName].vaccine += (curr.stats?.vaccine || 0); 
+            acc[unitName].sterilize += (curr.stats?.sterilize || 0); 
+            acc[unitName].register += (curr.stats?.register || 0);
+            acc[unitName].microchip += (curr.stats?.microchip || 0); 
+            acc[unitName].medical += (curr.stats?.medical || 0);
+            acc[unitName].total += ((curr.stats?.vaccine||0) + (curr.stats?.sterilize||0) + (curr.stats?.register||0) + (curr.stats?.microchip||0) + (curr.stats?.medical||0));
             
             return acc;
         }, {});
 
-        // 3. [แก้ไข] เปลี่ยนการเรียงลำดับ: ดู 'จำนวนครั้ง (count)' มากไปน้อยก่อน (ถ้าเท่ากันค่อยดูยอดรวม)
         return Object.values(grouped).sort((a, b) => b.count - a.count || b.total - a.total);
     }, [rankingFilteredData]);
     
 
     const rankingDistrictStats = useMemo(() => {
         const grouped = rankingFilteredData.reduce((acc, curr) => {
-            if (!acc[curr.district]) acc[curr.district] = { name: curr.district, total: 0 };
-            acc[curr.district].total += ((curr.stats.vaccine||0) + (curr.stats.sterilize||0) + (curr.stats.register||0) + (curr.stats.microchip||0) + (curr.stats.medical||0));
+            // ถ้าไม่มีชื่อเขต ให้ตั้งเป็น 'ไม่ระบุ'
+            const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
+
+            if (!acc[districtName]) acc[districtName] = { name: districtName, total: 0 };
+            
+            acc[districtName].total += ((curr.stats?.vaccine||0) + (curr.stats?.sterilize||0) + (curr.stats?.register||0) + (curr.stats?.microchip||0) + (curr.stats?.medical||0));
             return acc;
         }, {});
         return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 5);
     }, [rankingFilteredData]);
 
 const parseCSVDate = (dateStr) => {
-    if (!dateStr) return new Date().toISOString().split('T')[0];
+    if (!dateStr) return new Date().toISOString().split('T')[0]; // ถ้าไม่มีค่า ใช้วันปัจจุบัน
+    
+    // ถ้า Format ถูกต้องแล้ว (YYYY-MM-DD)
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    
+    // ถ้าเป็น Format ไทย (DD/MM/YYYY)
     const parts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
     if (parts) {
         let day = parts[1].padStart(2, '0');
@@ -2155,6 +2207,8 @@ const parseCSVDate = (dateStr) => {
         if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
         return `${year}-${month}-${day}`;
     }
+    
+    // Fallback สุดท้าย
     const d = new Date(dateStr);
     return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 };
