@@ -1908,25 +1908,51 @@ export default function VeterinaryDashboard() {
     // 1. ประกาศ availableYears ก่อน
     const availableYears = useMemo(() => [...new Set(reportData.map(item => item.date.split('-')[0]))].sort().reverse(), [reportData]);
 
-    // 2. ประกาศ filteredData (ตัวสำคัญที่ dispatchStats ต้องใช้)
     const filteredData = useMemo(() => {
         return reportData.filter(item => {
-            const lowerSearch = searchTerm.toLowerCase();
-            const textMatch = !searchTerm || item.location.toLowerCase().includes(lowerSearch) || item.district.includes(searchTerm) || item.subdistrict?.includes(searchTerm);
+            // เตรียมข้อมูลสำหรับค้นหา (ป้องกัน null crash)
+            const itemLocation = item.location ? item.location.toLowerCase() : '';
+            const itemDistrict = item.district || '';
+            const itemSubdistrict = item.subdistrict || '';
+            const lowerSearch = searchTerm ? searchTerm.toLowerCase() : '';
+
+            // 1. Text Search Logic
+            const textMatch = !searchTerm || 
+                itemLocation.includes(lowerSearch) || 
+                itemDistrict.includes(searchTerm) || 
+                itemSubdistrict.includes(searchTerm);
+
+            // 2. Date Logic
             let dateMatch = true;
-            if (searchDate) { dateMatch = item.date === searchDate; } 
-            else {
-                const [itemYear, itemMonth] = item.date.split('-');
+            if (searchDate) { 
+                dateMatch = item.date === searchDate; 
+            } else {
+                // ถ้าข้อมูลไม่มีวันที่ ให้ข้ามไปเลย หรือถือว่าไม่ตรงเงื่อนไข
+                if (!item.date) return false;
+
+                const dateParts = item.date.split('-');
+                // ป้องกันกรณี format วันที่ผิดเพี้ยน
+                if (dateParts.length < 2) return false;
+
+                const itemYear = dateParts[0];
+                const itemMonth = dateParts[1];
+
                 const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === selectedYear;
                 const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
                 dateMatch = yearMatch && monthMatch;
             }
-            const unitMatch = selectedUnit === 'ทั้งหมด' || item.unit === selectedUnit;
-            const districtMatch = selectedDistrict === 'ทั้งหมด' || item.district === selectedDistrict;
+
+            // 3. Unit Logic
+            const itemUnit = item.unit || ''; // ป้องกัน unit เป็น null
+            const unitMatch = selectedUnit === 'ทั้งหมด' || itemUnit === selectedUnit;
+
+            // 4. District Logic
+            const districtMatch = selectedDistrict === 'ทั้งหมด' || itemDistrict === selectedDistrict;
+
             return textMatch && dateMatch && unitMatch && districtMatch;
         });
     }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
-
+    
     const dispatchStats = useMemo(() => {
         // Helper: สร้าง Object เริ่มต้น
         const initStats = () => ({ 
