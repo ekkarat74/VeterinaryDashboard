@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
     Activity, FileText, MapPin, Database, Download, Users, Plus, X, Navigation, 
     Upload, Search, Edit, Trash2, Lock, Skull, Siren, Key, ChevronRight, 
-    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link
+    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -1377,6 +1377,8 @@ export default function VeterinaryDashboard() {
     const [isMeetingListOpen, setIsMeetingListOpen] = useState(false); // เพิ่ม State เปิด/ปิด List
     const [viewingMeeting, setViewingMeeting] = useState(null);
 
+    const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+
     const dispatchEventsOnly = dispatchEvents.map(d => ({
         ...d,
         type: 'dispatch',
@@ -2572,102 +2574,118 @@ const parseCSVDate = (dateStr) => {
             
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-                    <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                        <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Data Filters)
-                    </h3>
-                    <button 
-                        onClick={() => {
-                            setSearchTerm('');
-                            setSelectedYear('ทั้งหมด');
-                            setSelectedMonth('ทั้งหมด');
-                            setSelectedUnit('ทั้งหมด');
-                            setSelectedDistrict('ทั้งหมด');
-                            setSearchDate('');
-                        }}
-                        className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors"
-                    >
-                        <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
-                    </button>
-                </div>
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
+    {/* ส่วนหัว Header + ปุ่มยุบ/ขยาย */}
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-3">
+            <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
+                <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Data Filters)
+            </h3>
+            
+            {/* ปุ่มกดเพื่อยุบ/ขยาย */}
+            <button 
+                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
+                title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}
+            >
+                {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {/* 1. ค้นหาด้วยข้อความ */}
-                    <div className="relative">
-                        <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input 
-                                type="text" 
-                                placeholder="พิมพ์คำค้นหา..." 
-                                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            {searchTerm && (
-                                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                    <X className="w-3 h-3" />
-                                </button>
-                            )}
-                        </div>
-                    </div>
+        <button 
+            onClick={() => {
+                setSearchTerm('');
+                setSelectedYear('ทั้งหมด');
+                setSelectedMonth('ทั้งหมด');
+                setSelectedUnit('ทั้งหมด');
+                setSelectedDistrict('ทั้งหมด');
+                setSearchDate('');
+            }}
+            className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors"
+        >
+            <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
+        </button>
+    </div>
 
-                    {/* 2. ตัวกรองปี */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
-                        <select 
-                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(e.target.value)}
-                        >
-                            <option value="ทั้งหมด">ทุกปี</option>
-                            {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
-                        </select>
-                    </div>
-
-                    {/* 3. ตัวกรองเดือน */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
-                        <select 
-                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                        >
-                            <option value="ทั้งหมด">ทุกเดือน</option>
-                            {THAI_MONTHS.map((m, i) => (
-                                <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* 4. ตัวกรองหน่วยงาน */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
-                        <select 
-                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                            value={selectedUnit}
-                            onChange={(e) => setSelectedUnit(e.target.value)}
-                        >
-                            <option value="ทั้งหมด">ทุกหน่วยงาน</option>
-                            {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
-                        </select>
-                    </div>
-
-                    {/* 5. ตัวกรองเขต */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
-                        <select 
-                            className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                            value={selectedDistrict}
-                            onChange={(e) => setSelectedDistrict(e.target.value)}
-                        >
-                            <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
-                            {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
-                        </select>
-                    </div>
+    {/* ส่วนเนื้อหา Filter (แสดงเมื่อ isFilterExpanded เป็น true) */}
+    {isFilterExpanded && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
+            {/* 1. ค้นหาด้วยข้อความ */}
+            <div className="relative">
+                <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder="พิมพ์คำค้นหา..." 
+                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
+                        <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <X className="w-3 h-3" />
+                        </button>
+                    )}
                 </div>
             </div>
+
+            {/* 2. ตัวกรองปี */}
+            <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
+                <select 
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                >
+                    <option value="ทั้งหมด">ทุกปี</option>
+                    {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
+                </select>
+            </div>
+
+            {/* 3. ตัวกรองเดือน */}
+            <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
+                <select 
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                >
+                    <option value="ทั้งหมด">ทุกเดือน</option>
+                    {THAI_MONTHS.map((m, i) => (
+                        <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                    ))}
+                </select>
+            </div>
+
+            {/* 4. ตัวกรองหน่วยงาน */}
+            <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
+                <select 
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                >
+                    <option value="ทั้งหมด">ทุกหน่วยงาน</option>
+                    {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                </select>
+            </div>
+
+            {/* 5. ตัวกรองเขต */}
+            <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
+                <select 
+                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                >
+                    <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
+                    {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                </select>
+            </div>
+        </div>
+    )}
+</div>
 
                 <KPISection totals={totals} unitStats={unitStats} />
 
