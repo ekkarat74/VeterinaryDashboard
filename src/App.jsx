@@ -1670,7 +1670,38 @@ const parseCSVDate = (dateStr) => {
             />
             
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                
+
+                <KPISection totals={totals} unitStats={unitStats} />
+
+                <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <RankingSection 
+                        rankingYear={rankingYear}
+                        setRankingYear={setRankingYear}
+                        rankingMonth={rankingMonth}
+                        setRankingMonth={setRankingMonth}
+                        availableYears={availableYears}
+                        thaiMonths={THAI_MONTHS}
+                        rankingUnitStats={rankingUnitStats}
+                        rankingNestedStats={rankingNestedStats} // <--- เพิ่ม Prop นี้
+                    />
+                    
+                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+                        <LeafletMap 
+                            data={mapDisplayData} 
+                            outbreaks={filteredOutbreaks.filter(item => !hiddenOutbreakIds.includes(item._id))} 
+                            onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} 
+                        />
+                    </div>
+                </div>
+
+                <RabiesOutbreakSection 
+                    outbreakData={outbreakData} filterYear={outbreakFilterYear} setFilterYear={setOutbreakFilterYear} years={availableOutbreakYears} 
+                    stats={outbreakStats} filteredOutbreaks={filteredOutbreaks} yearlyTrend={outbreakYearlyTrend} hiddenIds={hiddenOutbreakIds} 
+                    toggleVisibility={toggleOutbreakVisibility} onEdit={openEditOutbreakModal} onDelete={handleDeleteOutbreak} canEdit={canEdit} 
+                />
+
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
     {/* ส่วนหัว Header + ปุ่มยุบ/ขยาย */}
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
@@ -1783,37 +1814,6 @@ const parseCSVDate = (dateStr) => {
         </div>
     )}
 </div>
-
-                <KPISection totals={totals} unitStats={unitStats} />
-
-                <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <RankingSection 
-                        rankingYear={rankingYear}
-                        setRankingYear={setRankingYear}
-                        rankingMonth={rankingMonth}
-                        setRankingMonth={setRankingMonth}
-                        availableYears={availableYears}
-                        thaiMonths={THAI_MONTHS}
-                        rankingUnitStats={rankingUnitStats}
-                        rankingNestedStats={rankingNestedStats} // <--- เพิ่ม Prop นี้
-                    />
-                    
-                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                        <LeafletMap 
-                            data={mapDisplayData} 
-                            outbreaks={filteredOutbreaks.filter(item => !hiddenOutbreakIds.includes(item._id))} 
-                            onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} 
-                        />
-                    </div>
-                </div>
-
-                <RabiesOutbreakSection 
-                    outbreakData={outbreakData} filterYear={outbreakFilterYear} setFilterYear={setOutbreakFilterYear} years={availableOutbreakYears} 
-                    stats={outbreakStats} filteredOutbreaks={filteredOutbreaks} yearlyTrend={outbreakYearlyTrend} hiddenIds={hiddenOutbreakIds} 
-                    toggleVisibility={toggleOutbreakVisibility} onEdit={openEditOutbreakModal} onDelete={handleDeleteOutbreak} canEdit={canEdit} 
-                />
 
                 <MainDataTable 
                     data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} 

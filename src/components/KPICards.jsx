@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
     Syringe, Scissors, FileText, Database, Stethoscope, 
-    Activity, Truck, BarChart3, MapPin, Trophy 
+    Activity, Truck, BarChart3, MapPin, Trophy
 } from 'lucide-react';
 
 // --- 1. Sub-Component: การ์ด KPI (สำหรับยอดรวม) ---

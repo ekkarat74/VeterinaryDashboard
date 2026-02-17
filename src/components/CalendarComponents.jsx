@@ -29,7 +29,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
 
     if (!isOpen) return null;
 
-    // --- Helpers (Logic เดิม) ---
+    // --- Helpers ---
     const toLocalISOString = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -63,7 +63,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-slate-50 rounded-3xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[95vh] h-[90vh] ring-1 ring-white/20">
                 
-                {/* Header Style ใหม่: Gradient อ่อนๆ และดู Clean */}
+                {/* Header */}
                 <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-200 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-xl ${theme.lightBg}`}>
@@ -79,10 +79,12 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                     </button>
                 </div>
 
-                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+                {/* Body Layout (Fixed for Mobile) */}
+                <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden">
+                    
                     {/* Left Panel: Sidebar */}
-                    <div className="w-full lg:w-[320px] bg-white border-r border-slate-200 flex flex-col overflow-hidden order-2 lg:order-1">
-                        <div className="p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar flex-1">
+                    <div className="w-full lg:w-[320px] bg-white border-r border-slate-200 flex flex-col shrink-0 order-2 lg:order-1 h-auto lg:h-full">
+                        <div className="p-5 flex flex-col gap-4 lg:overflow-y-auto custom-scrollbar flex-1">
                             
                             {/* Stats */}
                             <div className="grid grid-cols-2 gap-3">
@@ -98,7 +100,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                                 <Plus className="w-5 h-5" /> สร้างนัดหมายใหม่
                             </button>
 
-                            {/* Event List for Selected Date */}
+                            {/* Event List */}
                             <div className="mt-2">
                                 <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
                                     <span className="w-1.5 h-4 bg-teal-500 rounded-full"></span>
@@ -122,7 +124,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                                                     {evt.location && <span className="text-[10px] text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3"/> {evt.location}</span>}
                                                 </div>
                                                 <div className="font-bold text-slate-800 text-sm mb-2 group-hover:text-teal-700 transition-colors line-clamp-2">
-                                                    {evt.title || evt.location /* fallback if title missing */}
+                                                    {evt.title || evt.location}
                                                 </div>
                                                 <div className="flex items-center gap-2 pt-2 border-t border-slate-50 mt-2">
                                                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
@@ -139,7 +141,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                     </div>
 
                     {/* Right Panel: Calendar Grid */}
-                    <div className="flex-1 bg-slate-50/50 p-4 md:p-6 flex flex-col order-1 lg:order-2 overflow-hidden">
+                    <div className="flex-1 bg-slate-50/50 p-4 md:p-6 flex flex-col order-1 lg:order-2 shrink-0 h-auto lg:h-full lg:overflow-hidden">
                         
                         {/* Calendar Navigation */}
                         <div className="flex justify-between items-center mb-6 px-1">
@@ -161,7 +163,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                         </div>
 
                         {/* Days Grid */}
-                        <div className="grid grid-cols-7 grid-rows-6 gap-2 md:gap-3 flex-1 overflow-y-auto custom-scrollbar min-h-[500px]">
+                        <div className="grid grid-cols-7 grid-rows-6 gap-2 md:gap-3 lg:flex-1 lg:overflow-y-auto custom-scrollbar min-h-[400px] md:min-h-[500px]">
                             {daysArray.map((day, i) => {
                                 if (i < firstDay) return <div key={i} />;
                                 const dayNum = i - firstDay + 1;
@@ -180,7 +182,6 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                                                 : 'bg-white border-slate-100 hover:border-teal-300 hover:shadow-md'
                                             }
                                         `}>
-                                        
                                         <div className="flex justify-between items-start">
                                             <span className={`
                                                 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all
@@ -220,7 +221,6 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
 // 2. DispatchCalendarDashboard (ปฏิทินแผนงานออกหน่วย)
 // ----------------------------------------------------
 const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick }) => {
-    // Note: Structure เหมือนกับ Meeting แต่เปลี่ยน Theme เป็นสี Indigo/Blue
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -258,7 +258,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-slate-50 rounded-3xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[95vh] h-[90vh] ring-1 ring-white/20">
                 
-                {/* Header Dispatch */}
+                {/* Header */}
                 <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-200 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-xl ${theme.lightBg}`}>
@@ -274,10 +274,12 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                     </button>
                 </div>
 
-                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-                    {/* Sidebar */}
-                    <div className="w-full lg:w-[320px] bg-white border-r border-slate-200 flex flex-col overflow-hidden order-2 lg:order-1">
-                        <div className="p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar flex-1">
+                {/* Body Layout (Fixed for Mobile) */}
+                <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden">
+                    
+                    {/* Left Panel: Sidebar */}
+                    <div className="w-full lg:w-[320px] bg-white border-r border-slate-200 flex flex-col shrink-0 order-2 lg:order-1 h-auto lg:h-full">
+                        <div className="p-5 flex flex-col gap-4 lg:overflow-y-auto custom-scrollbar flex-1">
                             <div className="grid grid-cols-2 gap-3">
                                 <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
                                 <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
@@ -331,8 +333,8 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                         </div>
                     </div>
 
-                    {/* Right Panel: Calendar */}
-                    <div className="flex-1 bg-slate-50/50 p-4 md:p-6 flex flex-col order-1 lg:order-2 overflow-hidden">
+                    {/* Right Panel: Calendar Grid */}
+                    <div className="flex-1 bg-slate-50/50 p-4 md:p-6 flex flex-col order-1 lg:order-2 shrink-0 h-auto lg:h-full lg:overflow-hidden">
                         
                         <div className="flex justify-between items-center mb-6 px-1">
                             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
@@ -351,7 +353,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-7 grid-rows-6 gap-2 md:gap-3 flex-1 overflow-y-auto custom-scrollbar min-h-[500px]">
+                        <div className="grid grid-cols-7 grid-rows-6 gap-2 md:gap-3 lg:flex-1 lg:overflow-y-auto custom-scrollbar min-h-[400px] md:min-h-[500px]">
                             {daysArray.map((day, i) => {
                                 if (i < firstDay) return <div key={i} />;
                                 const dayNum = i - firstDay + 1;
@@ -370,7 +372,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                                 : 'bg-white border-slate-100 hover:border-[#545BE8]/50 hover:shadow-md'
                                             }
                                         `}>
-                                        
                                         <div className="flex justify-between items-start">
                                             <span className={`
                                                 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all
