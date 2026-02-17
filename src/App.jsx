@@ -1203,19 +1203,57 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
             if (!acc[curr.unit]) {
                 acc[curr.unit] = { 
                     name: curr.unit, 
-                    count: 0, // [เพิ่ม] ตัวแปรเก็บจำนวนครั้งที่ออกหน่วย
-                    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 
+                    count: 0, 
+                    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0,
+                    dog: 0, 
+                    cat: 0 
                 };
             }
             
-            acc[curr.unit].count += 1; // [เพิ่ม] บวกจำนวนครั้งเพิ่มทีละ 1
+            // --- Helper: แปลงเป็นตัวเลขก่อนบวกเสมอ ---
+            const toNum = (val) => parseInt(val, 10) || 0; 
 
-            acc[curr.unit].vaccine += (curr.stats?.vaccine || 0); // ใส่ ?.
-            acc[curr.unit].sterilize += (curr.stats.sterilize || 0); 
-            acc[curr.unit].register += (curr.stats.register || 0);
-            acc[curr.unit].microchip += (curr.stats.microchip || 0); 
-            acc[curr.unit].medical += (curr.stats.medical || 0);
-            acc[curr.unit].total += ((curr.stats.vaccine||0) + (curr.stats.sterilize||0) + (curr.stats.register||0) + (curr.stats.microchip||0) + (curr.stats.medical||0));
+            acc[curr.unit].count += 1;
+
+            // ใช้ toNum หุ้มค่าทุกตัว
+            acc[curr.unit].vaccine += toNum(curr.stats?.vaccine);
+            acc[curr.unit].sterilize += toNum(curr.stats?.sterilize);
+            acc[curr.unit].register += toNum(curr.stats?.register);
+            acc[curr.unit].microchip += toNum(curr.stats?.microchip);
+            acc[curr.unit].medical += toNum(curr.stats?.medical);
+            
+            acc[curr.unit].total += (
+                toNum(curr.stats?.vaccine) + 
+                toNum(curr.stats?.sterilize) + 
+                toNum(curr.stats?.register) + 
+                toNum(curr.stats?.microchip) + 
+                toNum(curr.stats?.medical)
+            );
+            
+            // --- Logic คำนวณยอดหมาและแมว (แก้ไขแล้ว) ---
+            const d = curr.details?.dog || {};
+            const c = curr.details?.cat || {};
+
+            // ใช้ toNum หุ้มทุกค่าเพื่อป้องกันการต่อ String
+            acc[curr.unit].dog += (
+                toNum(d.vaccine) + 
+                toNum(d.maleSterilize) + 
+                toNum(d.femaleSterilize) + 
+                toNum(d.microchip) + 
+                toNum(d.register) + 
+                toNum(d.medical)
+            );
+            
+            acc[curr.unit].cat += (
+                toNum(c.vaccine) + 
+                toNum(c.maleSterilize) + 
+                toNum(c.femaleSterilize) + 
+                toNum(c.microchip) + 
+                toNum(c.register) + 
+                toNum(c.medical)
+            );
+            // ------------------------------------
+
             return acc;
         }, {});
         return Object.values(grouped).sort((a, b) => b.total - a.total);
@@ -1287,7 +1325,7 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
             const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
             const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
             
-            // คำนวณยอดรวมของ Row นี้
+            // คำนวณยอดของ Row นี้
             const vaccine = (curr.stats?.vaccine || 0);
             const sterilize = (curr.stats?.sterilize || 0);
             const register = (curr.stats?.register || 0);
@@ -1300,33 +1338,34 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
                     name: unitName, 
                     totalWork: 0, 
                     count: 0, 
-                    districts: {},
-                    // [เพิ่ม] เก็บยอดแยกประเภทบริการ
-                    stats: {
-                        vaccine: 0,
-                        sterilize: 0,
-                        register: 0,
-                        microchip: 0,
-                        medical: 0
-                    }
+                    districts: {}, // จะเก็บ object แทนตัวเลข
+                    stats: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
                 };
             }
             
-            // บวกยอดรวม
+            // บวกยอดรวมหน่วยงาน
             acc[unitName].totalWork += workTotal;
             acc[unitName].count += 1;
-
-            // [เพิ่ม] บวกยอดแยกประเภทบริการ
             acc[unitName].stats.vaccine += vaccine;
             acc[unitName].stats.sterilize += sterilize;
             acc[unitName].stats.register += register;
             acc[unitName].stats.microchip += microchip;
             acc[unitName].stats.medical += medical;
 
+            // [แก้ไขส่วนนี้] เก็บยอดแยกบริการรายเขต
             if (!acc[unitName].districts[districtName]) {
-                acc[unitName].districts[districtName] = 0;
+                acc[unitName].districts[districtName] = {
+                    total: 0,
+                    stats: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
+                };
             }
-            acc[unitName].districts[districtName] += workTotal;
+            acc[unitName].districts[districtName].total += workTotal;
+            acc[unitName].districts[districtName].stats.vaccine += vaccine;
+            acc[unitName].districts[districtName].stats.sterilize += sterilize;
+            acc[unitName].districts[districtName].stats.register += register;
+            acc[unitName].districts[districtName].stats.microchip += microchip;
+            acc[unitName].districts[districtName].stats.medical += medical;
+
             return acc;
         }, {});
 
@@ -1334,8 +1373,13 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
             .sort((a, b) => b.totalWork - a.totalWork)
             .slice(0, 5)
             .map(unit => {
+                // แปลง districts object เป็น array และ sort
                 const sortedDistricts = Object.entries(unit.districts)
-                    .map(([dName, dTotal]) => ({ name: dName, total: dTotal }))
+                    .map(([dName, dData]) => ({ 
+                        name: dName, 
+                        total: dData.total,
+                        stats: dData.stats // ส่ง stats ไปด้วย
+                    }))
                     .sort((a, b) => b.total - a.total)
                     .slice(0, 5);
                 return { ...unit, topDistricts: sortedDistricts };

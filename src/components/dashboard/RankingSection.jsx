@@ -190,16 +190,55 @@ const RankingSection = ({
                                 </div>
 
                                 {/* 3. Top Districts List */}
-                                <div className="space-y-1 pt-2 border-t border-slate-50">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 pl-1">พื้นที่ให้บริการสูงสุด</p>
+                                <div className="space-y-2 pt-2 border-t border-slate-50">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 pl-1">พื้นที่ให้บริการสูงสุด (Top 5 Areas)</p>
                                     {unit.topDistricts && unit.topDistricts.length > 0 ? (
                                         unit.topDistricts.map((dist, dIndex) => (
-                                            <div key={dIndex} className="flex justify-between items-center py-1.5 px-2 rounded hover:bg-slate-50 transition-colors">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-4 text-[10px] text-slate-300 font-mono">{dIndex + 1}.</span>
-                                                    <span className="text-xs text-slate-600 font-medium">{dist.name}</span>
+                                            <div key={dIndex} className="flex flex-col py-2 px-2 rounded hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                                                {/* บรรทัดชื่อเขตและยอดรวม */}
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-4 text-[10px] text-slate-300 font-mono">{dIndex + 1}.</span>
+                                                        <span className="text-xs text-slate-700 font-bold">{dist.name}</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                                        รวม {dist.total.toLocaleString()}
+                                                    </span>
                                                 </div>
-                                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{dist.total.toLocaleString()}</span>
+
+                                                {/* [เพิ่มส่วนนี้] แสดงรายละเอียดบริการย่อย */}
+                                                <div className="flex flex-wrap gap-x-3 gap-y-1 pl-6">
+                                                    {dist.stats.vaccine > 0 && (
+                                                        <span className="text-[10px] text-slate-500 flex items-center gap-1" title="วัคซีน">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div> 
+                                                            วัคซีน: {dist.stats.vaccine}
+                                                        </span>
+                                                    )}
+                                                    {dist.stats.sterilize > 0 && (
+                                                        <span className="text-[10px] text-slate-500 flex items-center gap-1" title="ทำหมัน">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div> 
+                                                            ทำหมัน: {dist.stats.sterilize}
+                                                        </span>
+                                                    )}
+                                                    {dist.stats.microchip > 0 && (
+                                                        <span className="text-[10px] text-slate-500 flex items-center gap-1" title="ไมโครชิป">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div> 
+                                                            ชิป: {dist.stats.microchip}
+                                                        </span>
+                                                    )}
+                                                    {dist.stats.register > 0 && (
+                                                        <span className="text-[10px] text-slate-500 flex items-center gap-1" title="ขึ้นทะเบียน">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div> 
+                                                            ทะเบียน: {dist.stats.register}
+                                                        </span>
+                                                    )}
+                                                    {dist.stats.medical > 0 && (
+                                                        <span className="text-[10px] text-slate-500 flex items-center gap-1" title="รักษา">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div> 
+                                                            รักษา: {dist.stats.medical}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))
                                     ) : (
