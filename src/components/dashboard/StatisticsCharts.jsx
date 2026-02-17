@@ -46,7 +46,7 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                 </div>
                 
                 <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                         <ComposedChart data={trendData} margin={{top:10, right:10, left: -20, bottom:0}}>
                             <defs>
                                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
@@ -98,7 +98,7 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                 </div>
 
                 <div className="flex-1 h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                         <BarChart data={currentFreqData} margin={{top:10, right:5, left:-25, bottom:10}}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis 
@@ -153,8 +153,8 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                     </div>
                     
                     <div className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart 
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+                        <BarChart 
                                 data={unitStats} 
                                 layout="vertical" 
                                 margin={{top: 5, right: 100, left: 20, bottom: 5}}

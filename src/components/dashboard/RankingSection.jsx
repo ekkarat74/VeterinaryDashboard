@@ -14,6 +14,8 @@ const RankingSection = ({
     rankingNestedStats
 }) => {
 
+    const maxTotal = rankingUnitStats.length > 0 ? Math.max(...rankingUnitStats.map(u => u.total)) : 0;
+
     const RankBadge = ({ rank }) => {
         if (rank === 1) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 shadow-sm border border-yellow-200"><Trophy className="w-4 h-4" /></div>;
         if (rank === 2) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 shadow-sm border border-slate-200"><Medal className="w-4 h-4" /></div>;
@@ -114,7 +116,18 @@ const RankingSection = ({
                                             {u.name}
                                         </td>
                                         <td className="p-2 text-right pr-6 font-bold text-slate-800 bg-slate-50/30">
-                                            {u.total.toLocaleString()}
+                                            <div 
+                                                className="absolute right-0 top-1 bottom-1 bg-indigo-50/50 transition-all duration-500 ease-out z-[-1] rounded-l-md"
+                                                style={{ width: `${(u.total / maxTotal) * 100}%` }}
+                                            />
+                                            <span className="relative">{u.total.toLocaleString()}</span>
+                                            
+                                            {/* [เพิ่ม] Trend Indicator (ถ้ามีข้อมูลเปรียบเทียบ) */}
+                                            {u.trend && (
+                                                <span className={`ml-2 text-[10px] ${u.trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                    {u.trend > 0 ? '▲' : '▼'}
+                                                </span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

@@ -1,5 +1,20 @@
-import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, EyeOff, Edit, Trash2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, EyeOff, Edit, Trash2, TrendingUp, Search } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100 ring-1 ring-slate-100/50">
+                <p className="font-bold text-slate-800 mb-1">{label}</p>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    พบเชื้อ: <span className="font-bold text-rose-600 text-lg">{payload[0].value}</span> จุด
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
 
 const RabiesOutbreakSection = ({ 
     outbreakData, 
@@ -18,151 +33,171 @@ const RabiesOutbreakSection = ({
     
     if (outbreakData.length === 0) return null;
 
+    const barColors = ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
+
     return (
-        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-8 mb-12">
-            {/* Header & Filter */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-500">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-red-50 text-red-600 rounded-xl">
-                        <Siren className="w-8 h-8 animate-pulse" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-extrabold text-slate-800">ศูนย์เฝ้าระวังโรคพิษสุนัขบ้า</h3>
-                        <p className="text-sm text-slate-500 font-medium flex items-center gap-1">
-                            <Activity className="w-3 h-3 text-red-500" /> Rabies Outbreak Monitoring Center
+        <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-8 mb-16 font-sans">
+            
+            {/* --- Header Section --- */}
+            <div className="relative overflow-hidden bg-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl shadow-slate-200">
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <Siren className="w-64 h-64 -mr-16 -mt-16 text-rose-500" />
+                </div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-rose-500/20 text-rose-300 text-[10px] font-bold px-2 py-1 rounded-full border border-rose-500/30 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                LIVE MONITORING
+                            </span>
+                        </div>
+                        <h3 className="text-3xl font-black tracking-tight text-white">
+                            ศูนย์เฝ้าระวัง<span className="text-rose-500">โรคพิษสุนัขบ้า</span>
+                        </h3>
+                        <p className="text-slate-400 font-medium flex items-center gap-2 text-sm">
+                            <Activity className="w-4 h-4 text-rose-500" /> 
+                            Rabies Outbreak Monitoring Center
                         </p>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">กรองข้อมูลปี:</span>
-                    <select 
-                        value={filterYear} 
-                        onChange={(e) => setFilterYear(e.target.value)} 
-                        className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer hover:text-red-600 transition-colors"
-                    >
-                        <option value="ทั้งหมด">ข้อมูลสะสมทั้งหมด ({outbreakData.length} เคส)</option>
-                        {years.map(y => (
-                            <option key={y} value={y}>พ.ศ. {y}</option>
-                        ))}
-                    </select>
+                    <div className="bg-white/10 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 flex items-center">
+                        <div className="px-3 text-slate-400">
+                            <Search className="w-4 h-4" />
+                        </div>
+                        <select 
+                            value={filterYear} 
+                            onChange={(e) => setFilterYear(e.target.value)} 
+                            className="bg-transparent text-sm font-bold text-white outline-none cursor-pointer py-2 pr-4 [&>option]:text-slate-900"
+                        >
+                            <option value="ทั้งหมด">ข้อมูลสะสมทั้งหมด ({outbreakData.length})</option>
+                            {years.map(y => (
+                                <option key={y} value={y}>ปี พ.ศ. {y}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Main Grid */}
+            {/* --- Main Dashboard Grid --- */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* Left Column: Stats Cards */}
+                {/* --- Left Column: Stats & List --- */}
                 <div className="lg:col-span-4 flex flex-col gap-6">
-                    {/* Big Red Card */}
-                    <div className="bg-gradient-to-br from-red-600 to-rose-700 rounded-2xl p-6 text-white shadow-xl shadow-red-200 relative overflow-hidden group">
-                        <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:rotate-12 duration-700">
-                            <Skull className="w-40 h-40" />
-                        </div>
+                    
+                    {/* Hero Stat Card */}
+                    <div className="relative bg-gradient-to-br from-rose-500 via-red-500 to-orange-600 rounded-3xl p-6 text-white shadow-xl shadow-rose-200 overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
                         <div className="relative z-10">
-                            <div className="flex justify-between items-start">
-                                <p className="text-red-100 text-sm font-bold mb-1">จุดพบเชื้อรวม ({filterYear === 'ทั้งหมด' ? 'สะสม' : `ปี ${filterYear}`})</p>
-                                <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-                                    <AlertTriangle className="w-5 h-5 text-white" />
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
+                                    <Skull className="w-6 h-6 text-white" />
                                 </div>
-                            </div>
-                            <h2 className="text-7xl font-black tracking-tighter mb-2 mt-2">{stats.total}</h2>
-                            <div className="flex items-center gap-2 mt-4">
-                                <span className="text-xs bg-red-800/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 font-medium">
-                                    พื้นที่เฝ้าระวังพิเศษ (Red Zone)
+                                <span className="text-rose-100 text-xs font-bold bg-black/10 px-2 py-1 rounded-lg">
+                                    {filterYear === 'ทั้งหมด' ? 'ยอดสะสม' : `ปี ${filterYear}`}
                                 </span>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-rose-100 text-sm font-medium">จุดพบเชื้อรวม</p>
+                                <h2 className="text-6xl font-black tracking-tighter">{stats.total}</h2>
+                            </div>
+                            <div className="mt-6 pt-4 border-t border-white/20 flex items-center gap-2 text-sm font-medium text-rose-50">
+                                <AlertTriangle className="w-4 h-4" />
+                                พื้นที่เฝ้าระวังพิเศษ (Red Zone)
                             </div>
                         </div>
                     </div>
 
-                    {/* Sub Stats Grid */}
+                    {/* Quick Stats Row */}
                     <div className="grid grid-cols-2 gap-4">
-                         {/* Top District */}
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                            <div className="text-slate-400 mb-3 flex justify-between">
-                                <MapPin className="w-5 h-5" />
-                                <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">Top 1</span>
+                        <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+                            <div className="flex items-center gap-2 mb-3 text-slate-400">
+                                <MapPin className="w-4 h-4 group-hover:text-rose-500 transition-colors" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Top Zone</span>
                             </div>
-                            <div>
-                                <span className="text-xl font-extrabold text-slate-800 block truncate" title={stats.topDistricts[0]?.name || '-'}>
-                                    {stats.topDistricts.length > 0 ? stats.topDistricts[0].name : '-'}
-                                </span>
-                                <p className="text-[10px] text-slate-500 mt-1">เขตที่พบเชื้อมากที่สุด</p>
-                            </div>
+                            <p className="text-lg font-bold text-slate-800 truncate" title={stats.topDistricts[0]?.name}>
+                                {stats.topDistricts.length > 0 ? stats.topDistricts[0].name : '-'}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-1">พบมากที่สุด</p>
                         </div>
-                        {/* Latest Date */}
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                            <div className="text-slate-400 mb-3 flex justify-between">
-                                <Calendar className="w-5 h-5" />
-                                <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">Latest</span>
+                        <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all group">
+                            <div className="flex items-center gap-2 mb-3 text-slate-400">
+                                <Calendar className="w-4 h-4 group-hover:text-blue-500 transition-colors" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Update</span>
                             </div>
-                            <div>
-                                <span className="text-xl font-extrabold text-slate-800 block">
-                                    {filteredOutbreaks.length > 0 
-                                        ? new Date(Math.max(...filteredOutbreaks.map(e => new Date(e.date)))).toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: '2-digit'})
-                                        : '-'
-                                    }
-                                </span>
-                                <p className="text-[10px] text-slate-500 mt-1">วันที่พบเชื้อล่าสุด</p>
-                            </div>
+                            <p className="text-lg font-bold text-slate-800">
+                                {filteredOutbreaks.length > 0 
+                                    ? new Date(Math.max(...filteredOutbreaks.map(e => new Date(e.date)))).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})
+                                    : '-'
+                                }
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-1">ล่าสุด</p>
                         </div>
                     </div>
 
-                    {/* List Section */}
-                    <div className="bg-white border border-slate-100 rounded-2xl shadow-sm flex-1 overflow-hidden flex flex-col">
-                        <div className="px-5 py-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                    {/* Recent List */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
+                        <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                             <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></div>
-                                รายการแจ้งเหตุล่าสุด
+                                <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                                การแจ้งเตือนล่าสุด
                             </h4>
                         </div>
-                        <div className="overflow-y-auto custom-scrollbar p-2 h-48 lg:h-auto">
+                        <div className="overflow-y-auto custom-scrollbar p-3 h-64 lg:h-auto space-y-2">
                             {filteredOutbreaks.slice(0, 5).map((item, idx) => {
                                 const isHidden = hiddenIds.includes(item._id);
                                 return (
-                                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl transition-all border-b border-slate-50 last:border-0 group cursor-default ${isHidden ? 'bg-slate-100 opacity-60 grayscale' : 'hover:bg-red-50/50'}`}>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); toggleVisibility(item._id); }}
-                                            className={`p-1.5 rounded-lg transition-colors shrink-0 ${isHidden ? 'text-slate-400 hover:text-slate-600' : 'text-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}
-                                        >
-                                            {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border font-bold text-xs group-hover:scale-110 transition-transform ${isHidden ? 'bg-slate-200 border-slate-300 text-slate-500' : 'bg-red-100 border-red-200 text-red-600'}`}>
-                                            {idx + 1}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-xs font-bold truncate ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
-                                                {item.location} {isHidden && "(ซ่อน)"}
-                                            </p>
-                                            {item.stats && (
-                                                <div className="flex gap-2 mt-1 text-[10px] text-slate-500">
-                                                    <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐶 {(item.stats.dog?.male || 0) + (item.stats.dog?.female || 0)}</span></span>
-                                                    <span className="flex items-center gap-0.5"><span className="font-bold text-slate-700">🐱 {(item.stats.cat?.male || 0) + (item.stats.cat?.female || 0)}</span></span>
+                                    <div key={idx} className={`relative p-3 rounded-2xl transition-all duration-300 border ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-100 hover:shadow-md hover:shadow-rose-100/50'}`}>
+                                        <div className="flex items-start gap-3">
+                                            {/* Rank Circle */}
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs shadow-sm ${isHidden ? 'bg-slate-200 text-slate-500' : 'bg-gradient-to-br from-rose-100 to-rose-50 text-rose-600'}`}>
+                                                {idx + 1}
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start">
+                                                    <p className={`text-sm font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
+                                                        {item.location}
+                                                    </p>
+                                                    <span className="text-[10px] text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded">
+                                                        {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
+                                                    </span>
                                                 </div>
-                                            )}
-                                            <div className="flex justify-between items-center mt-0.5">
-                                                <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 rounded">{item.district}</span>
-                                                <span className="text-[9px] text-slate-400">
-                                                    {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: '2-digit'})}
-                                                </span>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" /> {item.district}
+                                                    </span>
+                                                </div>
+                                                {item.stats && (
+                                                    <div className="flex gap-2 mt-2">
+                                                        <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">
+                                                            🐶 {(item.stats.dog?.male || 0) + (item.stats.dog?.female || 0)}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
+                                                            🐱 {(item.stats.cat?.male || 0) + (item.stats.cat?.female || 0)}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Action Buttons - Always Visible & Right Aligned */}
+                                            <div className="flex flex-col gap-1 shrink-0 ml-1 self-center border-l border-slate-100 pl-2">
+                                                <button onClick={(e) => { e.stopPropagation(); toggleVisibility(item._id); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title={isHidden ? "แสดง" : "ซ่อน"}>
+                                                    {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                                {canEdit && !isHidden && (
+                                                    <>
+                                                        <button onClick={(e) => { e.stopPropagation(); onEdit(item); }} className="p-1.5 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors" title="แก้ไข">
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); onDelete(item._id); }} className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="ลบ">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
-                                        {canEdit && !isHidden && (
-                                            <div className="flex gap-1 shrink-0"> 
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
-                                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                                >
-                                                    <Edit className="w-3 h-3" />
-                                                </button>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); onDelete(item._id); }} 
-                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        )}
                                     </div>
                                 );
                             })}
@@ -170,63 +205,67 @@ const RabiesOutbreakSection = ({
                     </div>
                 </div>
 
-                {/* Right Column: Charts */}
+                {/* --- Right Column: Charts --- */}
                 <div className="lg:col-span-8 flex flex-col gap-6">
                     {/* Top 5 Chart */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                         <div className="flex justify-between items-center mb-6">
-                            <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                                <div className="w-1 h-6 bg-red-500 rounded-full"></div>
-                                5 อันดับเขตพื้นที่เสี่ยงสูงสุด
-                            </h4>
+                            <div>
+                                <h4 className="text-lg font-bold text-slate-800">5 เขตพื้นที่เสี่ยงสูงสุด</h4>
+                                <p className="text-sm text-slate-400">จัดอันดับตามจำนวนเคสที่พบเชื้อ</p>
+                            </div>
+                            <div className="bg-rose-50 p-2 rounded-xl text-rose-500">
+                                <TrendingUp className="w-5 h-5" />
+                            </div>
                         </div>
-                        {/* แก้ไข: เพิ่ม min-w-0 และ minWidth={0} */}
-                        <div className="h-64 w-full min-w-0">
+                        <div className="w-full h-72">
                             {stats.total > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                    <BarChart layout="vertical" data={stats.topDistricts} margin={{top:0, right:30, left:0, bottom:0}} barSize={28}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart layout="vertical" data={stats.topDistricts} margin={{top:0, right:20, left:0, bottom:0}} barSize={32}>
                                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9"/>
                                         <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={110} tick={{fontSize:12, fontWeight: 600, fill: '#64748b'}} axisLine={false} tickLine={false}/>
-                                        <RechartsTooltip cursor={{fill: '#fef2f2'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                                        <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                                        <YAxis dataKey="name" type="category" width={100} tick={{fontSize:13, fontWeight: 600, fill: '#64748b'}} axisLine={false} tickLine={false}/>
+                                        <RechartsTooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
+                                        <Bar dataKey="count" radius={[0, 8, 8, 0]} background={{ fill: '#f8fafc', radius: [0, 8, 8, 0] }}>
                                             {stats.topDistricts.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#dc2626' : index === 1 ? '#ea580c' : '#f87171'} />
+                                                <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
                                             ))}
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                    ไม่พบข้อมูลในปีที่เลือก
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
+                                    <div className="bg-slate-100 p-4 rounded-full mb-3">
+                                        <Search className="w-6 h-6 text-slate-300" />
+                                    </div>
+                                    <span>ไม่พบข้อมูลในปีที่เลือก</span>
                                 </div>
                             )}
                         </div>
                     </div>
                     
-                    {/* Trend Chart (Gradient Bar) */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex-1 flex flex-col">
+                    {/* Trend Chart */}
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex-1 flex flex-col">
                         <div className="flex justify-between items-center mb-2">
-                             <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                                <div className="w-1 h-6 bg-slate-800 rounded-full"></div>
-                                แนวโน้มการระบาดรายปี
-                            </h4>
+                             <div>
+                                <h4 className="text-lg font-bold text-slate-800">แนวโน้มการระบาดรายปี</h4>
+                                <p className="text-sm text-slate-400">เปรียบเทียบสถิติย้อนหลัง</p>
+                            </div>
                         </div>
-                         {/* แก้ไข: เพิ่ม min-w-0 และ minWidth={0} */}
-                         <div className="flex-1 min-h-[250px] w-full min-w-0 mt-4">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                <BarChart data={yearlyTrend} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
+                        <div className="w-full h-80 mt-6">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={yearlyTrend} margin={{top: 10, right: 0, left: -20, bottom: 0}}>
                                     <defs>
-                                        <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={1}/>
-                                            <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6}/>
+                                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#6366f1" stopOpacity={1}/>
+                                            <stop offset="100%" stopColor="#a5b4fc" stopOpacity={0.8}/>
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} dy={10} />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 500}} dy={15} />
                                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                                    <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                                    <Bar dataKey="count" name="จุดเสี่ยงที่พบ" fill="url(#trendGradient)" radius={[6, 6, 0, 0]} barSize={40} />
+                                    <RechartsTooltip cursor={{fill: '#eff6ff', opacity: 0.5}} content={<CustomTooltip />} />
+                                    <Bar dataKey="count" name="จุดเสี่ยงที่พบ" fill="url(#barGradient)" radius={[8, 8, 8, 8]} barSize={48} />
                                 </BarChart>
                             </ResponsiveContainer>
                          </div>

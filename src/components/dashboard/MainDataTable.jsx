@@ -47,9 +47,7 @@ const MainDataTable = ({
 
             {/* Table Section */}
             <div className={`overflow-x-auto custom-scrollbar ${data.length > 10 ? 'max-h-[700px] overflow-y-auto border-b border-gray-100' : ''}`}>
-                <table className="min-w-full text-sm text-left relative"> {/* เพิ่ม relative เพื่อรองรับ sticky */}
-                    
-                    {/* --- แก้ไข 2: เพิ่ม sticky top-0, z-10 และเปลี่ยน bg เป็นสีทึบ เพื่อให้หัวตารางค้างไว้ --- */}
+                <table className="min-w-full text-sm text-left relative">
                     <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
                         <tr>
                             <th className="px-6 py-4 whitespace-nowrap w-32">วันที่</th>
