@@ -1,5 +1,8 @@
 import React from 'react';
-import { Database, Trash2, Users, Pencil, X, MapPin, Calendar, ImageIcon, Syringe, Scissors } from 'lucide-react';
+import { 
+    Database, Trash2, Users, Pencil, X, MapPin, Calendar, 
+    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText // <--- เพิ่ม FileText
+} from 'lucide-react';
 
 const MainDataTable = ({ 
     data = [], 
@@ -11,7 +14,7 @@ const MainDataTable = ({
     onViewImage 
 }) => {
 
-    // Helper สำหรับจัดรูปแบบตัวเลข (ถ้าต้องการ)
+    // Helper สำหรับจัดรูปแบบตัวเลข
     const formatNumber = (num) => num ? num.toLocaleString() : '0';
 
     return (
@@ -43,15 +46,20 @@ const MainDataTable = ({
             </div>
 
             {/* Table Section */}
-            <div className="overflow-x-auto custom-scrollbar">
-                <table className="min-w-full text-sm text-left">
-                    <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
+            <div className={`overflow-x-auto custom-scrollbar ${data.length > 10 ? 'max-h-[700px] overflow-y-auto border-b border-gray-100' : ''}`}>
+                <table className="min-w-full text-sm text-left relative"> {/* เพิ่ม relative เพื่อรองรับ sticky */}
+                    
+                    {/* --- แก้ไข 2: เพิ่ม sticky top-0, z-10 และเปลี่ยน bg เป็นสีทึบ เพื่อให้หัวตารางค้างไว้ --- */}
+                    <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
                         <tr>
                             <th className="px-6 py-4 whitespace-nowrap w-32">วันที่</th>
                             <th className="px-6 py-4 whitespace-nowrap min-w-[200px]">สถานที่</th>
                             <th className="px-6 py-4 text-center w-24">รูปภาพ</th>
                             <th className="px-6 py-4 text-center w-24">วัคซีน</th>
                             <th className="px-6 py-4 text-center w-24">ทำหมัน</th>
+                            <th className="px-6 py-4 text-center w-24">ขึ้นทะเบียน</th>
+                            <th className="px-6 py-4 text-center w-24">ไมโครชิป</th>
+                            <th className="px-6 py-4 text-center w-24">รักษา</th>
                             <th className="px-6 py-4 text-center w-32">ผู้บันทึก</th>
                             {canEdit && <th className="px-6 py-4 text-center w-28">จัดการ</th>}
                         </tr>
@@ -117,6 +125,31 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
+                                    {/* --- 1. ส่วนที่แยกออกมา: ขึ้นทะเบียน --- */}
+                                    <td className="px-6 py-4 align-middle text-center">
+                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
+                                            <FileText className="w-3 h-3 mb-1 opacity-50" />
+                                            {/* หมายเหตุ: ตรวจสอบ key ของ data ให้ตรงกับที่ backend ส่งมา (เช่น stats.register) */}
+                                            <span className="font-bold text-sm">{formatNumber(item.stats.register)}</span>
+                                        </div>
+                                    </td>
+
+                                    {/* --- 2. ส่วนที่แยกออกมา: ไมโครชิป --- */}
+                                    <td className="px-6 py-4 align-middle text-center">
+                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-700">
+                                            <QrCode className="w-3 h-3 mb-1 opacity-50" />
+                                            <span className="font-bold text-sm">{formatNumber(item.stats.microchip)}</span>
+                                        </div>
+                                    </td>
+
+                                    {/* รักษา */}
+                                    <td className="px-6 py-4 align-middle text-center">
+                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700">
+                                            <Stethoscope className="w-3 h-3 mb-1 opacity-50" />
+                                            <span className="font-bold text-sm">{formatNumber(item.stats.treatment)}</span>
+                                        </div>
+                                    </td>
+
                                     {/* ผู้บันทึก */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="flex flex-col items-center">
@@ -158,7 +191,8 @@ const MainDataTable = ({
                         ) : (
                             /* Empty State */
                             <tr>
-                                <td colSpan={canEdit ? 7 : 6} className="px-6 py-12 text-center">
+                                {/* เพิ่ม colSpan เป็น 10 (admin) หรือ 9 (user) เพราะเพิ่มคอลัมน์มาอีก 1 */}
+                                <td colSpan={canEdit ? 10 : 9} className="px-6 py-12 text-center">
                                     <div className="flex flex-col items-center justify-center text-gray-400">
                                         <div className="p-4 bg-gray-50 rounded-full mb-3">
                                             <Database className="w-8 h-8 text-gray-300" />
@@ -173,11 +207,10 @@ const MainDataTable = ({
                 </table>
             </div>
             
-            {/* Footer Summary (Optional) */}
+            {/* Footer Summary */}
             {data.length > 0 && (
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
                      <span>แสดงข้อมูลล่าสุด {Math.min(data.length, 50)} รายการ</span>
-                     {/* ตรงนี้สามารถเพิ่ม Pagination ได้ในอนาคต */}
                 </div>
             )}
         </div>

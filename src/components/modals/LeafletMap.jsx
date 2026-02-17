@@ -216,7 +216,7 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
             <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100">
                 <TileLayer 
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" // ใช้ Map Style ที่สะอาดขึ้น (Voyager)
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 
                 {/* 1. Unit Markers */}
