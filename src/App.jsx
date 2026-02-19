@@ -1797,6 +1797,31 @@ const parseCSVDate = (dateStr) => {
 
                 </main>
             </div>
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
+                <button 
+                    onClick={() => setActiveTab('overview')} 
+                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                    <Activity className="w-5 h-5 mb-1" />
+                    <span className="text-[10px]">ภาพรวม</span>
+                </button>
+
+                <button 
+                    onClick={() => setActiveTab('outbreak')} 
+                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                    <Siren className="w-5 h-5 mb-1" />
+                    <span className="text-[10px]">จุดเสี่ยง</span>
+                </button>
+
+                <button 
+                    onClick={() => setActiveTab('database')} 
+                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                    <Database className="w-5 h-5 mb-1" />
+                    <span className="text-[10px]">ฐานข้อมูล</span>
+                </button>
+            </div>
         </div>
     );
 }
