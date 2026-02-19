@@ -8,6 +8,23 @@ import { Calendar, Users, BarChart3 } from 'lucide-react';
 const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
     const [freqFilter, setFreqFilter] = useState('monthly'); 
     const currentFreqData = freqFilter === 'monthly' ? dispatchStats.monthly : dispatchStats.daily;
+    // [ส่วนที่เพิ่ม] ป้องกัน Error กรณีข้อมูลยังไม่มาหรือเป็น null
+    if (!trendData || !unitStats || !dispatchStats) {
+        return (
+            <div className="flex flex-col items-center justify-center h-64 bg-slate-50/50 rounded-2xl border border-slate-100 m-2">
+                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
+                <p className="text-sm text-slate-400 font-medium">กำลังโหลดข้อมูลสถิติ...</p>
+            </div>
+        );
+    }
+
+    // [ส่วนที่เพิ่ม] ฟังก์ชันย่อตัวเลขแกน Y เพื่อประหยัดพื้นที่
+    const formatCompactNumber = (number) => {
+        if (number >= 1000) {
+            return (number / 1000).toFixed(number % 1000 !== 0 ? 1 : 0) + 'k';
+        }
+        return number;
+    };
 
     // Custom Tooltip (ใช้ร่วมกันได้ทั้ง 3 กราฟ)
     const CustomTooltip = ({ active, payload, label }) => {
@@ -16,12 +33,15 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                 <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 shadow-xl rounded-lg">
                     <p className="text-sm font-bold text-slate-700 mb-2 border-b pb-1">{label}</p>
                     {payload.map((entry, index) => (
-                        <div key={index} className="flex items-center justify-between gap-4 text-xs py-0.5">
+                        // เพิ่มการจัดการค่าให้เซฟขึ้น
+                        <div key={index} className="flex items-center justify-between gap-6 text-xs py-0.5">
                             <span className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
                                 <span className="text-slate-500">{entry.name}:</span>
                             </span>
-                            <span className="font-mono font-bold text-slate-800">{entry.value.toLocaleString()}</span>
+                            <span className="font-mono font-bold text-slate-800">
+                                {entry.value ? entry.value.toLocaleString() : '0'}
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -56,15 +76,15 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="name" tick={{fontSize:11, fill:'#94a3b8'}} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="left" tick={{fontSize:11, fill:'#94a3b8'}} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="right" orientation="right" tick={{fontSize:11, fill:'#94a3b8'}} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="left" tickFormatter={formatCompactNumber} tick={{fontSize:11, fill:'#94a3b8'}} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="right" orientation="right" tickFormatter={formatCompactNumber} tick={{fontSize:11, fill:'#94a3b8'}} axisLine={false} tickLine={false} />
                             <RechartsTooltip content={<CustomTooltip />} />
                             <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} />
                             
                             <Area yAxisId="left" type="monotone" dataKey="total" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} name="ยอดรวมทั้งหมด" />
-                            <Bar yAxisId="left" dataKey="vaccine" fill="#38bdf8" barSize={12} radius={[4,4,0,0]} name="วัคซีน" />
-                            <Bar yAxisId="left" dataKey="sterilize" fill="#fb923c" barSize={12} radius={[4,4,0,0]} name="ทำหมัน" />
-                            <Bar yAxisId="left" dataKey="medical" fill="#f472b6" barSize={12} radius={[4,4,0,0]} name="รักษาสัตว์" />
+                            <Bar yAxisId="left" dataKey="vaccine" fill="#38bdf8" barSize={12} radius={[4,4,0,0]} name="วัคซีน" activeBar={{ stroke: '#0284c7', strokeWidth: 1, fill: '#7dd3fc' }} />
+                            <Bar yAxisId="left" dataKey="sterilize" fill="#fb923c" barSize={12} radius={[4,4,0,0]} name="ทำหมัน" activeBar={{ stroke: '#ea580c', strokeWidth: 1, fill: '#fdba74' }} />
+                            <Bar yAxisId="left" dataKey="medical" fill="#f472b6" barSize={12} radius={[4,4,0,0]} name="รักษาสัตว์" activeBar={{ stroke: '#db2777', strokeWidth: 1, fill: '#f9a8d4' }} />
                             <Line yAxisId="right" type="monotone" dataKey="register" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} name="ขึ้นทะเบียน" />
                         </ComposedChart>
                     </ResponsiveContainer>
@@ -197,6 +217,7 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                                     radius={[0, 12, 12, 0]} 
                                     barSize={28}
                                     animationDuration={1500}
+                                    activeBar={{ fill: '#818cf8' }}
                                 >
                                     <LabelList 
                                         dataKey="total" 
