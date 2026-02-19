@@ -438,6 +438,8 @@ export default function VeterinaryDashboard() {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
 
+    const [activeTab, setActiveTab] = useState('overview');
+
     // Legacy View Mode (optional)
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
@@ -1585,398 +1587,198 @@ const parseCSVDate = (dateStr) => {
         setIsCsvModalOpen(true);
     };
 
-    // --- 6. RENDER UI ---
+// --- 6. RENDER UI ---
 
-    return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-12 selection:bg-blue-100">
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700;800&display=swap');
-            
-                body { font-family: 'Sarabun', sans-serif; }
-            
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    return (
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-12 selection:bg-blue-100 flex flex-col relative">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700;800&display=swap');
+                body { font-family: 'Sarabun', sans-serif; }
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+                .leaflet-popup-content { margin: 0; width: 260px !important; }
+                .leaflet-popup-tip { background: white; }
+                @keyframes pulse-ring {
+                    0% { transform: scale(0.33); }
+                    80%, 100% { opacity: 0; }
+                }
+                .danger-pulse::before {
+                    content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 100%;
+                    border-radius: 50%; background-color: #ef4444;
+                    animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+                }
+            `}</style>
 
-                /* Map Popup Styling Override */
-                .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
-                .leaflet-popup-content { margin: 0; width: 260px !important; }
-                .leaflet-popup-tip { background: white; }
-            
-            /* Animation Utility */
-            @keyframes pulse-ring {
-                0% { transform: scale(0.33); }
-                80%, 100% { opacity: 0; }
-            }
-            .danger-pulse::before {
-                content: '';
-                position: absolute; left: 0; top: 0; height: 100%; width: 100%;
-                border-radius: 50%; background-color: #ef4444;
-                animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-            }
-            `}</style>
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
+            <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={csvMode === 'outbreak' ? handleOutbreakFileUpload : handleFileUpload} onExport={() => { csvMode === 'outbreak' ? exportOutbreaksToCSV(outbreakData) : exportToCSV(filteredData); }} />
+            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
+            <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <PasswordConfirmModal isOpen={isConfirmPasswordOpen} onClose={() => setIsConfirmPasswordOpen(false)} onConfirm={executeClearAllData} title="ล้างข้อมูลทั้งหมด?" message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน" />
+            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
+            <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
 
-            <ToastContainer toasts={toasts} removeToast={removeToast} />
-            <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
-            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={csvMode === 'outbreak' ? handleOutbreakFileUpload : handleFileUpload} onExport={() => {
-            if (csvMode === 'outbreak') {
-                exportOutbreaksToCSV(outbreakData); // เรียกฟังก์ชัน Export ใหม่
-            } else {
-                exportToCSV(filteredData); // เรียกฟังก์ชัน Export เดิม
-                }
-            }} 
-            />
-            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
-            <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
-            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
-            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} />
-            <PasswordConfirmModal isOpen={isConfirmPasswordOpen} onClose={() => setIsConfirmPasswordOpen(false)} onConfirm={executeClearAllData} title="ล้างข้อมูลทั้งหมด?" message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน" />
-            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
-            <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
+            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
+            <DispatchCalendarDashboard isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} events={dispatchEventsOnly} onOpenForm={() => { setViewingDispatch(null); setIsDispatchModalOpen(true); }} onEventClick={(evt) => { setViewingDispatch(evt.originalData); setIsDispatchModalOpen(true); }} />
+            <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={() => setIsMeetingCalendarOpen(false)} events={meetingEventsOnly} onOpenForm={() => { setViewingMeeting(null); setIsMeetingModalOpen(true); }} onEventClick={handleCalendarEventClick} />
+            <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
+            <MeetingListModal isOpen={isMeetingListOpen} onClose={() => setIsMeetingListOpen(false)} meetings={meetings} onEdit={(m) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }} />
 
-            <DispatchModal 
-                isOpen={isDispatchModalOpen} 
-                onClose={() => setIsDispatchModalOpen(false)} 
-                onToast={addToast}
-                onSave={handleSaveDispatchEvent}
-                onDelete={handleDeleteDispatch} // ส่ง function ลบ
-                initialData={viewingDispatch}   // ส่งข้อมูลเดิม
-            />
-            <DispatchCalendarDashboard 
-                isOpen={isCalendarOpen} 
-                onClose={() => setIsCalendarOpen(false)}
-                events={dispatchEventsOnly} // ส่งเฉพาะงานออกหน่วย
-                onOpenForm={() => {
-                    setViewingDispatch(null);
-                    setIsDispatchModalOpen(true);
-                }}
-                onEventClick={(evt) => {
-                    setViewingDispatch(evt.originalData);
-                    setIsDispatchModalOpen(true);
-                }} 
-            />
-            <MeetingCalendarDashboard 
-                isOpen={isMeetingCalendarOpen}
-                onClose={() => setIsMeetingCalendarOpen(false)}
-                events={meetingEventsOnly}  // แก้ไข: เปลี่ยนจาก meetingEvents เป็น meetingEventsOnly
-                onOpenForm={() => {         // แก้ไข: ใส่ Logic เปิด Modal สร้างใหม่
-                    setViewingMeeting(null);
-                    setIsMeetingModalOpen(true);
-                }}
-                onEventClick={handleCalendarEventClick} // แก้ไข: ใช้ฟังก์ชัน handleCalendarEventClick ที่ประกาศไว้ด้านบน
-            />
-            <MeetingModal 
-                isOpen={isMeetingModalOpen} 
-                onClose={() => setIsMeetingModalOpen(false)} 
-                onSave={handleSaveMeeting}
-                onDelete={handleDeleteMeeting} // ส่ง function ลบไป
-                initialData={viewingMeeting}   // ส่งข้อมูลไปแสดง
-                onToast={addToast}
-            />
+            <Header 
+                user={user} isSuperAdmin={isSuperAdmin} canEdit={canEdit} isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
+                onLogin={() => setIsLoginModalOpen(true)} onLogout={handleLogout} onChangePassword={() => setIsChangePasswordOpen(true)}
+                onOpenLog={() => setIsLogModalOpen(true)} onOpenUserMgmt={() => setIsUserMgmtOpen(true)} onOpenBackup={() => setIsBackupModalOpen(true)}
+                onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData}
+                onOpenMeetingList={() => setIsMeetingListOpen(true)} onOpenCalendar={() => setIsCalendarOpen(true)} onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
+                onOpenMeetingModal={() => setIsMeetingModalOpen(true)} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
+            />
 
-            <MeetingListModal
-                isOpen={isMeetingListOpen}
-                onClose={() => setIsMeetingListOpen(false)}
-                meetings={meetings}
-                onEdit={(m) => {
-                    setViewingMeeting(m);
-                    setIsMeetingListOpen(false); // ปิด List
-                    setIsMeetingModalOpen(true); // เปิด Modal รายละเอียด
-                }}
-            />
+            {/* คอนเทนเนอร์หลักแบ่งซ้าย-ขวา (บนจอใหญ่) */}
+            <div className="flex flex-1 w-full max-w-[1600px] mx-auto relative">
+                
+                {/* แถบเมนูด้านซ้าย (Sidebar) - ซ่อนบนมือถือ */}
+                <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col sticky top-0 h-[calc(100vh-80px)] shrink-0 shadow-sm z-10 pt-6">
+                    <div className="px-6 pb-4 border-b border-slate-100 mb-4">
+                        <h2 className="font-bold text-slate-800 text-lg">เมนูหลัก</h2>
+                        <p className="text-xs text-slate-500">เลือกระบบที่ต้องการดูข้อมูล</p>
+                    </div>
+                    <nav className="flex-1 px-4 space-y-2">
+                        <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-indigo-600'}`}>
+                            <Activity className="w-5 h-5" /> ภาพรวมสถิติ
+                        </button>
+                        <button onClick={() => setActiveTab('outbreak')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'outbreak' ? 'bg-red-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-red-600'}`}>
+                            <Siren className="w-5 h-5" /> จัดการจุดเสี่ยง
+                        </button>
+                        <button onClick={() => setActiveTab('database')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'database' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-emerald-600'}`}>
+                            <Database className="w-5 h-5" /> ฐานข้อมูลบริการ
+                        </button>
+                    </nav>
+                </aside>
 
-            <Header 
-                user={user}
-                isSuperAdmin={isSuperAdmin}
-                canEdit={canEdit}
-                isSystemMenuOpen={isSystemMenuOpen}
-                setIsSystemMenuOpen={setIsSystemMenuOpen}
-                onLogin={() => setIsLoginModalOpen(true)}
-                onLogout={handleLogout}
-                onChangePassword={() => setIsChangePasswordOpen(true)}
-                // System Menu
-                onOpenLog={() => setIsLogModalOpen(true)}
-                onOpenUserMgmt={() => setIsUserMgmtOpen(true)}
-                onOpenBackup={() => setIsBackupModalOpen(true)}
-                onOpenCsvOutbreak={handleOpenCsvOutbreak}
-                onOpenCsvReport={handleOpenCsvReport}
-                onGenerateMock={handleGenerateMockData}
-                // Views
-                onOpenMeetingList={() => setIsMeetingListOpen(true)}
-                onOpenCalendar={() => setIsCalendarOpen(true)}
-                onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
-                // Actions
-                onOpenMeetingModal={() => setIsMeetingModalOpen(true)}
-                onOpenAddOutbreak={openAddOutbreakModal}
-                onOpenAddData={openAddModal}
-            />
-            
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* ส่วนแสดงผลเนื้อหา (Main Content) */}
+                <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden overflow-y-auto">
+                    
+                    {/* แท็บที่ 1: ภาพรวมสถิติ */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <KPISection totals={totals} unitStats={unitStats} />
+                            <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
+                                <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+                                    <LeafletMap data={mapDisplayData} outbreaks={filteredOutbreaks.filter(item => !hiddenOutbreakIds.includes(item._id))} onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
-    {/* ส่วนหัว Header + ปุ่มยุบ/ขยาย */}
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-            <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Data Filters)
-            </h3>
-            
-            {/* ปุ่มกดเพื่อยุบ/ขยาย */}
-            <button 
-                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
-                title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}
-            >
-                {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-            </button>
-        </div>
+                    {/* แท็บที่ 2: การจัดการจุดเสี่ยง */}
+                    {activeTab === 'outbreak' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <RabiesOutbreakSection outbreakData={outbreakData} filterYear={outbreakFilterYear} setFilterYear={setOutbreakFilterYear} years={availableOutbreakYears} stats={outbreakStats} filteredOutbreaks={filteredOutbreaks} yearlyTrend={outbreakYearlyTrend} hiddenIds={hiddenOutbreakIds} toggleVisibility={toggleOutbreakVisibility} onEdit={openEditOutbreakModal} onDelete={handleDeleteOutbreak} canEdit={canEdit} />
+                        </div>
+                    )}
 
-        <button 
-            onClick={() => {
-                setSearchTerm('');
-                setSelectedYear('ทั้งหมด');
-                setSelectedMonth('ทั้งหมด');
-                setSelectedUnit('ทั้งหมด');
-                setSelectedDistrict('ทั้งหมด');
-                setSearchDate('');
-            }}
-            className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors"
-        >
-            <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
-        </button>
-    </div>
+                    {/* แท็บที่ 3: ฐานข้อมูลบริการ */}
+                    {activeTab === 'database' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            
+                            {/* --- ตัวกรองข้อมูล (Filters) --- */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
+                                            <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Data Filters)
+                                        </h3>
+                                        <button onClick={() => setIsFilterExpanded(!isFilterExpanded)} className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors" title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}>
+                                            {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                        </button>
+                                    </div>
+                                    <button onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors">
+                                        <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
+                                    </button>
+                                </div>
 
-    {/* ส่วนเนื้อหา Filter (แสดงเมื่อ isFilterExpanded เป็น true) */}
-    {isFilterExpanded && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
-            {/* 1. ค้นหาด้วยข้อความ */}
-            <div className="relative">
-                <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                        type="text" 
-                        placeholder="พิมพ์คำค้นหา..." 
-                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    {searchTerm && (
-                        <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <X className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-            </div>
+                                {isFilterExpanded && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                                        <div className="relative">
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <input type="text" placeholder="พิมพ์คำค้นหา..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                                {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
+                                            <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                                                <option value="ทั้งหมด">ทุกปี</option>
+                                                {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
+                                            <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                                                <option value="ทั้งหมด">ทุกเดือน</option>
+                                                {THAI_MONTHS.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
+                                            <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
+                                                <option value="ทั้งหมด">ทุกหน่วยงาน</option>
+                                                {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
+                                            <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
+                                                <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
+                                                {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
-            {/* 2. ตัวกรองปี */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกปี</option>
-                    {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
-                </select>
-            </div>
+                            <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
+                        </div>
+                    )}
+                </main>
+            </div>
 
-            {/* 3. ตัวกรองเดือน */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกเดือน</option>
-                    {THAI_MONTHS.map((m, i) => (
-                        <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
-                    ))}
-                </select>
-            </div>
-
-            {/* 4. ตัวกรองหน่วยงาน */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedUnit}
-                    onChange={(e) => setSelectedUnit(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกหน่วยงาน</option>
-                    {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
-                </select>
-            </div>
-
-            {/* 5. ตัวกรองเขต */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
-                    {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
-                </select>
-            </div>
-        </div>
-    )}
-</div>
-
-                <KPISection totals={totals} unitStats={unitStats} />
-
-                <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <RankingSection 
-                        rankingYear={rankingYear}
-                        setRankingYear={setRankingYear}
-                        rankingMonth={rankingMonth}
-                        setRankingMonth={setRankingMonth}
-                        availableYears={availableYears}
-                        thaiMonths={THAI_MONTHS}
-                        rankingUnitStats={rankingUnitStats}
-                        rankingNestedStats={rankingNestedStats} // <--- เพิ่ม Prop นี้
-                    />
-                    
-                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                        <LeafletMap 
-                            data={mapDisplayData} 
-                            outbreaks={filteredOutbreaks.filter(item => !hiddenOutbreakIds.includes(item._id))} 
-                            onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} 
-                        />
-                    </div>
-                </div>
-
-                <RabiesOutbreakSection 
-                    outbreakData={outbreakData} filterYear={outbreakFilterYear} setFilterYear={setOutbreakFilterYear} years={availableOutbreakYears} 
-                    stats={outbreakStats} filteredOutbreaks={filteredOutbreaks} yearlyTrend={outbreakYearlyTrend} hiddenIds={hiddenOutbreakIds} 
-                    toggleVisibility={toggleOutbreakVisibility} onEdit={openEditOutbreakModal} onDelete={handleDeleteOutbreak} canEdit={canEdit} 
-                />
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
-    {/* ส่วนหัว Header + ปุ่มยุบ/ขยาย */}
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-            <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Data Filters)
-            </h3>
-            
-            {/* ปุ่มกดเพื่อยุบ/ขยาย */}
-            <button 
-                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
-                title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}
-            >
-                {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-            </button>
-        </div>
-
-        <button 
-            onClick={() => {
-                setSearchTerm('');
-                setSelectedYear('ทั้งหมด');
-                setSelectedMonth('ทั้งหมด');
-                setSelectedUnit('ทั้งหมด');
-                setSelectedDistrict('ทั้งหมด');
-                setSearchDate('');
-            }}
-            className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors"
-        >
-            <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
-        </button>
-    </div>
-
-    {/* ส่วนเนื้อหา Filter (แสดงเมื่อ isFilterExpanded เป็น true) */}
-    {isFilterExpanded && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
-            {/* 1. ค้นหาด้วยข้อความ */}
-            <div className="relative">
-                <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                        type="text" 
-                        placeholder="พิมพ์คำค้นหา..." 
-                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    {searchTerm && (
-                        <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <X className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* 2. ตัวกรองปี */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกปี</option>
-                    {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
-                </select>
-            </div>
-
-            {/* 3. ตัวกรองเดือน */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกเดือน</option>
-                    {THAI_MONTHS.map((m, i) => (
-                        <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>
-                    ))}
-                </select>
-            </div>
-
-            {/* 4. ตัวกรองหน่วยงาน */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedUnit}
-                    onChange={(e) => setSelectedUnit(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกหน่วยงาน</option>
-                    {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
-                </select>
-            </div>
-
-            {/* 5. ตัวกรองเขต */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
-                <select 
-                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer"
-                    value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                >
-                    <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
-                    {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
-                </select>
-            </div>
-        </div>
-    )}
-</div>
-
-                <MainDataTable 
-                    data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} 
-                    onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} 
-                />
-            </main>
-        </div>
-    );
+            {/* --- [เพิ่ม] แถบเมนูนำทางด้านล่างสำหรับหน้าจอมือถือ (Mobile Bottom Navigation) --- */}
+            <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-[4000] pb-safe">
+                <div className="flex justify-around items-center px-2 py-2">
+                    <button 
+                        onClick={() => setActiveTab('overview')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 mx-1 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 bg-indigo-50 font-bold' : 'text-slate-500 hover:text-indigo-500 hover:bg-slate-50 font-medium'}`}
+                    >
+                        <Activity className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] sm:text-xs">ภาพรวม</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('outbreak')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 mx-1 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 bg-red-50 font-bold' : 'text-slate-500 hover:text-red-500 hover:bg-slate-50 font-medium'}`}
+                    >
+                        <Siren className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] sm:text-xs">จุดเสี่ยง</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('database')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 mx-1 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 bg-emerald-50 font-bold' : 'text-slate-500 hover:text-emerald-500 hover:bg-slate-50 font-medium'}`}
+                    >
+                        <Database className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] sm:text-xs">ฐานข้อมูล</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    );
 }
