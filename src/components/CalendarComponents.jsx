@@ -254,6 +254,33 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
         border: 'border-indigo-200',
     };
 
+    // --- ฟังก์ชัน Helper สำหรับจัดการสีตาม unitColor ---
+    const getEventStyles = (evt) => {
+        if (evt.type === 'meeting') {
+            return {
+                card: 'border-l-4 border-l-teal-500 border-y-slate-100 border-r-slate-100',
+                badge: 'bg-teal-50 text-teal-800 border border-teal-100/50',
+                icon: 'bg-teal-50 text-teal-500',
+                hoverText: 'group-hover:text-teal-700'
+            };
+        }
+        
+        // Dispatch colors mapping
+        const colorMap = {
+            'bg-red-500': { card: 'border-l-4 border-l-red-500 border-y-slate-100 border-r-slate-100', badge: 'bg-red-50 text-red-800 border border-red-100/50', icon: 'bg-red-100 text-red-500', hoverText: 'group-hover:text-red-600' },
+            'bg-blue-500': { card: 'border-l-4 border-l-blue-500 border-y-slate-100 border-r-slate-100', badge: 'bg-blue-50 text-blue-800 border border-blue-100/50', icon: 'bg-blue-100 text-blue-500', hoverText: 'group-hover:text-blue-600' },
+            'bg-green-500': { card: 'border-l-4 border-l-green-500 border-y-slate-100 border-r-slate-100', badge: 'bg-green-50 text-green-800 border border-green-100/50', icon: 'bg-green-100 text-green-500', hoverText: 'group-hover:text-green-600' },
+            'bg-yellow-400': { card: 'border-l-4 border-l-yellow-400 border-y-slate-100 border-r-slate-100', badge: 'bg-yellow-50 text-yellow-800 border border-yellow-100/50', icon: 'bg-yellow-100 text-yellow-600', hoverText: 'group-hover:text-yellow-600' },
+            'bg-purple-500': { card: 'border-l-4 border-l-purple-500 border-y-slate-100 border-r-slate-100', badge: 'bg-purple-50 text-purple-800 border border-purple-100/50', icon: 'bg-purple-100 text-purple-500', hoverText: 'group-hover:text-purple-600' },
+            'bg-orange-500': { card: 'border-l-4 border-l-orange-500 border-y-slate-100 border-r-slate-100', badge: 'bg-orange-50 text-orange-800 border border-orange-100/50', icon: 'bg-orange-100 text-orange-500', hoverText: 'group-hover:text-orange-600' },
+            'bg-pink-500': { card: 'border-l-4 border-l-pink-500 border-y-slate-100 border-r-slate-100', badge: 'bg-pink-50 text-pink-800 border border-pink-100/50', icon: 'bg-pink-100 text-pink-500', hoverText: 'group-hover:text-pink-600' },
+            'bg-slate-400': { card: 'border-l-4 border-l-slate-400 border-y-slate-100 border-r-slate-100', badge: 'bg-slate-100 text-slate-800 border border-slate-200/50', icon: 'bg-slate-200 text-slate-600', hoverText: 'group-hover:text-slate-600' },
+            'default': { card: 'border-l-4 border-l-[#545BE8] border-y-slate-100 border-r-slate-100', badge: 'bg-indigo-50 text-indigo-800 border border-indigo-100/50', icon: 'bg-indigo-100 text-indigo-500', hoverText: 'group-hover:text-[#545BE8]' }
+        };
+
+        return colorMap[evt.unitColor] || colorMap['default'];
+    };
+
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-slate-50 rounded-3xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[95vh] h-[90vh] ring-1 ring-white/20">
@@ -305,28 +332,36 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                             <span className="text-sm">ไม่มีงานออกหน่วย</span>
                                         </div>
                                     ) : (
-                                        selectedDateEvents.map((evt, idx) => (
+                                        selectedDateEvents.map((evt, idx) => {
+                                            const styles = getEventStyles(evt); 
+                                            return (
                                             <div key={idx} onClick={() => onEventClick && onEventClick(evt)}
-                                                className={`
-                                                    group relative bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md cursor-pointer transition-all duration-200
-                                                    ${evt.type === 'meeting' ? 'border-l-4 border-l-teal-500 border-y-slate-100 border-r-slate-100' : 'border-l-4 border-l-[#545BE8] border-y-slate-100 border-r-slate-100'}
-                                                `}>
+                                                className={`group relative bg-white p-4 rounded-2xl border shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 ${styles.card}`}>
+                                                
+                                                {/* เวลา และ ประเภทหน่วยงาน/ทีม */}
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <span className="inline-flex items-center gap-1 text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-bold">
-                                                        <Clock className="w-3 h-3" /> {evt.time}
-                                                    </span>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <span className="inline-flex items-center gap-1 text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-bold">
+                                                            <Clock className="w-3 h-3" /> {evt.time}
+                                                        </span>
+                                                        <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-md font-bold ${styles.badge}`}>
+                                                            {evt.title || (evt.type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย')}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="font-bold text-slate-800 text-sm mb-2 group-hover:text-[#545BE8] transition-colors line-clamp-2">
+
+                                                <div className={`font-bold text-slate-800 text-sm mb-2 transition-colors line-clamp-2 ${styles.hoverText}`}>
                                                     {evt.location}
                                                 </div>
                                                 <div className="flex items-center gap-2 pt-2 border-t border-slate-50 mt-2">
-                                                    <div className="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${styles.icon}`}>
                                                         <Users className="w-3 h-3" />
                                                     </div>
-                                                    <span className="text-xs text-slate-500 font-medium truncate">{evt.team}</span>
+                                                    <span className="text-xs text-slate-500 font-medium truncate">{evt.team || 'ไม่ได้ระบุ'}</span>
                                                 </div>
                                             </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
@@ -384,16 +419,14 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                         </div>
 
                                         <div className="flex flex-col gap-1 mt-1 overflow-hidden">
-                                            {dayEvents.slice(0, 3).map((evt, idx) => (
-                                                <div key={idx} className={`
-                                                    text-[10px] px-2 py-1 rounded-md font-medium truncate border
-                                                    ${evt.type === 'meeting' 
-                                                        ? 'bg-teal-50 text-teal-800 border-teal-100/50' 
-                                                        : 'bg-indigo-50 text-indigo-800 border-indigo-100/50'}
-                                                `}>
-                                                    {evt.time.split('-')[0]} {evt.location}
-                                                </div>
-                                            ))}
+                                            {dayEvents.slice(0, 3).map((evt, idx) => {
+                                                const styles = getEventStyles(evt); // ดึงสีมาใช้งานกับป้ายบนปฏิทิน
+                                                return (
+                                                    <div key={idx} className={`text-[10px] px-2 py-1 rounded-md font-medium truncate border ${styles.badge}`}>
+                                                        {evt.time.split('-')[0]} {evt.location}
+                                                    </div>
+                                                );
+                                            })}
                                             {dayEvents.length > 3 && (
                                                 <div className="text-[10px] text-slate-400 pl-1 font-medium">+ {dayEvents.length - 3}</div>
                                             )}
