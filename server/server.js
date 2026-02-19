@@ -76,6 +76,7 @@ const reportSchema = new mongoose.Schema({
   district: String,
   subdistrict: String,
   unit: String,
+  team: String,
   lat: { type: Number, default: 0 },
   long: { type: Number, default: 0 },
   imageUrl: { type: String, default: "" }, 

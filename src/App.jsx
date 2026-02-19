@@ -892,7 +892,7 @@ export default function VeterinaryDashboard() {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
                 body: JSON.stringify({
                     date: newRecord.date, location: newRecord.location, lat: parseFloat(newRecord.lat), long: parseFloat(newRecord.long),
-                    district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, imageUrl: newRecord.imageUrl,
+                    district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, team: newRecord.team, imageUrl: newRecord.imageUrl,
                     stats: {
                         vaccine: newRecord.stats ? newRecord.stats.vaccine : newRecord.vaccine,
                         sterilize: newRecord.stats ? newRecord.stats.sterilize : newRecord.sterilize,
