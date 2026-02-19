@@ -56,13 +56,14 @@ const UnitCard = ({ unit, index, maxVal }) => {
             <div className="p-5">
                 <div className="flex justify-between items-start mb-4">
                     {/* Icon & Name */}
-                    <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-white shadow-sm group-hover:scale-110 transition-transform`}>
+                    <div className="flex items-center gap-3 min-w-0 flex-1"> 
+                        <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center bg-white shadow-sm group-hover:scale-110 transition-transform`}>
                             <IconComponent className={`w-5 h-5 ${theme.icon}`} />
                         </div>
-                        <div>
-                            <p className="text-sm text-slate-500 font-medium">หน่วยงาน</p>
-                            <h4 className="font-bold text-slate-800 text-lg leading-tight break-words" title={unit.name}>
+                        <div className="min-w-0"> 
+                            <p className="text-xs text-slate-500 font-medium">หน่วยงาน</p>
+                            {/* เอา truncate ออก และใส่ leading-tight break-words เพื่อให้แสดงชื่อเต็มได้ (อาจจะขึ้นบรรทัดใหม่ถ้ายาวเกินกรอบ) */}
+                            <h4 className="font-bold text-slate-800 text-sm leading-tight break-words" title={unit.name}>
                                 {unit.name}
                             </h4>
                         </div>
