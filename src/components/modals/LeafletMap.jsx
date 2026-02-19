@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle } from 'react-leaflet';
+// แก้ไขบรรทัดนี้เพื่อเพิ่ม GeoJSON
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, GeoJSON } from 'react-leaflet';
+
+import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -218,6 +221,18 @@ const LeafletMap = ({ data, outbreaks = [], onDeleteOutbreak }) => {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                {bangkokGeoJSON && (
+                    <GeoJSON 
+                        data={bangkokGeoJSON} 
+                        style={{
+                            fillColor: '#cbd5e1', // สีพื้นเทาอ่อนแบบในรูป
+                            fillOpacity: 0.4,     // ความโปร่งแสงของพื้น
+                            color: '#334155',     // สีเส้นขอบเข้ม (สีดำ/เทาเข้ม)
+                            weight: 2,            // ความหนาของเส้นขอบ
+                            opacity: 1
+                        }}
+                    />
+                )}
                 
                 {/* 1. Unit Markers */}
                 <MarkerClusterGroup 

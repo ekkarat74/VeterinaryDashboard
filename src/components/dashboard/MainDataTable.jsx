@@ -17,6 +17,14 @@ const MainDataTable = ({
     // Helper สำหรับจัดรูปแบบตัวเลข
     const formatNumber = (num) => num ? num.toLocaleString() : '0';
 
+    const totals = data.reduce((acc, item) => ({
+        vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
+        sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
+        register: acc.register + (Number(item.stats?.register) || 0),
+        microchip: acc.microchip + (Number(item.stats?.microchip) || 0),
+        treatment: acc.treatment + (Number(item.stats?.treatment) || 0),
+    }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, treatment: 0 });
+
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden">
             {/* Header Section */}
@@ -202,6 +210,19 @@ const MainDataTable = ({
                             </tr>
                         )}
                     </tbody>
+                    {data.length > 0 && (
+                        <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
+                            <tr>
+                                <td colSpan="3" className="px-6 py-4 text-right text-sm">รวมทั้งหมด:</td>
+                                <td className="px-6 py-4 text-center text-blue-700">{formatNumber(totals.vaccine)}</td>
+                                <td className="px-6 py-4 text-center text-orange-700">{formatNumber(totals.sterilize)}</td>
+                                <td className="px-6 py-4 text-center text-teal-700">{formatNumber(totals.register)}</td>
+                                <td className="px-6 py-4 text-center text-purple-700">{formatNumber(totals.microchip)}</td>
+                                <td className="px-6 py-4 text-center text-emerald-700">{formatNumber(totals.treatment)}</td>
+                                <td colSpan={canEdit ? 2 : 1}></td>
+                            </tr>
+                        </tfoot>
+                    )}
                 </table>
             </div>
             

@@ -31,44 +31,45 @@ const UnitCard = ({ unit, index, maxVal }) => {
     // คำนวณ % ความยาวของหลอดพลัง (Progress Bar)
     const percentage = maxVal > 0 ? (unit.count / maxVal) * 100 : 0;
     
-    // กำหนดสีพิเศษสำหรับ Top 3
-    let rankColor = "bg-slate-100 text-slate-500";
-    let iconColor = "text-indigo-500 bg-indigo-50";
-    let barColor = "bg-indigo-500";
+    // สร้างชุดสี Pastel หวานๆ อ่อนๆ 10 โทนสี
+    const colorThemes = [
+        { bg: "bg-blue-50/80", border: "hover:border-blue-300", icon: "text-blue-500", bar: "bg-blue-400", rank: "bg-blue-100 text-blue-700" },
+        { bg: "bg-emerald-50/80", border: "hover:border-emerald-300", icon: "text-emerald-500", bar: "bg-emerald-400", rank: "bg-emerald-100 text-emerald-700" },
+        { bg: "bg-purple-50/80", border: "hover:border-purple-300", icon: "text-purple-500", bar: "bg-purple-400", rank: "bg-purple-100 text-purple-700" },
+        { bg: "bg-orange-50/80", border: "hover:border-orange-300", icon: "text-orange-500", bar: "bg-orange-400", rank: "bg-orange-100 text-orange-700" },
+        { bg: "bg-pink-50/80", border: "hover:border-pink-300", icon: "text-pink-500", bar: "bg-pink-400", rank: "bg-pink-100 text-pink-700" },
+        { bg: "bg-cyan-50/80", border: "hover:border-cyan-300", icon: "text-cyan-500", bar: "bg-cyan-400", rank: "bg-cyan-100 text-cyan-700" },
+        { bg: "bg-amber-50/80", border: "hover:border-amber-300", icon: "text-amber-500", bar: "bg-amber-400", rank: "bg-amber-100 text-amber-700" },
+        { bg: "bg-rose-50/80", border: "hover:border-rose-300", icon: "text-rose-500", bar: "bg-rose-400", rank: "bg-rose-100 text-rose-700" },
+        { bg: "bg-teal-50/80", border: "hover:border-teal-300", icon: "text-teal-500", bar: "bg-teal-400", rank: "bg-teal-100 text-teal-700" },
+        { bg: "bg-indigo-50/80", border: "hover:border-indigo-300", icon: "text-indigo-500", bar: "bg-indigo-400", rank: "bg-indigo-100 text-indigo-700" }
+    ];
 
-    if (index === 0) { // อันดับ 1
-        rankColor = "bg-yellow-100 text-yellow-700 border border-yellow-200";
-        iconColor = "text-yellow-600 bg-yellow-50";
-        barColor = "bg-gradient-to-r from-yellow-400 to-orange-500";
-    } else if (index === 1) { // อันดับ 2
-        rankColor = "bg-slate-200 text-slate-700 border border-slate-300";
-        iconColor = "text-slate-600 bg-slate-100";
-        barColor = "bg-gradient-to-r from-slate-400 to-slate-600";
-    } else if (index === 2) { // อันดับ 3
-        rankColor = "bg-orange-100 text-orange-800 border border-orange-200";
-        iconColor = "text-orange-600 bg-orange-50";
-        barColor = "bg-gradient-to-r from-orange-400 to-red-500";
-    }
+    // เลือกธีมสีตามลำดับ (index) โดยใช้ Modulo (%) เพื่อให้วนลูปสีได้หากมีหน่วยงานเยอะกว่า 10 หน่วย
+    const theme = colorThemes[index % colorThemes.length];
+
+    // ให้หน่วยงานอันดับ 1 (index 0) เป็นไอคอนถ้วยรางวัล นอกนั้นเป็นหมุดแผนที่
+    const IconComponent = index === 0 ? Trophy : MapPin;
 
     return (
-        <div className="group relative bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-indigo-300 transition-all duration-300 overflow-hidden">
+        <div className={`group relative ${theme.bg} rounded-xl border border-slate-200 shadow-sm hover:shadow-lg ${theme.border} transition-all duration-300 overflow-hidden`}>
             <div className="p-5">
                 <div className="flex justify-between items-start mb-4">
                     {/* Icon & Name */}
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColor} group-hover:scale-110 transition-transform`}>
-                           {index === 0 ? <Trophy className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-white shadow-sm group-hover:scale-110 transition-transform`}>
+                            <IconComponent className={`w-5 h-5 ${theme.icon}`} />
                         </div>
                         <div>
                             <p className="text-sm text-slate-500 font-medium">หน่วยงาน</p>
-                            <h4 className="font-bold text-slate-800 text-lg leading-tight line-clamp-1" title={unit.name}>
+                            <h4 className="font-bold text-slate-800 text-lg leading-tight break-words" title={unit.name}>
                                 {unit.name}
                             </h4>
                         </div>
                     </div>
                     
                     {/* Rank Badge */}
-                    <div className={`text-xs font-bold px-2 py-1 rounded-md ${rankColor}`}>
+                    <div className={`text-xs font-bold px-2 py-1 rounded-md ${theme.rank}`}>
                         #{index + 1}
                     </div>
                 </div>
@@ -78,15 +79,16 @@ const UnitCard = ({ unit, index, maxVal }) => {
                     <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
                         {unit.count.toLocaleString()}
                     </span>
-                    <span className="text-sm text-slate-400 font-medium mb-1">ครั้ง</span>
+                    <span className="text-sm text-slate-500 font-medium mb-1">ครั้ง</span>
                 </div>
 
-                <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5 bg-orange-50 px-2 py-1 rounded-md">
+                {/* ข้อมูลสุนัข/แมว */}
+                <div className="flex items-center gap-3 pt-3 border-t border-slate-200/50">
+                    <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
                         <Dog className="w-3.5 h-3.5 text-orange-600" />
                         <span className="text-xs font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded-md">
+                    <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
                         <Cat className="w-3.5 h-3.5 text-blue-600" />
                         <span className="text-xs font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
                     </div>
@@ -94,10 +96,10 @@ const UnitCard = ({ unit, index, maxVal }) => {
             </div>
 
             {/* Progress Bar Background */}
-            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-100">
+            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-200/50">
                 {/* Active Progress */}
                 <div 
-                    className={`h-full ${barColor} group-hover:h-2 transition-all duration-500 ease-out`} 
+                    className={`h-full ${theme.bar} group-hover:h-2 transition-all duration-500 ease-out`} 
                     style={{ width: `${percentage}%` }}
                 ></div>
             </div>

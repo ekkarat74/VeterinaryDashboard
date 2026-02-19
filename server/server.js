@@ -140,6 +140,8 @@ const Meeting = mongoose.model('Meeting', meetingSchema);
 //6. Dispatch Plan Schema (แผนการออกหน่วย) ---
 const dispatchPlanSchema = new mongoose.Schema({
     unitType: { type: String, required: true }, // sterilization, microchip
+    unitLetter: { type: String, default: '' },
+    unitColor: { type: String, default: 'bg-blue-500' },
     title: String,       // ชื่อหน่วยงานที่แสดง
     date: { type: String, required: true },
     time: String,        // เวลารถออก
