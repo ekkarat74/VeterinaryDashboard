@@ -1192,15 +1192,39 @@ export default function VeterinaryDashboard() {
     }, [filteredData]);
 
 const totals = useMemo(() => filteredData.reduce((acc, curr) => {
-    // ใช้ ?. เพื่อเช็คว่ามี stats หรือไม่ ถ้าไม่มีให้ใช้ 0 แทน
-    return {
-        vaccine: acc.vaccine + (curr.stats?.vaccine || 0), 
-        sterilize: acc.sterilize + (curr.stats?.sterilize || 0), 
-        register: acc.register + (curr.stats?.register || 0),
-        microchip: acc.microchip + (curr.stats?.microchip || 0), 
-        medical: acc.medical + (curr.stats?.medical || 0),
-    };
-}, { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }), [filteredData]);
+        // ดึงข้อมูล detail เพื่อเอาไปนับแยกหมา-แมว
+        const d = curr.details?.dog || {};
+        const c = curr.details?.cat || {};
+        const toNum = (val) => parseInt(val, 10) || 0;
+
+        return {
+            vaccine: acc.vaccine + (curr.stats?.vaccine || 0), 
+            sterilize: acc.sterilize + (curr.stats?.sterilize || 0), 
+            register: acc.register + (curr.stats?.register || 0),
+            microchip: acc.microchip + (curr.stats?.microchip || 0), 
+            medical: acc.medical + (curr.stats?.medical || 0),
+            
+            // เพิ่มการเก็บยอดแยกหมา/แมวในแต่ละบริการ
+            dog: {
+                vaccine: acc.dog.vaccine + toNum(d.vaccine),
+                sterilize: acc.dog.sterilize + toNum(d.maleSterilize) + toNum(d.femaleSterilize),
+                register: acc.dog.register + toNum(d.register),
+                microchip: acc.dog.microchip + toNum(d.microchip),
+                medical: acc.dog.medical + toNum(d.medical),
+            },
+            cat: {
+                vaccine: acc.cat.vaccine + toNum(c.vaccine),
+                sterilize: acc.cat.sterilize + toNum(c.maleSterilize) + toNum(c.femaleSterilize),
+                register: acc.cat.register + toNum(c.register),
+                microchip: acc.cat.microchip + toNum(c.microchip),
+                medical: acc.cat.medical + toNum(c.medical),
+            }
+        };
+    }, { 
+        vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0,
+        dog: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 },
+        cat: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
+    }), [filteredData]);
 
     const unitStats = useMemo(() => {
         const grouped = filteredData.reduce((acc, curr) => {

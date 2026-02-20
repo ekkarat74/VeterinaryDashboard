@@ -5,24 +5,40 @@ import {
 } from 'lucide-react';
 
 // --- 1. Sub-Component: การ์ด KPI (สำหรับยอดรวม) ---
-const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default group relative overflow-hidden">
+const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, dogCount, catCount }) => (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default group relative overflow-hidden h-full">
         {/* Decoration: วงกลมจางๆ ด้านหลัง */}
         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 transition-transform group-hover:scale-150 duration-500 ${colorClass}`}></div>
         
-        <div className="relative z-10">
-            <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-            <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">{value.toLocaleString()}</h3>
-            <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                <span className={`w-2 h-2 rounded-full inline-block animate-pulse ${colorClass}`}></span>
-                {subtext}
-            </p>
+        <div className="flex justify-between items-start w-full relative z-10 mb-4">
+            <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
+                <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">{value.toLocaleString()}</h3>
+                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <span className={`w-2 h-2 rounded-full inline-block animate-pulse ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
+                    {subtext}
+                </p>
+            </div>
+            
+            {/* Icon Box */}
+            <div className={`w-14 h-14 rounded-2xl ${colorClass} ${shadowClass} flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+                <Icon className="w-7 h-7 text-white drop-shadow-md" />
+            </div>
         </div>
-        
-        {/* Icon Box */}
-        <div className={`w-14 h-14 rounded-2xl ${colorClass} ${shadowClass} flex items-center justify-center relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-            <Icon className="w-7 h-7 text-white drop-shadow-md" />
-        </div>
+
+        {/* ข้อมูลสุนัข/แมว */}
+        {(dogCount !== undefined || catCount !== undefined) && (
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-auto relative z-10">
+                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                    <Dog className="w-3.5 h-3.5 text-orange-500" />
+                    <span className="text-xs font-bold text-slate-600">{dogCount?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                    <Cat className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="text-xs font-bold text-slate-600">{catCount?.toLocaleString() || 0}</span>
+                </div>
+            </div>
+        )}
     </div>
 );
 
@@ -155,6 +171,8 @@ const KPISection = ({ totals, unitStats = [] }) => {
                     <KPICard 
                         title="จำนวนวัคซีนทั้งหมด" 
                         value={totals.vaccine} 
+                        dogCount={totals.dog?.vaccine}
+                        catCount={totals.cat?.vaccine}
                         subtext="สะสมรวมทุกหน่วย" 
                         icon={Syringe} 
                         colorClass="bg-gradient-to-br from-blue-500 to-blue-700" 
@@ -162,7 +180,9 @@ const KPISection = ({ totals, unitStats = [] }) => {
                     />
                     <KPICard 
                         title="จำนวนการทำหมัน" 
-                        value={totals.sterilize} 
+                        value={totals.sterilize}
+                        dogCount={totals.dog?.sterilize}
+                        catCount={totals.cat?.sterilize} 
                         subtext="สุนัขและแมว" 
                         icon={Scissors} 
                         colorClass="bg-gradient-to-br from-orange-400 to-orange-600" 
@@ -171,6 +191,8 @@ const KPISection = ({ totals, unitStats = [] }) => {
                     <KPICard 
                         title="ขึ้นทะเบียนสัตว์เลี้ยง" 
                         value={totals.register} 
+                        dogCount={totals.dog?.register}
+                        catCount={totals.cat?.register}
                         subtext="ลงระบบฐานข้อมูล" 
                         icon={FileText} 
                         colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" 
@@ -179,6 +201,8 @@ const KPISection = ({ totals, unitStats = [] }) => {
                     <KPICard 
                         title="ฝังไมโครชิป" 
                         value={totals.microchip} 
+                        dogCount={totals.dog?.microchip}
+                        catCount={totals.cat?.microchip}
                         subtext="ระบุตัวตนสัตว์" 
                         icon={Database} 
                         colorClass="bg-gradient-to-br from-purple-500 to-purple-700" 
@@ -186,7 +210,9 @@ const KPISection = ({ totals, unitStats = [] }) => {
                     />
                     <KPICard 
                         title="จำนวนการรักษาสัตว์" 
-                        value={totals.medical} 
+                        value={totals.medical}
+                        dogCount={totals.dog?.medical}
+                        catCount={totals.cat?.medical} 
                         subtext="บริการรักษาพยาบาล" 
                         icon={Stethoscope} 
                         colorClass="bg-gradient-to-br from-rose-400 to-rose-600" 
