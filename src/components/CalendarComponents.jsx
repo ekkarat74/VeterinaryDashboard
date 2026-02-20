@@ -348,6 +348,11 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                                             {evt.title || (evt.type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย')}
                                                         </span>
                                                     </div>
+                                                    {evt.unitLetter && (
+                                                        <div className={`flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-lg text-sm font-black shadow-sm shrink-0 border ${styles.badge}`}>
+                                                            {evt.unitLetter}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className={`font-bold text-slate-800 text-sm mb-2 transition-colors line-clamp-2 ${styles.hoverText}`}>
@@ -420,10 +425,15 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 
                                         <div className="flex flex-col gap-1 mt-1 overflow-hidden">
                                             {dayEvents.slice(0, 3).map((evt, idx) => {
-                                                const styles = getEventStyles(evt); // ดึงสีมาใช้งานกับป้ายบนปฏิทิน
+                                                const styles = getEventStyles(evt); 
                                                 return (
-                                                    <div key={idx} className={`text-[10px] px-2 py-1 rounded-md font-medium truncate border ${styles.badge}`}>
-                                                        {evt.time.split('-')[0]} {evt.location}
+                                                    <div key={idx} className={`flex justify-between items-center text-[10px] px-2 py-1 rounded-md font-medium border ${styles.badge}`}>
+                                                        <span className="truncate">{evt.time.split('-')[0]} {evt.location}</span>
+                                                        {evt.unitLetter && (
+                                                            <span className="font-bold ml-1.5 shrink-0 px-1 rounded-sm bg-white/40">
+                                                                {evt.unitLetter}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 );
                                             })}

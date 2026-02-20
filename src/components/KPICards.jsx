@@ -52,8 +52,8 @@ const UnitCard = ({ unit, index, maxVal }) => {
     const IconComponent = index === 0 ? Trophy : MapPin;
 
     return (
-        <div className={`group relative ${theme.bg} rounded-xl border border-slate-200 shadow-sm hover:shadow-lg ${theme.border} transition-all duration-300 overflow-hidden`}>
-            <div className="p-5">
+        <div className={`group relative ${theme.bg} rounded-xl border border-slate-200 shadow-sm hover:shadow-lg ${theme.border} transition-all duration-300 overflow-hidden h-full flex flex-col`}>
+            <div className="p-5 flex flex-col flex-grow mb-1.5">
                 <div className="flex justify-between items-start mb-4">
                     {/* Icon & Name */}
                     <div className="flex items-center gap-3 min-w-0 flex-1"> 
@@ -75,23 +75,25 @@ const UnitCard = ({ unit, index, maxVal }) => {
                     </div>
                 </div>
 
-                {/* Value Section */}
-                <div className="flex items-end gap-2 mb-2">
-                    <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
-                        {unit.count.toLocaleString()}
-                    </span>
-                    <span className="text-sm text-slate-500 font-medium mb-1">ครั้ง</span>
-                </div>
-
-                {/* ข้อมูลสุนัข/แมว */}
-                <div className="flex items-center gap-3 pt-3 border-t border-slate-200/50">
-                    <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
-                        <Dog className="w-3.5 h-3.5 text-orange-600" />
-                        <span className="text-xs font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
+                <div className="mt-auto">
+                    {/* Value Section */}
+                    <div className="flex items-end gap-2 mb-2">
+                        <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                            {unit.count.toLocaleString()}
+                        </span>
+                        <span className="text-sm text-slate-500 font-medium mb-1">ครั้ง</span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
-                        <Cat className="w-3.5 h-3.5 text-blue-600" />
-                        <span className="text-xs font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
+
+                    {/* ข้อมูลสุนัข/แมว */}
+                    <div className="flex items-center gap-3 pt-3 border-t border-slate-200/50">
+                        <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
+                            <Dog className="w-3.5 h-3.5 text-orange-600" />
+                            <span className="text-xs font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
+                            <Cat className="w-3.5 h-3.5 text-blue-600" />
+                            <span className="text-xs font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
+                        </div>
                     </div>
                 </div>
             </div>
