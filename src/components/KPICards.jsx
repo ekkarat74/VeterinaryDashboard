@@ -11,9 +11,15 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 transition-transform group-hover:scale-150 duration-500 ${colorClass}`}></div>
         
         <div className="flex justify-between items-start w-full relative z-10 mb-4">
-            <div>
-                <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-                <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">{value.toLocaleString()}</h3>
+            {/* 1. ใส่ flex-1 และ pr-2 เพื่อป้องกันข้อความยาวไปชนกับไอคอน */}
+            <div className="flex-1 pr-2">
+                {/* 2. เพิ่ม min-h-[2.5rem] (ความสูง 2 บรรทัดพอดี) และ line-clamp-2 (กันเกิน 2 บรรทัด) เพื่อให้ฐานตัวเลขเท่ากันทุกการ์ด */}
+                <p className="text-sm font-medium text-slate-500 mb-1 min-h-[2.5rem] leading-tight line-clamp-2">
+                    {title}
+                </p>
+                <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                    {value.toLocaleString()}
+                </h3>
                 <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
                     <span className={`w-2 h-2 rounded-full inline-block animate-pulse ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
                     {subtext}
