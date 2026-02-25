@@ -22,7 +22,7 @@ const MainDataTable = ({
         sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
         register: acc.register + (Number(item.stats?.register) || 0),
         microchip: acc.microchip + (Number(item.stats?.microchip) || 0),
-        treatment: acc.treatment + (Number(item.stats?.treatment) || 0),
+        medical: acc.medical + (Number(item.stats?.medical) || 0),
     }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, treatment: 0 });
 
     return (
@@ -218,7 +218,7 @@ const MainDataTable = ({
                                 <td className="px-6 py-4 text-center text-orange-700">{formatNumber(totals.sterilize)}</td>
                                 <td className="px-6 py-4 text-center text-teal-700">{formatNumber(totals.register)}</td>
                                 <td className="px-6 py-4 text-center text-purple-700">{formatNumber(totals.microchip)}</td>
-                                <td className="px-6 py-4 text-center text-emerald-700">{formatNumber(totals.treatment)}</td>
+                                <td className="px-6 py-4 text-center text-emerald-700">{formatNumber(totals.medical)}</td>
                                 <td colSpan={canEdit ? 2 : 1}></td>
                             </tr>
                         </tfoot>
