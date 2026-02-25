@@ -19,6 +19,7 @@ import Header from './components/layout/Header';
 import StatisticsCharts from './components/dashboard/StatisticsCharts.jsx';
 import RankingSection from './components/dashboard/RankingSection';
 import LeafletMap from './components/modals/LeafletMap';
+import OutbreakMap from './components/modals/OutbreakMap';
 import LoginModal from './components/modals/LoginModal';
 import AddOutbreakModal from './components/modals/AddOutbreakModal';
 import { MeetingCalendarDashboard, DispatchCalendarDashboard } from './components/CalendarComponents.jsx';
@@ -1317,11 +1318,57 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
 
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y !== null))].sort().reverse(), [outbreakData]);
     const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter(item => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
+    // --- แก้ไขส่วนการคำนวณ outbreakStats ใน VeterinaryDashboard ---
     const outbreakStats = useMemo(() => {
         const total = filteredOutbreaks.length;
         const grouped = filteredOutbreaks.reduce((acc, curr) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
         const topDistricts = Object.keys(grouped).map(key => ({ name: key, count: grouped[key] })).sort((a, b) => b.count - a.count).slice(0, 5);
-        return { total, topDistricts };
+
+        // --- เพิ่มการคำนวณสถิติสัตว์แยกประเภท ---
+        const animalStats = {
+            owned: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 },
+            unowned: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 },
+            feeder: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 }
+        };
+
+        filteredOutbreaks.forEach(item => {
+            if (item.stats) {
+                ['owned', 'unowned', 'feeder'].forEach(type => {
+                    if (item.stats[type]) {
+                        animalStats[type].dogMale += parseInt(item.stats[type].dog?.male) || 0;
+                        animalStats[type].dogFemale += parseInt(item.stats[type].dog?.female) || 0;
+                        animalStats[type].catMale += parseInt(item.stats[type].cat?.male) || 0;
+                        animalStats[type].catFemale += parseInt(item.stats[type].cat?.female) || 0;
+                    }
+                });
+            }
+        });
+
+        const animalChartData = [
+            {
+                name: 'สัตว์มีเจ้าของ',
+                dogMale: animalStats.owned.dogMale,
+                dogFemale: animalStats.owned.dogFemale,
+                catMale: animalStats.owned.catMale,
+                catFemale: animalStats.owned.catFemale
+            },
+            {
+                name: 'ไม่มีเจ้าของ',
+                dogMale: animalStats.unowned.dogMale,
+                dogFemale: animalStats.unowned.dogFemale,
+                catMale: animalStats.unowned.catMale,
+                catFemale: animalStats.unowned.catFemale
+            },
+            {
+                name: 'ผู้ให้อาหาร',
+                dogMale: animalStats.feeder.dogMale,
+                dogFemale: animalStats.feeder.dogFemale,
+                catMale: animalStats.feeder.catMale,
+                catFemale: animalStats.feeder.catFemale
+            }
+        ];
+
+        return { total, topDistricts, animalChartData };
     }, [filteredOutbreaks]);
     const outbreakYearlyTrend = useMemo(() => {
         const stats = outbreakData.reduce((acc, curr) => { if (!curr.date) return acc; const year = curr.date.split('-')[0]; acc[year] = (acc[year] || 0) + 1; return acc; }, {});
@@ -1799,16 +1846,30 @@ const parseCSVDate = (dateStr) => {
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                                 <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
                                 <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                    <LeafletMap data={mapDisplayData} outbreaks={filteredOutbreaks.filter(item => !hiddenOutbreakIds.includes(item._id))} onDeleteOutbreak={canEdit ? handleDeleteOutbreak : undefined} />
+                                    {/* แมพ 1: แสดงเฉพาะผลการปฏิบัติงาน (ใช้ LeafletMap เดิม) */}
+                                    <LeafletMap data={mapDisplayData} />
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* แท็บที่ 2: การจัดการจุดเสี่ยง */}
                     {activeTab === 'outbreak' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <RabiesOutbreakSection outbreakData={outbreakData} filterYear={outbreakFilterYear} setFilterYear={setOutbreakFilterYear} years={availableOutbreakYears} stats={outbreakStats} filteredOutbreaks={filteredOutbreaks} yearlyTrend={outbreakYearlyTrend} hiddenIds={hiddenOutbreakIds} toggleVisibility={toggleOutbreakVisibility} onEdit={openEditOutbreakModal} onDelete={handleDeleteOutbreak} canEdit={canEdit} />
+                            <RabiesOutbreakSection 
+                                outbreakData={outbreakData} 
+                                filterYear={outbreakFilterYear} 
+                                setFilterYear={setOutbreakFilterYear} 
+                                years={availableOutbreakYears} 
+                                stats={outbreakStats} 
+                                filteredOutbreaks={filteredOutbreaks} 
+                                yearlyTrend={outbreakYearlyTrend} 
+                                hiddenIds={hiddenOutbreakIds} 
+                                toggleVisibility={toggleOutbreakVisibility} 
+                                onEdit={openEditOutbreakModal} 
+                                onDelete={handleDeleteOutbreak} 
+                                canEdit={canEdit} 
+                            />
+                            {/* ลบ <div> ของแผนที่ตรงนี้ออกทั้งหมด เพราะเราจะย้ายเข้าไปข้างใน RabiesOutbreakSection แทน */}
                         </div>
                     )}
 

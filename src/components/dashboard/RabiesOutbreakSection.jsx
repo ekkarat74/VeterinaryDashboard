@@ -1,5 +1,7 @@
+import React from 'react';
 import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, EyeOff, Edit, Trash2, TrendingUp, Search } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import OutbreakMap from '../modals/OutbreakMap';// <-- อย่าลืม import ให้ตรงกับ path ของคุณด้วยนะครับ
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -76,6 +78,24 @@ const RabiesOutbreakSection = ({
                             ))}
                         </select>
                     </div>
+                </div>
+            </div>
+
+            {/* --- ย้าย Map มาไว้ตรงนี้ (ระหว่าง Header และส่วนของกราฟ) --- */}
+            <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 h-[45rem] relative z-0 flex flex-col">
+                <div className="flex justify-between items-center mb-4 px-2">
+                    <div>
+                        <h4 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-red-500" /> แผนที่พิกัดจุดเกิดเหตุ
+                        </h4>
+                        <p className="text-sm text-slate-400">แสดงพิกัดและการจำลองรัศมีเฝ้าระวังโรค</p>
+                    </div>
+                </div>
+                <div className="flex-1 rounded-2xl overflow-hidden border border-slate-200">
+                    <OutbreakMap 
+                        outbreaks={filteredOutbreaks.filter(item => !hiddenIds.includes(item._id))} 
+                        onDeleteOutbreak={canEdit ? onDelete : undefined} 
+                    />
                 </div>
             </div>
 
@@ -181,7 +201,7 @@ const RabiesOutbreakSection = ({
                                                 )}
                                             </div>
 
-                                            {/* Action Buttons - Always Visible & Right Aligned */}
+                                            {/* Action Buttons */}
                                             <div className="flex flex-col gap-1 shrink-0 ml-1 self-center border-l border-slate-100 pl-2">
                                                 <button onClick={(e) => { e.stopPropagation(); toggleVisibility(item._id); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title={isHidden ? "แสดง" : "ซ่อน"}>
                                                     {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -253,16 +273,13 @@ const RabiesOutbreakSection = ({
                             </div>
                         </div>
                         <div className="w-full h-80 mt-6">
-                            {/* เพิ่มการเช็คข้อมูล (Empty State) */}
                             {yearlyTrend && yearlyTrend.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    {/* เปลี่ยนจาก AreaChart เป็น BarChart */}
                                     <BarChart data={yearlyTrend} margin={{top: 10, right: 0, left: -20, bottom: 0}} barSize={40}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8', fontWeight: 500}} dy={15} />
                                         <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
                                         <RechartsTooltip cursor={{fill: '#f8fafc'}} content={<CustomTooltip />} />
-                                        {/* เปลี่ยน Area เป็น Bar และปรับความโค้งมนของแท่งกราฟ (radius) */}
                                         <Bar dataKey="count" name="จุดเสี่ยงที่พบ" fill="#6366f1" radius={[8, 8, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -277,6 +294,45 @@ const RabiesOutbreakSection = ({
                          </div>
                     </div>
                 </div>
+
+                {/* --- สถิติจำนวนสัตว์ --- */}
+                <div className="lg:col-span-12 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 mt-2">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h4 className="text-lg font-bold text-slate-800">สถิติจำนวนสัตว์ในพื้นที่เสี่ยง (แยกตามกลุ่ม)</h4>
+                            <p className="text-sm text-slate-400">หมา ตัวผู้-เมีย / แมว ตัวผู้-เมีย</p>
+                        </div>
+                    </div>
+                    <div className="w-full h-[350px]">
+                        {stats.animalChartData && stats.animalChartData.some(d => d.dogMale > 0 || d.dogFemale > 0 || d.catMale > 0 || d.catFemale > 0) ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={stats.animalChartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 13, fontWeight: 600, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                                    <RechartsTooltip 
+                                        cursor={{ fill: '#f8fafc' }} 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        itemStyle={{ fontWeight: 'bold' }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                    <Bar dataKey="dogMale" name="หมา (ตัวผู้)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="dogFemale" name="หมา (ตัวเมีย)" fill="#93c5fd" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="catMale" name="แมว (ตัวผู้)" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="catFemale" name="แมว (ตัวเมีย)" fill="#fdba74" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100">
+                                <div className="bg-slate-100 p-4 rounded-full mb-3">
+                                    <Activity className="w-6 h-6 text-slate-300" />
+                                </div>
+                                <span>ยังไม่มีข้อมูลสถิติสัตว์ที่บันทึกไว้</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
             </div>
         </div>
     );
