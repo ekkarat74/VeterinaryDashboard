@@ -23,7 +23,7 @@ const MainDataTable = ({
         register: acc.register + (Number(item.stats?.register) || 0),
         microchip: acc.microchip + (Number(item.stats?.microchip) || 0),
         medical: acc.medical + (Number(item.stats?.medical) || 0),
-    }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, treatment: 0 });
+    }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
 
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden">
@@ -152,7 +152,7 @@ const MainDataTable = ({
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700">
                                             <Stethoscope className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats.treatment)}</span>
+                                            <span className="font-bold text-sm">{formatNumber(item.stats?.medical)}</span>
                                         </div>
                                     </td>
 
