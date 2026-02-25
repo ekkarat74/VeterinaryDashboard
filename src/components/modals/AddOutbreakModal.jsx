@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Skull, X, Navigation, MapPin, Activity, Edit, Siren } from 'lucide-react';
+import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map } from 'lucide-react';
 // ปรับ path ให้ตรงกับโครงสร้างโปรเจคของคุณ
 import { BANGKOK_DISTRICTS } from '../../constants/locations'; 
 
 const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
+
+    const defaultStats = {
+        owned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
+        unowned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
+        feeder: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
+    };
+
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         location: '',
         district: BANGKOK_DISTRICTS[0],
         lat: '',
         long: '',
-        stats: {
-            dog: { male: 0, female: 0 },
-            cat: { male: 0, female: 0 }
-        }
+        stats: defaultStats
     });
 
-    // State สำหรับควบคุม Input พิกัด เพื่อให้พิมพ์ลื่นไหล
     const [coordInput, setCoordInput] = useState("");
 
     useEffect(() => {
@@ -29,13 +32,17 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     lat: initialData.lat,
                     long: initialData.long,
                     stats: {
-                        dog: { 
-                            male: initialData.stats?.dog?.male || 0, 
-                            female: initialData.stats?.dog?.female || 0 
+                        owned: { 
+                            dog: { male: initialData.stats?.owned?.dog?.male || 0, female: initialData.stats?.owned?.dog?.female || 0 },
+                            cat: { male: initialData.stats?.owned?.cat?.male || 0, female: initialData.stats?.owned?.cat?.female || 0 }
                         },
-                        cat: { 
-                            male: initialData.stats?.cat?.male || 0, 
-                            female: initialData.stats?.cat?.female || 0 
+                        unowned: { 
+                            dog: { male: initialData.stats?.unowned?.dog?.male || 0, female: initialData.stats?.unowned?.dog?.female || 0 },
+                            cat: { male: initialData.stats?.unowned?.cat?.male || 0, female: initialData.stats?.unowned?.cat?.female || 0 }
+                        },
+                        feeder: { 
+                            dog: { male: initialData.stats?.feeder?.dog?.male || 0, female: initialData.stats?.feeder?.dog?.female || 0 },
+                            cat: { male: initialData.stats?.feeder?.cat?.male || 0, female: initialData.stats?.feeder?.cat?.female || 0 }
                         }
                     }
                 });
@@ -46,25 +53,41 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     setCoordInput("");
                 }
             } else {
-                // กรณีเพิ่มใหม่
                 setFormData({
                     date: new Date().toISOString().split('T')[0],
                     location: '',
                     district: BANGKOK_DISTRICTS[0],
                     lat: '',
                     long: '',
-                    stats: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
+                    stats: defaultStats
                 });
                 setCoordInput("");
             }
         }
     }, [isOpen, initialData]);
 
+    // ฟังก์ชันจัดการการเปลี่ยนแปลงตัวเลขสถิติ (ช่วยให้โค้ดสะอาดขึ้นมาก)
+    const handleStatChange = (category, animal, gender, value) => {
+        const numValue = parseInt(value) || 0;
+        setFormData(prev => ({
+            ...prev,
+            stats: {
+                ...prev.stats,
+                [category]: {
+                    ...prev.stats[category],
+                    [animal]: {
+                        ...prev.stats[category][animal],
+                        [gender]: numValue >= 0 ? numValue : 0 // ป้องกันค่าติดลบ
+                    }
+                }
+            }
+        }));
+    };
+
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
         const payload = {
             ...formData,
             lat: (formData.lat && !isNaN(formData.lat)) ? parseFloat(formData.lat) : 0,
@@ -79,130 +102,165 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
         onClose();
     };
 
+    // ข้อมูลหมวดหมู่สำหรับ Render
+    const categories = [
+        { key: 'owned', label: '🏠 สัตว์มีเจ้าของ', color: 'bg-blue-50 border-blue-100 text-blue-800' }, 
+        { key: 'unowned', label: '🛣️ สัตว์ไม่มีเจ้าของ', color: 'bg-orange-50 border-orange-100 text-orange-800' }, 
+        { key: 'feeder', label: '🥣 สัตว์มีผู้ให้อาหาร', color: 'bg-emerald-50 border-emerald-100 text-emerald-800' }
+    ];
+
     return (
-        <div className="fixed inset-0 bg-red-900/40 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-2 border-red-500">
-                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in">
+            {/* ปรับขนาดและทำระบบ Scroll ภายใน Modal */}
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+                
+                {/* Header (Sticky) */}
+                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
                     <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Skull className="w-6 h-6" /> {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
+                        <Skull className="w-6 h-6" /> 
+                        {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
                     </h3>
-                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+                    <button 
+                        onClick={onClose} 
+                        className="hover:bg-red-700 p-1.5 rounded-full transition-colors"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">วันที่พบเชื้อ</label>
-                        <input required type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                            value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">สถานที่พบ (Location)</label>
-                        <input required type="text" placeholder="ระบุสถานที่" className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                            value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">เขตพื้นที่ (District)</label>
-                        <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
-                            value={formData.district} onChange={e => setFormData({ ...formData, district: e.target.value })}>
-                            {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                    </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
-                            <Navigation className="w-3 h-3 text-red-500" /> พิกัดภูมิศาสตร์ (Latitude, Longitude)
-                        </label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                placeholder="เช่น 13.xxxx, 100.xxxx" 
-                                className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono"
-                                value={coordInput} 
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setCoordInput(value);
-
-                                    if (value.includes(',')) {
-                                        const parts = value.split(',');
-                                        const latVal = parts[0].trim();
-                                        const longVal = parts[1] ? parts[1].trim() : '';
-                                        setFormData({ ...formData, lat: latVal, long: longVal });
-                                    } else {
-                                        setFormData({ ...formData, lat: value.trim(), long: '' });
-                                    }
-                                }}
-                            />
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
-                        <label className="text-xs font-bold text-slate-500 flex items-center gap-2">
-                            <Activity className="w-3 h-3" /> จำนวนสัตว์ที่พบเชื้อ (ตัว)
-                        </label>
+                {/* Form Body (Scrollable) */}
+                <div className="overflow-y-auto p-6 flex-1 bg-slate-50/50">
+                    <form id="outbreak-form" onSubmit={handleSubmit} className="space-y-6">
                         
-                        {/* แถวสุนัข */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold w-12 text-slate-700">🐶 สุนัข</span>
-                            <div className="flex-1 flex gap-2">
-                                 <div className="relative flex-1">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ผู้</span>
-                                    <input type="number" min="0" className="w-full pl-6 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                                        value={formData.stats.dog.male}
-                                        onChange={e => setFormData({
-                                            ...formData, 
-                                            stats: { ...formData.stats, dog: { ...formData.stats.dog, male: parseInt(e.target.value) || 0 } }
-                                        })}
-                                    />
+                        {/* Section 1: ข้อมูลทั่วไป */}
+                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
+                                <Map className="w-4 h-4 text-red-500" /> ข้อมูลสถานที่และเวลา
+                            </h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-1.5 flex items-center gap-1">
+                                        <Calendar className="w-3.5 h-3.5" /> วันที่พบเชื้อ
+                                    </label>
+                                    <input required type="date" 
+                                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                                        value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                                 </div>
-                                <div className="relative flex-1">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">เมีย</span>
-                                    <input type="number" min="0" className="w-full pl-8 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                                        value={formData.stats.dog.female}
-                                        onChange={e => setFormData({
-                                            ...formData, 
-                                            stats: { ...formData.stats, dog: { ...formData.stats.dog, female: parseInt(e.target.value) || 0 } }
-                                        })}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-1.5">เขตพื้นที่ (District)</label>
+                                    <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                                        value={formData.district} onChange={e => setFormData({ ...formData, district: e.target.value })}>
+                                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 mb-1.5">สถานที่พบ (รายละเอียด)</label>
+                                <input required type="text" placeholder="ระบุสถานที่ให้ชัดเจน เช่น ซอย, วัด, โรงเรียน" 
+                                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                                    value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 mb-1.5 flex items-center gap-1">
+                                    <Navigation className="w-3.5 h-3.5 text-red-500" /> พิกัดภูมิศาสตร์ (Lat, Long) <span className="text-[10px] text-slate-400 font-normal ml-1">*จำเป็นต้องคั่นด้วยลูกน้ำ (,)</span>
+                                </label>
+                                <div className="relative">
+                                    <input type="text" placeholder="เช่น 13.7563, 100.5018" 
+                                        className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none font-mono bg-slate-50 focus:bg-white"
+                                        value={coordInput} 
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setCoordInput(value);
+                                            if (value.includes(',')) {
+                                                const parts = value.split(',');
+                                                setFormData({ ...formData, lat: parts[0].trim(), long: parts[1] ? parts[1].trim() : '' });
+                                            } else {
+                                                setFormData({ ...formData, lat: value.trim(), long: '' });
+                                            }
+                                        }}
                                     />
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 </div>
                             </div>
                         </div>
 
-                        {/* แถวแมว */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold w-12 text-slate-700">🐱 แมว</span>
-                            <div className="flex-1 flex gap-2">
-                                 <div className="relative flex-1">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">ผู้</span>
-                                    <input type="number" min="0" className="w-full pl-6 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                                        value={formData.stats.cat.male}
-                                        onChange={e => setFormData({
-                                            ...formData, 
-                                            stats: { ...formData.stats, cat: { ...formData.stats.cat, male: parseInt(e.target.value) || 0 } }
-                                        })}
-                                    />
-                                </div>
-                                <div className="relative flex-1">
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">เมีย</span>
-                                    <input type="number" min="0" className="w-full pl-8 p-1.5 border border-slate-300 rounded text-sm text-center" 
-                                        value={formData.stats.cat.female}
-                                        onChange={e => setFormData({
-                                            ...formData, 
-                                            stats: { ...formData.stats, cat: { ...formData.stats.cat, female: parseInt(e.target.value) || 0 } }
-                                        })}
-                                    />
-                                </div>
+                        {/* Section 2: สถิติสัตว์ */}
+                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
+                                <Activity className="w-4 h-4 text-red-500" /> จำนวนสัตว์ที่สัมผัส/อยู่ในกลุ่มเสี่ยง
+                            </h4>
+
+                            <div className="space-y-3">
+                                {categories.map(category => (
+                                    <div key={category.key} className={`p-4 rounded-xl border ${category.color}`}>
+                                        <div className="font-bold text-sm mb-3">{category.label}</div>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {/* โซนสุนัข */}
+                                            <div className="bg-white/60 p-3 rounded-lg flex items-center gap-3">
+                                                <div className="text-sm font-bold text-slate-700 w-16">🐶 สุนัข</div>
+                                                <div className="flex-1 flex gap-2">
+                                                    <div className="flex-1 text-center">
+                                                        <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
+                                                        <input type="number" min="0" 
+                                                            className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
+                                                            value={formData.stats[category.key].dog.male || ''}
+                                                            onChange={e => handleStatChange(category.key, 'dog', 'male', e.target.value)} />
+                                                    </div>
+                                                    <div className="flex-1 text-center">
+                                                        <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
+                                                        <input type="number" min="0" 
+                                                            className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
+                                                            value={formData.stats[category.key].dog.female || ''}
+                                                            onChange={e => handleStatChange(category.key, 'dog', 'female', e.target.value)} />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* โซนแมว */}
+                                            <div className="bg-white/60 p-3 rounded-lg flex items-center gap-3">
+                                                <div className="text-sm font-bold text-slate-700 w-16">🐱 แมว</div>
+                                                <div className="flex-1 flex gap-2">
+                                                    <div className="flex-1 text-center">
+                                                        <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
+                                                        <input type="number" min="0" 
+                                                            className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
+                                                            value={formData.stats[category.key].cat.male || ''}
+                                                            onChange={e => handleStatChange(category.key, 'cat', 'male', e.target.value)} />
+                                                    </div>
+                                                    <div className="flex-1 text-center">
+                                                        <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
+                                                        <input type="number" min="0" 
+                                                            className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
+                                                            value={formData.stats[category.key].cat.female || ''}
+                                                            onChange={e => handleStatChange(category.key, 'cat', 'female', e.target.value)} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    </div>
-                    
-                    <p className="text-[10px] text-slate-400">* จำเป็นต้องระบุพิกัดเพื่อแสดงบนแผนที่ (คั่นด้วยเครื่องหมายจุลภาค ,)</p>
-                    <div className="pt-4 border-t border-slate-100 flex gap-3">
-                        <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-sm hover:bg-slate-200 transition-colors">ยกเลิก</button>
-                        <button type="submit" className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all">
-                            {initialData ? <><Edit className="w-4 h-4" /> บันทึกแก้ไข</> : <><Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ</>}
-                        </button>
-                    </div>
-                </form>
+
+                    </form>
+                </div>
+
+                {/* Footer (Sticky) */}
+                <div className="bg-white border-t border-slate-200 p-4 px-6 flex gap-3 shrink-0">
+                    <button type="button" onClick={onClose} 
+                        className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-300">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" form="outbreak-form" 
+                        className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        {initialData ? <><Edit className="w-4 h-4" /> บันทึกการแก้ไข</> : <><Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ</>}
+                    </button>
+                </div>
+
             </div>
         </div>
     );

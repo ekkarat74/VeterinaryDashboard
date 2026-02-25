@@ -89,6 +89,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     ];
 
     const [unitType, setUnitType] = useState('sterilization'); 
+    const [customUnitName, setCustomUnitName] = useState('');
     const [unitLetter, setUnitLetter] = useState(''); 
     const [unitColor, setUnitColor] = useState('bg-blue-500'); 
     const [generalInfo, setGeneralInfo] = useState({
@@ -109,6 +110,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     useEffect(() => {
         if (isOpen && initialData) {
             setUnitType(initialData.unitType || 'sterilization');
+            setCustomUnitName(initialData.customUnitName || '');
             setUnitLetter(initialData.unitLetter || ''); 
             setUnitColor(initialData.unitColor || 'bg-blue-500'); 
             setGeneralInfo({
@@ -125,6 +127,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             setUnitType('sterilization');
+            setCustomUnitName('');
             setUnitLetter(''); 
             setUnitColor('bg-blue-500'); 
             setGeneralInfo({
@@ -165,6 +168,10 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         const currentUnit = UNIT_OPTIONS.find(u => u.value === unitType);
         const currentColor = COLOR_OPTIONS.find(c => c.value === unitColor);
         
+        const displayUnitName = unitType === 'other' && customUnitName.trim() !== '' 
+            ? customUnitName 
+            : currentUnit?.label;
+
         const unitNameDisplay = `${currentUnit?.label} ${unitLetter}`.trim();
         
         let staffDetails = "";
@@ -208,14 +215,20 @@ ${staffDetails}
 
     const handleSaveLocal = () => {
         const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
+
+        const displayTitle = unitType === 'other' && customUnitName.trim() !== ''
+            ? customUnitName
+            : currentUnitLabel;
+
         const payload = {
             _id: initialData?._id,
             ...generalInfo,
             unitType,
+            customUnitName,
             unitLetter,
             unitColor,
             staff: staff, 
-            title: `${currentUnitLabel} ${unitLetter}`.trim(),
+            title: `${displayTitle} ${unitLetter}`.trim(),
             location: generalInfo.locationName,
             district: generalInfo.district,
             time: generalInfo.departureTime,
@@ -278,6 +291,18 @@ ${staffDetails}
                                                 <ChevronDown className="w-4 h-4" />
                                             </div>
                                         </div>
+                                        {unitType === 'other' && (
+                                            <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="ระบุชื่อหน่วยงานที่ต้องการ..."
+                                                    className="w-full pl-4 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-indigo-500 outline-none shadow-sm transition-all"
+                                                    value={customUnitName}
+                                                    onChange={(e) => setCustomUnitName(e.target.value)}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* แถวที่ 2: สาย/ทีม (A-G) และ สีประจำหน่วย */}

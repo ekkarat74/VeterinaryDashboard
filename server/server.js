@@ -102,13 +102,17 @@ const outbreakSchema = new mongoose.Schema({
   long: { type: Number, required: true },
   // --- [เพิ่มส่วนนี้] ---
   stats: {
-    dog: { 
-      male: { type: Number, default: 0 }, 
-      female: { type: Number, default: 0 } 
+    owned: { // สัตว์มีเจ้าของ
+      dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
+      cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     },
-    cat: { 
-      male: { type: Number, default: 0 }, 
-      female: { type: Number, default: 0 } 
+    unowned: { // สัตว์ไม่มีเจ้าของ
+      dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
+      cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
+    },
+    feeder: { // สัตว์มีผู้ให้อาหาร
+      dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
+      cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     }
   }
   // ------------------
@@ -141,6 +145,7 @@ const Meeting = mongoose.model('Meeting', meetingSchema);
 //6. Dispatch Plan Schema (แผนการออกหน่วย) ---
 const dispatchPlanSchema = new mongoose.Schema({
     unitType: { type: String, required: true }, // sterilization, microchip
+    customUnitName: { type: String, default: '' },
     unitLetter: { type: String, default: '' },
     unitColor: { type: String, default: 'bg-blue-500' },
     title: String,       // ชื่อหน่วยงานที่แสดง
