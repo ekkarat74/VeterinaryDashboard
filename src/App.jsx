@@ -1193,39 +1193,38 @@ export default function VeterinaryDashboard() {
     }, [filteredData]);
 
 const totals = useMemo(() => filteredData.reduce((acc, curr) => {
-        // ดึงข้อมูล detail เพื่อเอาไปนับแยกหมา-แมว
-        const d = curr.details?.dog || {};
-        const c = curr.details?.cat || {};
-        const toNum = (val) => parseInt(val, 10) || 0;
+    // ดึงข้อมูล detail เพื่อเอาไปนับแยกหมา-แมว
+    const d = curr.details?.dog || {};
+    const c = curr.details?.cat || {};
+    const toNum = (val) => parseInt(val, 10) || 0;
 
-        return {
-            vaccine: acc.vaccine + (curr.stats?.vaccine || 0), 
-            sterilize: acc.sterilize + (curr.stats?.sterilize || 0), 
-            register: acc.register + (curr.stats?.register || 0),
-            microchip: acc.microchip + (curr.stats?.microchip || 0), 
-            medical: acc.medical + (curr.stats?.medical || 0),
-            
-            // เพิ่มการเก็บยอดแยกหมา/แมวในแต่ละบริการ
-            dog: {
-                vaccine: acc.dog.vaccine + toNum(d.vaccine),
-                sterilize: acc.dog.sterilize + toNum(d.maleSterilize) + toNum(d.femaleSterilize),
-                register: acc.dog.register + toNum(d.register),
-                microchip: acc.dog.microchip + toNum(d.microchip),
-                medical: acc.dog.medical + toNum(d.medical),
-            },
-            cat: {
-                vaccine: acc.cat.vaccine + toNum(c.vaccine),
-                sterilize: acc.cat.sterilize + toNum(c.maleSterilize) + toNum(c.femaleSterilize),
-                register: acc.cat.register + toNum(c.register),
-                microchip: acc.cat.microchip + toNum(c.microchip),
-                medical: acc.cat.medical + toNum(c.medical),
-            }
-        };
-    }, { 
-        vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0,
-        dog: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 },
-        cat: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
-    }), [filteredData]);
+    return {
+        vaccine: acc.vaccine + toNum(curr.stats?.vaccine), 
+        sterilize: acc.sterilize + toNum(curr.stats?.sterilize), 
+        register: acc.register + toNum(curr.stats?.register),
+        microchip: acc.microchip + toNum(curr.stats?.microchip), 
+        medical: acc.medical + toNum(curr.stats?.medical),
+        
+        dog: {
+            vaccine: acc.dog.vaccine + toNum(d.vaccine),
+            sterilize: acc.dog.sterilize + toNum(d.maleSterilize) + toNum(d.femaleSterilize),
+            register: acc.dog.register + toNum(d.register),
+            microchip: acc.dog.microchip + toNum(d.microchip),
+            medical: acc.dog.medical + toNum(d.medical),
+        },
+        cat: {
+            vaccine: acc.cat.vaccine + toNum(c.vaccine),
+            sterilize: acc.cat.sterilize + toNum(c.maleSterilize) + toNum(c.femaleSterilize),
+            register: acc.cat.register + toNum(c.register),
+            microchip: acc.cat.microchip + toNum(c.microchip),
+            medical: acc.cat.medical + toNum(c.medical),
+        }
+    };
+}, { 
+    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0,
+    dog: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 },
+    cat: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
+}), [filteredData]);
 
     const unitStats = useMemo(() => {
         const grouped = filteredData.reduce((acc, curr) => {
@@ -1289,32 +1288,32 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
     }, [filteredData]);
 
     const trendData = useMemo(() => {
-        const dataMap = filteredData.reduce((acc, curr) => {
-            const month = curr.date.substring(0, 7);
-            
-            // เพิ่ม count: 0 ในค่าเริ่มต้น
-            if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
-            
-            acc[month].count += 1; // เพิ่มบรรทัดนี้เพื่อแก้ Error reading 'count'
-            
-            acc[month].vaccine += (curr.stats?.vaccine || 0);
-            acc[month].sterilize += (curr.stats?.sterilize || 0);
-            acc[month].register += (curr.stats?.register || 0);
-            acc[month].microchip += (curr.stats?.microchip || 0);
-            acc[month].medical += (curr.stats?.medical || 0);
-            acc[month].total += ((curr.stats?.vaccine||0) + (curr.stats?.sterilize||0) + (curr.stats?.register||0) + (curr.stats?.microchip||0) + (curr.stats?.medical||0));
-            return acc;
-        }, {});
+    const dataMap = filteredData.reduce((acc, curr) => {
+        const month = curr.date.substring(0, 7);
+        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
+        
+        if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
+        
+        acc[month].count += 1;
+        
+        acc[month].vaccine += toNum(curr.stats?.vaccine);
+        acc[month].sterilize += toNum(curr.stats?.sterilize);
+        acc[month].register += toNum(curr.stats?.register);
+        acc[month].microchip += toNum(curr.stats?.microchip);
+        acc[month].medical += toNum(curr.stats?.medical);
+        acc[month].total += (toNum(curr.stats?.vaccine) + toNum(curr.stats?.sterilize) + toNum(curr.stats?.register) + toNum(curr.stats?.microchip) + toNum(curr.stats?.medical));
+        
+        return acc;
+    }, {});
 
-        const last10Months = [];
-        for (let i = 9; i >= 0; i--) {
-            const d = new Date(); d.setMonth(d.getMonth() - i);
-            const monthStr = d.toISOString().substring(0, 7);
-            // ใส่ count: 0 ในค่า default ด้วย
-            last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
-        }
-        return last10Months;
-    }, [filteredData]);
+    const last10Months = [];
+    for (let i = 9; i >= 0; i--) {
+        const d = new Date(); d.setMonth(d.getMonth() - i);
+        const monthStr = d.toISOString().substring(0, 7);
+        last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
+    }
+    return last10Months;
+}, [filteredData]);
 
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y !== null))].sort().reverse(), [outbreakData]);
     const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter(item => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
@@ -1396,114 +1395,101 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
     }, [reportData, rankingYear, rankingMonth]);
 
     const rankingNestedStats = useMemo(() => {
-        const grouped = rankingFilteredData.reduce((acc, curr) => {
-            const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
-            const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
-            
-            // คำนวณยอดของ Row นี้
-            const vaccine = (curr.stats?.vaccine || 0);
-            const sterilize = (curr.stats?.sterilize || 0);
-            const register = (curr.stats?.register || 0);
-            const microchip = (curr.stats?.microchip || 0);
-            const medical = (curr.stats?.medical || 0);
-            const workTotal = vaccine + sterilize + register + microchip + medical;
+    const grouped = rankingFilteredData.reduce((acc, curr) => {
+        const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
+        const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
+        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
+        
+        // คำนวณยอดของ Row นี้โดยป้องกัน String
+        const vaccine = toNum(curr.stats?.vaccine);
+        const sterilize = toNum(curr.stats?.sterilize);
+        const register = toNum(curr.stats?.register);
+        const microchip = toNum(curr.stats?.microchip);
+        const medical = toNum(curr.stats?.medical);
+        const workTotal = vaccine + sterilize + register + microchip + medical;
 
-            if (!acc[unitName]) {
-                acc[unitName] = { 
-                    name: unitName, 
-                    totalWork: 0, 
-                    count: 0, 
-                    districts: {}, // จะเก็บ object แทนตัวเลข
-                    stats: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
-                };
-            }
-            
-            // บวกยอดรวมหน่วยงาน
-            acc[unitName].totalWork += workTotal;
-            acc[unitName].count += 1;
-            acc[unitName].stats.vaccine += vaccine;
-            acc[unitName].stats.sterilize += sterilize;
-            acc[unitName].stats.register += register;
-            acc[unitName].stats.microchip += microchip;
-            acc[unitName].stats.medical += medical;
+        if (!acc[unitName]) {
+            acc[unitName] = { 
+                name: unitName, totalWork: 0, count: 0, districts: {}, 
+                stats: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
+            };
+        }
+        
+        acc[unitName].totalWork += workTotal;
+        acc[unitName].count += 1;
+        acc[unitName].stats.vaccine += vaccine;
+        acc[unitName].stats.sterilize += sterilize;
+        acc[unitName].stats.register += register;
+        acc[unitName].stats.microchip += microchip;
+        acc[unitName].stats.medical += medical;
 
-            // [แก้ไขส่วนนี้] เก็บยอดแยกบริการรายเขต
-            if (!acc[unitName].districts[districtName]) {
-                acc[unitName].districts[districtName] = {
-                    total: 0,
-                    stats: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
-                };
-            }
-            acc[unitName].districts[districtName].total += workTotal;
-            acc[unitName].districts[districtName].stats.vaccine += vaccine;
-            acc[unitName].districts[districtName].stats.sterilize += sterilize;
-            acc[unitName].districts[districtName].stats.register += register;
-            acc[unitName].districts[districtName].stats.microchip += microchip;
-            acc[unitName].districts[districtName].stats.medical += medical;
+        if (!acc[unitName].districts[districtName]) {
+            acc[unitName].districts[districtName] = {
+                total: 0,
+                stats: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
+            };
+        }
+        acc[unitName].districts[districtName].total += workTotal;
+        acc[unitName].districts[districtName].stats.vaccine += vaccine;
+        acc[unitName].districts[districtName].stats.sterilize += sterilize;
+        acc[unitName].districts[districtName].stats.register += register;
+        acc[unitName].districts[districtName].stats.microchip += microchip;
+        acc[unitName].districts[districtName].stats.medical += medical;
 
-            return acc;
-        }, {});
+        return acc;
+    }, {});
 
-        return Object.values(grouped)
-            .sort((a, b) => b.totalWork - a.totalWork)
-            .slice(0, 5)
-            .map(unit => {
-                // แปลง districts object เป็น array และ sort
-                const sortedDistricts = Object.entries(unit.districts)
-                    .map(([dName, dData]) => ({ 
-                        name: dName, 
-                        total: dData.total,
-                        stats: dData.stats // ส่ง stats ไปด้วย
-                    }))
-                    .sort((a, b) => b.total - a.total)
-                    .slice(0, 5);
-                return { ...unit, topDistricts: sortedDistricts };
-            });
-    }, [rankingFilteredData]);
+    return Object.values(grouped)
+        .sort((a, b) => b.totalWork - a.totalWork)
+        .slice(0, 5)
+        .map(unit => {
+            const sortedDistricts = Object.entries(unit.districts)
+                .map(([dName, dData]) => ({ name: dName, total: dData.total, stats: dData.stats }))
+                .sort((a, b) => b.total - a.total)
+                .slice(0, 5);
+            return { ...unit, topDistricts: sortedDistricts };
+        });
+}, [rankingFilteredData]);
 
-    // ✅ [แก้ไข] Ranking Unit Stats: เพิ่มการเช็ค null ของชื่อหน่วยงาน
-    const rankingUnitStats = useMemo(() => {
-        const grouped = rankingFilteredData.reduce((acc, curr) => {
-            // ถ้าไม่มีชื่อหน่วยงาน ให้ตั้งเป็น 'ไม่ระบุ' เพื่อป้องกัน Key เป็น undefined
-            const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
+const rankingUnitStats = useMemo(() => {
+    const grouped = rankingFilteredData.reduce((acc, curr) => {
+        const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
+        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
 
-            if (!acc[unitName]) {
-                acc[unitName] = { 
-                    name: unitName, 
-                    count: 0, 
-                    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 
-                };
-            }
-            
-            acc[unitName].count += 1; 
+        if (!acc[unitName]) {
+            acc[unitName] = { 
+                name: unitName, count: 0, 
+                vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 
+            };
+        }
+        
+        acc[unitName].count += 1; 
 
-            // ใช้ Optional chaining (?.) ป้องกัน crash กรณีไม่มี object stats
-            acc[unitName].vaccine += (curr.stats?.vaccine || 0); 
-            acc[unitName].sterilize += (curr.stats?.sterilize || 0); 
-            acc[unitName].register += (curr.stats?.register || 0);
-            acc[unitName].microchip += (curr.stats?.microchip || 0); 
-            acc[unitName].medical += (curr.stats?.medical || 0);
-            acc[unitName].total += ((curr.stats?.vaccine||0) + (curr.stats?.sterilize||0) + (curr.stats?.register||0) + (curr.stats?.microchip||0) + (curr.stats?.medical||0));
-            
-            return acc;
-        }, {});
+        acc[unitName].vaccine += toNum(curr.stats?.vaccine); 
+        acc[unitName].sterilize += toNum(curr.stats?.sterilize); 
+        acc[unitName].register += toNum(curr.stats?.register);
+        acc[unitName].microchip += toNum(curr.stats?.microchip); 
+        acc[unitName].medical += toNum(curr.stats?.medical);
+        acc[unitName].total += (toNum(curr.stats?.vaccine) + toNum(curr.stats?.sterilize) + toNum(curr.stats?.register) + toNum(curr.stats?.microchip) + toNum(curr.stats?.medical));
+        
+        return acc;
+    }, {});
 
-        return Object.values(grouped).sort((a, b) => b.count - a.count || b.total - a.total);
-    }, [rankingFilteredData]);
-    
+    return Object.values(grouped).sort((a, b) => b.count - a.count || b.total - a.total);
+}, [rankingFilteredData]);
 
-    const rankingDistrictStats = useMemo(() => {
-        const grouped = rankingFilteredData.reduce((acc, curr) => {
-            // ถ้าไม่มีชื่อเขต ให้ตั้งเป็น 'ไม่ระบุ'
-            const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
+const rankingDistrictStats = useMemo(() => {
+    const grouped = rankingFilteredData.reduce((acc, curr) => {
+        const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
+        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
 
-            if (!acc[districtName]) acc[districtName] = { name: districtName, total: 0 };
-            
-            acc[districtName].total += ((curr.stats?.vaccine||0) + (curr.stats?.sterilize||0) + (curr.stats?.register||0) + (curr.stats?.microchip||0) + (curr.stats?.medical||0));
-            return acc;
-        }, {});
-        return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 5);
-    }, [rankingFilteredData]);
+        if (!acc[districtName]) acc[districtName] = { name: districtName, total: 0 };
+        
+        acc[districtName].total += (toNum(curr.stats?.vaccine) + toNum(curr.stats?.sterilize) + toNum(curr.stats?.register) + toNum(curr.stats?.microchip) + toNum(curr.stats?.medical));
+        return acc;
+    }, {});
+    return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 5);
+}, [rankingFilteredData]);
 
 const parseCSVDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0]; // ถ้าไม่มีค่า ใช้วันปัจจุบัน
