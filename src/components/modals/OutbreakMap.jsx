@@ -108,31 +108,43 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                 การแจ้งเตือนล่าสุด
                             </div>
                             
-                            <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                            <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-2 pr-1 pointer-events-auto">
                                 {recentOutbreaks.length > 0 ? (
                                     recentOutbreaks.map((item, idx) => {
-                                        // เช็คว่าจุดนี้ถูกซ่อนอยู่หรือไม่
                                         const isHidden = hiddenMapIds.includes(item._id);
                                         
                                         return (
-                                            <div key={item._id || idx} className={`p-2.5 rounded-xl border shadow-sm flex flex-col gap-1 transition-all duration-300 ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-200'}`}>
+                                            <div 
+                                                key={item._id || idx} 
+                                                className={`p-2.5 rounded-xl border shadow-sm flex flex-col gap-1 transition-all duration-300 ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-200'}`}
+                                            >
                                                 <div className="flex justify-between items-start">
                                                     <p className={`text-xs font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
                                                         {item.location}
                                                     </p>
                                                     
-                                                    {/* กลุ่มปุ่มด้านขวา: วันที่ + ปุ่มซ่อน */}
                                                     <div className="flex items-center gap-1.5 shrink-0">
                                                         <span className="text-[9px] text-slate-400 whitespace-nowrap bg-slate-100 px-1 py-0.5 rounded font-medium">
                                                             {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
                                                         </span>
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); toggleMapVisibility(item._id); }} 
-                                                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors bg-white rounded-md shadow-sm border border-slate-100"
+                                                        
+                                                        {/* --- แก้ไขปุ่มตรงนี้ --- */}
+                                                        <div 
+                                                            onClick={(e) => { 
+                                                                e.preventDefault(); 
+                                                                e.stopPropagation(); 
+                                                                toggleMapVisibility(item._id); 
+                                                            }}
+                                                            onPointerDown={(e) => { 
+                                                                e.stopPropagation(); // สำคัญ! หยุด Event ไม่ให้ทะลุไป Map
+                                                            }}
+                                                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors bg-white rounded-md shadow-sm border border-slate-100 cursor-pointer z-50 relative"
                                                             title={isHidden ? "แสดงจุดนี้บนแผนที่" : "ซ่อนจุดนี้จากแผนที่"}
                                                         >
-                                                            {isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                                                        </button>
+                                                            {isHidden ? <EyeOff className="w-3 h-3 pointer-events-none" /> : <Eye className="w-3 h-3 pointer-events-none" />}
+                                                        </div>
+                                                        {/* ------------------- */}
+
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
