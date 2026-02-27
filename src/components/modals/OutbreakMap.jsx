@@ -11,6 +11,7 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [isCollapsed, setIsCollapsed] = useState(false);
 
+    // --- กรองและเรียงข้อมูลให้แสดงตัวล่าสุดขึ้นก่อน ---
     const recentOutbreaks = useMemo(() => {
         return [...outbreaks].sort((a, b) => new Date(b.date) - new Date(a.date));
     }, [outbreaks]);
@@ -45,7 +46,7 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                 .leaflet-container a.leaflet-popup-close-button:hover { color: #ef4444; background: #fee2e2; }
             `}</style>
 
-            {/* --- Control Panel (เฉพาะควบคุมรัศมี) --- */}
+            {/* --- Control Panel --- */}
             <div className={`absolute top-4 right-4 z-[500] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
                 <div 
                     className={`flex items-center justify-between cursor-pointer ${isCollapsed ? 'w-full h-full justify-center' : 'p-4'}`}
@@ -71,36 +72,40 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                 </div>
 
                 {!isCollapsed && (
-                    <div className="p-3 bg-slate-50/80 border-t border-slate-100 rounded-b-2xl backdrop-blur-sm">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                            แสดงรัศมีแจ้งเตือน
+                    <div className="p-3 bg-slate-50/80 border-t border-slate-100 rounded-b-2xl backdrop-blur-sm flex flex-col gap-3">
+                        
+                        {/* --- ส่วนรัศมีแจ้งเตือน --- */}
+                        <div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                แสดงรัศมีแจ้งเตือน
+                            </div>
+                            <div className="flex bg-slate-200/50 p-1 rounded-lg">
+                                {[
+                                    { val: 1000, label: '1 กม.', color: 'text-red-600 bg-white shadow-sm' },
+                                    { val: 3000, label: '3 กม.', color: 'text-red-500 bg-white shadow-sm' },
+                                    { val: 5000, label: '5 กม.', color: 'text-orange-500 bg-white shadow-sm' }
+                                ].map((r) => {
+                                    const isActive = activeRadii.includes(r.val);
+                                    return (
+                                        <button 
+                                            key={r.val} 
+                                            onClick={() => toggleRadius(r.val)}
+                                            className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold transition-all duration-200 ${isActive ? r.color : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
+                                            {r.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                        <div className="flex bg-slate-200/50 p-1 rounded-lg">
-                            {[
-                                { val: 1000, label: '1 กม.', color: 'text-red-600 bg-white shadow-sm' },
-                                { val: 3000, label: '3 กม.', color: 'text-red-500 bg-white shadow-sm' },
-                                { val: 5000, label: '5 กม.', color: 'text-orange-500 bg-white shadow-sm' }
-                            ].map((r) => {
-                                const isActive = activeRadii.includes(r.val);
-                                return (
-                                    <button 
-                                        key={r.val} 
-                                        onClick={() => toggleRadius(r.val)}
-                                        className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold transition-all duration-200 ${isActive ? r.color : 'text-slate-400 hover:text-slate-600'}`}
-                                    >
-                                        {r.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                    <div className="border-t border-slate-200/60 pt-3">
+
+                        {/* --- ส่วนแจ้งเตือนล่าสุด --- */}
+                        <div className="border-t border-slate-200/60 pt-3">
                             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
                                 การแจ้งเตือนล่าสุด
                             </div>
                             
-                            {/* กรอบแสดงรายการแบบเลื่อนได้ (สูงประมาณ 3 ช่องพอดี) */}
                             <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
                                 {recentOutbreaks.length > 0 ? (
                                     recentOutbreaks.map((item, idx) => (
@@ -123,6 +128,8 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                 )}
                             </div>
                         </div>
+                        
+                    </div>
                 )}
             </div>
 
