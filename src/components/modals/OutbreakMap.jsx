@@ -4,12 +4,14 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON } from 'react-l
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { AlertTriangle, Trash2, ChevronDown, ChevronUp, Layers, MapPin } from 'lucide-react';
+import { AlertTriangle, Trash2, ChevronDown, ChevronUp, Layers, MapPin, Eye, EyeOff } from 'lucide-react'; // <-- เพิ่ม Eye, EyeOff
 
 const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
     const centerPosition = [13.7563, 100.5018];
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const [hiddenMapIds, setHiddenMapIds] = useState([]);
 
     // --- กรองและเรียงข้อมูลให้แสดงตัวล่าสุดขึ้นก่อน ---
     const recentOutbreaks = useMemo(() => {
@@ -108,19 +110,37 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                             
                             <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
                                 {recentOutbreaks.length > 0 ? (
-                                    recentOutbreaks.map((item, idx) => (
-                                        <div key={item._id || idx} className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-1 hover:border-rose-200 transition-colors">
-                                            <div className="flex justify-between items-start">
-                                                <p className="text-xs font-bold text-slate-800 truncate pr-2">{item.location}</p>
-                                                <span className="text-[9px] text-slate-400 whitespace-nowrap bg-slate-50 px-1 py-0.5 rounded font-medium">
-                                                    {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
-                                                </span>
+                                    recentOutbreaks.map((item, idx) => {
+                                        // เช็คว่าจุดนี้ถูกซ่อนอยู่หรือไม่
+                                        const isHidden = hiddenMapIds.includes(item._id);
+                                        
+                                        return (
+                                            <div key={item._id || idx} className={`p-2.5 rounded-xl border shadow-sm flex flex-col gap-1 transition-all duration-300 ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-200'}`}>
+                                                <div className="flex justify-between items-start">
+                                                    <p className={`text-xs font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
+                                                        {item.location}
+                                                    </p>
+                                                    
+                                                    {/* กลุ่มปุ่มด้านขวา: วันที่ + ปุ่มซ่อน */}
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        <span className="text-[9px] text-slate-400 whitespace-nowrap bg-slate-100 px-1 py-0.5 rounded font-medium">
+                                                            {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
+                                                        </span>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); toggleMapVisibility(item._id); }} 
+                                                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors bg-white rounded-md shadow-sm border border-slate-100"
+                                                            title={isHidden ? "แสดงจุดนี้บนแผนที่" : "ซ่อนจุดนี้จากแผนที่"}
+                                                        >
+                                                            {isHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
+                                                    <MapPin className="w-2.5 h-2.5" /> {item.district}
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
-                                                <MapPin className="w-2.5 h-2.5" /> {item.district}
-                                            </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <div className="text-center text-xs text-slate-400 py-3 bg-white rounded-xl border border-dashed border-slate-200">
                                         ไม่มีข้อมูลแจ้งเตือน
@@ -146,7 +166,7 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                     />
                 )}
                 
-                {outbreaks.map((item, index) => {
+                {outbreaks.filter(item => !hiddenMapIds.includes(item._id)).map((item, index) => {
                     const lat = parseFloat(item.lat);
                     const long = parseFloat(item.long);
                     if (isNaN(lat) || isNaN(long)) return null;
