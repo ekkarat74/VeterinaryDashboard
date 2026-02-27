@@ -60,10 +60,11 @@ mongoose.connect(MONGO_URI)
 // --- SCHEMAS & MODELS ---
 
 // 1. User Schema
+// 1. User Schema (แก้ไข enum ในช่อง role)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['superadmin', 'admin', 'user'], default: 'user' },
+  role: { type: String, enum: ['MagaAdmin', 'superadmin', 'admin', 'user'], default: 'user' }, // เพิ่ม 'MagaAdmin'
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   lastLogin: { type: Date }
 });
@@ -258,7 +259,7 @@ app.post('/api/change-password', authenticateToken, async (req, res) => {
 });
 
 // Get Logs (SuperAdmin Only) (✅ ส่วนที่เพิ่มใหม่)
-app.get('/api/logs', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.get('/api/logs', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         // ดึง Log 200 รายการล่าสุด
         const logs = await SystemLog.find().sort({ createdAt: -1 }).limit(200);
@@ -273,7 +274,7 @@ app.get('/api/logs', authenticateToken, authorizeRole(['superadmin']), async (re
 // =======================
 
 // Create User
-app.post('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.post('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { username, password, role } = req.body;
         const salt = await bcrypt.genSalt(10);
@@ -291,7 +292,7 @@ app.post('/api/users', authenticateToken, authorizeRole(['superadmin']), async (
 });
 
 // Get All Users
-app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.get('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
   try {
     const users = await User.find({}, '-password').sort({ _id: -1 });
     res.json(users);
@@ -301,7 +302,7 @@ app.get('/api/users', authenticateToken, authorizeRole(['superadmin']), async (r
 });
 
 // Update User
-app.put('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.put('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { username, role, status } = req.body;
         if (req.user._id === req.params.id && status === 'suspended') {
@@ -321,7 +322,7 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), asyn
 });
 
 // Reset Password by Admin
-app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { newPassword } = req.body;
         const targetUser = await User.findById(req.params.id);
@@ -343,7 +344,7 @@ app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['supe
 });
 
 // Delete User
-app.delete('/api/users/:id', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
     try {
       if (req.user._id === req.params.id) {
           return res.status(400).json({ message: "ไม่สามารถลบบัญชีตัวเองได้" });
@@ -373,7 +374,7 @@ app.get('/api/reports', async (req, res) => {
 });
 
 // Create Report
-app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.post('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin'])), async (req, res) => {
   try {
     const newReport = new Report({
         ...req.body,
@@ -392,7 +393,7 @@ app.post('/api/reports', authenticateToken, authorizeRole(['admin', 'superadmin'
 });
 
 // Update Report
-app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.put('/api/reports/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id, 
@@ -415,7 +416,7 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadm
 });
 
 // Delete Report
-app.delete('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.delete('/api/reports/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
     const deletedReport = await Report.findByIdAndDelete(req.params.id);
     if (!deletedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
@@ -431,7 +432,7 @@ app.delete('/api/reports/:id', authenticateToken, authorizeRole(['admin', 'super
 });
 
 // Clear All Reports (SuperAdmin Only)
-app.delete('/api/reports', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.delete('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
   try {
     const { password } = req.body;
     const user = await User.findById(req.user._id);
@@ -463,7 +464,7 @@ app.get('/api/outbreaks', async (req, res) => {
   }
 });
 
-app.post('/api/outbreaks', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.post('/api/outbreaks', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
     const newOutbreak = new Outbreak(req.body);
     const savedOutbreak = await newOutbreak.save();
@@ -478,7 +479,7 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['admin', 'superadmi
   }
 });
 
-app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
     const updatedOutbreak = await Outbreak.findByIdAndUpdate(
       req.params.id,
@@ -500,7 +501,7 @@ app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'supera
   }
 });
 
-app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
     const deletedOutbreak = await Outbreak.findByIdAndDelete(req.params.id);
     if (!deletedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
@@ -519,7 +520,7 @@ app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['admin', 'sup
 // E. SYSTEM BACKUP & RESTORE
 // =======================
 
-app.get('/api/system/backup', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.get('/api/system/backup', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const reports = await Report.find().sort({ date: -1 });
         const outbreaks = await Outbreak.find().sort({ date: -1 });
@@ -542,7 +543,7 @@ app.get('/api/system/backup', authenticateToken, authorizeRole(['admin', 'supera
     }
 });
 
-app.post('/api/system/restore', authenticateToken, authorizeRole(['superadmin']), async (req, res) => {
+app.post('/api/system/restore', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     
@@ -589,7 +590,7 @@ app.get('/api/meetings', async (req, res) => {
     }
 });
 
-app.post('/api/meetings', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.post('/api/meetings', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const newMeeting = new Meeting({
             ...req.body,
@@ -607,7 +608,7 @@ app.post('/api/meetings', authenticateToken, authorizeRole(['admin', 'superadmin
 });
 
 // Update Meeting (เพิ่มใหม่)
-app.put('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.put('/api/meetings/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const updatedMeeting = await Meeting.findByIdAndUpdate(
             req.params.id,
@@ -624,7 +625,7 @@ app.put('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'superad
     }
 });
 
-app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         await Meeting.findByIdAndDelete(req.params.id);
         io.emit('server_data_update', { type: 'MEETING_DELETED', id: req.params.id });
@@ -635,7 +636,7 @@ app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['admin', 'supe
 });
 
 // Bulk Create Reports (เพิ่มใหม่สำหรับ Import ข้อมูลจำนวนมาก)
-app.post('/api/reports/bulk', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.post('/api/reports/bulk', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const reports = req.body; // รับ Array ของ objects
         
@@ -665,7 +666,7 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['admin', 'supera
     }
 });
 
-app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const outbreaks = req.body;
         
@@ -702,7 +703,7 @@ app.get('/api/dispatches', async (req, res) => {
 });
 
 // 2. บันทึกแผนงานใหม่
-app.post('/api/dispatches', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.post('/api/dispatches', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const newPlan = new DispatchPlan({
             ...req.body,
@@ -721,7 +722,7 @@ app.post('/api/dispatches', authenticateToken, authorizeRole(['admin', 'superadm
 });
 
 // 3. แก้ไขแผนงาน
-app.put('/api/dispatches/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.put('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const updatedPlan = await DispatchPlan.findByIdAndUpdate(
             req.params.id,
@@ -740,7 +741,7 @@ app.put('/api/dispatches/:id', authenticateToken, authorizeRole(['admin', 'super
 });
 
 // 4. ลบแผนงาน
-app.delete('/api/dispatches/:id', authenticateToken, authorizeRole(['admin', 'superadmin']), async (req, res) => {
+app.delete('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const deletedPlan = await DispatchPlan.findByIdAndDelete(req.params.id);
         

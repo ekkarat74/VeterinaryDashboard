@@ -674,9 +674,28 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const canEdit = user && (user.role === 'admin' || user.role === 'superadmin') && !isReadOnlyMode;
-    const isSuperAdmin = user && user.role === 'superadmin';
+    const canEdit = user && (user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
+const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'MagaAdmin');
+const isMagaAdmin = user && user.role === 'MagaAdmin';
 
+const [tabsConfig, setTabsConfig] = useState(() => {
+    const saved = localStorage.getItem('vet_tabs_config');
+    return saved ? JSON.parse(saved) : { overview: true, outbreak: true, database: true };
+});
+
+useEffect(() => {
+    localStorage.setItem('vet_tabs_config', JSON.stringify(tabsConfig));
+}, [tabsConfig]);
+
+const toggleTab = (tabName) => {
+    setTabsConfig(prev => ({ ...prev, [tabName]: !prev[tabName] }));
+    // ถ้าปิดแท็บที่กำลังดูอยู่ ให้สลับไปแท็บอื่นที่เปิดอยู่
+    if (activeTab === tabName) {
+        if (tabName !== 'overview' && tabsConfig.overview) setActiveTab('overview');
+        else if (tabName !== 'outbreak' && tabsConfig.outbreak) setActiveTab('outbreak');
+        else if (tabName !== 'database' && tabsConfig.database) setActiveTab('database');
+    }
+};
     // --- 3. DATA FETCHING ---
 
     const fetchData = useCallback(async () => {
@@ -1701,6 +1720,9 @@ const parseCSVDate = (dateStr) => {
                 onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData}
                 onOpenMeetingList={() => setIsMeetingListOpen(true)} onOpenCalendar={() => setIsCalendarOpen(true)} onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
                 onOpenMeetingModal={() => setIsMeetingModalOpen(true)} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
+                isMagaAdmin={isMagaAdmin}
+                tabsConfig={tabsConfig}
+                toggleTab={toggleTab}
             />
 
             
@@ -1733,6 +1755,7 @@ const parseCSVDate = (dateStr) => {
 
                     {/* ปุ่มเมนูต่างๆ */}
                     <nav className={`flex-1 space-y-2 ${isSidebarCollapsed ? 'px-3' : 'px-4'}`}>
+                        {tabsConfig.overview && (
                         <button 
                             onClick={() => setActiveTab('overview')} 
                             title="ภาพรวมสถิติ"
@@ -1741,7 +1764,8 @@ const parseCSVDate = (dateStr) => {
                             <Activity className="w-5 h-5 shrink-0" />
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ภาพรวมสถิติ</span>}
                         </button>
-
+                        )}
+{tabsConfig.outbreak && (
                         <button 
                             onClick={() => setActiveTab('outbreak')} 
                             title="จัดการจุดเสี่ยง"
@@ -1750,7 +1774,8 @@ const parseCSVDate = (dateStr) => {
                             <Siren className="w-5 h-5 shrink-0" />
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">จัดการจุดเสี่ยง</span>}
                         </button>
-
+                        )}
+{tabsConfig.database && (
                         <button 
                             onClick={() => setActiveTab('database')} 
                             title="ฐานข้อมูลบริการ"
@@ -1759,6 +1784,7 @@ const parseCSVDate = (dateStr) => {
                             <Database className="w-5 h-5 shrink-0" />
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ฐานข้อมูลบริการ</span>}
                         </button>
+                        )}
                     </nav>
                 </aside>
 

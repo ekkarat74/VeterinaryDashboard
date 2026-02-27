@@ -28,7 +28,11 @@ const Header = ({
     // Main Actions
     onOpenMeetingModal,
     onOpenAddOutbreak,
-    onOpenAddData
+    onOpenAddData,
+
+    isMagaAdmin,
+    tabsConfig,
+    toggleTab
 }) => {
     return (
         <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm transition-all">
@@ -131,6 +135,29 @@ const Header = ({
                                         </div>
                                     </>
                                 )}
+                                {isMagaAdmin && (
+        <>
+            <div className="px-3 py-2 bg-rose-50 rounded-lg mb-1 border border-rose-100 mt-2">
+                <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Tab Management (MagaAdmin)</p>
+            </div>
+            
+            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                <span>แสดงแท็บ ภาพรวมสถิติ</span>
+                <input type="checkbox" checked={tabsConfig.overview} onChange={() => toggleTab('overview')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
+            </label>
+            
+            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                <span>แสดงแท็บ จัดการจุดเสี่ยง</span>
+                <input type="checkbox" checked={tabsConfig.outbreak} onChange={() => toggleTab('outbreak')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
+            </label>
+            
+            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                <span>แสดงแท็บ ฐานข้อมูลบริการ</span>
+                <input type="checkbox" checked={tabsConfig.database} onChange={() => toggleTab('database')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
+            </label>
+            <div className="h-px bg-slate-100 my-1 mx-2"></div>
+        </>
+    )}
                             </div>
                         )}
 

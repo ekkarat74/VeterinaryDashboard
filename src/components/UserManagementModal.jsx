@@ -84,12 +84,13 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
-                                    <select className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm cursor-pointer" 
-                                        value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                        <option value="user">User</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="superadmin">SuperAdmin</option>
-                                    </select>
+                                    <select className="w-full p-2.5 border border-slate-200 rounded-xl..." 
+    value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+    <option value="MagaAdmin">MagaAdmin</option> {/* เพิ่ม option นี้ */}
+    <option value="superadmin">SuperAdmin</option>
+    <option value="admin">Admin</option>
+    <option value="user">User</option>
+</select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สถานะ (Status)</label>
@@ -267,12 +268,13 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
 
     // Helper: Badge Style
     const getRoleBadgeStyle = (r) => {
-        switch(r) {
-            case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
-            case 'admin': return 'bg-blue-100 text-blue-700 border-blue-200';
-            default: return 'bg-slate-100 text-slate-600 border-slate-200';
-        }
-    };
+    switch(r) {
+        case 'MagaAdmin': return 'bg-rose-100 text-rose-700 border-rose-200'; // เพิ่มบรรทัดนี้
+        case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
+        case 'admin': return 'bg-blue-100 text-blue-700 border-blue-200';
+        default: return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+};
 
     if (!isOpen) return null;
 
@@ -325,12 +327,13 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        <select className="w-full p-2.5 border border-slate-200 rounded-lg bg-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-slate-700" 
-                                            value={role} onChange={e=>setRole(e.target.value)}>
-                                            <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
-                                            <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
-                                            <option value="user">User (ดูได้อย่างเดียว)</option>
-                                        </select>
+                                        <select className="w-full p-2.5 border border-slate-200 rounded-lg bg-white..." 
+    value={role} onChange={e=>setRole(e.target.value)}>
+    <option value="MagaAdmin">MagaAdmin (สิทธิ์สูงสุด + จัดการแท็บ)</option> {/* เพิ่ม option นี้ */}
+    <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
+    <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
+    <option value="user">User (ดูได้อย่างเดียว)</option>
+</select>
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
                                     </div>
                                 </div>
@@ -397,14 +400,15 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                                 <td className="p-3 font-semibold text-slate-700">{u.username}</td>
                                                 <td className="p-3">
                                                     <select 
-                                                        className={`text-xs font-bold px-2 py-1 rounded-full border outline-none cursor-pointer appearance-none text-center min-w-[100px] transition-colors ${getRoleBadgeStyle(u.role)}`}
-                                                        value={u.role}
-                                                        onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
-                                                    >
-                                                        <option value="superadmin">SuperAdmin</option>
-                                                        <option value="admin">Admin</option>
-                                                        <option value="user">User</option>
-                                                    </select>
+    className={`text-xs font-bold px-2 py-1 rounded-full border... ${getRoleBadgeStyle(u.role)}`}
+    value={u.role}
+    onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
+>
+    <option value="MagaAdmin">MagaAdmin</option> {/* เพิ่ม option นี้ */}
+    <option value="superadmin">SuperAdmin</option>
+    <option value="admin">Admin</option>
+    <option value="user">User</option>
+</select>
                                                 </td>
                                                 <td className="p-3 text-right">
                                                    <div className="flex justify-end gap-1">
