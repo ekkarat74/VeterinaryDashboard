@@ -689,12 +689,7 @@ useEffect(() => {
 
 const toggleTab = (tabName) => {
     setTabsConfig(prev => ({ ...prev, [tabName]: !prev[tabName] }));
-    // ถ้าปิดแท็บที่กำลังดูอยู่ ให้สลับไปแท็บอื่นที่เปิดอยู่
-    if (activeTab === tabName) {
-        if (tabName !== 'overview' && tabsConfig.overview) setActiveTab('overview');
-        else if (tabName !== 'outbreak' && tabsConfig.outbreak) setActiveTab('outbreak');
-        else if (tabName !== 'database' && tabsConfig.database) setActiveTab('database');
-    }
+    // ไม่ต้องสลับ activeTab อัตโนมัติแล้ว เพราะคนที่กดตั้งค่าได้คือคนที่ล็อคอิน ซึ่งจะเห็นทุกแท็บเสมอ
 };
     // --- 3. DATA FETCHING ---
 
@@ -1755,7 +1750,7 @@ const parseCSVDate = (dateStr) => {
 
                     {/* ปุ่มเมนูต่างๆ */}
                     <nav className={`flex-1 space-y-2 ${isSidebarCollapsed ? 'px-3' : 'px-4'}`}>
-                        {tabsConfig.overview && (
+                        {(user || tabsConfig.overview) && (
                         <button 
                             onClick={() => setActiveTab('overview')} 
                             title="ภาพรวมสถิติ"
@@ -1765,7 +1760,7 @@ const parseCSVDate = (dateStr) => {
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ภาพรวมสถิติ</span>}
                         </button>
                         )}
-{tabsConfig.outbreak && (
+                        {(user || tabsConfig.outbreak) && (
                         <button 
                             onClick={() => setActiveTab('outbreak')} 
                             title="จัดการจุดเสี่ยง"
@@ -1775,7 +1770,7 @@ const parseCSVDate = (dateStr) => {
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">จัดการจุดเสี่ยง</span>}
                         </button>
                         )}
-{tabsConfig.database && (
+                        {(user || tabsConfig.database) && (
                         <button 
                             onClick={() => setActiveTab('database')} 
                             title="ฐานข้อมูลบริการ"
@@ -1785,7 +1780,7 @@ const parseCSVDate = (dateStr) => {
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ฐานข้อมูลบริการ</span>}
                         </button>
                         )}
-                    </nav>
+                    </nav>>
                 </aside>
 
                 {/* ส่วนแสดงผลเนื้อหา (Main Content) */}
@@ -1895,7 +1890,7 @@ const parseCSVDate = (dateStr) => {
                 </main>
             </div>
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
-                {tabsConfig.overview && (
+                {(user || tabsConfig.overview) && (
                 <button 
                     onClick={() => setActiveTab('overview')} 
                     className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -1904,7 +1899,7 @@ const parseCSVDate = (dateStr) => {
                     <span className="text-[10px]">ภาพรวม</span>
                 </button>
                 )}
-                {tabsConfig.outbreak && (
+                {(user || tabsConfig.outbreak) && (
                 <button 
                     onClick={() => setActiveTab('outbreak')} 
                     className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -1913,7 +1908,7 @@ const parseCSVDate = (dateStr) => {
                     <span className="text-[10px]">จุดเสี่ยง</span>
                 </button>
                 )}
-                {tabsConfig.database && (
+                {(user || tabsConfig.database) && (
                 <button 
                     onClick={() => setActiveTab('database')} 
                     className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
