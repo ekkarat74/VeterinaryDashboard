@@ -1780,7 +1780,7 @@ const parseCSVDate = (dateStr) => {
                             {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ฐานข้อมูลบริการ</span>}
                         </button>
                         )}
-                    </nav>>
+                    </nav>
                 </aside>
 
                 {/* ส่วนแสดงผลเนื้อหา (Main Content) */}
