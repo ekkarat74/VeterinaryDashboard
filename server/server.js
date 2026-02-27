@@ -374,7 +374,7 @@ app.get('/api/reports', async (req, res) => {
 });
 
 // Create Report
-app.post('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin'])), async (req, res) => {
+app.post('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
     const newReport = new Report({
         ...req.body,

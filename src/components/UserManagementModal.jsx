@@ -83,15 +83,15 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
-                                    <select className="w-full p-2.5 border border-slate-200 rounded-xl..." 
-    value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-    <option value="MagaAdmin">MagaAdmin</option> {/* เพิ่ม option นี้ */}
-    <option value="superadmin">SuperAdmin</option>
-    <option value="admin">Admin</option>
-    <option value="user">User</option>
-</select>
-                                </div>
+    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
+    <select className="w-full p-2.5 border border-slate-200 rounded-xl outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500" 
+        value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+        <option value="MagaAdmin">MagaAdmin</option>
+        <option value="superadmin">SuperAdmin</option>
+        <option value="admin">Admin</option>
+        <option value="user">User</option>
+    </select>
+</div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สถานะ (Status)</label>
                                     <select className={`w-full p-2.5 border border-slate-200 rounded-xl outline-none text-sm cursor-pointer font-bold ${formData.status === 'suspended' ? 'bg-red-50 text-red-600 focus:ring-red-500' : 'bg-green-50 text-green-600 focus:ring-green-500'}`}
@@ -326,16 +326,19 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
-                                    <div className="relative">
-                                        <select className="w-full p-2.5 border border-slate-200 rounded-lg bg-white..." 
-    value={role} onChange={e=>setRole(e.target.value)}>
-    <option value="MagaAdmin">MagaAdmin (สิทธิ์สูงสุด + จัดการแท็บ)</option> {/* เพิ่ม option นี้ */}
-    <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
-    <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
-    <option value="user">User (ดูได้อย่างเดียว)</option>
-</select>
-                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
-                                    </div>
+                                    <div>
+    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
+    <div className="relative">
+        <select className="w-full p-2.5 border border-slate-200 rounded-lg bg-white appearance-none focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium text-slate-700" 
+            value={role} onChange={e=>setRole(e.target.value)}>
+            <option value="MagaAdmin">MagaAdmin (สิทธิ์สูงสุด + จัดการแท็บ)</option>
+            <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
+            <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
+            <option value="user">User (ดูได้อย่างเดียว)</option>
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
+    </div>
+</div>
                                 </div>
                                 <button type="submit" className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mt-2">
                                     <CheckCircle className="w-4 h-4"/> สร้างบัญชีผู้ใช้
@@ -399,17 +402,17 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                                 </td>
                                                 <td className="p-3 font-semibold text-slate-700">{u.username}</td>
                                                 <td className="p-3">
-                                                    <select 
-    className={`text-xs font-bold px-2 py-1 rounded-full border... ${getRoleBadgeStyle(u.role)}`}
-    value={u.role}
-    onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
->
-    <option value="MagaAdmin">MagaAdmin</option> {/* เพิ่ม option นี้ */}
-    <option value="superadmin">SuperAdmin</option>
-    <option value="admin">Admin</option>
-    <option value="user">User</option>
-</select>
-                                                </td>
+    <select 
+        className={`text-xs font-bold px-2 py-1 rounded-full border outline-none cursor-pointer appearance-none text-center min-w-[100px] transition-colors ${getRoleBadgeStyle(u.role)}`}
+        value={u.role}
+        onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
+    >
+        <option value="MagaAdmin">MagaAdmin</option>
+        <option value="superadmin">SuperAdmin</option>
+        <option value="admin">Admin</option>
+        <option value="user">User</option>
+    </select>
+</td>
                                                 <td className="p-3 text-right">
                                                    <div className="flex justify-end gap-1">
                                                         {/* ปุ่มแก้ไข */}

@@ -93,11 +93,35 @@ const Header = ({
                                     <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isSystemMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
-                                {/* Dropdown Menu */}
                                 {isSystemMenuOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-[40]" onClick={() => setIsSystemMenuOpen(false)}></div>
-                                        <div className="absolute top-full left-0 md:left-auto md:right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-[50] p-1.5 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+            <>
+                <div className="fixed inset-0 z-[40]" onClick={() => setIsSystemMenuOpen(false)}></div>
+                <div className="absolute top-full left-0 md:left-auto md:right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-[50] p-1.5 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                    
+                    {/* --- ย้ายบล็อก isMagaAdmin มาไว้ตรงนี้ (บนสุดของเมนู Dropdown) --- */}
+                    {isMagaAdmin && (
+                        <>
+                            <div className="px-3 py-2 bg-rose-50 rounded-lg mb-1 border border-rose-100">
+                                <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Tab Management (MagaAdmin)</p>
+                            </div>
+                            
+                            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                                <span>แสดงแท็บ ภาพรวมสถิติ</span>
+                                <input type="checkbox" checked={tabsConfig.overview} onChange={() => toggleTab('overview')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
+                            </label>
+                            
+                            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                                <span>แสดงแท็บ จัดการจุดเสี่ยง</span>
+                                <input type="checkbox" checked={tabsConfig.outbreak} onChange={() => toggleTab('outbreak')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
+                            </label>
+                            
+                            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                                <span>แสดงแท็บ ฐานข้อมูลบริการ</span>
+                                <input type="checkbox" checked={tabsConfig.database} onChange={() => toggleTab('database')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
+                            </label>
+                            <div className="h-px bg-slate-100 my-1 mx-2"></div>
+                        </>
+                    )}
                                             <div className="px-3 py-2 bg-slate-50 rounded-lg mb-1 border border-slate-100">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">System Management</p>
                                             </div>
@@ -135,31 +159,6 @@ const Header = ({
                                         </div>
                                     </>
                                 )}
-                                {isMagaAdmin && (
-        <>
-            <div className="px-3 py-2 bg-rose-50 rounded-lg mb-1 border border-rose-100 mt-2">
-                <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Tab Management (MagaAdmin)</p>
-            </div>
-            
-            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                <span>แสดงแท็บ ภาพรวมสถิติ</span>
-                <input type="checkbox" checked={tabsConfig.overview} onChange={() => toggleTab('overview')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
-            </label>
-            
-            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                <span>แสดงแท็บ จัดการจุดเสี่ยง</span>
-                <input type="checkbox" checked={tabsConfig.outbreak} onChange={() => toggleTab('outbreak')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
-            </label>
-            
-            <label className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                <span>แสดงแท็บ ฐานข้อมูลบริการ</span>
-                <input type="checkbox" checked={tabsConfig.database} onChange={() => toggleTab('database')} className="w-4 h-4 accent-rose-500 cursor-pointer" />
-            </label>
-            <div className="h-px bg-slate-100 my-1 mx-2"></div>
-        </>
-    )}
-                            </div>
-                        )}
 
                         {/* View Tools Group */}
                         {user && (
