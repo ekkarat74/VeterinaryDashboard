@@ -1,15 +1,19 @@
 // components/modals/OutbreakMap.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON } from 'react-leaflet';
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { AlertTriangle, Trash2, ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { AlertTriangle, Trash2, ChevronDown, ChevronUp, Layers, MapPin } from 'lucide-react';
 
 const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
     const centerPosition = [13.7563, 100.5018];
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const recentOutbreaks = useMemo(() => {
+        return [...outbreaks].sort((a, b) => new Date(b.date) - new Date(a.date));
+    }, [outbreaks]);
 
     const toggleRadius = (radius) => {
         setActiveRadii(prev => prev.includes(radius) ? prev.filter(r => r !== radius) : [...prev, radius]);
@@ -90,6 +94,35 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                             })}
                         </div>
                     </div>
+                    <div className="border-t border-slate-200/60 pt-3">
+                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                                การแจ้งเตือนล่าสุด
+                            </div>
+                            
+                            {/* กรอบแสดงรายการแบบเลื่อนได้ (สูงประมาณ 3 ช่องพอดี) */}
+                            <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                {recentOutbreaks.length > 0 ? (
+                                    recentOutbreaks.map((item, idx) => (
+                                        <div key={item._id || idx} className="bg-white p-2.5 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-1 hover:border-rose-200 transition-colors">
+                                            <div className="flex justify-between items-start">
+                                                <p className="text-xs font-bold text-slate-800 truncate pr-2">{item.location}</p>
+                                                <span className="text-[9px] text-slate-400 whitespace-nowrap bg-slate-50 px-1 py-0.5 rounded font-medium">
+                                                    {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
+                                                <MapPin className="w-2.5 h-2.5" /> {item.district}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center text-xs text-slate-400 py-3 bg-white rounded-xl border border-dashed border-slate-200">
+                                        ไม่มีข้อมูลแจ้งเตือน
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                 )}
             </div>
 
