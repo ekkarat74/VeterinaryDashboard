@@ -210,6 +210,13 @@ const authorizeRole = (roles) => {
   };
 };
 
+// 7. System Setting Schema (เพิ่มใหม่: สำหรับเก็บการตั้งค่าระบบ เช่น การเปิดปิดแท็บ)
+const systemSettingSchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    value: { type: Object, required: true }
+});
+const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
+
 // --- ROUTES ---
 
 // =======================
@@ -751,6 +758,48 @@ app.delete('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin',
         res.json({ message: "ลบแผนงานเรียบร้อย" });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+// =======================
+// H. SYSTEM SETTINGS (เพิ่มใหม่)
+// =======================
+
+// 1. ดึงค่าการตั้งค่าแท็บ (ให้ทุกคนเข้าถึงได้ ไม่ต้องใช้ Token)
+app.get('/api/settings/tabs', async (req, res) => {
+    try {
+        let setting = await SystemSetting.findOne({ key: 'tabsConfig' });
+        if (!setting) {
+            // ค่าเริ่มต้นถ้ายังไม่เคยบันทึก
+            return res.json({ overview: true, outbreak: true, database: true });
+        }
+        res.json(setting.value);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 2. อัปเดตการตั้งค่าแท็บ (เฉพาะ MagaAdmin เท่านั้น)
+app.put('/api/settings/tabs', authenticateToken, authorizeRole(['MagaAdmin']), async (req, res) => {
+    try {
+        const { tabsConfig } = req.body;
+        
+        // อัปเดตหรือสร้างใหม่ถ้ายังไม่มี (upsert)
+        const updatedSetting = await SystemSetting.findOneAndUpdate(
+            { key: 'tabsConfig' },
+            { value: tabsConfig },
+            { upsert: true, new: true }
+        );
+
+        // บันทึก Log
+        await createLog(req, 'UPDATE_TABS_CONFIG', `เปลี่ยนแปลงการแสดงผลแท็บ`);
+
+        // ส่ง Socket ไปบอกทุกเครื่องให้เปลี่ยนตามแบบ Real-time
+        io.emit('server_data_update', { type: 'TABS_CONFIG_UPDATED', data: tabsConfig });
+
+        res.json({ message: "อัปเดตแท็บสำเร็จ", data: tabsConfig });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
     }
 });
 

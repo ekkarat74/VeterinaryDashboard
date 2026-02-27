@@ -678,14 +678,56 @@ export default function VeterinaryDashboard() {
 const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'MagaAdmin');
 const isMagaAdmin = user && user.role === 'MagaAdmin';
 
-const [tabsConfig, setTabsConfig] = useState(() => {
-    const saved = localStorage.getItem('vet_tabs_config');
-    return saved ? JSON.parse(saved) : { overview: true, outbreak: true, database: true };
-});
+// --- เปลี่ยนการเก็บ tabsConfig จาก localStorage เป็นการใช้ State ธรรมดา ---
+    const [tabsConfig, setTabsConfig] = useState({ overview: true, outbreak: true, database: true });
 
-useEffect(() => {
-    localStorage.setItem('vet_tabs_config', JSON.stringify(tabsConfig));
-}, [tabsConfig]);
+    // ดึงค่า Config แท็บจาก Server ตอนโหลดหน้าเว็บครั้งแรก
+    useEffect(() => {
+        const fetchTabsConfig = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/api/settings/tabs`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setTabsConfig(data);
+                }
+            } catch (error) {
+                console.error("Fetch Tabs Config Error", error);
+            }
+        };
+        fetchTabsConfig();
+    }, [BASE_URL]);
+
+    // แก้ไขฟังก์ชัน toggleTab ให้ยิง API ไปอัปเดตที่ Server แทน
+    const toggleTab = async (tabName) => {
+        const newConfig = { ...tabsConfig, [tabName]: !tabsConfig[tabName] };
+        
+        // อัปเดตหน้าจอตัวเองทันทีให้ลื่นไหล
+        setTabsConfig(newConfig);
+
+        // ส่งค่าไปอัปเดตที่ Database เพื่อให้ส่ง Socket ไปหาคนอื่น
+        try {
+            await fetch(`${BASE_URL}/api/settings/tabs`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${user?.token}` 
+                },
+                body: JSON.stringify({ tabsConfig: newConfig })
+            });
+        } catch (error) {
+            console.error("Update Tabs Config Error", error);
+            addToast('error', 'ไม่สามารถบันทึกการตั้งค่าแท็บได้');
+        }
+    };
+
+    // จัดการการเปลี่ยนหน้าอัตโนมัติ สำหรับคนที่ไม่ได้ล็อคอิน
+    useEffect(() => {
+        if (!user && !tabsConfig[activeTab]) {
+            if (tabsConfig.overview) setActiveTab('overview');
+            else if (tabsConfig.outbreak) setActiveTab('outbreak');
+            else if (tabsConfig.database) setActiveTab('database');
+        }
+    }, [user, tabsConfig, activeTab]);
 
 const toggleTab = (tabName) => {
     setTabsConfig(prev => ({ ...prev, [tabName]: !prev[tabName] }));
@@ -766,6 +808,10 @@ const toggleTab = (tabName) => {
                     break;
                 case 'DISPATCH_DELETED':
                     setDispatchEvents(prev => prev.filter(ev => ev._id !== payload.id));
+                    break;
+                case 'TABS_CONFIG_UPDATED':
+                    setTabsConfig(payload.data);
+                    // ถ้าคนที่ไม่ได้ล็อคอินกำลังดูหน้าที่โดนปิดไป จะมี useEffect ตัวข้างบนช่วยดีดกลับให้อัตโนมัติ
                     break;
                 default: break;
             }
