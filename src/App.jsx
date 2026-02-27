@@ -729,10 +729,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
         }
     }, [user, tabsConfig, activeTab]);
 
-const toggleTab = (tabName) => {
-    setTabsConfig(prev => ({ ...prev, [tabName]: !prev[tabName] }));
-    // ไม่ต้องสลับ activeTab อัตโนมัติแล้ว เพราะคนที่กดตั้งค่าได้คือคนที่ล็อคอิน ซึ่งจะเห็นทุกแท็บเสมอ
-};
     // --- 3. DATA FETCHING ---
 
     const fetchData = useCallback(async () => {
