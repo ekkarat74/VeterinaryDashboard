@@ -13,6 +13,12 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
 
     const [hiddenMapIds, setHiddenMapIds] = useState([]);
 
+    const toggleMapVisibility = (id) => {
+        setHiddenMapIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
     // --- กรองและเรียงข้อมูลให้แสดงตัวล่าสุดขึ้นก่อน ---
     const recentOutbreaks = useMemo(() => {
         return [...outbreaks].sort((a, b) => new Date(b.date) - new Date(a.date));
