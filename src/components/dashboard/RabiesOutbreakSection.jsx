@@ -165,6 +165,15 @@ const RabiesOutbreakSection = ({
                         <div className="overflow-y-auto custom-scrollbar p-3 h-64 lg:h-auto space-y-2">
                             {filteredOutbreaks.slice(0, 5).map((item, idx) => {
                                 const isHidden = hiddenIds.includes(item._id);
+
+                                const dogCount = (item.stats?.dog?.male || 0) + (item.stats?.dog?.female || 0) + 
+                     (item.dog?.male || 0) + (item.dog?.female || 0) + 
+                     (item.dogMale || 0) + (item.dogFemale || 0);
+                     
+    const catCount = (item.stats?.cat?.male || 0) + (item.stats?.cat?.female || 0) + 
+                     (item.cat?.male || 0) + (item.cat?.female || 0) + 
+                     (item.catMale || 0) + (item.catFemale || 0);
+
                                 return (
                                     <div key={idx} className={`relative p-3 rounded-2xl transition-all duration-300 border ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-100 hover:shadow-md hover:shadow-rose-100/50'}`}>
                                         <div className="flex items-start gap-3">
@@ -190,13 +199,13 @@ const RabiesOutbreakSection = ({
                                                 </div>
                                                 {item.stats && (
                                                     <div className="flex gap-2 mt-2">
-                                                        <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">
-                                                            🐶 {(item.stats.dog?.male || 0) + (item.stats.dog?.female || 0)}
-                                                        </span>
-                                                        <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
-                                                            🐱 {(item.stats.cat?.male || 0) + (item.stats.cat?.female || 0)}
-                                                        </span>
-                                                    </div>
+    <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">
+        🐶 {dogCount}
+    </span>
+    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
+        🐱 {catCount}
+    </span>
+</div>
                                                 )}
                                             </div>
 
