@@ -169,16 +169,29 @@ const RabiesOutbreakSection = ({
                                 // 1. ฟังก์ชันช่วยแปลงค่าให้เป็นตัวเลขเสมอ (ป้องกันปัญหาข้อมูลเป็น String, null หรือ undefined)
                                 const getNum = (val) => parseInt(val, 10) || 0;
 
-                                // 2. คำนวณยอดรวม (เพิ่มการเช็คฟิลด์ .dogs, .cats รวบยอดเข้าไปด้วย)
-                                const dogCount = getNum(item.stats?.dog?.male) + getNum(item.stats?.dog?.female) + 
-                                                 getNum(item.dog?.male) + getNum(item.dog?.female) + 
-                                                 getNum(item.dogMale) + getNum(item.dogFemale) +
-                                                 getNum(item.stats?.dogs) + getNum(item.dogs);
-                                                 
-                                const catCount = getNum(item.stats?.cat?.male) + getNum(item.stats?.cat?.female) + 
-                                                 getNum(item.cat?.male) + getNum(item.cat?.female) + 
-                                                 getNum(item.catMale) + getNum(item.catFemale) +
-                                                 getNum(item.stats?.cats) + getNum(item.cats);
+                                // 2. คำนวณยอดรวม (รองรับทั้งแบบแยกกลุ่ม owned, unowned, feeder และแบบโครงสร้างปกติ)
+                                let dogCount = 0;
+                                let catCount = 0;
+
+                                if (item.stats) {
+                                    ['owned', 'unowned', 'feeder'].forEach(type => {
+                                    if (item.stats[type]) {
+                                        dogCount += getNum(item.stats[type].dog?.male) + getNum(item.stats[type].dog?.female);
+                                        catCount += getNum(item.stats[type].cat?.male) + getNum(item.stats[type].cat?.female);
+                                        }
+                                    });
+                                }
+
+                                // รวมกับข้อมูลรูปแบบอื่นๆ หรือโครงสร้างแบบเก่า
+                                dogCount += getNum(item.stats?.dog?.male) + getNum(item.stats?.dog?.female) + 
+                                    getNum(item.dog?.male) + getNum(item.dog?.female) + 
+                                    getNum(item.dogMale) + getNum(item.dogFemale) +
+                                    getNum(item.stats?.dogs) + getNum(item.dogs);
+                                             
+                                catCount += getNum(item.stats?.cat?.male) + getNum(item.stats?.cat?.female) + 
+                                    getNum(item.cat?.male) + getNum(item.cat?.female) + 
+                                    getNum(item.catMale) + getNum(item.catFemale) +
+                                    getNum(item.stats?.cats) + getNum(item.cats);
 
                                 // +++ หากยังไม่ได้ค่า แนะนำให้เอาคอมเมนต์บรรทัดล่างออกเพื่อเช็คโครงสร้าง Object จริงใน Console (F12) +++
                                 console.log("Outbreak Item:", item);
