@@ -393,7 +393,8 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
         if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
         
         if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
-        if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
+        if (lower.includes('วัคซีน') || lower.includes('vaccine')) return 'vaccine';
+        if (lower.includes('ไมโครชิป') || lower.includes('microchip')) return 'microchip';
         if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
         if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
 
@@ -481,22 +482,23 @@ export default function VeterinaryDashboard() {
 
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
-    const dispatchEventsOnly = dispatchEvents.map(d => ({
-        ...d,
-        type: 'dispatch',
-        originalData: d
-    }));
+const dispatchEventsOnly = useMemo(() => dispatchEvents.map(d => ({
+    ...d,
+    type: 'dispatch',
+    originalData: d
+})), [dispatchEvents]);
 
-    const meetingEventsOnly = meetings.map(m => ({
-        date: m.date,
-        time: m.startTime,
-        location: m.title, // ใช้ Title เป็น Location ในปฏิทินเพื่อให้เห็นชื่อประชุมชัดๆ
-        team: 'Online/Room',
-        note: m.link,
-        type: 'meeting',
-        _id: m._id,
-        originalData: m
-    }));
+const meetingEventsOnly = useMemo(() => meetings.map(m => ({
+    date: m.date,
+    time: m.startTime,
+    location: m.title,
+    team: 'Online/Room',
+    note: m.link,
+    type: 'meeting',
+    _id: m._id,
+    originalData: m
+})), [meetings]);
+
 
     // --- [แก้ไข] ฟังก์ชันบันทึกลง Database ---
     const handleSaveDispatchEvent = async (payload) => {
@@ -694,16 +696,15 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
         fetchTabsConfig();
     }, [BASE_URL]);
 
-    // แก้ไขฟังก์ชัน toggleTab ให้ยิง API ไปอัปเดตที่ Server แทน
+// --- ฟังก์ชัน toggleTab ที่ถูกต้องสมบูรณ์ ---
     const toggleTab = async (tabName) => {
+        const previousConfig = { ...tabsConfig }; // เก็บค่าเก่าไว้เผื่อพัง
         const newConfig = { ...tabsConfig, [tabName]: !tabsConfig[tabName] };
         
-        // อัปเดตหน้าจอตัวเองทันทีให้ลื่นไหล
-        setTabsConfig(newConfig);
+        setTabsConfig(newConfig); // อัปเดตหน้าจอทันทีให้ดูลื่นไหล
 
-        // ส่งค่าไปอัปเดตที่ Database เพื่อให้ส่ง Socket ไปหาคนอื่น
         try {
-            await fetch(`${BASE_URL}/api/settings/tabs`, {
+            const res = await fetch(`${BASE_URL}/api/settings/tabs`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json', 
@@ -711,9 +712,12 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
                 },
                 body: JSON.stringify({ tabsConfig: newConfig })
             });
+            
+            if (!res.ok) throw new Error('Failed to update');
         } catch (error) {
             console.error("Update Tabs Config Error", error);
             addToast('error', 'ไม่สามารถบันทึกการตั้งค่าแท็บได้');
+            setTabsConfig(previousConfig); // Rollback กลับไปค่าเดิมหากบันทึกไม่สำเร็จ
         }
     };
 
@@ -865,23 +869,10 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
         }
     };
 
-    const combinedEvents = [
-        ...dispatchEvents.map(d => ({
-        ...d,
-        type: 'dispatch',
-        originalData: d
-    })),
-        ...meetings.map(m => ({
-            date: m.date,
-            time: m.startTime,
-            location: `[ประชุม] ${m.title}`,
-            team: 'Online/Room',
-            note: m.link,
-            type: 'meeting',
-            _id: m._id,
-            originalData: m
-        }))
-    ];
+const combinedEvents = useMemo(() => [
+    ...dispatchEventsOnly,
+    ...meetingEventsOnly
+], [dispatchEventsOnly, meetingEventsOnly]);
 
     const handleCalendarEventClick = (evt) => {
         if (evt.type === 'meeting') {

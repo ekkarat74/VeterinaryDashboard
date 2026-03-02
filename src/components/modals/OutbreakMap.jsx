@@ -189,6 +189,29 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                     const long = parseFloat(item.long);
                     if (isNaN(lat) || isNaN(long)) return null;
 
+                    const getNum = (val) => parseInt(val, 10) || 0;
+                    let dogCount = 0;
+                    let catCount = 0;
+
+                    if (item.stats) {
+                        ['owned', 'unowned', 'feeder'].forEach(type => {
+                            if (item.stats[type]) {
+                                dogCount += getNum(item.stats[type].dog?.male) + getNum(item.stats[type].dog?.female);
+                                catCount += getNum(item.stats[type].cat?.male) + getNum(item.stats[type].cat?.female);
+                            }
+                        });
+                    }
+
+                    dogCount += getNum(item.stats?.dog?.male) + getNum(item.stats?.dog?.female) + 
+                        getNum(item.dog?.male) + getNum(item.dog?.female) + 
+                        getNum(item.dogMale) + getNum(item.dogFemale) +
+                        getNum(item.stats?.dogs) + getNum(item.dogs);
+                                     
+                    catCount += getNum(item.stats?.cat?.male) + getNum(item.stats?.cat?.female) + 
+                        getNum(item.cat?.male) + getNum(item.cat?.female) + 
+                        getNum(item.catMale) + getNum(item.catFemale) +
+                        getNum(item.stats?.cats) + getNum(item.cats);
+
                     return (
                         <React.Fragment key={item._id || `outbreak-${index}`}>
                             {activeRadii.includes(1000) && <Circle center={[lat, long]} radius={1000} pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.1, weight: 1, dashArray: '4 4' }} />}
@@ -207,9 +230,9 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                         <div className="bg-red-50 rounded border border-red-100 p-2 mb-3">
                                             <span className="text-[10px] font-bold text-red-600 block mb-1">สถิติสัตว์ติดเชื้อ</span>
                                             <div className="flex justify-center gap-4 text-xs font-semibold text-slate-700">
-                                                <div className="flex flex-col"><span>🐶 สุนัข</span><span>{ (item.stats?.dog?.male||0) + (item.stats?.dog?.female||0) }</span></div>
+                                                <div className="flex flex-col"><span>🐶 สุนัข</span><span>{ dogCount }</span></div>
                                                 <div className="w-px bg-red-200"></div>
-                                                <div className="flex flex-col"><span>🐱 แมว</span><span>{ (item.stats?.cat?.male||0) + (item.stats?.cat?.female||0) }</span></div>
+                                                <div className="flex flex-col"><span>🐱 แมว</span><span>{ catCount }</span></div>
                                             </div>
                                         </div>
 

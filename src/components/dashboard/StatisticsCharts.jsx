@@ -63,8 +63,8 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
           </div>
         </div>
         
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+        <div className="h-80 w-full relative"> {/* เพิ่ม relative ย้ำความกว้าง */}
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
             <ComposedChart data={trendData} margin={{top:10, right:10, left: -20, bottom:0}}>
               <defs>
                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
@@ -115,8 +115,8 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
           </div>
         </div>
 
-        <div className="flex-1 h-72">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+        <div className="flex-1 h-72 w-full relative"> {/* เพิ่ม w-full และ relative */}
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
             <BarChart data={currentFreqData} margin={{top:10, right:5, left:-25, bottom:10}}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis 
@@ -169,8 +169,8 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
             </div>
           </div>
           
-          <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+          <div className="h-96 w-full relative"> {/* เพิ่ม w-full และ relative */}
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
               <BarChart 
                 data={unitStats} 
                 layout="vertical" 
@@ -225,9 +225,7 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                       return (
                         <g>
                           {/* ยอดบริการรวม (สีเข้ม) */}
-                          <text 
-                            x={x + width + 10} 
-                            y={y + 18} 
+                          <text x={x + width + 10} y={y + 18} 
                             fill="#334155" 
                             fontSize="14" 
                             fontWeight="bold"
@@ -236,9 +234,7 @@ const StatisticsCharts = ({ trendData, unitStats, dispatchStats }) => {
                             {value.toLocaleString()}
                           </text>
                           {/* จำนวนครั้งที่ออกหน่วย (สี Indigo) */}
-                          <text 
-                            x={x + width + 55} 
-                            y={y + 18} 
+                          <text x={x + width + 55} y={y + 18} 
                             fill="#6366f1" 
                             fontSize="12"
                             fontWeight="600"
