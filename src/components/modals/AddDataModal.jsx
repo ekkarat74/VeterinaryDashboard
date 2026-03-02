@@ -2,14 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Edit, Plus, X, FileText, ImageIcon, Upload, Trash2, 
     Calculator, Syringe, Scissors, Database, Stethoscope, 
-    Activity, Save, Navigation, MapPin 
+    Activity, Save, MapPin 
 } from 'lucide-react';
 
-// นำเข้าข้อมูลคงที่จากไฟล์ constants (ตรวจสอบ path ให้ถูกต้อง)
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
 
 const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
-    // ค่าเริ่มต้นสำหรับฟอร์มข้อมูลทั่วไป
     const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
         location: '',
@@ -21,7 +19,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         long: ''
     };
 
-    // ค่าเริ่มต้นสำหรับข้อมูลตัวเลข (Breakdown)
     const defaultBreakdown = {
         dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
         cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
@@ -31,12 +28,9 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     const [formData, setFormData] = useState(defaultFormData);
     const [breakdown, setBreakdown] = useState(defaultBreakdown);
     const [coordInput, setCoordInput] = useState("");
-
-    // State สำหรับจัดการรูปภาพ
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
 
-    // Effect: โหลดข้อมูลเดิมเมื่อเปิด Modal ในโหมดแก้ไข หรือ รีเซ็ตเมื่อเพิ่มใหม่
     useEffect(() => {
         if (isOpen) {
             if (initialData) {

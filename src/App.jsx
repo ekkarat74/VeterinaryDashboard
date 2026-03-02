@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, FileText, MapPin, Database, Download, Users, Plus, X, Navigation, 
     Upload, Search, Edit, Trash2, Lock, Skull, Siren, Key, ChevronRight, 
@@ -10,18 +10,17 @@ import { io } from "socket.io-client";
 import KPISection from './components/KPICards';
 import UserManagementModal from './components/UserManagementModal';
 import {UNIT_TYPES, BANGKOK_DISTRICTS} from './constants/locations';
-import AddDataModal from './components/modals/AddDataModal';
-import RabiesOutbreakSection from './components/dashboard/RabiesOutbreakSection';
-import MainDataTable from './components/dashboard/MainDataTable';
+const AddDataModal = lazy(() => import('./components/modals/AddDataModal'));
+const RabiesOutbreakSection = lazy(() => import('./components/dashboard/RabiesOutbreakSection'));
+const MainDataTable = lazy(() => import('./components/dashboard/MainDataTable'));
 import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils';
 import ChangePasswordModal from './components/modals/ChangePasswordModal';
 import Header from './components/layout/Header';
-import StatisticsCharts from './components/dashboard/StatisticsCharts.jsx';
+const StatisticsCharts = React.lazy(() => import('./components/dashboard/StatisticsCharts.jsx'));
 import RankingSection from './components/dashboard/RankingSection';
-import LeafletMap from './components/modals/LeafletMap';
-import OutbreakMap from './components/modals/OutbreakMap';
+const LeafletMap = lazy(() => import('./components/modals/LeafletMap'));
 import LoginModal from './components/modals/LoginModal';
-import AddOutbreakModal from './components/modals/AddOutbreakModal';
+const AddOutbreakModal = lazy(() => import('./components/modals/AddOutbreakModal'));
 import { MeetingCalendarDashboard, DispatchCalendarDashboard } from './components/CalendarComponents.jsx';
 import DispatchModal from './components/modals/DispatchModal';
 import {MeetingModal, MeetingListModal} from './components/modals/MeetingModal';
@@ -164,7 +163,7 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     );
 };
 
-// 4. ToastContainer
+// 3. ToastContainer
 const ToastContainer = ({ toasts, removeToast }) => {
     return (
         <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
@@ -194,7 +193,7 @@ const ToastContainer = ({ toasts, removeToast }) => {
     );
 };
 
-// 5. PasswordConfirmModal
+// 4. PasswordConfirmModal
 const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -243,7 +242,7 @@ const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) =>
     );
 };
 
-// 8. ImagePreviewModal
+// 5. ImagePreviewModal
 const ImagePreviewModal = ({ imageUrl, onClose }) => {
     if (!imageUrl) return null;
     return (
@@ -258,7 +257,7 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
   );
 };
 
-// 10. CsvActionModal
+// 6. CsvActionModal
 const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
     if (!isOpen) return null;
     return (
@@ -291,7 +290,7 @@ const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
     );
 };
 
-// 11. BackupSystemModal
+// 7. BackupSystemModal
 const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUrl }) => {
     if (!isOpen) return null;
     const TARGET_URL = apiBaseUrl || 'http://localhost:5000';
@@ -391,10 +390,8 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
         if (!unitName) return 'other';
         const lower = String(unitName).toLowerCase();
         
-        // เช็ค key หลัก
         if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
         
-        // เช็คคำใกล้เคียงภาษาไทย/อังกฤษ
         if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
         if (lower.includes('วัคซีน') || lower.includes('ไมโครชิป') || lower.includes('microchip') || lower.includes('vaccine')) return 'microchip';
         if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
@@ -786,12 +783,12 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
                 case 'MEETING_DELETED':
                     setMeetings(prev => prev.filter(m => m._id !== payload.id));
                     break;
-                case 'MEETING_UPDATED': // เพิ่ม case นี้
+                case 'MEETING_UPDATED':
                     setMeetings(prev => prev.map(m => m._id === payload.data._id ? payload.data : m));
                     addToast('info', `📝 แก้ไขนัดหมายประชุม: ${payload.data.title}`);
                     break;
-                case 'REPORTS_IMPORTED': // เพิ่ม case นี้
-                    fetchData(); // โหลดข้อมูลใหม่ทั้งหมดทีเดียว
+                case 'REPORTS_IMPORTED':
+                    fetchData();
                     addToast('success', `📥 มีการนำเข้าข้อมูลชุดใหญ่จำนวน ${payload.count} รายการ`);
                     break;
                 case 'DISPATCH_ADDED':
@@ -807,7 +804,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
                     break;
                 case 'TABS_CONFIG_UPDATED':
                     setTabsConfig(payload.data);
-                    // ถ้าคนที่ไม่ได้ล็อคอินกำลังดูหน้าที่โดนปิดไป จะมี useEffect ตัวข้างบนช่วยดีดกลับให้อัตโนมัติ
                     break;
                 default: break;
             }
@@ -828,7 +824,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
         fetchMeetings();
     }, [BASE_URL]);
 
-    // --- เพิ่มฟังก์ชัน Save Meeting ---
     const handleSaveMeeting = async (meetingData) => {
         try {
             const method = meetingData._id ? 'PUT' : 'POST'; // เช็คว่ามี ID ไหม
@@ -841,8 +836,7 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
             });
             if (res.ok) {
                 addToast('success', meetingData._id ? 'แก้ไขข้อมูลเรียบร้อย' : 'บันทึกการประชุมเรียบร้อย');
-                // Socket จะ update state เอง หรือถ้าไม่มี socket ให้ reload
-                if(meetingData._id) { // Manual update state for instant feedback
+                if(meetingData._id) {
                      const updated = await res.json();
                      setMeetings(prev => prev.map(m => m._id === updated._id ? updated : m));
                 }
@@ -854,7 +848,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
         }
     };
 
-    // เพิ่ม Function ลบการประชุม
     const handleDeleteMeeting = async (id) => {
         try {
             const res = await fetch(`${BASE_URL}/api/meetings/${id}`, {
@@ -875,7 +868,7 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
     const combinedEvents = [
         ...dispatchEvents.map(d => ({
         ...d,
-        type: 'dispatch', // ระบุประเภท
+        type: 'dispatch',
         originalData: d
     })),
         ...meetings.map(m => ({
@@ -886,7 +879,7 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
             note: m.link,
             type: 'meeting',
             _id: m._id,
-            originalData: m // เก็บข้อมูลดิบไว้ส่งให้ Modal
+            originalData: m
         }))
     ];
 
@@ -895,12 +888,8 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
             setViewingMeeting(evt.originalData);
             setIsMeetingModalOpen(true);
         } else {
-            // กรณีเป็น Dispatch (แผนงานออกหน่วย)
-            setViewingDispatch(evt.originalData); // ส่งข้อมูลเดิมไปที่ Modal
-            setIsDispatchModalOpen(true);         // เปิด Modal
-            
-            // [ลบออก] alert(`รายละเอียดงาน: ${evt.location}\nทีม: ${evt.team}`); 
-            // ลบ alert เพื่อให้ UI เปิดหน้าต่างแก้ไขทันที ดูเป็นธรรมชาติกว่า
+            setViewingDispatch(evt.originalData);
+            setIsDispatchModalOpen(true);
         }
     };
 
@@ -1085,7 +1074,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
 
     // --- 5. CALCULATIONS ---
 
-    // 1. ประกาศ availableYears
     const availableYears = useMemo(() => {
         if (!Array.isArray(reportData)) return [];
         return [...new Set(reportData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y))].sort().reverse();
@@ -1096,15 +1084,10 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
 
         return reportData.filter(item => {
             try {
-                // Safety Check 1: ข้ามถ้ารายการนี้เป็น null
                 if (!item) return false;
 
-                // --- เตรียมข้อมูล (Handle Null/Undefined ป้องกันจอขาว) ---
                 const itemLocation = item.location ? String(item.location).toLowerCase() : '';
-                
-                // ✅ จุดสำคัญ: ถ้าไม่มีเขต ให้เป็นค่าว่างไว้ อย่าให้ undefined จนพัง
                 const itemDistrict = item.district ? String(item.district).trim() : 'ไม่ระบุ'; 
-                
                 const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
                 const itemUnit = item.unit ? String(item.unit) : '';
 
@@ -1119,46 +1102,30 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
                 let dateMatch = true;
 
                 if (searchDate) { 
-                    // ถ้ามีการระบุวันที่เป๊ะๆ
                     dateMatch = item.date === searchDate; 
                 } else {
-                    // ถ้าไม่มีวันที่ (item.date) ให้ถือว่าไม่ผ่านกรอง ยกเว้นว่าเป็นข้อมูลเก่าที่ยอมรับได้
-                    // (แต่เพื่อความชัวร์ของกราฟ ควรมีวันที่)
                     if (!item.date) {
-                        // ถ้าปีและเดือนเลือก "ทั้งหมด" เราอาจจะยอมให้ผ่านได้ถ้าต้องการ
-                        // แต่ปกติกราฟต้องใช้วันที่ ขอ return false ถ้าไม่มีวันที่
                         return false; 
                     }
 
                     const dateParts = String(item.date).split('-');
                     if (dateParts.length >= 2) {
                         const [itemYear, itemMonth] = dateParts;
-                        
-                        // ✅ Logic อิสระ:
-                        // ถ้าเลือก Year = 'ทั้งหมด' -> yearMatch เป็น true เสมอ
-                        // ถ้าเลือก Month = 'ทั้งหมด' -> monthMatch เป็น true เสมอ
                         const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === String(selectedYear);
                         const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
                         
                         dateMatch = yearMatch && monthMatch;
                     } else {
-                        dateMatch = false; // รูปแบบวันที่ผิด
+                        dateMatch = false;
                     }
                 }
 
                 // --- 3. Unit Filter ---
                 const unitMatch = selectedUnit === 'ทั้งหมด' || itemUnit === selectedUnit;
-                
-                // --- 4. District Filter (ตัวกรองเขต) ---
-                // ✅ Logic: ถ้า selectedDistrict เป็น 'ทั้งหมด' ให้ผ่าน
-                // ถ้าเลือกเขตเฉพาะเจาะจง ก็เช็คว่าตรงกันไหม (โดยไม่สนว่าปีไหน ถ้าปีเลือกทั้งหมดไว้)
                 const districtMatch = selectedDistrict === 'ทั้งหมด' || itemDistrict === selectedDistrict;
-
-                // นำผลลัพธ์ทั้งหมดมา AND กัน
                 return textMatch && dateMatch && unitMatch && districtMatch;
 
             } catch (error) {
-                // ✅ Catch Error: ถ้าข้อมูลแถวไหนพัง ให้ข้ามไปเลย ไม่ต้องทำหน้าจอขาว
                 console.warn("Skipping invalid item causing filter error:", item, error);
                 return false; 
             }
@@ -1166,7 +1133,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
     }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
 
     const dispatchStats = useMemo(() => {
-        // Helper สร้าง object เริ่มต้น
         const initStats = () => ({ count: 0, sterilization: 0, microchip: 0, governor: 0, cat_cage: 0, other: 0 });
 
         // 1. Monthly Data
@@ -1175,9 +1141,9 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
             const m = item.date.substring(0, 7);
             if (!monthMap[m]) monthMap[m] = initStats();
             
-            monthMap[m].count += 1; // นับจำนวนงานรวม
+            monthMap[m].count += 1;
             
-            const uKey = getUnitKey(item.unit); // เรียกฟังก์ชันที่เพิ่มเข้ามา
+            const uKey = getUnitKey(item.unit);
             if (monthMap[m][uKey] !== undefined) {
                 monthMap[m][uKey] += 1;
             } else {
@@ -1243,13 +1209,11 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
             d.long !== undefined && d.long !== null && d.long !== '' &&
             !isNaN(parseFloat(d.lat)) && 
             !isNaN(parseFloat(d.long)) &&
-            // เพิ่มการเช็คว่า lat/long ไม่อยู่ในจุดที่เป็น 0,0 (กลางทะเล) ถ้าไม่ต้องการแสดง
             (parseFloat(d.lat) !== 0 || parseFloat(d.long) !== 0)
         );
     }, [filteredData]);
 
 const totals = useMemo(() => filteredData.reduce((acc, curr) => {
-    // ดึงข้อมูล detail เพื่อเอาไปนับแยกหมา-แมว
     const d = curr.details?.dog || {};
     const c = curr.details?.cat || {};
     const toNum = (val) => parseInt(val, 10) || 0;
@@ -1293,13 +1257,10 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
                     cat: 0 
                 };
             }
-            
-            // --- Helper: แปลงเป็นตัวเลขก่อนบวกเสมอ ---
             const toNum = (val) => parseInt(val, 10) || 0; 
 
             acc[curr.unit].count += 1;
 
-            // ใช้ toNum หุ้มค่าทุกตัว
             acc[curr.unit].vaccine += toNum(curr.stats?.vaccine);
             acc[curr.unit].sterilize += toNum(curr.stats?.sterilize);
             acc[curr.unit].register += toNum(curr.stats?.register);
@@ -1314,11 +1275,9 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
                 toNum(curr.stats?.medical)
             );
             
-            // --- Logic คำนวณยอดหมาและแมว (แก้ไขแล้ว) ---
             const d = curr.details?.dog || {};
             const c = curr.details?.cat || {};
 
-            // ใช้ toNum หุ้มทุกค่าเพื่อป้องกันการต่อ String
             acc[curr.unit].dog += (
                 toNum(d.vaccine) + 
                 toNum(d.maleSterilize) + 
@@ -1336,7 +1295,6 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
                 toNum(c.register) + 
                 toNum(c.medical)
             );
-            // ------------------------------------
 
             return acc;
         }, {});
@@ -1346,7 +1304,7 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
     const trendData = useMemo(() => {
     const dataMap = filteredData.reduce((acc, curr) => {
         const month = curr.date.substring(0, 7);
-        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
+        const toNum = (val) => parseInt(val, 10) || 0;
         
         if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
         
@@ -1373,13 +1331,10 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
 
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y !== null))].sort().reverse(), [outbreakData]);
     const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter(item => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
-    // --- แก้ไขส่วนการคำนวณ outbreakStats ใน VeterinaryDashboard ---
     const outbreakStats = useMemo(() => {
         const total = filteredOutbreaks.length;
         const grouped = filteredOutbreaks.reduce((acc, curr) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
         const topDistricts = Object.keys(grouped).map(key => ({ name: key, count: grouped[key] })).sort((a, b) => b.count - a.count).slice(0, 5);
-
-        // --- เพิ่มการคำนวณสถิติสัตว์แยกประเภท ---
         const animalStats = {
             owned: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 },
             unowned: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 },
@@ -1434,12 +1389,11 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
         if (!Array.isArray(reportData)) return [];
         
         return reportData.filter(item => {
-            // Safety Check: ถ้าไม่มี item หรือ ไม่มีวันที่ ห้าม split เด็ดขาด
             if (!item || !item.date) return false;
 
             try {
                 const dateParts = item.date.split('-');
-                if (dateParts.length < 2) return false; // Format ผิด
+                if (dateParts.length < 2) return false;
 
                 const [itemYear, itemMonth] = dateParts;
                 return (rankingYear === 'ทั้งหมด' || itemYear === rankingYear) && 
@@ -1454,9 +1408,8 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
     const grouped = rankingFilteredData.reduce((acc, curr) => {
         const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
         const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
-        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
+        const toNum = (val) => parseInt(val, 10) || 0;
         
-        // คำนวณยอดของ Row นี้โดยป้องกัน String
         const vaccine = toNum(curr.stats?.vaccine);
         const sterilize = toNum(curr.stats?.sterilize);
         const register = toNum(curr.stats?.register);
@@ -1510,7 +1463,7 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
 const rankingUnitStats = useMemo(() => {
     const grouped = rankingFilteredData.reduce((acc, curr) => {
         const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
-        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
+        const toNum = (val) => parseInt(val, 10) || 0;
 
         if (!acc[unitName]) {
             acc[unitName] = { 
@@ -1537,7 +1490,7 @@ const rankingUnitStats = useMemo(() => {
 const rankingDistrictStats = useMemo(() => {
     const grouped = rankingFilteredData.reduce((acc, curr) => {
         const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
-        const toNum = (val) => parseInt(val, 10) || 0; // เพิ่มบรรทัดนี้
+        const toNum = (val) => parseInt(val, 10) || 0;
 
         if (!acc[districtName]) acc[districtName] = { name: districtName, total: 0 };
         
@@ -1548,22 +1501,18 @@ const rankingDistrictStats = useMemo(() => {
 }, [rankingFilteredData]);
 
 const parseCSVDate = (dateStr) => {
-    if (!dateStr) return new Date().toISOString().split('T')[0]; // ถ้าไม่มีค่า ใช้วันปัจจุบัน
-    
-    // ถ้า Format ถูกต้องแล้ว (YYYY-MM-DD)
+    if (!dateStr) return new Date().toISOString().split('T')[0];
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
     
-    // ถ้าเป็น Format ไทย (DD/MM/YYYY)
     const parts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
     if (parts) {
         let day = parts[1].padStart(2, '0');
         let month = parts[2].padStart(2, '0');
         let year = parseInt(parts[3]);
-        if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+        if (year > 2400) year -= 543;
         return `${year}-${month}-${day}`;
     }
     
-    // Fallback สุดท้าย
     const d = new Date(dateStr);
     return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 };
@@ -1584,15 +1533,13 @@ const parseCSVDate = (dateStr) => {
                 const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าทั้งหมดในครั้งเดียวหรือไม่?`);
                 if (!confirmImport) return;
 
-                const bulkData = []; // สร้าง Array เพื่อรอรับข้อมูลทั้งหมด
+                const bulkData = [];
                 let failCount = 0;
                 
-                // เริ่มที่ i = 1 เพื่อข้าม Header
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
 
-                    // ใช้ Regex แยก CSV (รองรับข้อมูลที่มี , อยู่ในเครื่องหมายคำพูด และช่องว่าง)
                     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
 
@@ -1650,7 +1597,7 @@ const parseCSVDate = (dateStr) => {
                     };
 
                     if (newRecord.date && newRecord.location) {
-                        bulkData.push(newRecord); // เก็บลง Array แทนการยิง API ทันที
+                        bulkData.push(newRecord);
                     } else {
                         failCount++;
                     }
@@ -1661,7 +1608,6 @@ const parseCSVDate = (dateStr) => {
                     return;
                 }
 
-                // ส่งข้อมูลทั้งหมดไปที่ API ครั้งเดียว
                 try {
                     const response = await fetch(`${BASE_URL}/api/reports/bulk`, { // เรียก endpoint ใหม่
                         method: 'POST',
@@ -1733,7 +1679,10 @@ const parseCSVDate = (dateStr) => {
             `}</style>
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
-            <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
+            <Suspense fallback={<div className="hidden">Loading...</div>}>
+                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
+                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
+            </Suspense>
             <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={csvMode === 'outbreak' ? handleOutbreakFileUpload : handleFileUpload} onExport={() => { csvMode === 'outbreak' ? exportOutbreaksToCSV(outbreakData) : exportToCSV(filteredData); }} />
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
@@ -1742,7 +1691,6 @@ const parseCSVDate = (dateStr) => {
             <PasswordConfirmModal isOpen={isConfirmPasswordOpen} onClose={() => setIsConfirmPasswordOpen(false)} onConfirm={executeClearAllData} title="ล้างข้อมูลทั้งหมด?" message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน" />
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
-            <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
 
             <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
             <DispatchCalendarDashboard isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} events={dispatchEventsOnly} onOpenForm={() => { setViewingDispatch(null); setIsDispatchModalOpen(true); }} onEventClick={(evt) => { setViewingDispatch(evt.originalData); setIsDispatchModalOpen(true); }} />
@@ -1762,25 +1710,16 @@ const parseCSVDate = (dateStr) => {
                 toggleTab={toggleTab}
             />
 
-            
-
-            {/* คอนเทนเนอร์หลักแบ่งซ้าย-ขวา (บนจอใหญ่) */}
             <div className="flex flex-1 w-full max-w-[1600px] mx-auto relative">
                 
                 <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-slate-200 hidden md:flex flex-col sticky top-0 h-[calc(100vh-80px)] shrink-0 shadow-sm z-20 pt-6 transition-all duration-300`}>
-                    
-                    {/* ส่วนหัวเมนู และ ปุ่มยุบ/ขยาย */}
                     <div className={`flex items-center pb-4 border-b border-slate-100 mb-4 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
-                        
-                        {/* ข้อความจะซ่อนเมื่อยุบแถบ */}
                         {!isSidebarCollapsed && (
                             <div className="animate-in fade-in duration-300">
                                 <h2 className="font-bold text-slate-800 text-lg whitespace-nowrap">เมนูหลัก</h2>
                                 <p className="text-xs text-slate-500 whitespace-nowrap">เลือกระบบที่ต้องการ</p>
                             </div>
                         )}
-
-                        {/* ปุ่มยุบ/ขยาย */}
                         <button 
                             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                             className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex-shrink-0"
@@ -1790,45 +1729,35 @@ const parseCSVDate = (dateStr) => {
                         </button>
                     </div>
 
-                    {/* ปุ่มเมนูต่างๆ */}
                     <nav className={`flex-1 space-y-2 ${isSidebarCollapsed ? 'px-3' : 'px-4'}`}>
                         {(user || tabsConfig.overview) && (
-                        <button 
-                            onClick={() => setActiveTab('overview')} 
-                            title="ภาพรวมสถิติ"
-                            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-4 py-3'} rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-indigo-600'}`}
-                        >
-                            <Activity className="w-5 h-5 shrink-0" />
-                            {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ภาพรวมสถิติ</span>}
-                        </button>
+                            <button onClick={() => setActiveTab('overview')} title="ภาพรวมสถิติ"
+                                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-4 py-3'} rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-indigo-600'}`}
+                            >
+                                <Activity className="w-5 h-5 shrink-0" />
+                                {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ภาพรวมสถิติ</span>}
+                            </button>
                         )}
                         {(user || tabsConfig.outbreak) && (
-                        <button 
-                            onClick={() => setActiveTab('outbreak')} 
-                            title="จัดการจุดเสี่ยง"
-                            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-4 py-3'} rounded-xl font-bold transition-all ${activeTab === 'outbreak' ? 'bg-red-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-red-600'}`}
-                        >
-                            <Siren className="w-5 h-5 shrink-0" />
-                            {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">จัดการจุดเสี่ยง</span>}
-                        </button>
+                            <button onClick={() => setActiveTab('outbreak')} title="จัดการจุดเสี่ยง"
+                                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-4 py-3'} rounded-xl font-bold transition-all ${activeTab === 'outbreak' ? 'bg-red-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-red-600'}`}
+                            >
+                                <Siren className="w-5 h-5 shrink-0" />
+                                {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">จัดการจุดเสี่ยง</span>}
+                            </button>
                         )}
                         {(user || tabsConfig.database) && (
-                        <button 
-                            onClick={() => setActiveTab('database')} 
-                            title="ฐานข้อมูลบริการ"
-                            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-4 py-3'} rounded-xl font-bold transition-all ${activeTab === 'database' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-emerald-600'}`}
-                        >
-                            <Database className="w-5 h-5 shrink-0" />
-                            {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ฐานข้อมูลบริการ</span>}
-                        </button>
+                            <button onClick={() => setActiveTab('database')} title="ฐานข้อมูลบริการ"
+                                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-4 py-3'} rounded-xl font-bold transition-all ${activeTab === 'database' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100 hover:text-emerald-600'}`}
+                            >
+                                <Database className="w-5 h-5 shrink-0" />
+                                {!isSidebarCollapsed && <span className="whitespace-nowrap animate-in fade-in duration-300">ฐานข้อมูลบริการ</span>}
+                            </button>
                         )}
                     </nav>
                 </aside>
 
-                {/* ส่วนแสดงผลเนื้อหา (Main Content) */}
                 <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden overflow-y-auto space-y-8">
-                    
-                    {/* --- [ย้ายมา] ตัวกรองข้อมูล (Global Filters) แสดงผลตลอดเวลาเพื่อให้เชื่อมถึงกันทุกหน้า --- */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                             <div className="flex items-center gap-3">
@@ -1885,19 +1814,21 @@ const parseCSVDate = (dateStr) => {
                             </div>
                         )}
                     </div>
-                    {/* --- สิ้นสุดตัวกรองข้อมูล --- */}
 
-                    {/* แท็บที่ 1: ภาพรวมสถิติ */}
-                    {activeTab === 'overview' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <KPISection totals={totals} unitStats={unitStats} />
-                            <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
-                                <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                    {/* แมพ 1: แสดงเฉพาะผลการปฏิบัติงาน (ใช้ LeafletMap เดิม) */}
-                                    <LeafletMap data={mapDisplayData} />
-                                </div>
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center p-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                        </div>
+                    }>
+                        {activeTab === 'overview' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <KPISection totals={totals} unitStats={unitStats} />
+                                <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                    <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
+                                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+                                        <LeafletMap data={mapDisplayData} />
+                                    </div>
                             </div>
                         </div>
                     )}
@@ -1918,46 +1849,42 @@ const parseCSVDate = (dateStr) => {
                                 onDelete={handleDeleteOutbreak} 
                                 canEdit={canEdit} 
                             />
-                            {/* ลบ <div> ของแผนที่ตรงนี้ออกทั้งหมด เพราะเราจะย้ายเข้าไปข้างใน RabiesOutbreakSection แทน */}
                         </div>
                     )}
 
-                    {/* แท็บที่ 3: ฐานข้อมูลบริการ */}
                     {activeTab === 'database' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
                         </div>
                     )}
-
+                </Suspense>
+                    
                 </main>
             </div>
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
                 {(user || tabsConfig.overview) && (
-                <button 
-                    onClick={() => setActiveTab('overview')} 
-                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                    <Activity className="w-5 h-5 mb-1" />
-                    <span className="text-[10px]">ภาพรวม</span>
-                </button>
+                    <button onClick={() => setActiveTab('overview')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <Activity className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">ภาพรวม</span>
+                    </button>
                 )}
                 {(user || tabsConfig.outbreak) && (
-                <button 
-                    onClick={() => setActiveTab('outbreak')} 
-                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                    <Siren className="w-5 h-5 mb-1" />
-                    <span className="text-[10px]">จุดเสี่ยง</span>
-                </button>
+                    <button onClick={() => setActiveTab('outbreak')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <Siren className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">จุดเสี่ยง</span>
+                    </button>
                 )}
                 {(user || tabsConfig.database) && (
-                <button 
-                    onClick={() => setActiveTab('database')} 
-                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                    <Database className="w-5 h-5 mb-1" />
-                    <span className="text-[10px]">ฐานข้อมูล</span>
-                </button>
+                    <button onClick={() => setActiveTab('database')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <Database className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">ฐานข้อมูล</span>
+                    </button>
                 )}
             </div>
         </div>

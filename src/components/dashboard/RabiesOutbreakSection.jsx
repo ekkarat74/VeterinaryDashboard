@@ -1,7 +1,7 @@
 import React from 'react';
 import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, EyeOff, Edit, Trash2, TrendingUp, Search } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
-import OutbreakMap from '../modals/OutbreakMap';// <-- อย่าลืม import ให้ตรงกับ path ของคุณด้วยนะครับ
+import OutbreakMap from '../modals/OutbreakMap';
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -81,7 +81,6 @@ const RabiesOutbreakSection = ({
                 </div>
             </div>
 
-            {/* --- ย้าย Map มาไว้ตรงนี้ (ระหว่าง Header และส่วนของกราฟ) --- */}
             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 h-[45rem] relative z-0 flex flex-col">
                 <div className="flex justify-between items-center mb-4 px-2">
                     <div>

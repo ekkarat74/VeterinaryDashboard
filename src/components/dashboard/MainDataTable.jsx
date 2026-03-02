@@ -1,7 +1,6 @@
-import React from 'react';
 import { 
     Database, Trash2, Users, Pencil, X, MapPin, Calendar, 
-    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText // <--- เพิ่ม FileText
+    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText
 } from 'lucide-react';
 
 const MainDataTable = ({ 
@@ -14,9 +13,7 @@ const MainDataTable = ({
     onViewImage 
 }) => {
 
-    // Helper สำหรับจัดรูปแบบตัวเลข
     const formatNumber = (num) => num ? num.toLocaleString() : '0';
-
     const totals = data.reduce((acc, item) => ({
         vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
         sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
@@ -131,16 +128,13 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* --- 1. ส่วนที่แยกออกมา: ขึ้นทะเบียน --- */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
                                             <FileText className="w-3 h-3 mb-1 opacity-50" />
-                                            {/* หมายเหตุ: ตรวจสอบ key ของ data ให้ตรงกับที่ backend ส่งมา (เช่น stats.register) */}
                                             <span className="font-bold text-sm">{formatNumber(item.stats.register)}</span>
                                         </div>
                                     </td>
 
-                                    {/* --- 2. ส่วนที่แยกออกมา: ไมโครชิป --- */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-700">
                                             <QrCode className="w-3 h-3 mb-1 opacity-50" />
@@ -197,7 +191,6 @@ const MainDataTable = ({
                         ) : (
                             /* Empty State */
                             <tr>
-                                {/* เพิ่ม colSpan เป็น 10 (admin) หรือ 9 (user) เพราะเพิ่มคอลัมน์มาอีก 1 */}
                                 <td colSpan={canEdit ? 10 : 9} className="px-6 py-12 text-center">
                                     <div className="flex flex-col items-center justify-center text-gray-400">
                                         <div className="p-4 bg-gray-50 rounded-full mb-3">

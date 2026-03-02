@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -49,6 +50,7 @@ app.use(cors({
 }));
 
 // Support large payload (Images Base64)
+app.use(compression());
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
@@ -92,6 +94,9 @@ const reportSchema = new mongoose.Schema({
   createdBy: { type: String, default: 'System' },
   updatedBy: { type: String }
 }, { timestamps: true });
+reportSchema.index({ date: -1 });      // <-- เพิ่มบรรทัดนี้
+reportSchema.index({ district: 1 });   // <-- เพิ่มบรรทัดนี้
+reportSchema.index({ unit: 1 });
 const Report = mongoose.model('Report', reportSchema);
 
 // 3. Outbreak Schema
@@ -101,7 +106,6 @@ const outbreakSchema = new mongoose.Schema({
   district: String,
   lat: { type: Number, required: true },
   long: { type: Number, required: true },
-  // --- [เพิ่มส่วนนี้] ---
   stats: {
     owned: { // สัตว์มีเจ้าของ
       dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
@@ -118,9 +122,10 @@ const outbreakSchema = new mongoose.Schema({
   }
   // ------------------
 }, { timestamps: true });
+outbreakSchema.index({ date: -1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 
-// 4. System Log Schema (✅ ส่วนที่เพิ่มใหม่)
+// 4. System Log Schema
 const logSchema = new mongoose.Schema({
     action: { type: String, required: true }, // LOGIN, CREATE_REPORT, DELETE_REPORT etc.
     user: { type: String, required: true },   // Username
@@ -131,7 +136,7 @@ const logSchema = new mongoose.Schema({
 }, { timestamps: true });
 const SystemLog = mongoose.model('SystemLog', logSchema);
 
-// 5. Meeting Schema (เพิ่มใหม่: สำหรับบันทึกการประชุม)
+// 5. Meeting Schema
 const meetingSchema = new mongoose.Schema({
     title: { type: String, required: true },
     date: { type: String, required: true },
@@ -373,7 +378,7 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'sup
 
 app.get('/api/reports', async (req, res) => {
   try {
-    const reports = await Report.find().sort({ date: -1 }); 
+    const reports = await Report.find().sort({ date: -1 }).lean();
     res.json(reports);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -464,7 +469,7 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'super
 
 app.get('/api/outbreaks', async (req, res) => {
   try {
-    const outbreaks = await Outbreak.find().sort({ date: -1 });
+    const outbreaks = await Outbreak.find().sort({ date: -1 }).lean();
     res.json(outbreaks);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -590,7 +595,7 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['MagaAdmin', '
 
 app.get('/api/meetings', async (req, res) => {
     try {
-        const meetings = await Meeting.find().sort({ date: -1 });
+        const meetings = await Meeting.find().sort({ date: -1 }).lean();
         res.json(meetings);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -702,7 +707,7 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['MagaAdmin', '
 app.get('/api/dispatches', async (req, res) => {
     try {
         // เรียงวันที่จากใหมไปเก่า
-        const plans = await DispatchPlan.find().sort({ date: -1 });
+        const plans = await DispatchPlan.find().sort({ date: -1 }).lean();
         res.json(plans);
     } catch (err) {
         res.status(500).json({ message: err.message });

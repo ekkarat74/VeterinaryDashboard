@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map } from 'lucide-react';
-// ปรับ path ให้ตรงกับโครงสร้างโปรเจคของคุณ
 import { BANGKOK_DISTRICTS } from '../../constants/locations'; 
 
 const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
@@ -66,7 +65,6 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
         }
     }, [isOpen, initialData]);
 
-    // ฟังก์ชันจัดการการเปลี่ยนแปลงตัวเลขสถิติ (ช่วยให้โค้ดสะอาดขึ้นมาก)
     const handleStatChange = (category, animal, gender, value) => {
         const numValue = parseInt(value) || 0;
         setFormData(prev => ({
@@ -77,7 +75,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     ...prev.stats[category],
                     [animal]: {
                         ...prev.stats[category][animal],
-                        [gender]: numValue >= 0 ? numValue : 0 // ป้องกันค่าติดลบ
+                        [gender]: numValue >= 0 ? numValue : 0
                     }
                 }
             }
