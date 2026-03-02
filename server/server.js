@@ -1,11 +1,13 @@
 const express = require('express');
 const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const http = require('http');
 const { Server } = require("socket.io");
+const helmet = require('helmet');
 require('dotenv').config();
 
 const app = express();
@@ -34,6 +36,12 @@ const io = new Server(server, {
     }
 });
 
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 นาที
+    max: 10, // จำกัด 10 ครั้งต่อ IP
+    message: { message: "เข้าสู่ระบบผิดพลาดหลายครั้งเกินไป กรุณารอสักครู่" }
+});
+
 // --- MIDDLEWARES ---
 app.use(cors({
   origin: function (origin, callback) {
@@ -50,9 +58,10 @@ app.use(cors({
 }));
 
 // Support large payload (Images Base64)
+app.use(helmet());
 app.use(compression());
-app.use(express.json({ limit: '500mb' }));
-app.use(express.urlencoded({ limit: '500mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- DATABASE CONNECTION ---
 mongoose.connect(MONGO_URI)
@@ -228,7 +237,7 @@ const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
 // A. AUTHENTICATION & LOGS
 // =======================
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username });
   if (!user) return res.status(400).json({ message: "ไม่พบผู้ใช้งาน" });
@@ -378,7 +387,10 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'sup
 
 app.get('/api/reports', async (req, res) => {
   try {
-    const reports = await Report.find().sort({ date: -1 }).lean();
+    const reports = await Report.find()
+      .select('-imageUrl')
+      .sort({ date: -1 })
+      .lean();
     res.json(reports);
   } catch (err) {
     res.status(500).json({ message: err.message });
