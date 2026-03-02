@@ -166,13 +166,22 @@ const RabiesOutbreakSection = ({
                             {filteredOutbreaks.slice(0, 5).map((item, idx) => {
                                 const isHidden = hiddenIds.includes(item._id);
 
-                                const dogCount = (item.stats?.dog?.male || 0) + (item.stats?.dog?.female || 0) + 
-                     (item.dog?.male || 0) + (item.dog?.female || 0) + 
-                     (item.dogMale || 0) + (item.dogFemale || 0);
-                     
-    const catCount = (item.stats?.cat?.male || 0) + (item.stats?.cat?.female || 0) + 
-                     (item.cat?.male || 0) + (item.cat?.female || 0) + 
-                     (item.catMale || 0) + (item.catFemale || 0);
+                                // 1. ฟังก์ชันช่วยแปลงค่าให้เป็นตัวเลขเสมอ (ป้องกันปัญหาข้อมูลเป็น String, null หรือ undefined)
+                                const getNum = (val) => parseInt(val, 10) || 0;
+
+                                // 2. คำนวณยอดรวม (เพิ่มการเช็คฟิลด์ .dogs, .cats รวบยอดเข้าไปด้วย)
+                                const dogCount = getNum(item.stats?.dog?.male) + getNum(item.stats?.dog?.female) + 
+                                                 getNum(item.dog?.male) + getNum(item.dog?.female) + 
+                                                 getNum(item.dogMale) + getNum(item.dogFemale) +
+                                                 getNum(item.stats?.dogs) + getNum(item.dogs);
+                                                 
+                                const catCount = getNum(item.stats?.cat?.male) + getNum(item.stats?.cat?.female) + 
+                                                 getNum(item.cat?.male) + getNum(item.cat?.female) + 
+                                                 getNum(item.catMale) + getNum(item.catFemale) +
+                                                 getNum(item.stats?.cats) + getNum(item.cats);
+
+                                // +++ หากยังไม่ได้ค่า แนะนำให้เอาคอมเมนต์บรรทัดล่างออกเพื่อเช็คโครงสร้าง Object จริงใน Console (F12) +++
+                                console.log("Outbreak Item:", item);
 
                                 return (
                                     <div key={idx} className={`relative p-3 rounded-2xl transition-all duration-300 border ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-100 hover:shadow-md hover:shadow-rose-100/50'}`}>
@@ -197,16 +206,16 @@ const RabiesOutbreakSection = ({
                                                         <MapPin className="w-3 h-3" /> {item.district}
                                                     </span>
                                                 </div>
-                                                {item.stats && (
-                                                    <div className="flex gap-2 mt-2">
-    <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">
-        🐶 {dogCount}
-    </span>
-    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
-        🐱 {catCount}
-    </span>
-</div>
-                                                )}
+                                                
+                                                {/* ส่วนแสดงผลตัวเลข (เรียกใช้ dogCount, catCount) */}
+                                                <div className="flex gap-2 mt-2">
+                                                    <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">
+                                                        🐶 {dogCount}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
+                                                        🐱 {catCount}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             {/* Action Buttons */}
