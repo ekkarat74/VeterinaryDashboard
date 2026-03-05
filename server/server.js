@@ -103,9 +103,7 @@ const reportSchema = new mongoose.Schema({
   createdBy: { type: String, default: 'System' },
   updatedBy: { type: String }
 }, { timestamps: true });
-reportSchema.index({ date: -1 });      // <-- เพิ่มบรรทัดนี้
-reportSchema.index({ district: 1 });   // <-- เพิ่มบรรทัดนี้
-reportSchema.index({ unit: 1 });
+reportSchema.index({ date: -1, district: 1, unit: 1 });
 const Report = mongoose.model('Report', reportSchema);
 
 // 3. Outbreak Schema
@@ -388,15 +386,15 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'sup
 app.get('/api/reports', async (req, res) => {
   try {
     const reports = await Report.find()
-      .select('-imageUrl')
+      // เลือกมาเฉพาะฟิลด์ที่จำเป็นต่อการแสดงผลและคำนวณ กรอง imageUrl และฟิลด์จุกจิกทิ้ง
+      .select('_id date location district subdistrict unit lat long stats details createdBy')
       .sort({ date: -1 })
-      .lean();
+      .lean(); // lean() สำคัญมาก ช่วยให้ Mongoose ทำงานเร็วขึ้น 3-5 เท่า
     res.json(reports);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 // Create Report
 app.post('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
@@ -481,7 +479,10 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'super
 
 app.get('/api/outbreaks', async (req, res) => {
   try {
-    const outbreaks = await Outbreak.find().sort({ date: -1 }).lean();
+    const outbreaks = await Outbreak.find()
+      .select('_id date location district lat long stats') // ลดขนาด Payload
+      .sort({ date: -1 })
+      .lean();
     res.json(outbreaks);
   } catch (err) {
     res.status(500).json({ message: err.message });

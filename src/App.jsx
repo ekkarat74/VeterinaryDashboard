@@ -386,15 +386,14 @@ const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUr
 };
 
 // --- Helper Function: getUnitKey (เพิ่มส่วนนี้) ---
-    const getUnitKey = (unitName) => {
+const getUnitKey = (unitName) => {
         if (!unitName) return 'other';
         const lower = String(unitName).toLowerCase();
         
-        if (['sterilization', 'microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
+        if (['sterilization', 'vaccine_microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
         
         if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
-        if (lower.includes('วัคซีน') || lower.includes('vaccine')) return 'vaccine';
-        if (lower.includes('ไมโครชิป') || lower.includes('microchip')) return 'microchip';
+        if (lower.includes('วัคซีน') || lower.includes('vaccine') || lower.includes('ไมโครชิป') || lower.includes('microchip')) return 'vaccine_microchip';
         if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
         if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
 
@@ -451,8 +450,13 @@ export default function VeterinaryDashboard() {
 
     // Confirm Password
     const [isConfirmPasswordOpen, setIsConfirmPasswordOpen] = useState(false);
-
     const [isMeetingCalendarOpen, setIsMeetingCalendarOpen] = useState(false);
+
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    const [trendOffset, setTrendOffset] = useState(0); 
+const [freqDailyOffset, setFreqDailyOffset] = useState(0); 
+const [freqMonthlyOffset, setFreqMonthlyOffset] = useState(0);
 
     // Toast
     const [toasts, setToasts] = useState([]);
@@ -734,12 +738,15 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
 
     const fetchData = useCallback(async () => {
         try {
+            setIsInitialLoading(true);
             const response = await fetch(API_URL);
             const data = await response.json();
             setReportData(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Fetch Reports Error:", error);
             setReportData([]);
+        } finally {
+        setIsInitialLoading(false);
         }
     }, [API_URL]);
 
@@ -1070,61 +1077,60 @@ const combinedEvents = useMemo(() => [
         return [...new Set(reportData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y))].sort().reverse();
     }, [reportData]);
 
-    const filteredData = useMemo(() => {
-        if (!Array.isArray(reportData)) return [];
+    // แทนที่ const filteredData = useMemo(() => { ... }) เดิมทั้งหมดด้วยโค้ดนี้
+const filteredData = useMemo(() => {
+    if (!Array.isArray(reportData)) return [];
 
-        return reportData.filter(item => {
-            try {
-                if (!item) return false;
+    // 1. นำการคำนวณคงที่ออกมานอก Loop 
+    const lowerSearch = searchTerm ? String(searchTerm).toLowerCase().trim() : '';
+    const isYearAll = selectedYear === 'ทั้งหมด';
+    const isMonthAll = selectedMonth === 'ทั้งหมด';
+    const isUnitAll = selectedUnit === 'ทั้งหมด';
+    const isDistrictAll = selectedDistrict === 'ทั้งหมด';
 
-                const itemLocation = item.location ? String(item.location).toLowerCase() : '';
-                const itemDistrict = item.district ? String(item.district).trim() : 'ไม่ระบุ'; 
-                const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
-                const itemUnit = item.unit ? String(item.unit) : '';
+    return reportData.filter(item => {
+        try {
+            if (!item) return false;
 
-                // --- 1. Text Search Logic ---
-                const lowerSearch = searchTerm ? String(searchTerm).toLowerCase().trim() : '';
-                const textMatch = !lowerSearch || 
-                    itemLocation.includes(lowerSearch) || 
-                    itemDistrict.toLowerCase().includes(lowerSearch) || 
-                    itemSubdistrict.includes(lowerSearch);
-
-                // --- 2. Date Logic ---
-                let dateMatch = true;
-
-                if (searchDate) { 
-                    dateMatch = item.date === searchDate; 
-                } else {
-                    if (!item.date) {
-                        return false; 
-                    }
-
-                    const dateParts = String(item.date).split('-');
-                    if (dateParts.length >= 2) {
-                        const [itemYear, itemMonth] = dateParts;
-                        const yearMatch = selectedYear === 'ทั้งหมด' || itemYear === String(selectedYear);
-                        const monthMatch = selectedMonth === 'ทั้งหมด' || parseInt(itemMonth) === parseInt(selectedMonth);
-                        
-                        dateMatch = yearMatch && monthMatch;
-                    } else {
-                        dateMatch = false;
-                    }
-                }
-
-                // --- 3. Unit Filter ---
-                const unitMatch = selectedUnit === 'ทั้งหมด' || itemUnit === selectedUnit;
-                const districtMatch = selectedDistrict === 'ทั้งหมด' || itemDistrict === selectedDistrict;
-                return textMatch && dateMatch && unitMatch && districtMatch;
-
-            } catch (error) {
-                console.warn("Skipping invalid item causing filter error:", item, error);
-                return false; 
+            // 2. Date Logic (เช็คเงื่อนไขที่ใช้เวลาประมวลผลน้อยที่สุดก่อน ถ้าตกหล่นให้ return false ทันที)
+            if (searchDate) { 
+                if (item.date !== searchDate) return false; 
+            } else if (!isYearAll || !isMonthAll) {
+                if (!item.date) return false;
+                const dateParts = String(item.date).split('-');
+                if (dateParts.length < 2) return false;
+                
+                if (!isYearAll && dateParts[0] !== String(selectedYear)) return false;
+                if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(selectedMonth, 10)) return false;
             }
-        });
-    }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
+
+            // 3. Unit & District Filter
+            if (!isUnitAll && item.unit !== selectedUnit) return false;
+            if (!isDistrictAll && (!item.district || item.district.trim() !== selectedDistrict)) return false;
+
+            // 4. Text Search Logic (เช็คเป็นอันดับสุดท้าย เพราะ .toLowerCase() ใน Loop กินทรัพยากรมากที่สุด)
+            if (lowerSearch) {
+                const itemLocation = item.location ? String(item.location).toLowerCase() : '';
+                const itemDistrict = item.district ? String(item.district).toLowerCase() : '';
+                const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
+                
+                if (!itemLocation.includes(lowerSearch) && 
+                    !itemDistrict.includes(lowerSearch) && 
+                    !itemSubdistrict.includes(lowerSearch)) {
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (error) {
+            return false; 
+        }
+    });
+}, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
 
     const dispatchStats = useMemo(() => {
-        const initStats = () => ({ count: 0, sterilization: 0, microchip: 0, governor: 0, cat_cage: 0, other: 0 });
+        // เพิ่ม vaccine_microchip และเอา microchip เดิมออก
+        const initStats = () => ({ count: 0, sterilization: 0, vaccine_microchip: 0, governor: 0, cat_cage: 0, other: 0 });
 
         // 1. Monthly Data
         const monthMap = {};
@@ -1143,19 +1149,19 @@ const combinedEvents = useMemo(() => [
         });
 
         const monthlyData = [];
-        for (let i = 9; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const key = `${year}-${month}`;
-            
-            monthlyData.push({
-                name: key,
-                ...initStats(),
-                ...(monthMap[key] || {})
-            });
-        }
+        for (let i = 9 + freqMonthlyOffset; i >= freqMonthlyOffset; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const key = `${year}-${month}`;
+        
+        monthlyData.push({
+            name: key,
+            ...initStats(),
+            ...(monthMap[key] || {})
+        });
+    }
 
         // 2. Daily Data
         const dayMap = {};
@@ -1168,29 +1174,31 @@ const combinedEvents = useMemo(() => [
             const uKey = getUnitKey(item.unit);
             if (dayMap[day][uKey] !== undefined) {
                  dayMap[day][uKey] += 1;
+            } else {
+                 dayMap[day]['other'] += 1; // เพิ่ม else ป้องกันข้อมูลอื่นๆ หายในกราฟรายวัน
             }
         });
 
         const dailyData = [];
-        for (let i = 13; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const key = `${year}-${month}-${day}`;
-            const displayDate = `${day}/${month}`;
-            
-            dailyData.push({
-                name: displayDate,
-                fullDate: key,
-                ...initStats(),
-                ...(dayMap[key] || {})
-            });
-        }
+        for (let i = 13 + freqDailyOffset; i >= freqDailyOffset; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
+        const displayDate = `${day}/${month}`;
+        
+        dailyData.push({
+            name: displayDate,
+            fullDate: key,
+            ...initStats(),
+            ...(dayMap[key] || {})
+        });
+    }
 
-        return { monthly: monthlyData, daily: dailyData };
-    }, [filteredData]);
+    return { monthly: monthlyData, daily: dailyData };
+}, [filteredData, freqMonthlyOffset, freqDailyOffset]);
 
     const mapDisplayData = useMemo(() => {
         if (!Array.isArray(filteredData)) return [];
@@ -1312,13 +1320,13 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
     }, {});
 
     const last10Months = [];
-    for (let i = 9; i >= 0; i--) {
+    for (let i = 9 + trendOffset; i >= trendOffset; i--) {
         const d = new Date(); d.setMonth(d.getMonth() - i);
         const monthStr = d.toISOString().substring(0, 7);
         last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
     }
     return last10Months;
-}, [filteredData]);
+}, [filteredData, trendOffset]);
 
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y !== null))].sort().reverse(), [outbreakData]);
     const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter(item => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
@@ -1811,18 +1819,34 @@ const parseCSVDate = (dateStr) => {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                         </div>
                     }>
-                        {activeTab === 'overview' && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <KPISection totals={totals} unitStats={unitStats} />
-                                <StatisticsCharts trendData={trendData} unitStats={unitStats} dispatchStats={dispatchStats}/>
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                    <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
-                                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                        <LeafletMap data={mapDisplayData} />
-                                    </div>
+                        {isInitialLoading ? (
+                            <div className="flex flex-col items-center justify-center h-64 space-y-4 animate-in fade-in duration-300">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 border-t-transparent"></div>
+                                <p className="text-slate-500 font-bold">กำลังโหลดและจัดเตรียมข้อมูล...</p>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <>
+                                {activeTab === 'overview' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        <KPISection totals={totals} unitStats={unitStats} />
+                                        <StatisticsCharts 
+                                            trendData={trendData} 
+                                            unitStats={unitStats} 
+                                            dispatchStats={dispatchStats}
+                                            trendOffset={trendOffset}
+                                            setTrendOffset={setTrendOffset}
+                                            freqDailyOffset={freqDailyOffset}
+                                            setFreqDailyOffset={setFreqDailyOffset}
+                                            freqMonthlyOffset={freqMonthlyOffset}
+                                            setFreqMonthlyOffset={setFreqMonthlyOffset}/>
+                                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                                <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
+                                                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+                                                        <LeafletMap data={mapDisplayData} />
+                                                    </div>
+                                            </div>
+                                    </div>
+                                )}
 
                     {activeTab === 'outbreak' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1847,6 +1871,8 @@ const parseCSVDate = (dateStr) => {
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
                         </div>
+                    )}
+                    </>
                     )}
                 </Suspense>
                     
