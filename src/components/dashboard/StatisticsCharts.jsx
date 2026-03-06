@@ -36,35 +36,46 @@ const StatisticsCharts = ({
     );
   }
 
-  const formatCompactNumber = (number) => {
-    if (number >= 1000) {
-      return (number / 1000).toFixed(number % 1000 !== 0 ? 1 : 0) + 'k';
-    }
-    return number;
-  };
+  // --- เพิ่มส่วนนี้: กรณีโหลดสำเร็จแต่ไม่มีข้อมูล ---
+  if (trendData.length === 0 && unitStats.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 bg-slate-50 rounded-2xl border border-slate-200 border-dashed m-2">
+        <BarChart3 className="w-10 h-10 text-slate-300 mb-3" />
+        <p className="text-slate-500 font-medium">ยังไม่มีข้อมูลสถิติในขณะนี้</p>
+      </div>
+    );
+  }
 
-  // Custom Tooltip (ใช้ร่วมกันได้ทั้ง 3 กราฟ)
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 shadow-xl rounded-lg">
-          <p className="text-sm font-bold text-slate-700 mb-2 border-b pb-1">{label}</p>
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center justify-between gap-6 text-xs py-0.5">
-              <span className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                <span className="text-slate-500">{entry.name}:</span>
-              </span>
-              <span className="font-mono font-bold text-slate-800">
-                {entry.value ? entry.value.toLocaleString() : '0'}
-              </span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+// --- เพิ่มไว้ด้านบน นอก Component StatisticsCharts ---
+const formatCompactNumber = (number) => {
+  if (number >= 1000) {
+    return (number / 1000).toFixed(number % 1000 !== 0 ? 1 : 0) + 'k';
+  }
+  return number;
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 shadow-xl rounded-lg z-50">
+        <p className="text-sm font-bold text-slate-700 mb-2 border-b pb-1">{label}</p>
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center justify-between gap-6 text-xs py-0.5">
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="text-slate-500">{entry.name}:</span>
+            </span>
+            <span className="font-mono font-bold text-slate-800">
+              {entry.value ? entry.value.toLocaleString() : '0'}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+// ------------------------------------------------
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-2">
@@ -170,7 +181,11 @@ const StatisticsCharts = ({
                 textAnchor="end"
               />
               <YAxis tick={{fontSize:11, fill:'#94a3b8'}} axisLine={false} tickLine={false} allowDecimals={false} />
-              <RechartsTooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}} />
+              <RechartsTooltip cursor={{fill: '#f8fafc'}} content={(props) => {
+                const filteredPayload = props.payload?.filter(item => item.value > 0);
+                return <CustomTooltip {...props} payload={filteredPayload} />;
+                }} 
+              />
               <Legend iconType="rect" wrapperStyle={{ paddingTop: '20px', fontSize: '11px' }} />
               
               <Bar dataKey="sterilization" fill="#60a5fa" name="สัตวแพทย์" radius={[3,3,0,0]} stackId="a" />
@@ -264,29 +279,35 @@ const StatisticsCharts = ({
                     content={(props) => {
                       const { x, y, width, value, index } = props;
                       const count = unitStats[index]?.count || 0;
-                      return (
-                        <g>
-                          {/* ยอดบริการรวม (สีเข้ม) */}
-                          <text x={x + width + 10} y={y + 18} 
-                            fill="#334155" 
-                            fontSize="14" 
-                            fontWeight="bold"
-                            className="font-mono"
-                          >
-                            {value.toLocaleString()}
-                          </text>
-                          {/* จำนวนครั้งที่ออกหน่วย (สี Indigo) */}
-                          <text x={x + width + 55} y={y + 18} 
-                            fill="#6366f1" 
-                            fontSize="12"
-                            fontWeight="600"
-                          >
-                            | {count} ครั้ง
-                          </text>
-                        </g>
-                      );
-                    }}
-                  />
+    
+                      // เพิ่ม: คำนวณความกว้างที่เหลือเพื่อเช็คว่าใกล้ขอบเกินไปหรือไม่
+                      const isMobileSmall = width < 50 && x > 200; 
+    
+                    return (
+                      <g>
+                        <text 
+                          x={x + width + (isMobileSmall ? 5 : 10)} // ขยับชิดซ้ายขึ้นถ้าจอเล็ก
+                          y={y + 18} 
+                          fill="#334155" 
+                          fontSize={isMobileSmall ? "12" : "14"} 
+                          fontWeight="bold"
+                          className="font-mono"
+                        >
+                          {value.toLocaleString()}
+                        </text>
+                        <text 
+                          x={x + width + (isMobileSmall ? 45 : 55)} // ขยับชิดซ้ายขึ้นถ้าจอเล็ก
+                          y={y + 18} 
+                          fill="#6366f1" 
+                          fontSize={isMobileSmall ? "10" : "12"}
+                          fontWeight="600"
+                        >
+                          | {count} ครั้ง
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

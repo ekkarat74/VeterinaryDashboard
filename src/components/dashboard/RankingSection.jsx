@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Filter, Activity, CheckCircle, Trophy, Medal, ChevronDown,
   MapPin, Building2, LayoutDashboard,
-  Syringe, Scissors, FileText, Cpu, Stethoscope
+  Syringe, Scissors, FileText, Cpu, Stethoscope,
+  Star
 } from 'lucide-react';
 
 const RankingSection = ({
@@ -10,14 +11,27 @@ const RankingSection = ({
   setRankingYear,
   rankingMonth,
   setRankingMonth,
-  availableYears,
-  thaiMonths,
-  rankingUnitStats,
-  rankingNestedStats
+  availableYears = [],      // <--- เพิ่มตรงนี้
+  thaiMonths = [],          // <--- เพิ่มตรงนี้
+  rankingUnitStats = [],    // <--- เพิ่มตรงนี้
+  rankingNestedStats = []   // <--- เพิ่มตรงนี้
 }) => {
-  const maxTotal = rankingUnitStats.length > 0 
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const sortedUnitStats = useMemo(() => {
+    if (!rankingUnitStats) return [];
+    return [...rankingUnitStats].sort((a, b) => {
+      return sortOrder === 'desc' ? b.total - a.total : a.total - b.total;
+    });
+  }, [rankingUnitStats, sortOrder]);
+
+  // 2. ใส่ ?. ป้องกันกรณี array เป็น null/undefined
+  const maxTotal = rankingUnitStats?.length > 0 
     ? Math.max(...rankingUnitStats.map(u => u.total)) 
     : 0;
+
+  // 3. ใส่ ?. ป้องกัน reduce พัง และใส่ || 0 เผื่อไว้
+  const totalAllServices = rankingUnitStats?.reduce((sum, item) => sum + (item.total || 0), 0) || 0;
 
   const RankBadge = ({ rank }) => {
     if (rank === 1) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 shadow-sm border border-yellow-200"><Trophy className="w-4 h-4" /></div>;
@@ -27,17 +41,23 @@ const RankingSection = ({
   };
 
   // Helper Component สำหรับแสดง Stat ย่อย
-  const ServiceStat = ({ icon: Icon, color, label, value }) => (
-    <div className="flex flex-col items-center p-2 rounded-lg bg-slate-50 border border-slate-100">
+  // แก้ไข Helper Component สำหรับแสดง Stat ย่อย และไฮไลต์ค่าสูงสุด
+  const ServiceStat = ({ icon: Icon, color, label, value, isHighest }) => (
+    <div className={`flex flex-col items-center p-2 rounded-lg border transition-all relative ${
+      isHighest ? 'bg-indigo-50 border-indigo-200 shadow-sm transform scale-105' : 'bg-slate-50 border-slate-100'
+    }`}>
+      {isHighest && (
+        <Star className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-500 fill-yellow-400 drop-shadow-sm animate-pulse" />
+      )}
       <div className={`p-1.5 rounded-full mb-1 ${color}`}>
         <Icon className="w-3.5 h-3.5" />
       </div>
       <span className="text-[10px] text-slate-500 font-medium">{label}</span>
-      <span className="text-sm font-bold text-slate-700">{value.toLocaleString()}</span>
+      <span className={`text-sm font-bold ${isHighest ? 'text-indigo-700' : 'text-slate-700'}`}>
+        {value.toLocaleString()}
+      </span>
     </div>
   );
-
-  const totalAllServices = rankingUnitStats.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <div className="lg:col-span-5 space-y-6 flex flex-col font-sans h-[56rem]">
@@ -106,13 +126,36 @@ const RankingSection = ({
                 <th className="p-3 text-center w-14">#</th>
                 <th className="p-3">หน่วยงาน</th>
                 <th className="p-3 text-center w-24">สัดส่วน</th>
-                <th className="p-3 text-right pr-6">ผลงานรวม</th>
+                <th 
+  className="p-3 pr-6 flex items-center justify-end gap-1.5 cursor-pointer hover:bg-slate-200/50 transition-colors select-none rounded-md"
+  onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+  title="คลิกเพื่อสลับการเรียงลำดับ"
+>
+  ผลงานรวม 
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    // เพิ่ม transition และเงื่อนไขการ rotate ไอคอน
+    className={`w-3.5 h-3.5 text-indigo-500 transition-transform duration-300 ${sortOrder === 'asc' ? 'rotate-180' : ''}`}
+  >
+    <path d="m3 16 4 4 4-4"/>
+    <path d="M7 20V4"/>
+    <path d="M12 4h9"/>
+    <path d="M12 9h6"/>
+    <path d="M12 14h3"/>
+  </svg>
+</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {rankingUnitStats.length > 0 ? (
-                rankingUnitStats.map((u, i) => (
-                  <tr key={u.name} className="hover:bg-indigo-50/30 transition-colors group">
+  {sortedUnitStats.length > 0 ? (
+    sortedUnitStats.map((u, i) => (
+      <tr key={u.name} className="hover:bg-indigo-50/30 transition-colors group">
                     <td className="p-2 text-center">
                       <div className="flex justify-center transform scale-75">
                         <RankBadge rank={i + 1} />
@@ -130,9 +173,16 @@ const RankingSection = ({
                         style={{ width: `${(u.total / maxTotal) * 100}%` }}
                       />
                       <span className="relative z-10">{u.total.toLocaleString()}</span>
-                      {u.trend && (
-                        <span className={`relative z-10 ml-2 text-[10px] ${u.trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {u.trend > 0 ? '▲' : '▼'}
+                      
+                      {/* ปรับปรุงหน้าตา Trend ให้เป็น Badge สวยๆ และรองรับตัวเลข */}
+                      {u.trend !== undefined && (
+                        <span className={`relative z-10 ml-2 inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border ${
+                          u.trend > 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
+                          u.trend < 0 ? 'bg-rose-50 border-rose-100 text-rose-600' : 
+                          'bg-slate-50 border-slate-200 text-slate-500'
+                        }`}>
+                          {u.trend > 0 ? '▲' : u.trend < 0 ? '▼' : '-'} 
+                          {u.trend !== 0 && Math.abs(u.trend)}
                         </span>
                       )}
                     </td>
@@ -188,13 +238,23 @@ const RankingSection = ({
                 </div>
 
                 {/* 2. Service Stats Grid */}
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
-                  <ServiceStat icon={Syringe} color="bg-blue-100 text-blue-600" label="วัคซีน" value={unit.stats?.vaccine || 0} />
-                  <ServiceStat icon={Scissors} color="bg-red-100 text-red-600" label="ทำหมัน" value={unit.stats?.sterilize || 0} />
-                  <ServiceStat icon={FileText} color="bg-yellow-100 text-yellow-600" label="ทะเบียน" value={unit.stats?.register || 0} />
-                  <ServiceStat icon={Cpu} color="bg-purple-100 text-purple-600" label="ไมโครชิป" value={unit.stats?.microchip || 0} />
-                  <ServiceStat icon={Stethoscope} color="bg-green-100 text-green-600" label="รักษา" value={unit.stats?.medical || 0} />
-                </div>
+                {(() => {
+                // คำนวณหา key ที่มีค่าสูงสุดเพื่อทำ Highlight
+                const statsEntries = Object.entries(unit.stats || {});
+                const topServiceKey = statsEntries.length > 0 
+                  ? statsEntries.reduce((max, curr) => curr[1] > max[1] ? curr : max)[0] 
+                  : null;
+
+                return (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4 mt-2">
+                    <ServiceStat icon={Syringe} color="bg-blue-100 text-blue-600" label="วัคซีน" value={unit.stats?.vaccine || 0} isHighest={topServiceKey === 'vaccine'} />
+                    <ServiceStat icon={Scissors} color="bg-red-100 text-red-600" label="ทำหมัน" value={unit.stats?.sterilize || 0} isHighest={topServiceKey === 'sterilize'} />
+                    <ServiceStat icon={FileText} color="bg-yellow-100 text-yellow-600" label="ทะเบียน" value={unit.stats?.register || 0} isHighest={topServiceKey === 'register'} />
+                    <ServiceStat icon={Cpu} color="bg-purple-100 text-purple-600" label="ไมโครชิป" value={unit.stats?.microchip || 0} isHighest={topServiceKey === 'microchip'} />
+                    <ServiceStat icon={Stethoscope} color="bg-green-100 text-green-600" label="รักษา" value={unit.stats?.medical || 0} isHighest={topServiceKey === 'medical'} />
+                  </div>
+                );
+              })()}
 
                 {/* 3. Top Districts List */}
                 <div className="space-y-2 pt-2 border-t border-slate-50">

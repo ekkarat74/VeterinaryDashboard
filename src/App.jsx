@@ -1647,7 +1647,12 @@ const parseCSVDate = (dateStr) => {
         setIsCsvModalOpen(true);
     };
 
-// --- 6. RENDER UI ---
+    // [เพิ่ม] Auto Scroll to top เมื่อเปลี่ยน Tab หรือเปิดหน้าใหม่
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [activeTab]);
+
+    // --- 6. RENDER UI ---
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 md:pb-12 selection:bg-blue-100 flex flex-col relative">
@@ -1759,17 +1764,38 @@ const parseCSVDate = (dateStr) => {
                 <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 overflow-x-hidden overflow-y-auto space-y-8">
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 transition-all duration-300">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-                            <div className="flex items-center gap-3">
-                                <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                                    <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Global Filters)
-                                </h3>
-                                <button onClick={() => setIsFilterExpanded(!isFilterExpanded)} className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors" title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}>
-                                    {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                </button>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
+                                        <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล (Global Filters)
+                                    </h3>
+                                    <button onClick={() => setIsFilterExpanded(!isFilterExpanded)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors shadow-sm border border-transparent hover:border-slate-200" title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}>
+                                        {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                                
+                                {/* [เพิ่ม] Active Filter Badges: จะแสดงเมื่อพับกล่องกรองข้อมูลลง เพื่อให้รู้ว่ากรองอะไรค้างไว้ */}
+                                {(!isFilterExpanded && (searchTerm || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด')) && (
+                                    <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
+                                        {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
+                                        {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear) + 543}</span>}
+                                        {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth) - 1]}</span>}
+                                        {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
+                                        {selectedDistrict !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-orange-100">{selectedDistrict}</span>}
+                                    </div>
+                                )}
                             </div>
-                            <button onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} className="text-xs text-slate-500 hover:text-red-500 underline flex items-center gap-1 transition-colors">
-                                <Trash2 className="w-3 h-3" /> ล้างตัวกรองทั้งหมด
-                            </button>
+
+                            {/* [แก้ไข] ปุ่มล้างตัวกรอง จะโผล่มาก็ต่อเมื่อมีการกรองข้อมูลอยู่เท่านั้น */}
+                            {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
+                                <button 
+                                    onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} 
+                                    className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-transparent hover:border-rose-100"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" /> ล้างตัวกรองทั้งหมด
+                                </button>
+                            )}
                         </div>
 
                         {isFilterExpanded && (
