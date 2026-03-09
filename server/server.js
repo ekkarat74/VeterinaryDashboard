@@ -71,7 +71,6 @@ mongoose.connect(MONGO_URI)
 // --- SCHEMAS & MODELS ---
 
 // 1. User Schema
-// 1. User Schema (แก้ไข enum ในช่อง role)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -132,7 +131,7 @@ const outbreakSchema = new mongoose.Schema({
 outbreakSchema.index({ date: -1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 
-// 4. System Log Schema
+// 4. System Log Schema (เพิ่มใหม่)
 const logSchema = new mongoose.Schema({
     action: { type: String, required: true }, // LOGIN, CREATE_REPORT, DELETE_REPORT etc.
     user: { type: String, required: true },   // Username
@@ -143,7 +142,7 @@ const logSchema = new mongoose.Schema({
 }, { timestamps: true });
 const SystemLog = mongoose.model('SystemLog', logSchema);
 
-// 5. Meeting Schema
+// 5. Meeting Schema (เพิ่มใหม่)
 const meetingSchema = new mongoose.Schema({
     title: { type: String, required: true },
     date: { type: String, required: true },
@@ -155,7 +154,7 @@ const meetingSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Meeting = mongoose.model('Meeting', meetingSchema);
 
-//6. Dispatch Plan Schema (แผนการออกหน่วย) ---
+// 6. Dispatch Plan Schema (แผนการออกหน่วย) (เพิ่มใหม่)
 const dispatchPlanSchema = new mongoose.Schema({
     unitType: { type: String, required: true }, // sterilization, microchip
     customUnitName: { type: String, default: '' },
@@ -173,8 +172,14 @@ const dispatchPlanSchema = new mongoose.Schema({
     team: String,        // ชื่อทีม (เช่น ทีม 1, หรือรายชื่อสัตวแพทย์)
     createdBy: String
 }, { timestamps: true });
-
 const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);
+
+// 7. System Setting Schema (เพิ่มใหม่: สำหรับเก็บการตั้งค่าระบบ เช่น การเปิดปิดแท็บ)
+const systemSettingSchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    value: { type: Object, required: true }
+});
+const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
 
 // --- HELPER FUNCTIONS ---
 
@@ -221,14 +226,6 @@ const authorizeRole = (roles) => {
     next();
   };
 };
-
-// 7. System Setting Schema (เพิ่มใหม่: สำหรับเก็บการตั้งค่าระบบ เช่น การเปิดปิดแท็บ)
-const systemSettingSchema = new mongoose.Schema({
-    key: { type: String, required: true, unique: true },
-    value: { type: Object, required: true }
-});
-const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
-
 // --- ROUTES ---
 
 // =======================
@@ -603,9 +600,9 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['MagaAdmin', '
     }
 });
 
+// =======================
 // F. MEETINGS (เพิ่มใหม่)
 // =======================
-
 app.get('/api/meetings', async (req, res) => {
     try {
         const meetings = await Meeting.find().sort({ date: -1 }).lean();
@@ -617,10 +614,7 @@ app.get('/api/meetings', async (req, res) => {
 
 app.post('/api/meetings', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
-        const newMeeting = new Meeting({
-            ...req.body,
-            createdBy: req.user.username
-        });
+        const newMeeting = new Meeting({ ...req.body, createdBy: req.user.username });
         const savedMeeting = await newMeeting.save();
         
         await createLog(req, 'CREATE_MEETING', `นัดหมายประชุม: ${savedMeeting.title}`);
@@ -632,18 +626,13 @@ app.post('/api/meetings', authenticateToken, authorizeRole(['MagaAdmin', 'admin'
     }
 });
 
-// Update Meeting (เพิ่มใหม่)
 app.put('/api/meetings/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
-        const updatedMeeting = await Meeting.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
+        const updatedMeeting = await Meeting.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedMeeting) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
         await createLog(req, 'UPDATE_MEETING', `แก้ไขนัดหมายประชุม: ${updatedMeeting.title}`);
-        io.emit('server_data_update', { type: 'MEETING_UPDATED', data: updatedMeeting }); // ต้องไปเพิ่ม case ใน Frontend ด้วย
+        io.emit('server_data_update', { type: 'MEETING_UPDATED', data: updatedMeeting }); 
         res.json(updatedMeeting);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -660,33 +649,22 @@ app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['MagaAdmin', '
     }
 });
 
-// Bulk Create Reports (เพิ่มใหม่สำหรับ Import ข้อมูลจำนวนมาก)
+// =======================
+// BULK IMPORTS (เพิ่มใหม่)
+// =======================
 app.post('/api/reports/bulk', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
-        const reports = req.body; // รับ Array ของ objects
-        
-        if (!Array.isArray(reports)) {
-            return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
-        }
+        const reports = req.body; 
+        if (!Array.isArray(reports)) return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
 
-        // เพิ่ม field createdBy ให้กับทุก record
-        const reportsWithUser = reports.map(report => ({
-            ...report,
-            createdBy: req.user.username
-        }));
-
-        // บันทึกลง Database ทีเดียว (ประสิทธิภาพสูงกว่าวน loop save)
+        const reportsWithUser = reports.map(report => ({ ...report, createdBy: req.user.username }));
         const insertedReports = await Report.insertMany(reportsWithUser);
 
-        // ✅ บันทึก Log
         await createLog(req, 'BULK_IMPORT_REPORTS', `นำเข้าข้อมูลจำนวน ${insertedReports.length} รายการ`);
-
-        // แจ้งเตือน Client ทั้งหมดว่ามีการอัปเดตข้อมูล (ส่งแบบ Bulk Event)
         io.emit('server_data_update', { type: 'REPORTS_IMPORTED', count: insertedReports.length });
 
         res.status(201).json({ message: "นำเข้าข้อมูลสำเร็จ", count: insertedReports.length });
     } catch (err) {
-        console.error("Bulk Import Error:", err);
         res.status(400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
     }
 });
@@ -694,20 +672,14 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['MagaAdmin', 'ad
 app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const outbreaks = req.body;
-        
-        if (!Array.isArray(outbreaks)) {
-            return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
-        }
+        if (!Array.isArray(outbreaks)) return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
 
         const insertedOutbreaks = await Outbreak.insertMany(outbreaks);
-
         await createLog(req, 'BULK_IMPORT_OUTBREAKS', `นำเข้าจุดระบาดจำนวน ${insertedOutbreaks.length} รายการ`);
-
         io.emit('server_data_update', { type: 'OUTBREAKS_IMPORTED', count: insertedOutbreaks.length });
 
         res.status(201).json({ message: "นำเข้าข้อมูลสำเร็จ", count: insertedOutbreaks.length });
     } catch (err) {
-        console.error("Bulk Import Outbreak Error:", err);
         res.status(400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
     }
 });
@@ -715,11 +687,8 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['MagaAdmin', '
 // =======================
 // G. DISPATCH PLANS (เพิ่มใหม่)
 // =======================
-
-// 1. ดึงข้อมูลแผนงานทั้งหมด
 app.get('/api/dispatches', async (req, res) => {
     try {
-        // เรียงวันที่จากใหมไปเก่า
         const plans = await DispatchPlan.find().sort({ date: -1 }).lean();
         res.json(plans);
     } catch (err) {
@@ -727,16 +696,11 @@ app.get('/api/dispatches', async (req, res) => {
     }
 });
 
-// 2. บันทึกแผนงานใหม่
 app.post('/api/dispatches', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
-        const newPlan = new DispatchPlan({
-            ...req.body,
-            createdBy: req.user.username
-        });
+        const newPlan = new DispatchPlan({ ...req.body, createdBy: req.user.username });
         const savedPlan = await newPlan.save();
 
-        // Log และแจ้ง Socket
         await createLog(req, 'CREATE_DISPATCH', `สร้างแผนออกหน่วย: ${savedPlan.location}`);
         io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedPlan });
 
@@ -746,14 +710,9 @@ app.post('/api/dispatches', authenticateToken, authorizeRole(['MagaAdmin', 'admi
     }
 });
 
-// 3. แก้ไขแผนงาน
 app.put('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
-        const updatedPlan = await DispatchPlan.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
+        const updatedPlan = await DispatchPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedPlan) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
         await createLog(req, 'UPDATE_DISPATCH', `แก้ไขแผนออกหน่วย: ${updatedPlan.location}`);
@@ -765,11 +724,9 @@ app.put('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin', 'a
     }
 });
 
-// 4. ลบแผนงาน
 app.delete('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
     try {
         const deletedPlan = await DispatchPlan.findByIdAndDelete(req.params.id);
-        
         await createLog(req, 'DELETE_DISPATCH', `ลบแผนออกหน่วย: ${deletedPlan?.location}`);
         io.emit('server_data_update', { type: 'DISPATCH_DELETED', id: req.params.id });
 
@@ -782,13 +739,10 @@ app.delete('/api/dispatches/:id', authenticateToken, authorizeRole(['MagaAdmin',
 // =======================
 // H. SYSTEM SETTINGS (เพิ่มใหม่)
 // =======================
-
-// 1. ดึงค่าการตั้งค่าแท็บ (ให้ทุกคนเข้าถึงได้ ไม่ต้องใช้ Token)
 app.get('/api/settings/tabs', async (req, res) => {
     try {
         let setting = await SystemSetting.findOne({ key: 'tabsConfig' });
         if (!setting) {
-            // ค่าเริ่มต้นถ้ายังไม่เคยบันทึก
             return res.json({ overview: true, outbreak: true, database: true });
         }
         res.json(setting.value);
@@ -797,22 +751,16 @@ app.get('/api/settings/tabs', async (req, res) => {
     }
 });
 
-// 2. อัปเดตการตั้งค่าแท็บ (เฉพาะ MagaAdmin เท่านั้น)
 app.put('/api/settings/tabs', authenticateToken, authorizeRole(['MagaAdmin']), async (req, res) => {
     try {
         const { tabsConfig } = req.body;
-        
-        // อัปเดตหรือสร้างใหม่ถ้ายังไม่มี (upsert)
         const updatedSetting = await SystemSetting.findOneAndUpdate(
             { key: 'tabsConfig' },
             { value: tabsConfig },
             { upsert: true, new: true }
         );
 
-        // บันทึก Log
         await createLog(req, 'UPDATE_TABS_CONFIG', `เปลี่ยนแปลงการแสดงผลแท็บ`);
-
-        // ส่ง Socket ไปบอกทุกเครื่องให้เปลี่ยนตามแบบ Real-time
         io.emit('server_data_update', { type: 'TABS_CONFIG_UPDATED', data: tabsConfig });
 
         res.json({ message: "อัปเดตแท็บสำเร็จ", data: tabsConfig });
