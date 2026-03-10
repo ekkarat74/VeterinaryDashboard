@@ -7,23 +7,25 @@ import {
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
 
-const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
-    const defaultFormData = {
-        date: new Date().toISOString().split('T')[0],
-        location: '',
-        district: BANGKOK_DISTRICTS[0],
-        subdistrict: '',
-        unit: UNIT_TYPES[0],
-        otherUnit: '',
-        lat: '',
-        long: ''
-    };
+// 1. ย้าย Default Values ออกมาไว้นอก Component ป้องกัน Re-render
+const defaultFormData = {
+    date: new Date().toISOString().split('T')[0],
+    location: '',
+    district: BANGKOK_DISTRICTS[0],
+    subdistrict: '',
+    unit: UNIT_TYPES[0],
+    otherUnit: '',
+    lat: '',
+    long: ''
+};
 
-    const defaultBreakdown = {
-        dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
-        cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
-        other: { vaccine: '', medical: '' }
-    };
+const defaultBreakdown = {
+    dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
+    cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
+    other: { vaccine: '', medical: '' }
+};
+
+const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
 
     const [formData, setFormData] = useState(defaultFormData);
     const [breakdown, setBreakdown] = useState(defaultBreakdown);
@@ -31,10 +33,11 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
 
+    // 2. ตั้งค่าเริ่มต้นเมื่อเปิด Modal
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-                const isStandardUnit = UNIT_TYPES.includes(initialData.unit);
+                const isStandardUnit = initialData.unit ? UNIT_TYPES.includes(initialData.unit) : false;
 
                 setFormData({
                     date: initialData.date,
@@ -42,7 +45,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     district: initialData.district ? initialData.district.trim() : '',
                     subdistrict: initialData.subdistrict ? initialData.subdistrict.trim() : '', 
                     unit: isStandardUnit ? initialData.unit : 'หน่วยอื่น ๆ',
-                    otherUnit: !isStandardUnit ? initialData.unit : '',
+                    otherUnit: !isStandardUnit ? (initialData.unit || '') : '', // ป้องกัน Uncontrolled Input
                     lat: initialData.lat,
                     long: initialData.long
                 });
@@ -77,8 +80,16 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                 setImagePreview(null);
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, initialData]);
+
+    // 3. ป้องกัน Memory Leak จากการสร้าง Object URL
+    useEffect(() => {
+        return () => {
+            if (imagePreview && imagePreview.startsWith('blob:')) {
+                URL.revokeObjectURL(imagePreview);
+            }
+        };
+    }, [imagePreview]);
 
     // คำนวณยอดรวมอัตโนมัติ (Auto-calculation)
     const totals = useMemo(() => {
@@ -117,6 +128,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         }));
     };
 
+    // 4. บันทึกข้อมูล
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -134,6 +146,20 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
             finalImageUrl = "";
         }
 
+        // แปลงค่า string จาก input ให้เป็นตัวเลข (Integer) ก่อนส่ง
+        const parseBreakdown = (animalData) => {
+            return Object.keys(animalData).reduce((acc, key) => {
+                acc[key] = parseInt(animalData[key], 10) || 0; 
+                return acc;
+            }, {});
+        };
+
+        const parsedDetails = {
+            dog: parseBreakdown(breakdown.dog),
+            cat: parseBreakdown(breakdown.cat),
+            other: parseBreakdown(breakdown.other)
+        };
+
         const dataPayload = {
             ...formData,
             unit: formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim() !== '' 
@@ -141,7 +167,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
             lat: formData.lat ? parseFloat(formData.lat) : 0,
             long: formData.long ? parseFloat(formData.long) : 0,
             stats: { ...totals },
-            details: breakdown,
+            details: parsedDetails, // ใช้ข้อมูลที่แปลงเป็นตัวเลขแล้ว
             imageUrl: finalImageUrl 
         };
 
@@ -240,13 +266,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                     <select required className={inputClass} value={formData.subdistrict} 
                                         onChange={e => setFormData({...formData, subdistrict: e.target.value})} disabled={!formData.district}>
                                         <option value="">-- เลือกแขวง --</option>
-                                        {formData.district && BANGKOK_SUBDISTRICTS[formData.district] ? (
-                                            BANGKOK_SUBDISTRICTS[formData.district].map(sub => (
-                                                <option key={sub} value={sub}>{sub}</option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>ไม่มีข้อมูลแขวง</option>
-                                        )}
+                                        {/* แก้ไข <option> ซ้ำซ้อน */}
+                                        {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(sub => (
+                                            <option key={sub} value={sub}>{sub}</option>
+                                        ))}
                                     </select>
                                 </div>
 
