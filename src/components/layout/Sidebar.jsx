@@ -2,7 +2,7 @@ import React from 'react';
 import { 
     Activity, Unlock, Settings, ChevronDown, FileText, Users, 
     Database, Download, Zap, List, CalendarDays, AlertTriangle, 
-    Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight
+    Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 
 // เปลี่ยนชื่อจาก Header เป็น Sidebar
@@ -33,7 +33,7 @@ const Sidebar = ({
     activeTab, 
     setActiveTab, 
     isSidebarCollapsed, 
-    setIsSidebarCollapsed
+    setIsSidebarCollapsed,
     isMobileMenuOpen,         // <- รับอันนี้เพิ่ม
     setIsMobileMenuOpen       // <- รับอันนี้เพิ่ม
 }) => {
