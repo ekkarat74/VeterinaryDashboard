@@ -57,12 +57,14 @@ const Sidebar = ({
             )}
 
             <aside className={`
-                fixed md:relative top-0 left-0 h-[100dvh] z-[5000] md:z-auto
-                bg-white border-r border-slate-200 flex flex-col shrink-0
-                transition-transform duration-300 ease-in-out
-                ${isMobileMenuOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0'} 
-                ${isCollapsed ? 'md:w-20' : 'md:w-64'}
-            `}>
+    fixed md:relative top-0 left-0 h-[100dvh] z-[5000] md:z-auto
+    bg-white border-r border-slate-200 flex flex-col shrink-0
+    transition-all duration-300 ease-in-out
+    /* เติม w-64 เข้าไปด้านหลัง -translate-x-full เพื่อล็อกความกว้างตอนซ่อน */
+    ${isMobileMenuOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full w-64 md:translate-x-0'} 
+    ${isCollapsed ? 'md:w-20' : 'md:w-64'}
+`}>
+
                 
                 {/* --- 1. Logo & Branding --- */}
                 <div className={`h-16 flex items-center px-4 border-b border-slate-200 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
