@@ -15,7 +15,7 @@ const RabiesOutbreakSection = lazy(() => import('./components/dashboard/RabiesOu
 const MainDataTable = lazy(() => import('./components/dashboard/MainDataTable'));
 import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils';
 import ChangePasswordModal from './components/modals/ChangePasswordModal';
-import Header from './components/layout/Sidebar';
+import Sidebar from './components/layout/Sidebar';
 const StatisticsCharts = React.lazy(() => import('./components/dashboard/StatisticsCharts.jsx'));
 import RankingSection from './components/dashboard/RankingSection';
 const LeafletMap = lazy(() => import('./components/modals/LeafletMap'));
