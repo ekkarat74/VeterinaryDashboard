@@ -136,9 +136,8 @@ const Sidebar = ({
                         </button>
                     </div>
                 )}
-            </div>
 
-            {/* 🟢 ส่วนที่ 2: System Tools (เครื่องมือระบบ) */}
+                {/* 🟢 ส่วนที่ 2: System Tools (เครื่องมือระบบ) */}
             <div className="px-4 pb-2">
                 {user && (isSuperAdmin || canEdit) && (
                     <div className="space-y-1">
@@ -193,6 +192,7 @@ const Sidebar = ({
                         )}
                     </div>
                 )}
+            </div>
             </div>
 
             {/* 🟢 ส่วนที่ 4: Action Buttons (Sticky ล่างก่อน Profile) - Premium Glow Buttons */}
