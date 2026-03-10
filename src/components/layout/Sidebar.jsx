@@ -34,13 +34,19 @@ const Sidebar = ({
     setActiveTab, 
     isSidebarCollapsed, 
     setIsSidebarCollapsed
+    isMobileMenuOpen,         // <- รับอันนี้เพิ่ม
+    setIsMobileMenuOpen       // <- รับอันนี้เพิ่ม
 }) => {
     return (
-        <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-slate-200 hidden md:flex flex-col h-screen sticky top-0 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-40 transition-all duration-300`}>
+        <aside className={`
+            ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} 
+            ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 w-64 shadow-2xl z-[5000] flex' : 'hidden md:flex'} 
+            bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shrink-0 transition-all duration-300
+        `}>
             
             {/* 1. Logo & Branding */}
-            <div className={`p-4 flex items-center border-b border-slate-100 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-                {!isSidebarCollapsed && (
+            <div className={`p-4 flex items-center border-b border-slate-100 transition-all duration-300 ${(isSidebarCollapsed && !isMobileMenuOpen) ? 'justify-center' : 'justify-between'}`}>
+                {(!isSidebarCollapsed || isMobileMenuOpen) && (
                     <div className="flex items-center gap-3 cursor-default overflow-hidden animate-in fade-in">
                         <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" alt="Logo" className="w-10 h-10 object-cover rounded-xl shadow-sm ring-1 ring-slate-900/5 shrink-0" />
                         <div className="flex flex-col truncate">
@@ -49,10 +55,18 @@ const Sidebar = ({
                         </div>
                     </div>
                 )}
-                {/* ปุ่มพับ/กาง Sidebar */}
-                <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0">
-                    {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-                </button>
+                
+                <div className="flex items-center gap-1">
+                    {/* ปุ่มพับ/กาง Sidebar (เฉพาะคอมพิวเตอร์) */}
+                    <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="hidden md:block p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0">
+                        {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                    </button>
+
+                    {/* ปุ่มปิด Sidebar (เฉพาะมือถือ) */}
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* 2. Menu Items (Scrollable) */}

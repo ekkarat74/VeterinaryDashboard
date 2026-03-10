@@ -459,6 +459,8 @@ export default function VeterinaryDashboard() {
 const [freqDailyOffset, setFreqDailyOffset] = useState(0); 
 const [freqMonthlyOffset, setFreqMonthlyOffset] = useState(0);
 
+const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
     // Toast
     const [toasts, setToasts] = useState([]);
     const addToast = (type, message) => {
@@ -1708,7 +1710,34 @@ return (
             onOpenMeetingModal={() => setIsMeetingModalOpen(true)} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
             isMagaAdmin={isMagaAdmin}
             tabsConfig={tabsConfig} toggleTab={toggleTab}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
+
+        {/* --- Mobile Topbar --- */}
+<div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
+    <div className="flex items-center gap-3">
+        {/* เพิ่มปุ่ม Hamburger ตรงนี้ */}
+        <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+            <List className="w-6 h-6" />
+        </button>
+        <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
+        <h1 className="text-sm font-bold text-slate-800">ระบบสัตวแพทย์</h1>
+    </div>
+    {user ? (
+        <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
+    ) : (
+        <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
+    )}
+</div>
+
+{/* เพิ่มแผ่นใสๆ สีดำด้านหลังเมนู เมื่อเปิดเมนูบนมือถือ */}
+{isMobileMenuOpen && (
+    <div 
+        className="md:hidden fixed inset-0 bg-slate-900/50 z-[4999] backdrop-blur-sm transition-opacity"
+        onClick={() => setIsMobileMenuOpen(false)}
+    />
+)}
 
         {/* 2. Main Content Area */}
         <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
