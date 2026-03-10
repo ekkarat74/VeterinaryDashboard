@@ -37,10 +37,12 @@ const Header = ({
     return (
         <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-sm transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col md:flex-row items-center justify-between py-3 md:h-16 md:py-0 gap-4">
+                
+                {/* เปลี่ยน flex โครงสร้างหลักให้รองรับการแยก 3 ส่วน: ซ้าย (Logo), กลาง-ซ้าย (Menu), ขวาสุด (Profile) */}
+                <div className="flex flex-col md:flex-row items-center py-3 md:h-16 md:py-0 gap-4 md:gap-8 w-full">
                     
                     {/* 1. Logo & Brand */}
-                    <div className="w-full md:w-auto flex items-center justify-between">
+                    <div className="w-full md:w-auto flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-3 hover:opacity-90 transition-opacity cursor-default">
                             <div className="shrink-0 relative">
                                 <img 
@@ -70,8 +72,8 @@ const Header = ({
                         </div>
                     </div>
 
-                    {/* 2. Controls & Actions */}
-                    <div className="w-full md:w-auto flex flex-wrap items-center justify-center md:justify-end gap-3">
+                    {/* 2. Controls & Actions (ย้ายมาชิดซ้าย md:justify-start และให้ขยายเต็มพื้นที่ md:flex-1) */}
+                    <div className="w-full md:flex-1 flex flex-wrap items-center justify-center md:justify-start gap-3">
                         
                         {/* --- System Tools Dropdown --- */}
                         {user && (isSuperAdmin || canEdit) && (
@@ -92,7 +94,7 @@ const Header = ({
                                 {isSystemMenuOpen && (
                                     <>
                                         <div className="fixed inset-0 z-[40]" onClick={() => setIsSystemMenuOpen(false)}></div>
-                                        <div className="absolute top-full left-0 md:left-auto md:right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 z-[50] py-2 animate-in fade-in slide-in-from-top-2">
+                                        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 z-[50] py-2 animate-in fade-in slide-in-from-top-2">
                                             
                                             {/* --- MagaAdmin Tab Management --- */}
                                             {isMagaAdmin && (
@@ -192,17 +194,21 @@ const Header = ({
                                 </button>
                             </div>
                         )}
+                    </div>
+
+                    {/* 3. Login & Profile (แยกมาอยู่ขวาสุด ml-auto) */}
+                    <div className="hidden md:flex ml-auto items-center gap-3 shrink-0">
                         
                         {!user && (
-                            <button onClick={onLogin} className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors w-full justify-center md:w-auto">
+                            <button onClick={onLogin} className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors justify-center">
                                 <Unlock className="w-4 h-4" />
                                 <span>เข้าสู่ระบบเจ้าหน้าที่</span>
                             </button>
                         )}
 
-                         {/* Desktop Profile */}
-                         {user && (
-                            <div className="hidden md:flex ml-2 pl-4 border-l border-slate-200 items-center">
+                        {/* Desktop Profile */}
+                        {user && (
+                            <div className="flex items-center pl-4 border-l border-slate-200">
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-end">
                                         <span className="text-sm font-bold text-slate-800 leading-none mb-1">{user.username}</span>
@@ -218,9 +224,9 @@ const Header = ({
                                     </div>
                                 </div>
                             </div>
-                         )}
-
+                        )}
                     </div>
+
                 </div>
             </div>
         </header>
