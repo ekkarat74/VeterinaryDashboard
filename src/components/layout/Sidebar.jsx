@@ -44,7 +44,7 @@ const Sidebar = ({
         <aside className={`
             ${isSidebarCollapsed ? 'md:w-24' : 'md:w-[300px]'} 
             ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 w-[300px] shadow-2xl z-50 flex' : 'hidden md:flex'} 
-            bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shrink-0 transition-all duration-300 overflow-x-hidden
+            bg-white border-r border-slate-200 flex-col h-screen md:sticky md:top-0 shrink-0 transition-all duration-300 overflow-x-hidden
         `}>
             
             {/* 1. Logo & Branding */}
