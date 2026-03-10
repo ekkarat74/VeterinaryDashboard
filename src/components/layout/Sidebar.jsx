@@ -108,7 +108,27 @@ const Sidebar = ({
                     )}
                 </div>
 
-                {/* 🟢 ส่วนที่ 2: System Tools (เครื่องมือระบบ) */}
+                {/* 🟢 ส่วนที่ 3: เครื่องมือการดูข้อมูล (ปฏิทิน/ประชุม) */}
+                {user && (
+                    <div className="space-y-1">
+                        {!isSidebarCollapsed && <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">นัดหมาย & ปฏิทิน</p>}
+                        <button onClick={onOpenMeetingList} title="ประวัติประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl font-medium transition-all text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 group`}>
+                            <List className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                            {!isSidebarCollapsed && <span>ประวัติประชุม</span>}
+                        </button>
+                        <button onClick={onOpenCalendar} title="แผนออกหน่วย" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl font-medium transition-all text-sm text-slate-600 hover:bg-teal-50 hover:text-teal-700 group`}>
+                            <CalendarDays className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-teal-600 transition-colors" />
+                            {!isSidebarCollapsed && <span>แผนออกหน่วย</span>}
+                        </button>
+                        <button onClick={onOpenMeetingCalendar} title="ปฏิทินประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl font-medium transition-all text-sm text-slate-600 hover:bg-amber-50 hover:text-amber-700 group`}>
+                            <CalendarDays className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-amber-500 transition-colors" />
+                            {!isSidebarCollapsed && <span>ปฏิทินประชุม</span>}
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* 🟢 ส่วนที่ 2: System Tools (เครื่องมือระบบ) */}
                 {user && (isSuperAdmin || canEdit) && (
                     <div className="space-y-1">
                         {!isSidebarCollapsed ? (
@@ -162,26 +182,6 @@ const Sidebar = ({
                         )}
                     </div>
                 )}
-
-                {/* 🟢 ส่วนที่ 3: เครื่องมือการดูข้อมูล (ปฏิทิน/ประชุม) */}
-                {user && (
-                    <div className="space-y-1">
-                        {!isSidebarCollapsed && <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">นัดหมาย & ปฏิทิน</p>}
-                        <button onClick={onOpenMeetingList} title="ประวัติประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl font-medium transition-all text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 group`}>
-                            <List className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                            {!isSidebarCollapsed && <span>ประวัติประชุม</span>}
-                        </button>
-                        <button onClick={onOpenCalendar} title="แผนออกหน่วย" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl font-medium transition-all text-sm text-slate-600 hover:bg-teal-50 hover:text-teal-700 group`}>
-                            <CalendarDays className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-teal-600 transition-colors" />
-                            {!isSidebarCollapsed && <span>แผนออกหน่วย</span>}
-                        </button>
-                        <button onClick={onOpenMeetingCalendar} title="ปฏิทินประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl font-medium transition-all text-sm text-slate-600 hover:bg-amber-50 hover:text-amber-700 group`}>
-                            <CalendarDays className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-amber-500 transition-colors" />
-                            {!isSidebarCollapsed && <span>ปฏิทินประชุม</span>}
-                        </button>
-                    </div>
-                )}
-            </div>
 
             {/* 🟢 ส่วนที่ 4: Action Buttons (Sticky ล่างก่อน Profile) */}
             {user && canEdit && (
