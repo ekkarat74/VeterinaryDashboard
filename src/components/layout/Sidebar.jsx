@@ -2,7 +2,7 @@ import React from 'react';
 import { 
     Activity, Unlock, Settings, ChevronDown, FileText, Users, 
     Database, Download, Zap, List, CalendarDays, AlertTriangle, 
-    Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X
+    Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X, LayoutDashboard
 } from 'lucide-react';
 
 const Sidebar = ({ 
@@ -43,12 +43,11 @@ const Sidebar = ({
             bg-white/60 backdrop-blur-2xl border-r border-white/80 flex-col h-screen sticky top-0 shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
         `}>
             
-            {/* 1. Logo & Branding - Premium Glow */}
+            {/* 1. Logo & Branding */}
             <div className={`h-24 flex items-center px-6 border-b border-white/50 bg-gradient-to-b from-white/40 to-transparent transition-all duration-500 relative z-10 ${(isSidebarCollapsed && !isMobileMenuOpen) ? 'justify-center' : 'justify-between'}`}>
                 {(!isSidebarCollapsed || isMobileMenuOpen) && (
                     <div className="flex items-center gap-4 cursor-default group">
                         <div className="relative">
-                            {/* Glowing background behind logo */}
                             <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur-lg opacity-40 group-hover:opacity-75 transition-opacity duration-500 animate-pulse"></div>
                             <img 
                                 src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
@@ -68,7 +67,6 @@ const Sidebar = ({
                 )}
                 
                 <div className="flex items-center gap-1">
-                    {/* ปุ่มพับ/กาง Sidebar */}
                     <button 
                         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
                         className="hidden md:flex items-center justify-center w-9 h-9 text-slate-400 hover:text-indigo-600 bg-white/50 hover:bg-white shadow-sm hover:shadow-md border border-slate-100 rounded-xl transition-all hover:scale-110 shrink-0"
@@ -76,7 +74,6 @@ const Sidebar = ({
                         {isSidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
                     </button>
 
-                    {/* ปุ่มปิด Sidebar (มือถือ) */}
                     <button 
                         onClick={() => setIsMobileMenuOpen(false)} 
                         className="md:hidden flex items-center justify-center w-9 h-9 text-rose-400 hover:text-rose-600 bg-white/50 hover:bg-rose-50 border border-slate-100 rounded-xl transition-all hover:rotate-90 shrink-0"
@@ -87,11 +84,16 @@ const Sidebar = ({
             </div>
 
             {/* 2. Menu Items (Scrollable) */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-8 space-y-8 relative">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8 relative">
                 
-                {/* 🟢 ส่วนที่ 1: แท็บเมนูหลัก */}
+                {/* 🟢 หมวดหมู่ที่ 1: แดชบอร์ด & ข้อมูล */}
                 <div className="space-y-2">
-                    {!isSidebarCollapsed && <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3"><span className="w-6 h-[2px] bg-gradient-to-r from-slate-200 to-transparent rounded-full"></span>เมนูหลัก</p>}
+                    {!isSidebarCollapsed && (
+                        <div className="px-2 mb-3 flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">แดชบอร์ด & ข้อมูล</p>
+                        </div>
+                    )}
                     
                     {(user || tabsConfig.overview) && (
                         <button onClick={() => setActiveTab('overview')} title="ภาพรวมสถิติ" 
@@ -122,10 +124,15 @@ const Sidebar = ({
                     )}
                 </div>
 
-                {/* 🟢 ส่วนที่ 3: เครื่องมือการดูข้อมูล */}
+                {/* 🟢 หมวดหมู่ที่ 2: ปฏิทิน & นัดหมาย */}
                 {user && (
                     <div className="space-y-2">
-                        {!isSidebarCollapsed && <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3"><span className="w-6 h-[2px] bg-gradient-to-r from-slate-200 to-transparent rounded-full"></span>นัดหมาย & ปฏิทิน</p>}
+                        {!isSidebarCollapsed && (
+                            <div className="px-2 mb-3 flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></div>
+                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">ปฏิทิน & นัดหมาย</p>
+                            </div>
+                        )}
                         <button onClick={onOpenMeetingList} title="ประวัติประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3.5' : 'justify-start gap-4 px-4 py-3.5'} rounded-2xl font-bold transition-all duration-300 text-sm text-slate-500 hover:bg-white hover:shadow-md hover:text-indigo-600 hover:translate-x-1 group`}>
                             <List className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-indigo-500 transition-colors" />
                             {!isSidebarCollapsed && <span>ประวัติประชุม</span>}
@@ -141,18 +148,23 @@ const Sidebar = ({
                     </div>
                 )}
 
-                {/* 🟢 ส่วนที่ 2: System Tools (เครื่องมือระบบ) */}
-                <div className="pb-2">
-                    {user && (isSuperAdmin || canEdit) && (
-                        <div className="space-y-1">
-                            {!isSidebarCollapsed ? (
+                {/* 🟢 หมวดหมู่ที่ 3: ตั้งค่าระบบ */}
+                {user && (isSuperAdmin || canEdit) && (
+                    <div className="space-y-2">
+                        {!isSidebarCollapsed ? (
+                            <>
+                                <div className="px-2 mb-3 flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.8)]"></div>
+                                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">การตั้งค่าระบบ</p>
+                                </div>
+                                
                                 <div className="bg-white/40 backdrop-blur-md rounded-3xl p-2.5 border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.03)] transition-all">
                                     <button onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)} className="w-full flex items-center justify-between px-3 py-3 text-slate-600 hover:text-indigo-600 transition-colors rounded-2xl hover:bg-white shadow-sm border border-transparent hover:border-slate-100 group">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-gradient-to-br from-slate-100 to-white rounded-xl shadow-inner border border-slate-100 group-hover:from-indigo-50 group-hover:to-white transition-colors">
                                                 <Settings className="w-4 h-4 text-slate-500 group-hover:text-indigo-500 group-hover:rotate-90 transition-all duration-500" />
                                             </div>
-                                            <span className="text-sm font-extrabold tracking-wide">เครื่องมือระบบ</span>
+                                            <span className="text-sm font-extrabold tracking-wide">เครื่องมือผู้ดูแล</span>
                                         </div>
                                         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-500 ${isSystemMenuOpen ? 'rotate-180' : ''}`} />
                                     </button>
@@ -161,7 +173,7 @@ const Sidebar = ({
                                         <div className="overflow-hidden space-y-2">
                                             {isMagaAdmin && (
                                                 <div className="bg-white/80 rounded-2xl p-3 shadow-sm border border-white mb-3">
-                                                    <p className="text-[10px] font-black text-slate-400 mb-2 px-1 uppercase tracking-[0.2em]">Tab Controls</p>
+                                                    <p className="text-[10px] font-black text-slate-400 mb-2 px-1 uppercase tracking-[0.2em]">จัดการแท็บ (Tab Controls)</p>
                                                     {['overview', 'outbreak', 'database'].map(tab => (
                                                         <label key={tab} className="flex items-center justify-between px-3 py-2.5 hover:bg-indigo-50/50 rounded-xl cursor-pointer text-xs font-bold text-slate-600 transition-colors">
                                                             <span className="capitalize">{tab === 'overview' ? 'ภาพรวม' : tab === 'outbreak' ? 'จุดเสี่ยง' : 'ฐานข้อมูล'}</span>
@@ -189,19 +201,25 @@ const Sidebar = ({
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <button onClick={() => setIsSidebarCollapsed(false)} title="เครื่องมือระบบ" className="w-full flex justify-center p-3.5 rounded-2xl text-slate-400 bg-white/50 hover:bg-white hover:text-indigo-600 hover:shadow-md transition-all">
-                                    <Settings className="w-5 h-5" />
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
+                            </>
+                        ) : (
+                            <button onClick={() => setIsSidebarCollapsed(false)} title="เครื่องมือระบบ" className="w-full flex justify-center p-3.5 rounded-2xl text-slate-400 bg-white/50 hover:bg-white hover:text-indigo-600 hover:shadow-md transition-all">
+                                <Settings className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* 🟢 ส่วนที่ 4: Action Buttons - Premium 3D Glow Buttons */}
+            {/* 🟢 หมวดหมู่ที่ 4: ดำเนินการด่วน (Action Buttons) - วางแนบชิดด้านล่าง */}
             {user && canEdit && (
                 <div className="px-5 pb-5 space-y-3 relative z-10">
+                    {!isSidebarCollapsed && (
+                        <div className="px-2 mb-2 flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></div>
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">ดำเนินการด่วน</p>
+                        </div>
+                    )}
                     <button onClick={onOpenAddOutbreak} title="แจ้งโรคระบาด" 
                         className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3.5' : 'justify-center gap-2 px-4 py-3.5'} rounded-2xl font-black transition-all duration-300 text-sm bg-white text-rose-600 border border-rose-100 shadow-[0_8px_20px_rgba(244,63,94,0.12)] hover:shadow-[0_12px_25px_rgba(244,63,94,0.25)] hover:-translate-y-1 group relative overflow-hidden`}>
                         <div className="absolute inset-0 bg-rose-50/50 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
@@ -217,7 +235,7 @@ const Sidebar = ({
                 </div>
             )}
 
-            {/* 3. Footer / Profile Section - Floating Premium Card */}
+            {/* 3. Footer / Profile Section */}
             <div className="p-5 bg-gradient-to-t from-slate-50 to-white/50 shrink-0 border-t border-white shadow-[0_-10px_30px_rgba(0,0,0,0.02)] relative z-10">
                 {!user ? (
                     <button onClick={onLogin} className={`w-full flex items-center justify-center gap-3 ${isSidebarCollapsed ? 'p-3.5' : 'px-5 py-4'} bg-slate-900 hover:bg-black text-white rounded-2xl transition-all shadow-[0_8px_20px_rgba(0,0,0,0.2)] hover:shadow-[0_12px_25px_rgba(0,0,0,0.3)] hover:-translate-y-1`}>
