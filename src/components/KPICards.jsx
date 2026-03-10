@@ -1,47 +1,61 @@
 import React from 'react';
 import { 
     Syringe, Scissors, FileText, Database, Stethoscope, 
-    Activity, Truck, BarChart3, MapPin, Trophy, Cat, Dog
+    Activity, Truck, BarChart3, MapPin, Trophy, Cat, Dog,
+    AlertCircle
 } from 'lucide-react';
 
+// --- Helper Function: คำนวณเปอร์เซ็นต์แบบปลอดภัย ---
+const getPercentage = (part, total) => (total > 0 ? (part / total) * 100 : 0);
+
 // --- 1. Sub-Component: การ์ด KPI (สำหรับยอดรวม) ---
-const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, dogCount, catCount }) => (
+const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, dogCount = 0, catCount = 0 }) => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default group relative overflow-hidden h-full">
-        {/* Decoration: วงกลมจางๆ ด้านหลัง */}
+        {/* Decoration: Background Circle */}
         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 transition-transform group-hover:scale-150 duration-500 ${colorClass}`}></div>
         
         <div className="flex justify-between items-start w-full relative z-10 mb-4">
-            {/* 1. ใส่ flex-1 และ pr-2 เพื่อป้องกันข้อความยาวไปชนกับไอคอน */}
             <div className="flex-1 pr-2">
-                {/* 2. เพิ่ม min-h-[2.5rem] (ความสูง 2 บรรทัดพอดี) และ line-clamp-2 (กันเกิน 2 บรรทัด) เพื่อให้ฐานตัวเลขเท่ากันทุกการ์ด */}
-                <p className="text-sm font-medium text-slate-500 mb-1 min-h-[2.5rem] leading-tight line-clamp-2">
+                <p className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1 leading-tight line-clamp-2 min-h-[2rem]">
                     {title}
                 </p>
                 <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-                    {value.toLocaleString()}
+                    {(value || 0).toLocaleString()}
                 </h3>
-                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                    <span className={`w-2 h-2 rounded-full inline-block animate-pulse ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
+                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full inline-block animate-pulse ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
                     {subtext}
                 </p>
             </div>
             
-            {/* Icon Box */}
             <div className={`w-14 h-14 rounded-2xl ${colorClass} ${shadowClass} flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
                 <Icon className="w-7 h-7 text-white drop-shadow-md" />
             </div>
         </div>
 
-        {/* ข้อมูลสุนัข/แมว */}
-        {(dogCount !== undefined || catCount !== undefined) && (
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-auto relative z-10">
-                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                    <Dog className="w-3.5 h-3.5 text-orange-500" />
-                    <span className="text-xs font-bold text-slate-600">{dogCount?.toLocaleString() || 0}</span>
+        {/* Improved Dog/Cat Stats with Micro Bar */}
+        {(dogCount > 0 || catCount > 0) && (
+            <div className="pt-3 border-t border-slate-100 mt-auto relative z-10">
+                <div className="flex justify-between items-center mb-1.5">
+                    <div className="flex items-center gap-1">
+                        <Dog className="w-3 h-3 text-orange-500" />
+                        <span className="text-[10px] font-bold text-slate-600">{dogCount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-slate-600">{catCount.toLocaleString()}</span>
+                        <Cat className="w-3 h-3 text-blue-500" />
+                    </div>
                 </div>
-                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                    <Cat className="w-3.5 h-3.5 text-blue-500" />
-                    <span className="text-xs font-bold text-slate-600">{catCount?.toLocaleString() || 0}</span>
+                {/* Ratio Bar */}
+                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div 
+                        style={{ width: `${getPercentage(dogCount, (dogCount + catCount))}%` }} 
+                        className="bg-orange-400 h-full transition-all duration-1000" 
+                    />
+                    <div 
+                        style={{ width: `${getPercentage(catCount, (dogCount + catCount))}%` }} 
+                        className="bg-blue-400 h-full transition-all duration-1000" 
+                    />
                 </div>
             </div>
         )}
@@ -50,10 +64,8 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
 
 // --- 2. Sub-Component: การ์ด Unit (สำหรับแยกหน่วยงาน) ---
 const UnitCard = ({ unit, index, maxVal }) => {
-    // คำนวณ % ความยาวของหลอดพลัง (Progress Bar)
     const percentage = maxVal > 0 ? (unit.count / maxVal) * 100 : 0;
     
-    // สร้างชุดสี Pastel หวานๆ อ่อนๆ 10 โทนสี
     const colorThemes = [
         { bg: "bg-blue-50/80", border: "hover:border-blue-300", icon: "text-blue-500", bar: "bg-blue-400", rank: "bg-blue-100 text-blue-700" },
         { bg: "bg-emerald-50/80", border: "hover:border-emerald-300", icon: "text-emerald-500", bar: "bg-emerald-400", rank: "bg-emerald-100 text-emerald-700" },
@@ -67,64 +79,54 @@ const UnitCard = ({ unit, index, maxVal }) => {
         { bg: "bg-indigo-50/80", border: "hover:border-indigo-300", icon: "text-indigo-500", bar: "bg-indigo-400", rank: "bg-indigo-100 text-indigo-700" }
     ];
 
-    // เลือกธีมสีตามลำดับ (index) โดยใช้ Modulo (%) เพื่อให้วนลูปสีได้หากมีหน่วยงานเยอะกว่า 10 หน่วย
     const theme = colorThemes[index % colorThemes.length];
-
-    // ให้หน่วยงานอันดับ 1 (index 0) เป็นไอคอนถ้วยรางวัล นอกนั้นเป็นหมุดแผนที่
     const IconComponent = index === 0 ? Trophy : MapPin;
 
     return (
         <div className={`group relative ${theme.bg} rounded-xl border border-slate-200 shadow-sm hover:shadow-lg ${theme.border} transition-all duration-300 overflow-hidden h-full flex flex-col`}>
-            <div className="p-5 flex flex-col flex-grow mb-1.5">
+            <div className="p-5 flex flex-col flex-grow">
                 <div className="flex justify-between items-start mb-4">
-                    {/* Icon & Name */}
                     <div className="flex items-center gap-3 min-w-0 flex-1"> 
                         <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center bg-white shadow-sm group-hover:scale-110 transition-transform`}>
                             <IconComponent className={`w-5 h-5 ${theme.icon}`} />
                         </div>
                         <div className="min-w-0"> 
-                            <p className="text-xs text-slate-500 font-medium">หน่วยงาน</p>
-                            {/* เอา truncate ออก และใส่ leading-tight break-words เพื่อให้แสดงชื่อเต็มได้ (อาจจะขึ้นบรรทัดใหม่ถ้ายาวเกินกรอบ) */}
-                            <h4 className="font-bold text-slate-800 text-sm leading-tight break-words" title={unit.name}>
+                            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Unit No.{index + 1}</p>
+                            <h4 className="font-bold text-slate-800 text-sm leading-tight truncate" title={unit.name}>
                                 {unit.name}
                             </h4>
                         </div>
                     </div>
                     
-                    {/* Rank Badge */}
-                    <div className={`text-xs font-bold px-2 py-1 rounded-md ${theme.rank}`}>
+                    <div className={`text-[10px] font-bold px-2 py-1 rounded-md ${theme.rank}`}>
                         #{index + 1}
                     </div>
                 </div>
 
-                <div className="mt-auto">
-                    {/* Value Section */}
-                    <div className="flex items-end gap-2 mb-2">
-                        <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                <div className={`mt-auto ${unit.count === 0 ? 'opacity-40' : 'opacity-100'}`}>
+                    <div className="flex items-end gap-1.5 mb-2">
+                        <span className="text-3xl font-extrabold text-slate-800 tracking-tighter">
                             {unit.count.toLocaleString()}
                         </span>
-                        <span className="text-sm text-slate-500 font-medium mb-1">ครั้ง</span>
+                        <span className="text-[10px] text-slate-500 font-bold mb-1.5 uppercase">ครั้ง</span>
                     </div>
 
-                    {/* ข้อมูลสุนัข/แมว */}
-                    <div className="flex items-center gap-3 pt-3 border-t border-slate-200/50">
-                        <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
-                            <Dog className="w-3.5 h-3.5 text-orange-600" />
-                            <span className="text-xs font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-200/50">
+                        <div className="flex items-center gap-1 bg-white/70 px-2 py-1 rounded shadow-sm">
+                            <Dog className="w-3 h-3 text-orange-600" />
+                            <span className="text-[10px] font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-white/70 px-2 py-1 rounded-md shadow-sm">
-                            <Cat className="w-3.5 h-3.5 text-blue-600" />
-                            <span className="text-xs font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
+                        <div className="flex items-center gap-1 bg-white/70 px-2 py-1 rounded shadow-sm">
+                            <Cat className="w-3 h-3 text-blue-600" />
+                            <span className="text-[10px] font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Progress Bar Background */}
-            <div className="absolute bottom-0 left-0 w-full h-1.5 bg-slate-200/50">
-                {/* Active Progress */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-200/30">
                 <div 
-                    className={`h-full ${theme.bar} group-hover:h-2 transition-all duration-500 ease-out`} 
+                    className={`h-full ${theme.bar} group-hover:h-1.5 transition-all duration-700 ease-out`} 
                     style={{ width: `${percentage}%` }}
                 ></div>
             </div>
@@ -133,47 +135,55 @@ const UnitCard = ({ unit, index, maxVal }) => {
 };
 
 // --- 3. Main Component: ส่วนแสดงผลทั้งหมด ---
-const KPISection = ({ totals, unitStats = [] }) => {
-    // หาค่าสูงสุดเพื่อทำ Progress Bar
-    const maxUnitCount = Math.max(...unitStats.map(u => u.count), 1);
+const KPISection = ({ totals = {}, unitStats = [] }) => {
+    const maxUnitCount = unitStats.length > 0 ? Math.max(...unitStats.map(u => u.count), 1) : 1;
 
     return (
-        <div className="space-y-8">
-            {/* ส่วนสถิติแยกตามหน่วย (Unit Dispatch) - ใช้ UnitCard ใหม่ */}
-            {unitStats.length > 0 && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            <div className="p-2 bg-indigo-100 rounded-lg">
-                                <Truck className="w-5 h-5 text-indigo-600" /> 
-                            </div>
-                            <span>สถิติการออกปฏิบัติงาน (Unit Dispatch)</span>
-                        </h3>
-                        <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                            รวม {unitStats.length} หน่วย
-                        </span>
+        <div className="p-4 space-y-10">
+            {/* 1. ส่วนสถิติแยกตามหน่วย (Unit Dispatch) */}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
+                            <Truck className="w-5 h-5 text-white" /> 
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800 leading-none mb-1">สถิติการออกปฏิบัติงาน</h3>
+                            <p className="text-xs text-slate-400 font-medium">แยกตามหน่วยให้บริการ (Unit Dispatch)</p>
+                        </div>
                     </div>
+                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
+                        Active: {unitStats.length} Units
+                    </span>
+                </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+                {unitStats.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
                         {unitStats.map((unit, index) => (
                             <UnitCard 
-                                key={index} 
+                                key={unit.id || index} 
                                 unit={unit} 
                                 index={index} 
                                 maxVal={maxUnitCount} 
                             />
                         ))}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-slate-400">
+                        <AlertCircle className="w-10 h-10 mb-2 opacity-20" />
+                        <p className="text-sm font-medium">ไม่พบข้อมูลสถิติรายหน่วยงาน</p>
+                    </div>
+                )}
+            </div>
 
-            {/* ส่วนยอดรวม (Overall Statistics) - ใช้ KPICard เดิม */}
+            {/* 2. ส่วนยอดรวม (Overall Statistics) */}
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-5">
                     <BarChart3 className="w-5 h-5 text-blue-600" />
-                    สรุปยอดรวมการให้บริการ (Overall Statistics)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <h3 className="text-lg font-bold text-slate-700">สรุปยอดรวมการให้บริการ (Overall)</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     <KPICard 
                         title="จำนวนวัคซีนทั้งหมด" 
                         value={totals.vaccine} 
