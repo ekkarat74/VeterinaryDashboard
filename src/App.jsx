@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from
 import { 
     Activity, FileText, MapPin, Database, Download, Users, Plus, X, Navigation, 
     Upload, Search, Edit, Trash2, Lock, Skull, Siren, Key, ChevronRight, 
-    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link, ChevronUp, ChevronDown
+    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link, 
+    ChevronUp, ChevronDown, Unlock, LogOut
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
