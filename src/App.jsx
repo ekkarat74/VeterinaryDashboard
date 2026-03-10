@@ -262,7 +262,7 @@ const ImagePreviewModal = ({ imageUrl, onClose }) => {
 const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
     if (!isOpen) return null;
     return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 relative animate-in zoom-in-95 duration-200">
             <button onClick={onClose} className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
             <div className="text-center mb-6">
@@ -1734,7 +1734,7 @@ return (
 {/* เพิ่มแผ่นใสๆ สีดำด้านหลังเมนู เมื่อเปิดเมนูบนมือถือ */}
 {isMobileMenuOpen && (
     <div 
-        className="md:hidden fixed inset-0 bg-slate-900/50 z-[4999] backdrop-blur-sm transition-opacity"
+        className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity"
         onClick={() => setIsMobileMenuOpen(false)}
     />
 )}
