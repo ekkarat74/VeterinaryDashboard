@@ -36,16 +36,20 @@ const Sidebar = ({
     isMobileMenuOpen, 
     setIsMobileMenuOpen 
 }) => {
+    
+    // 💡 คีย์หลักที่แก้ปัญหา: ถ้าเปิดบนมือถือ (isMobileMenuOpen = true) ให้ถือว่าไม่ได้ย่อเมนู
+    const isCollapsed = isSidebarCollapsed && !isMobileMenuOpen;
+
     return (
         <aside className={`
             ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} 
-            ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 w-64 shadow-2xl z-50' : 'hidden md:flex'} 
+            ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 w-64 shadow-2xl z-50 flex' : 'hidden md:flex'} 
             bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shrink-0 transition-all duration-300
         `}>
             
             {/* 1. Logo & Branding */}
-            <div className={`h-16 flex items-center px-4 border-b border-slate-200 transition-all ${isSidebarCollapsed && !isMobileMenuOpen ? 'justify-center' : 'justify-between'}`}>
-                {(!isSidebarCollapsed || isMobileMenuOpen) && (
+            <div className={`h-16 flex items-center px-4 border-b border-slate-200 transition-all ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+                {!isCollapsed && (
                     <div className="flex items-center gap-3">
                         <img 
                             src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
@@ -85,7 +89,7 @@ const Sidebar = ({
                 
                 {/* 🟢 หมวดหมู่ที่ 1: แดชบอร์ด & ข้อมูล */}
                 <div className="space-y-1">
-                    {!isSidebarCollapsed && (
+                    {!isCollapsed && (
                         <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                             แดชบอร์ด
                         </p>
@@ -93,26 +97,26 @@ const Sidebar = ({
                     
                     {(user || tabsConfig.overview) && (
                         <button onClick={() => setActiveTab('overview')} title="ภาพรวมสถิติ" 
-                            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium transition-colors
+                            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium transition-colors
                             ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                             <Activity className={`w-5 h-5 shrink-0 ${activeTab === 'overview' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                            {!isSidebarCollapsed && <span>ภาพรวมสถิติ</span>}
+                            {!isCollapsed && <span>ภาพรวมสถิติ</span>}
                         </button>
                     )}
                     {(user || tabsConfig.outbreak) && (
                         <button onClick={() => setActiveTab('outbreak')} title="จัดการจุดเสี่ยง" 
-                            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium transition-colors
+                            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium transition-colors
                             ${activeTab === 'outbreak' ? 'bg-rose-50 text-rose-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                             <Siren className={`w-5 h-5 shrink-0 ${activeTab === 'outbreak' ? 'text-rose-600' : 'text-slate-400'}`} />
-                            {!isSidebarCollapsed && <span>จัดการจุดเสี่ยง</span>}
+                            {!isCollapsed && <span>จัดการจุดเสี่ยง</span>}
                         </button>
                     )}
                     {(user || tabsConfig.database) && (
                         <button onClick={() => setActiveTab('database')} title="ฐานข้อมูลบริการ" 
-                            className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium transition-colors
+                            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium transition-colors
                             ${activeTab === 'database' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                             <Database className={`w-5 h-5 shrink-0 ${activeTab === 'database' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                            {!isSidebarCollapsed && <span>ฐานข้อมูลบริการ</span>}
+                            {!isCollapsed && <span>ฐานข้อมูลบริการ</span>}
                         </button>
                     )}
                 </div>
@@ -120,22 +124,22 @@ const Sidebar = ({
                 {/* 🟢 หมวดหมู่ที่ 2: ปฏิทิน & นัดหมาย */}
                 {user && (
                     <div className="space-y-1">
-                        {!isSidebarCollapsed && (
+                        {!isCollapsed && (
                             <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 ปฏิทิน & นัดหมาย
                             </p>
                         )}
-                        <button onClick={onOpenMeetingList} title="ประวัติประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors`}>
+                        <button onClick={onOpenMeetingList} title="ประวัติประชุม" className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors`}>
                             <List className="w-5 h-5 shrink-0 text-slate-400" />
-                            {!isSidebarCollapsed && <span>ประวัติประชุม</span>}
+                            {!isCollapsed && <span>ประวัติประชุม</span>}
                         </button>
-                        <button onClick={onOpenCalendar} title="แผนออกหน่วย" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors`}>
+                        <button onClick={onOpenCalendar} title="แผนออกหน่วย" className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors`}>
                             <CalendarDays className="w-5 h-5 shrink-0 text-slate-400" />
-                            {!isSidebarCollapsed && <span>แผนออกหน่วย</span>}
+                            {!isCollapsed && <span>แผนออกหน่วย</span>}
                         </button>
-                        <button onClick={onOpenMeetingCalendar} title="ปฏิทินประชุม" className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors`}>
+                        <button onClick={onOpenMeetingCalendar} title="ปฏิทินประชุม" className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-start gap-3 px-3 py-2'} rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors`}>
                             <CalendarDays className="w-5 h-5 shrink-0 text-slate-400" />
-                            {!isSidebarCollapsed && <span>ปฏิทินประชุม</span>}
+                            {!isCollapsed && <span>ปฏิทินประชุม</span>}
                         </button>
                     </div>
                 )}
@@ -143,7 +147,7 @@ const Sidebar = ({
                 {/* 🟢 หมวดหมู่ที่ 3: ตั้งค่าระบบ */}
                 {user && (isSuperAdmin || canEdit) && (
                     <div className="space-y-1">
-                        {!isSidebarCollapsed ? (
+                        {!isCollapsed ? (
                             <>
                                 <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                     การตั้งค่าระบบ
@@ -199,14 +203,14 @@ const Sidebar = ({
             {user && canEdit && (
                 <div className="px-4 pb-4 space-y-2">
                     <button onClick={onOpenAddOutbreak} title="แจ้งโรคระบาด" 
-                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-center gap-2 px-4 py-2'} rounded-lg font-semibold text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors border border-rose-200`}>
+                        className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-center gap-2 px-4 py-2'} rounded-lg font-semibold text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors border border-rose-200`}>
                         <AlertTriangle className="w-4 h-4 shrink-0" />
-                        {!isSidebarCollapsed && <span>แจ้งโรคระบาด</span>}
+                        {!isCollapsed && <span>แจ้งโรคระบาด</span>}
                     </button>
                     <button onClick={onOpenAddData} title="เพิ่มข้อมูลบริการ" 
-                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-center gap-2 px-4 py-2'} rounded-lg font-semibold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-colors`}>
+                        className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-center gap-2 px-4 py-2'} rounded-lg font-semibold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-colors`}>
                         <Plus className="w-4 h-4 shrink-0" />
-                        {!isSidebarCollapsed && <span>เพิ่มข้อมูลบริการ</span>}
+                        {!isCollapsed && <span>เพิ่มข้อมูลบริการ</span>}
                     </button>
                 </div>
             )}
@@ -214,13 +218,13 @@ const Sidebar = ({
             {/* 3. Footer / Profile Section */}
             <div className="p-4 border-t border-slate-200 bg-slate-50">
                 {!user ? (
-                    <button onClick={onLogin} className={`w-full flex items-center justify-center gap-2 ${isSidebarCollapsed ? 'p-2' : 'px-4 py-2'} bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-semibold transition-colors`}>
+                    <button onClick={onLogin} className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-4 py-2'} bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-semibold transition-colors`}>
                         <Unlock className="w-4 h-4 shrink-0" />
-                        {!isSidebarCollapsed && <span>เข้าสู่ระบบ</span>}
+                        {!isCollapsed && <span>เข้าสู่ระบบ</span>}
                     </button>
                 ) : (
-                    <div className={`flex items-center justify-between gap-2 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
-                        {!isSidebarCollapsed && (
+                    <div className={`flex items-center justify-between gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
+                        {!isCollapsed && (
                             <div className="flex items-center gap-3 overflow-hidden">
                                 <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
                                     {user.username.charAt(0).toUpperCase()}
@@ -231,11 +235,11 @@ const Sidebar = ({
                                 </div>
                             </div>
                         )}
-                        <div className={`flex ${isSidebarCollapsed ? 'flex-col gap-2 w-full' : 'gap-1 shrink-0'}`}>
-                            <button onClick={onChangePassword} className={`p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors ${isSidebarCollapsed ? 'flex justify-center w-full' : ''}`} title="เปลี่ยนรหัสผ่าน">
+                        <div className={`flex ${isCollapsed ? 'flex-col gap-2 w-full' : 'gap-1 shrink-0'}`}>
+                            <button onClick={onChangePassword} className={`p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors ${isCollapsed ? 'flex justify-center w-full' : ''}`} title="เปลี่ยนรหัสผ่าน">
                                 <Key className="w-4 h-4" />
                             </button>
-                            <button onClick={onLogout} className={`p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors ${isSidebarCollapsed ? 'flex justify-center w-full' : ''}`} title="ออกจากระบบ">
+                            <button onClick={onLogout} className={`p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors ${isCollapsed ? 'flex justify-center w-full' : ''}`} title="ออกจากระบบ">
                                 <LogOut className="w-4 h-4" />
                             </button>
                         </div>
