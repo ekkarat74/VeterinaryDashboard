@@ -29,6 +29,7 @@ import ToastContainer from './path/to/ToastContainer';
 import PasswordConfirmModal from './components/modals/PasswordConfirmModal';
 import ImagePreviewModal from './components/modals/ImagePreviewModal';
 import { getUnitKey } from './utils/helpers';
+import PieChartsSection from './components/dashboard/PieChartsSection';
 
 // --- MAIN DASHBOARD COMPONENT ---
 
@@ -663,8 +664,8 @@ const combinedEvents = useMemo(() => [
         } catch (error) { alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server"); }
     };
 
-    const handleGenerateMockData = () => {
-        if (!window.confirm("⚠️ ยืนยันการจำลองข้อมูล 500 เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)")) return;
+    const generateMockData = (count) => {
+        if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
         const newMockData = [];
         const endDate = new Date();
         const startDate = new Date();
@@ -672,7 +673,7 @@ const combinedEvents = useMemo(() => [
         const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
         const randCoord = () => ({ lat: 13.6 + Math.random() * 0.35, long: 100.35 + Math.random() * 0.4 });
 
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < count; i++) {
             const date = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
             const dateStr = date.toISOString().split('T')[0];
             const district = BANGKOK_DISTRICTS[Math.floor(Math.random() * BANGKOK_DISTRICTS.length)];
@@ -692,8 +693,10 @@ const combinedEvents = useMemo(() => [
             });
         }
         setReportData(prev => [...newMockData, ...prev]);
-        alert(`✅ สร้างข้อมูลจำลอง 500 เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
+        alert(`✅ สร้างข้อมูลจำลอง ${count} เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
     };
+
+    const handleGenerateMockData = () => generateMockData(500);
 
     const handleRestoreSuccess = () => { window.location.reload(); };
 
@@ -704,8 +707,7 @@ const combinedEvents = useMemo(() => [
         return [...new Set(reportData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y))].sort().reverse();
     }, [reportData]);
 
-    // แทนที่ const filteredData = useMemo(() => { ... }) เดิมทั้งหมดด้วยโค้ดนี้
-const filteredData = useMemo(() => {
+ const filteredData = useMemo(() => {
     if (!Array.isArray(reportData)) return [];
 
     // 1. นำการคำนวณคงที่ออกมานอก Loop 
@@ -719,7 +721,7 @@ const filteredData = useMemo(() => {
         try {
             if (!item) return false;
 
-            // 2. Date Logic (เช็คเงื่อนไขที่ใช้เวลาประมวลผลน้อยที่สุดก่อน ถ้าตกหล่นให้ return false ทันที)
+            // 2. Date Logic
             if (searchDate) { 
                 if (item.date !== searchDate) return false; 
             } else if (!isYearAll || !isMonthAll) {
@@ -735,7 +737,7 @@ const filteredData = useMemo(() => {
             if (!isUnitAll && item.unit !== selectedUnit) return false;
             if (!isDistrictAll && (!item.district || item.district.trim() !== selectedDistrict)) return false;
 
-            // 4. Text Search Logic (เช็คเป็นอันดับสุดท้าย เพราะ .toLowerCase() ใน Loop กินทรัพยากรมากที่สุด)
+            // 4. Text Search Logic
             if (lowerSearch) {
                 const itemLocation = item.location ? String(item.location).toLowerCase() : '';
                 const itemDistrict = item.district ? String(item.district).toLowerCase() : '';
@@ -1090,6 +1092,71 @@ const trendData = useMemo(() => {
         });
 }, [rankingFilteredData]);
 
+    // --- วงที่ 1: ยอดสะสมออกหน่วย แยกตาม "เขต" ---
+    const unitByDistrictPieData = useMemo(() => {
+        const grouped = filteredData.reduce((acc, curr) => {
+            const district = curr.district || 'ไม่ระบุ';
+            const workTotal = (parseInt(curr.stats?.vaccine) || 0) +
+                              (parseInt(curr.stats?.sterilize) || 0) +
+                              (parseInt(curr.stats?.register) || 0) +
+                              (parseInt(curr.stats?.microchip) || 0) +
+                              (parseInt(curr.stats?.medical) || 0);
+                              
+            if (!acc[district]) acc[district] = { name: district, value: 0 };
+            acc[district].value += workTotal;
+            return acc;
+        }, {});
+        return Object.values(grouped).sort((a, b) => b.value - a.value).slice(0, 10);
+    }, [filteredData]);
+
+    // --- วงที่ 2: ยอดสะสมออกหน่วย แยกตาม "หน่วยงาน" ---
+    const unitByUnitTypePieData = useMemo(() => {
+        const grouped = filteredData.reduce((acc, curr) => {
+            const unit = curr.unit || 'ไม่ระบุ';
+            const workTotal = (parseInt(curr.stats?.vaccine) || 0) +
+                              (parseInt(curr.stats?.sterilize) || 0) +
+                              (parseInt(curr.stats?.register) || 0) +
+                              (parseInt(curr.stats?.microchip) || 0) +
+                              (parseInt(curr.stats?.medical) || 0);
+                              
+            if (!acc[unit]) acc[unit] = { name: unit, value: 0 };
+            acc[unit].value += workTotal;
+            return acc;
+        }, {});
+        return Object.values(grouped).sort((a, b) => b.value - a.value).slice(0, 10);
+    }, [filteredData]);
+
+    // --- วงที่ 3: ยอดสะสมออกหน่วย แยกตาม "ประเภทงาน" ---
+    const unitByWorkTypePieData = useMemo(() => {
+        const totals = filteredData.reduce((acc, curr) => {
+            acc.vaccine += (parseInt(curr.stats?.vaccine) || 0);
+            acc.sterilize += (parseInt(curr.stats?.sterilize) || 0);
+            acc.register += (parseInt(curr.stats?.register) || 0);
+            acc.microchip += (parseInt(curr.stats?.microchip) || 0);
+            acc.medical += (parseInt(curr.stats?.medical) || 0);
+            return acc;
+        }, { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
+
+        return [
+            { name: 'ฉีดวัคซีน', value: totals.vaccine },
+            { name: 'ผ่าตัดทำหมัน', value: totals.sterilize },
+            { name: 'จดทะเบียน', value: totals.register },
+            { name: 'ฝังไมโครชิป', value: totals.microchip },
+            { name: 'รักษาพยาบาล', value: totals.medical }
+        ].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+    }, [filteredData]);
+
+    // --- วงที่ 4: โรคพิษสุนัขบ้า แยกตามเขต (เดิม) ---
+    const outbreakPieData = useMemo(() => {
+        const grouped = filteredOutbreaks.reduce((acc, curr) => {
+            const district = curr.district || 'ไม่ระบุ';
+            if (!acc[district]) acc[district] = { name: district, value: 0 };
+            acc[district].value += 1;
+            return acc;
+        }, {});
+        return Object.values(grouped).sort((a, b) => b.value - a.value).slice(0, 10);
+    }, [filteredOutbreaks]);
+
 const rankingUnitStats = useMemo(() => {
     const grouped = rankingFilteredData.reduce((acc, curr) => {
         const unitName = curr.unit ? curr.unit : 'ไม่ระบุ';
@@ -1115,19 +1182,6 @@ const rankingUnitStats = useMemo(() => {
     }, {});
 
     return Object.values(grouped).sort((a, b) => b.count - a.count || b.total - a.total);
-}, [rankingFilteredData]);
-
-const rankingDistrictStats = useMemo(() => {
-    const grouped = rankingFilteredData.reduce((acc, curr) => {
-        const districtName = curr.district ? curr.district.trim() : 'ไม่ระบุ';
-        const toNum = (val) => parseInt(val, 10) || 0;
-
-        if (!acc[districtName]) acc[districtName] = { name: districtName, total: 0 };
-        
-        acc[districtName].total += (toNum(curr.stats?.vaccine) + toNum(curr.stats?.sterilize) + toNum(curr.stats?.register) + toNum(curr.stats?.microchip) + toNum(curr.stats?.medical));
-        return acc;
-    }, {});
-    return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 5);
 }, [rankingFilteredData]);
 
 const parseCSVDate = (dateStr) => {
@@ -1397,6 +1451,29 @@ const parseCSVDate = (dateStr) => {
                                 )}
                             </div>
 
+                            <div className="flex flex-wrap items-center gap-2">
+                                
+                                {/* ปุ่มสร้าง 200 เคส (จะแสดงเฉพาะคนที่มีสิทธิ์ Edit/Admin เท่านั้น) */}
+                                {canEdit && (
+                                    <button 
+                                        onClick={() => generateMockData(200)} 
+                                        className="text-xs bg-indigo-50 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-indigo-200 shadow-sm"
+                                    >
+                                        <Database className="w-3.5 h-3.5" /> จำลอง 200 เคส
+                                    </button>
+                                )}
+
+                                {/* ปุ่มล้างตัวกรอง (โค้ดเดิม) */}
+                                {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
+                                    <button 
+                                        onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} 
+                                        className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-transparent hover:border-rose-100"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> ล้างตัวกรองทั้งหมด
+                                    </button>
+                                )}
+                            </div>
+
                             {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
                                 <button 
                                     onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} 
@@ -1464,6 +1541,13 @@ const parseCSVDate = (dateStr) => {
                             <>
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
+                                        {/* --- เพิ่มส่วน Pie Charts (4 วง) ก่อน overview --- */}
+                                        <PieChartsSection 
+                                            unitByDistrictPieData={unitByDistrictPieData}
+                                            unitByUnitTypePieData={unitByUnitTypePieData}
+                                            unitByWorkTypePieData={unitByWorkTypePieData}
+                                            outbreakPieData={outbreakPieData}
+                                        />
                                         <KPISection totals={totals} unitStats={unitStats} />
                                         <StatisticsCharts 
                                             trendData={trendData} 
