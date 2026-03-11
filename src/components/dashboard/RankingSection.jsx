@@ -21,13 +21,13 @@ const RankingSection = ({
   const sortedUnitStats = useMemo(() => {
     if (!rankingUnitStats) return [];
     return [...rankingUnitStats].sort((a, b) => {
-      return sortOrder === 'desc' ? b.total - a.total : a.total - b.total;
+      return sortOrder === 'desc' ? (b.total || 0) - (a.total || 0) : (a.total || 0) - (b.total || 0);
     });
   }, [rankingUnitStats, sortOrder]);
 
   // 2. ใส่ ?. ป้องกันกรณี array เป็น null/undefined
   const maxTotal = rankingUnitStats?.length > 0 
-    ? Math.max(...rankingUnitStats.map(u => u.total)) 
+    ? Math.max(...rankingUnitStats.map(u => u.total || 0)) 
     : 0;
 
   // 3. ใส่ ?. ป้องกัน reduce พัง และใส่ || 0 เผื่อไว้
@@ -172,7 +172,7 @@ const RankingSection = ({
                         className="absolute right-0 top-1 bottom-1 bg-indigo-50/50 transition-all duration-500 ease-out z-0 rounded-l-md"
                         style={{ width: `${(u.total / maxTotal) * 100}%` }}
                       />
-                      <span className="relative z-10">{u.total.toLocaleString()}</span>
+                      <span className="relative z-10">{(u.total || 0).toLocaleString()}</span>
                       
                       {/* ปรับปรุงหน้าตา Trend ให้เป็น Badge สวยๆ และรองรับตัวเลข */}
                       {u.trend !== undefined && (
@@ -233,7 +233,7 @@ const RankingSection = ({
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-slate-400 mr-1">รวม</span>
-                    <span className="text-sm font-extrabold text-indigo-600">{unit.totalWork.toLocaleString()}</span>
+                    <span className="text-sm font-extrabold text-indigo-600">{(unit.totalWork || 0).toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -281,38 +281,38 @@ const RankingSection = ({
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] text-slate-400">{distPercent}%</span>
                               <span className="text-[10px] font-bold text-indigo-600 bg-white shadow-sm border border-indigo-50 px-2 py-0.5 rounded-full">
-                                รวม {dist.total.toLocaleString()}
+                                รวม {(dist.total || 0).toLocaleString()}
                               </span>
                             </div>
                           </div>
 
                           {/* แสดงรายละเอียดบริการย่อย */}
                           <div className="relative z-10 flex flex-wrap gap-x-3 gap-y-1 pl-6">
-                            {dist.stats.vaccine > 0 && (
+                            {dist.stats?.vaccine > 0 && (
                               <span className="text-[10px] text-slate-500 flex items-center gap-1" title="วัคซีน">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div> 
                                 วัคซีน: {dist.stats.vaccine}
                               </span>
                             )}
-                            {dist.stats.sterilize > 0 && (
+                            {dist.stats?.sterilize > 0 && (
                               <span className="text-[10px] text-slate-500 flex items-center gap-1" title="ทำหมัน">
                                 <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div> 
                                 ทำหมัน: {dist.stats.sterilize}
                               </span>
                             )}
-                            {dist.stats.microchip > 0 && (
+                            {dist.stats?.microchip > 0 && (
                               <span className="text-[10px] text-slate-500 flex items-center gap-1" title="ไมโครชิป">
                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div> 
                                 ชิป: {dist.stats.microchip}
                               </span>
                             )}
-                            {dist.stats.register > 0 && (
+                            {dist.stats?.register > 0 && (
                               <span className="text-[10px] text-slate-500 flex items-center gap-1" title="ขึ้นทะเบียน">
                                 <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div> 
                                 ทะเบียน: {dist.stats.register}
                               </span>
                             )}
-                            {dist.stats.medical > 0 && (
+                            {dist.stats?.medical > 0 && (
                               <span className="text-[10px] text-slate-500 flex items-center gap-1" title="รักษา">
                                 <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div> 
                                 รักษา: {dist.stats.medical}

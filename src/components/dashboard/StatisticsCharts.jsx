@@ -12,7 +12,7 @@ const StatisticsCharts = ({
   freqMonthlyOffset, setFreqMonthlyOffset
 }) => {
   const [freqFilter, setFreqFilter] = useState('monthly'); 
-  const currentFreqData = freqFilter === 'monthly' ? dispatchStats?.monthly : dispatchStats?.daily;
+  const currentFreqData = freqFilter === 'monthly' ? (dispatchStats?.monthly || []) : (dispatchStats?.daily || []);
 
   // เพิ่มฟังก์ชันจัดการคลิกเลื่อนกราฟความถี่
   const handleFreqPrev = () => {
@@ -66,7 +66,8 @@ const CustomTooltip = ({ active, payload, label }) => {
               <span className="text-slate-500">{entry.name}:</span>
             </span>
             <span className="font-mono font-bold text-slate-800">
-              {entry.value ? entry.value.toLocaleString() : '0'}
+              {/* แก้ไข: เช็ค undefined/null แทนการเช็ค truthy เพื่อให้ค่า 0 แสดงผลได้ถูกต้อง */}
+              {entry.value !== undefined && entry.value !== null ? entry.value.toLocaleString() : '0'}
             </span>
           </div>
         ))}
@@ -75,7 +76,6 @@ const CustomTooltip = ({ active, payload, label }) => {
   }
   return null;
 };
-// ------------------------------------------------
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-2">
@@ -168,7 +168,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             </div>
           </div>
         </div>
-        <div className="flex-1 h-72 w-full relative"> {/* เพิ่ม w-full และ relative */}
+        <div className="h-80 w-full relative"> {/* เพิ่ม w-full และ relative */}
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
             <BarChart data={currentFreqData} margin={{top:10, right:5, left:-25, bottom:10}}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -279,35 +279,35 @@ const CustomTooltip = ({ active, payload, label }) => {
                     content={(props) => {
                       const { x, y, width, value, index } = props;
                       const count = unitStats[index]?.count || 0;
+                      
+                      // แก้ไข: ป้องกันแอปแครชในช่วง Animation ที่ value อาจเป็น undefined
+                      const displayValue = value || 0; 
     
-                      // เพิ่ม: คำนวณความกว้างที่เหลือเพื่อเช็คว่าใกล้ขอบเกินไปหรือไม่
-                      const isMobileSmall = width < 50 && x > 200; 
-    
-                    return (
-                      <g>
-                        <text 
-                          x={x + width + (isMobileSmall ? 5 : 10)} // ขยับชิดซ้ายขึ้นถ้าจอเล็ก
-                          y={y + 18} 
-                          fill="#334155" 
-                          fontSize={isMobileSmall ? "12" : "14"} 
-                          fontWeight="bold"
-                          className="font-mono"
-                        >
-                          {value.toLocaleString()}
-                        </text>
-                        <text 
-                          x={x + width + (isMobileSmall ? 45 : 55)} // ขยับชิดซ้ายขึ้นถ้าจอเล็ก
-                          y={y + 18} 
-                          fill="#6366f1" 
-                          fontSize={isMobileSmall ? "10" : "12"}
-                          fontWeight="600"
-                        >
-                          | {count} ครั้ง
-                        </text>
-                      </g>
-                    );
-                  }}
-                />
+                      return (
+                        <g>
+                          <text 
+                            x={x + width + 10} // แก้ไข: ลบ isMobileSmall ออก ใช้ระยะห่างจากปลายแท่งกราฟตายตัว
+                            y={y + 18} 
+                            fill="#334155" 
+                            fontSize="14" 
+                            fontWeight="bold"
+                            className="font-mono"
+                          >
+                            {displayValue.toLocaleString()}
+                          </text>
+                          <text 
+                            x={x + width + 55} // แก้ไข: ลบ isMobileSmall กะระยะห่างให้พอดีกับข้อความด้านหน้า
+                            y={y + 18} 
+                            fill="#6366f1" 
+                            fontSize="12"
+                            fontWeight="600"
+                          >
+                            | {count} ครั้ง
+                          </text>
+                        </g>
+                      );
+                    }}
+                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

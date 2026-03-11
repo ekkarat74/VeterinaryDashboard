@@ -134,8 +134,9 @@ const RabiesOutbreakSection = ({
                                 <MapPin className="w-4 h-4 group-hover:text-rose-500 transition-colors" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Top Zone</span>
                             </div>
-                            <p className="text-lg font-bold text-slate-800 truncate" title={stats.topDistricts[0]?.name}>
-                                {stats.topDistricts.length > 0 ? stats.topDistricts[0].name : '-'}
+                            {/* แก้ไข: เพิ่ม Optional Chaining (?.) ป้องกันแอปแครชตอนข้อมูลยังไม่มา */}
+                            <p className="text-lg font-bold text-slate-800 truncate" title={stats?.topDistricts?.[0]?.name}>
+                                {stats?.topDistricts?.length > 0 ? stats.topDistricts[0].name : '-'}
                             </p>
                             <p className="text-[10px] text-slate-400 mt-1">พบมากที่สุด</p>
                         </div>
@@ -145,8 +146,16 @@ const RabiesOutbreakSection = ({
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Update</span>
                             </div>
                             <p className="text-lg font-bold text-slate-800">
-                                {filteredOutbreaks.length > 0 
-                                    ? new Date(Math.max(...filteredOutbreaks.map(e => new Date(e.date)))).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})
+                                {/* แก้ไข: ดึงเวลาด้วย getTime() ให้ใช้กับ Math.max ได้ถูกต้อง พร้อมกรองค่า Invalid Date ทิ้ง */}
+                                {filteredOutbreaks?.length > 0 
+                                    ? (() => {
+                                        const validDates = filteredOutbreaks
+                                            .map(e => new Date(e.date).getTime())
+                                            .filter(time => !isNaN(time));
+                                        return validDates.length > 0 
+                                            ? new Date(Math.max(...validDates)).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})
+                                            : '-';
+                                    })()
                                     : '-'
                                 }
                             </p>
@@ -269,15 +278,15 @@ const RabiesOutbreakSection = ({
                             </div>
                         </div>
                         <div className="w-full h-72">
-                            {stats.total > 0 ? (
+                            {stats?.total > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={stats.topDistricts} margin={{top:0, right:20, left:0, bottom:0}} barSize={32}>
+                                    <BarChart layout="vertical" data={stats?.topDistricts || []} margin={{top:0, right:20, left:0, bottom:0}} barSize={32}>
                                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9"/>
                                         <XAxis type="number" hide />
                                         <YAxis dataKey="name" type="category" width={100} tick={{fontSize:13, fontWeight: 600, fill: '#64748b'}} axisLine={false} tickLine={false}/>
                                         <RechartsTooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
                                         <Bar dataKey="count" radius={[0, 8, 8, 0]} background={{ fill: '#f8fafc', radius: [0, 8, 8, 0] }}>
-                                            {stats.topDistricts.map((entry, index) => (
+                                            {(stats?.topDistricts || []).map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
                                             ))}
                                         </Bar>

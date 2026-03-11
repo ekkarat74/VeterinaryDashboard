@@ -1,9 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
-    Activity, FileText, MapPin, Database, Download, Users, Plus, X, Navigation, 
-    Upload, Search, Edit, Trash2, Lock, Skull, Siren, Key, ChevronRight, 
-    Info, Check, AlertCircle, Bell, CalendarDays, Share2,ChevronLeft, List, Link, 
-    ChevronUp, ChevronDown, Unlock, LogOut
+    Activity, Database, X, Search, Trash2,Siren, List, ChevronUp, ChevronDown, Unlock, LogOut
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -25,381 +22,13 @@ const AddOutbreakModal = lazy(() => import('./components/modals/AddOutbreakModal
 import { MeetingCalendarDashboard, DispatchCalendarDashboard } from './components/CalendarComponents.jsx';
 import DispatchModal from './components/modals/DispatchModal';
 import {MeetingModal, MeetingListModal} from './components/modals/MeetingModal';
-
-// --- SUB-COMPONENTS DEFINITION ---
-
-// 1. LogDetailModal
-const LogDetailModal = ({ isOpen, onClose, data }) => {
-    if (!isOpen || !data) return null;
-    return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                <div className="bg-slate-900 px-5 py-3 flex justify-between items-center text-white shrink-0">
-                    <h3 className="font-bold flex items-center gap-2">
-                        <Database className="w-4 h-4 text-blue-400" /> รายละเอียดข้อมูล (Data Payload)
-                    </h3>
-                    <button onClick={onClose}><X className="w-5 h-5 hover:text-red-400" /></button>
-                </div>
-                <div className="p-0 overflow-auto bg-slate-50 custom-scrollbar">
-                    <pre className="text-xs font-mono text-slate-700 p-4 leading-relaxed">
-                        {JSON.stringify(data, null, 2)}
-                    </pre>
-                </div>
-                <div className="p-3 border-t border-slate-200 bg-white flex justify-end">
-                    <button onClick={onClose} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold">
-                        ปิดหน้าต่าง
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// 2. ActivityLogModal
-const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
-    const [logs, setLogs] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedLogData, setSelectedLogData] = useState(null);
-
-    useEffect(() => {
-        if (isOpen) fetchLogs();
-    }, [isOpen]);
-
-    const fetchLogs = async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch(`${apiBaseUrl}/api/logs`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setLogs(data);
-            }
-        } catch (error) {
-            console.error("Fetch Logs Error", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    const getActionColor = (action) => {
-        if (action.includes('DELETE') || action.includes('CLEAR')) return 'text-red-600 bg-red-50';
-        if (action.includes('CREATE') || action.includes('ADD')) return 'text-green-600 bg-green-50';
-        if (action.includes('UPDATE') || action.includes('EDIT')) return 'text-blue-600 bg-blue-50';
-        if (action.includes('LOGIN')) return 'text-purple-600 bg-purple-50';
-        return 'text-slate-600 bg-slate-50';
-    };
-
-    return (
-        <>
-            <LogDetailModal 
-                isOpen={!!selectedLogData} 
-                onClose={() => setSelectedLogData(null)} 
-                data={selectedLogData} 
-            />
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in">
-                <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-                    <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
-                        <h3 className="text-lg font-bold flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-yellow-400" /> ประวัติการใช้งานระบบ (System Logs)
-                        </h3>
-                        <button onClick={onClose}><X className="w-5 h-5" /></button>
-                    </div>
-                    <div className="flex-1 overflow-auto p-0 custom-scrollbar">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 shadow-sm">
-                                <tr>
-                                    <th className="p-4 w-16 text-center">Data</th>
-                                    <th className="p-4 w-40">วัน-เวลา</th>
-                                    <th className="p-4 w-32">ผู้ใช้งาน</th>
-                                    <th className="p-4 w-24">การกระทำ</th>
-                                    <th className="p-4">รายละเอียด</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {isLoading ? (
-                                    <tr><td colSpan="5" className="p-8 text-center">กำลังโหลด...</td></tr>
-                                ) : logs.length === 0 ? (
-                                    <tr><td colSpan="5" className="p-8 text-center text-slate-400">ไม่พบประวัติการใช้งาน</td></tr>
-                                ) : (
-                                    logs.map((log) => (
-                                        <tr key={log._id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-3 text-center">
-                                                {log.metadata && Object.keys(log.metadata).length > 0 ? (
-                                                    <button 
-                                                        onClick={() => setSelectedLogData(log.metadata)}
-                                                        className="p-1.5 text-blue-500 hover:text-white hover:bg-blue-500 rounded-lg transition-all shadow-sm border border-blue-100"
-                                                        title="ดูข้อมูลที่บันทึก"
-                                                    >
-                                                        <Search className="w-4 h-4" />
-                                                    </button>
-                                                ) : <span className="text-slate-300">-</span>}
-                                            </td>
-                                            <td className="p-3 text-slate-500 whitespace-nowrap text-xs">
-                                                {new Date(log.createdAt).toLocaleString('th-TH')}
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="font-bold text-slate-700">{log.user}</div>
-                                                <div className="text-[10px] text-slate-400 uppercase">{log.role}</div>
-                                            </td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold border border-transparent ${getActionColor(log.action)}`}>
-                                                    {log.action}
-                                                </span>
-                                            </td>
-                                            <td className="p-3 text-slate-600 truncate max-w-xs" title={log.details}>
-                                                {log.details}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </>
-    );
-};
-
-// 3. ToastContainer
-const ToastContainer = ({ toasts, removeToast }) => {
-    return (
-        <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
-            {toasts.map((toast) => (
-                <div
-                    key={toast.id}
-                    className={`
-                        pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl min-w-[300px] max-w-md 
-                        transform transition-all duration-500 ease-in-out animate-in slide-in-from-right fade-in
-                        ${toast.type === 'success' ? 'bg-emerald-600 text-white' : ''}
-                        ${toast.type === 'error' ? 'bg-red-600 text-white' : ''}
-                        ${toast.type === 'info' ? 'bg-blue-600 text-white' : ''}
-                    `}
-                >
-                    <div className="shrink-0">
-                        {toast.type === 'success' && <Check className="w-5 h-5" />}
-                        {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
-                        {toast.type === 'info' && <Info className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-1 text-sm font-medium">{toast.message}</div>
-                    <button onClick={() => removeToast(toast.id)} className="opacity-70 hover:opacity-100 transition-opacity">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            ))}
-        </div>
-    );
-};
-
-// 4. PasswordConfirmModal
-const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
-    const [password, setPassword] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-
-    if (!isOpen) return null;
-     
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        await onConfirm(password);
-        setIsLoading(false);
-        setPassword("");
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border-2 border-red-500">
-                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Lock className="w-5 h-5" /> ยืนยันตัวตน Superadmin
-                    </h3>
-                    <button onClick={onClose}><X className="w-5 h-5" /></button>
-                </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="text-center space-y-2">
-                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                            <Trash2 className="w-6 h-6 text-red-600" />
-                        </div>
-                        <h4 className="text-lg font-bold text-slate-800">{title}</h4>
-                        <p className="text-sm text-slate-500">{message}</p>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">ใส่รหัสผ่านของคุณเพื่อยืนยัน</label>
-                        <input type="password" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none transition-all"
-                            placeholder="รหัสผ่าน Superadmin" value={password} onChange={(e) => setPassword(e.target.value)} required autoFocus />
-                    </div>
-                    <div className="pt-2 flex gap-3">
-                        <button type="button" onClick={onClose} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold">ยกเลิก</button>
-                        <button type="submit" disabled={isLoading} className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-50">
-                            {isLoading ? "กำลังตรวจสอบ..." : "ยืนยันการลบ"}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// 5. ImagePreviewModal
-const ImagePreviewModal = ({ imageUrl, onClose }) => {
-    if (!imageUrl) return null;
-    return (
-    <div className="fixed inset-0 z-[3000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
-        <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
-            <button onClick={onClose} className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-md">
-                <X className="w-6 h-6" />
-            </button>
-            <img src={imageUrl} alt="Full Preview" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10" onClick={(e) => e.stopPropagation()} />
-        </div>
-    </div>
-  );
-};
-
-// 6. CsvActionModal
-const CsvActionModal = ({ isOpen, onClose, onFileChange, onExport }) => {
-    if (!isOpen) return null;
-    return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 relative animate-in zoom-in-95 duration-200">
-            <button onClick={onClose} className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
-            <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3"><FileText className="w-6 h-6 text-blue-600" /></div>
-                <h3 className="text-lg font-bold text-slate-800">จัดการข้อมูล CSV</h3>
-                <p className="text-xs text-slate-500">เลือกดำเนินการกับไฟล์ข้อมูล</p>
-            </div>
-            <div className="space-y-3">
-                <div className="relative w-full group">
-                    <button className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold rounded-xl transition-all">
-                        <Upload className="w-5 h-5" /><span>นำเข้าไฟล์ (Import)</span>
-                    </button>
-                    <input type="file" accept=".csv" onChange={(e) => { onFileChange(e); onClose(); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="คลิกเพื่อเลือกไฟล์ CSV" />
-                </div>
-                <div className="relative flex py-1 items-center">
-                    <div className="flex-grow border-t border-slate-200"></div>
-                    <span className="flex-shrink-0 mx-4 text-xs text-slate-400">หรือ</span>
-                    <div className="flex-grow border-t border-slate-200"></div>
-                </div>
-                <button onClick={() => {onExport(); onClose();}} className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-slate-100 hover:bg-green-500 hover:text-white text-slate-700 font-bold rounded-xl transition-all shadow-sm hover:shadow-md">
-                    <Download className="w-5 h-5" /><span>ส่งออกไฟล์ (Export)</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    );
-};
-
-// 7. BackupSystemModal
-const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUrl }) => {
-    if (!isOpen) return null;
-    const TARGET_URL = apiBaseUrl || 'http://localhost:5000';
-
-    const handleDownloadBackup = async () => {
-        try {
-            const response = await fetch(`${TARGET_URL}/api/system/backup`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (!response.ok) throw new Error('Backup failed');
-            const data = await response.json();
-            const jsonString = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonString], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `VET_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            onClose();
-        } catch (error) {
-            alert("❌ เกิดข้อผิดพลาดในการสำรองข้อมูล (ตรวจสอบสิทธิ์ Admin)");
-            console.error(error);
-        }
-    };
-
-    const handleRestoreBackup = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                if (!window.confirm("⚠️ คำเตือน: การกู้คืนข้อมูลจะ 'ลบข้อมูลปัจจุบันทั้งหมด' และแทนที่ด้วยไฟล์ Backup\n\nคุณแน่ใจหรือไม่?")) return;
-                const response = await fetch(`${TARGET_URL}/api/system/restore`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: event.target.result 
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert(`✅ กู้คืนข้อมูลสำเร็จ!\n- รายงาน: ${result.reportCount} รายการ\n- จุดระบาด: ${result.outbreakCount} รายการ`);
-                    onRestoreSuccess(); 
-                    onClose();
-                } else {
-                    alert("❌ กู้คืนข้อมูลล้มเหลว: " + result.message);
-                }
-            } catch (error) {
-                alert("❌ ไฟล์ Backup ไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึง");
-                console.error(error);
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white">
-                    <h3 className="text-lg font-bold flex items-center gap-2"><Database className="w-5 h-5 text-green-400" /> สำรองและกู้คืนข้อมูล</h3>
-                    <button onClick={onClose}><X className="w-5 h-5" /></button>
-                </div>
-                <div className="p-6 space-y-4">
-                    <button onClick={handleDownloadBackup} className="w-full py-4 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 text-blue-700 rounded-xl flex flex-col items-center justify-center gap-2 transition-all group">
-                        <Download className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                        <span className="font-bold">ดาวน์โหลดไฟล์ Backup (.json)</span>
-                        <span className="text-xs text-blue-400">เก็บข้อมูลทั้งหมดในระบบไว้ในไฟล์เดียว</span>
-                    </button>
-                    <div className="relative flex py-2 items-center">
-                        <div className="flex-grow border-t border-slate-200"></div>
-                        <span className="flex-shrink-0 mx-4 text-xs text-slate-400">หรือ กู้คืนข้อมูล</span>
-                        <div className="flex-grow border-t border-slate-200"></div>
-                    </div>
-                    <div className="relative w-full group">
-                        <button className="w-full py-4 bg-red-50 hover:bg-red-100 border-2 border-dashed border-red-200 text-red-700 rounded-xl flex flex-col items-center justify-center gap-2 transition-all">
-                            <Upload className="w-8 h-8" />
-                            <span className="font-bold">อัปโหลดไฟล์ Restore</span>
-                            <span className="text-xs text-red-400">ข้อมูลปัจจุบันจะถูกแทนที่ด้วยไฟล์นี้</span>
-                        </button>
-                        <input type="file" accept=".json" onChange={handleRestoreBackup} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- Helper Function: getUnitKey (เพิ่มส่วนนี้) ---
-const getUnitKey = (unitName) => {
-        if (!unitName) return 'other';
-        const lower = String(unitName).toLowerCase();
-        
-        if (['sterilization', 'vaccine_microchip', 'governor', 'cat_cage', 'other'].includes(lower)) return lower;
-        
-        if (lower.includes('สัตวแพทย์') || lower.includes('vet') || lower.includes('steriliz')) return 'sterilization';
-        if (lower.includes('วัคซีน') || lower.includes('vaccine') || lower.includes('ไมโครชิป') || lower.includes('microchip')) return 'vaccine_microchip';
-        if (lower.includes('ผู้ว่า') || lower.includes('governor')) return 'governor';
-        if (lower.includes('กรงแมว') || lower.includes('cat') || lower.includes('cage')) return 'cat_cage';
-
-        return 'other';
-    };
+import ActivityLogModal from './components/modals/ActivityLogModal';
+import CsvActionModal from './components/modals/CsvActionModal';
+import BackupSystemModal from './components/modals/BackupSystemModal';
+import ToastContainer from './path/to/ToastContainer';
+import PasswordConfirmModal from './components/modals/PasswordConfirmModal';
+import ImagePreviewModal from './components/modals/ImagePreviewModal';
+import { getUnitKey } from './utils/helpers';
 
 // --- MAIN DASHBOARD COMPONENT ---
 
@@ -456,25 +85,22 @@ export default function VeterinaryDashboard() {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     const [trendOffset, setTrendOffset] = useState(0); 
-const [freqDailyOffset, setFreqDailyOffset] = useState(0); 
-const [freqMonthlyOffset, setFreqMonthlyOffset] = useState(0);
+    const [freqDailyOffset, setFreqDailyOffset] = useState(0); 
+    const [freqMonthlyOffset, setFreqMonthlyOffset] = useState(0);
 
-const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-//Toast
-const [toasts, setToasts] = useState([]);
+    //Toast
+    const [toasts, setToasts] = useState([]);
+    const addToast = useCallback((type, message) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, type, message }]);
+        setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 3000);
+    }, []);
 
-// 🟢 เพิ่ม useCallback
-const addToast = useCallback((type, message) => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, type, message }]);
-    setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 3000);
-}, []);
-
-// 🟢 เพิ่ม useCallback
-const removeToast = useCallback((id) => { 
-    setToasts(prev => prev.filter(t => t.id !== id)); 
-}, []);
+    const removeToast = useCallback((id) => { 
+        setToasts(prev => prev.filter(t => t.id !== id)); 
+    }, []);
 
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -487,33 +113,30 @@ const removeToast = useCallback((id) => {
     const [dispatchEvents, setDispatchEvents] = useState([]);
     const [viewingDispatch, setViewingDispatch] = useState(null);
 
-    // --- เพิ่ม State สำหรับการประชุม ---
     const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
     const [meetings, setMeetings] = useState([]);
-    const [isMeetingListOpen, setIsMeetingListOpen] = useState(false); // เพิ่ม State เปิด/ปิด List
+    const [isMeetingListOpen, setIsMeetingListOpen] = useState(false);
     const [viewingMeeting, setViewingMeeting] = useState(null);
 
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
-const dispatchEventsOnly = useMemo(() => dispatchEvents.map(d => ({
-    ...d,
-    type: 'dispatch',
-    originalData: d
-})), [dispatchEvents]);
+    const dispatchEventsOnly = useMemo(() => dispatchEvents.map(d => ({
+        ...d,
+        type: 'dispatch',
+        originalData: d
+    })), [dispatchEvents]);
 
-const meetingEventsOnly = useMemo(() => meetings.map(m => ({
-    date: m.date,
-    time: m.startTime,
-    location: m.title,
-    team: 'Online/Room',
-    note: m.link,
-    type: 'meeting',
-    _id: m._id,
-    originalData: m
-})), [meetings]);
+    const meetingEventsOnly = useMemo(() => meetings.map(m => ({
+        date: m.date,
+        time: m.startTime,
+        location: m.title,
+        team: 'Online/Room',
+        note: m.link,
+        type: 'meeting',
+        _id: m._id,
+        originalData: m
+    })), [meetings]);
 
-
-    // --- [แก้ไข] ฟังก์ชันบันทึกลง Database ---
     const handleSaveDispatchEvent = async (payload) => {
         try {
             const method = payload._id ? 'PUT' : 'POST';
@@ -532,7 +155,6 @@ const meetingEventsOnly = useMemo(() => meetings.map(m => ({
 
             if (res.ok) {
                 addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
-                // ไม่ต้อง setDispatchEvents เอง เพราะรอ Socket อัปเดตให้
                 setIsDispatchModalOpen(false);
             } else {
                 const err = await res.json();
@@ -543,8 +165,6 @@ const meetingEventsOnly = useMemo(() => meetings.map(m => ({
         }
     };
 
-
-    // --- [เพิ่ม] ฟังก์ชันลบงาน (ส่งให้ Modal ใช้) ---
     const handleDeleteDispatch = async (id) => {
         if (!confirm('ยืนยันลบแผนงานนี้?')) return;
         try {
@@ -687,10 +307,9 @@ const meetingEventsOnly = useMemo(() => meetings.map(m => ({
     };
 
     const canEdit = user && (user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
-const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'MagaAdmin');
-const isMagaAdmin = user && user.role === 'MagaAdmin';
+    const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'MagaAdmin');
+    const isMagaAdmin = user && user.role === 'MagaAdmin';
 
-// --- เปลี่ยนการเก็บ tabsConfig จาก localStorage เป็นการใช้ State ธรรมดา ---
     const [tabsConfig, setTabsConfig] = useState({ overview: true, outbreak: true, database: true });
 
     // ดึงค่า Config แท็บจาก Server ตอนโหลดหน้าเว็บครั้งแรก
@@ -709,7 +328,6 @@ const isMagaAdmin = user && user.role === 'MagaAdmin';
         fetchTabsConfig();
     }, [BASE_URL]);
 
-// --- ฟังก์ชัน toggleTab ที่ถูกต้องสมบูรณ์ ---
     const toggleTab = async (tabName) => {
         const previousConfig = { ...tabsConfig }; // เก็บค่าเก่าไว้เผื่อพัง
         const newConfig = { ...tabsConfig, [tabName]: !tabsConfig[tabName] };
@@ -1138,7 +756,6 @@ const filteredData = useMemo(() => {
 }, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
 
     const dispatchStats = useMemo(() => {
-        // เพิ่ม vaccine_microchip และเอา microchip เดิมออก
         const initStats = () => ({ count: 0, sterilization: 0, vaccine_microchip: 0, governor: 0, cat_cage: 0, other: 0 });
 
         // 1. Monthly Data
@@ -1514,7 +1131,6 @@ const rankingDistrictStats = useMemo(() => {
 }, [rankingFilteredData]);
 
 const parseCSVDate = (dateStr) => {
-    // 🟢 เพิ่ม Helper ฟังก์ชันเพื่อป้องกัน Timezone Shift
     const getLocalDateString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     
     if (!dateStr) return getLocalDateString(new Date());
@@ -1674,7 +1290,6 @@ const parseCSVDate = (dateStr) => {
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
             <style>{`
-                /* สไตล์ CSS ของเดิมคงไว้เหมือนเดิมครับ */
                 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700;800&display=swap');
                 body { font-family: 'Sarabun', sans-serif; }
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -1759,7 +1374,6 @@ const parseCSVDate = (dateStr) => {
                     
                     {/* แถบกรองข้อมูล (Filters) */}
                     <div className="bg-white p-5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-slate-200 mb-6 transition-all duration-300">
-                        {/* ... (โค้ดส่วน Filter ภายในคงเดิม) ... */}
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                             <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-3">

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Lock, Users, Key, ChevronRight, X } from 'lucide-react';
+import { Lock, User, KeyRound, ChevronRight, X, Loader2, ShieldCheck } from 'lucide-react';
 
 const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+        
         try {
             const res = await fetch(`${apiBaseUrl}/api/login`, {
                 method: 'POST',
@@ -16,58 +19,94 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
                 body: JSON.stringify({ username, password })
             });
             const data = await res.json();
+            
             if (res.ok) {
                 onLogin(data);
                 if(onToast) onToast('success', 'เข้าสู่ระบบสำเร็จ');
                 onClose();
             } else {
-                if(onToast) onToast('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ');
+                if(onToast) onToast('error', data.message || 'ข้อมูลเข้าสู่ระบบไม่ถูกต้อง');
             }
         } catch (error) {
-            if(onToast) onToast('error', `Login Failed: ไม่สามารถเชื่อมต่อ Server ได้`);
+            if(onToast) onToast('error', `ไม่สามารถเชื่อมต่อ Server ได้`);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative overflow-hidden border border-white/20">
-                {/* Background Decoration */}
-                <div className="absolute -top-20 -right-20 w-60 h-60 bg-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-indigo-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative overflow-hidden border border-white/50">
                 
-                <div className="text-center mb-8 relative z-10">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30 transform -rotate-3">
-                        <Lock className="w-8 h-8 text-white" />
+                {/* Close Button */}
+                <button 
+                    onClick={onClose}
+                    className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors z-20"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                {/* Abstract Background Decoration (Medical/Clean Theme) */}
+                <div className="absolute -top-24 -right-24 w-72 h-72 bg-teal-100 rounded-full blur-[80px] opacity-60 pointer-events-none"></div>
+                <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-100 rounded-full blur-[80px] opacity-60 pointer-events-none"></div>
+                
+                <div className="text-center mb-10 relative z-10 mt-4">
+                    <div className="w-20 h-20 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-teal-500/20 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                        <ShieldCheck className="w-10 h-10 text-white" />
                     </div>
-                    <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">เข้าสู่ระบบ</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">ระบบรายงานสัตวแพทย์</p>
+                    <h2 className="text-3xl font-bold text-slate-800 tracking-tight">ยินดีต้อนรับ</h2>
+                    <p className="text-slate-500 mt-2 font-medium">เข้าสู่ระบบรายงานสัตวแพทย์</p>
                 </div>
                 
-                <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 ml-1">ชื่อผู้ใช้งาน</label>
+                <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-slate-700 ml-1">ชื่อผู้ใช้งาน</label>
                         <div className="relative group">
-                            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                            <input className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
-                                placeholder="Username" value={username} onChange={e=>setUsername(e.target.value)} />
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
+                            <input 
+                                className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
+                                placeholder="กรอกชื่อผู้ใช้งาน..." 
+                                value={username} 
+                                onChange={e => setUsername(e.target.value)} 
+                                required
+                                disabled={isLoading}
+                            />
                         </div>
                     </div>
                     
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 ml-1">รหัสผ่าน</label>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-slate-700 ml-1">รหัสผ่าน</label>
                         <div className="relative group">
-                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                            <input className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
-                                type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} />
+                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-teal-600 transition-colors" />
+                            <input 
+                                className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
+                                type="password" 
+                                placeholder="กรอกรหัสผ่าน..." 
+                                value={password} 
+                                onChange={e => setPassword(e.target.value)} 
+                                required
+                                disabled={isLoading}
+                            />
                         </div>
                     </div>
 
-                    <div className="pt-4">
-                        <button type="submit" className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-xl shadow-slate-200 hover:shadow-2xl transition-all flex items-center justify-center gap-2 transform active:scale-95">
-                            <span>เข้าสู่ระบบ</span> <ChevronRight className="w-4 h-4" />
-                        </button>
-                        <button type="button" onClick={onClose} className="w-full mt-3 py-2 text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">
-                            ยกเลิก
+                    <div className="pt-6">
+                        <button 
+                            type="submit" 
+                            disabled={isLoading || !username || !password}
+                            className="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-teal-600/25 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span>กำลังเข้าสู่ระบบ...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>เข้าสู่ระบบ</span> 
+                                    <ChevronRight className="w-5 h-5" />
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
