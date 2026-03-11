@@ -1655,278 +1655,266 @@ const parseCSVDate = (dateStr) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
 
+// ... (โค้ดส่วนบนคงเดิมทั้งหมด) ...
+
     // --- 6. RENDER UI ---
 
-return (
-    // เปลี่ยน flex โครงสร้างหลักให้เป็นหน้าจอแบบ Full Height (h-screen)
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
-        <style>{`
-            /* สไตล์ CSS ของเดิมคงไว้เหมือนเดิมครับ */
-            @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700;800&display=swap');
-            body { font-family: 'Sarabun', sans-serif; }
-            .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-            table th { white-space: nowrap !important; line-height: 1.5 !important; }
-            table td { line-height: 1.5; }
-            .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
-            .leaflet-popup-content { margin: 0; width: 260px !important; }
-            .leaflet-popup-tip { background: white; }
-            @keyframes pulse-ring { 0% { transform: scale(0.33); } 80%, 100% { opacity: 0; } }
-            .danger-pulse::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 100%; border-radius: 50%; background-color: #ef4444; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-        `}</style>
+    return (
+        <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
+            <style>{`
+                /* สไตล์ CSS ของเดิมคงไว้เหมือนเดิมครับ */
+                @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700;800&display=swap');
+                body { font-family: 'Sarabun', sans-serif; }
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                table th { white-space: nowrap !important; line-height: 1.5 !important; }
+                table td { line-height: 1.5; }
+                .leaflet-popup-content-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: none; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+                .leaflet-popup-content { margin: 0; width: 260px !important; }
+                .leaflet-popup-tip { background: white; }
+                @keyframes pulse-ring { 0% { transform: scale(0.33); } 80%, 100% { opacity: 0; } }
+                .danger-pulse::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 100%; border-radius: 50%; background-color: #ef4444; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+            `}</style>
 
-        {/* --- ส่วน Modal ต่างๆ (คงเดิม) --- */}
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
-        <Suspense fallback={<div className="hidden">Loading...</div>}>
-            <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
-            <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
-        </Suspense>
-        <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={csvMode === 'outbreak' ? handleOutbreakFileUpload : handleFileUpload} onExport={() => { csvMode === 'outbreak' ? exportOutbreaksToCSV(outbreakData) : exportToCSV(filteredData); }} />
-        <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
-        <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
-        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
-        <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} />
-        <PasswordConfirmModal isOpen={isConfirmPasswordOpen} onClose={() => setIsConfirmPasswordOpen(false)} onConfirm={executeClearAllData} title="ล้างข้อมูลทั้งหมด?" message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน" />
-        <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-        <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
-        <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
-        <DispatchCalendarDashboard isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} events={dispatchEventsOnly} onOpenForm={() => { setViewingDispatch(null); setIsDispatchModalOpen(true); }} onEventClick={(evt) => { setViewingDispatch(evt.originalData); setIsDispatchModalOpen(true); }} />
-        <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={() => setIsMeetingCalendarOpen(false)} events={meetingEventsOnly} onOpenForm={() => { setViewingMeeting(null); setIsMeetingModalOpen(true); }} onEventClick={handleCalendarEventClick} />
-        <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
-        <MeetingListModal isOpen={isMeetingListOpen} onClose={() => setIsMeetingListOpen(false)} meetings={meetings} onEdit={(m) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }} />
+            {/* --- ส่วน Modal ต่างๆ (คงเดิม) --- */}
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
+            <Suspense fallback={<div className="hidden">Loading...</div>}>
+                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
+                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
+            </Suspense>
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={csvMode === 'outbreak' ? handleOutbreakFileUpload : handleFileUpload} onExport={() => { csvMode === 'outbreak' ? exportOutbreaksToCSV(outbreakData) : exportToCSV(filteredData); }} />
+            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
+            <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <PasswordConfirmModal isOpen={isConfirmPasswordOpen} onClose={() => setIsConfirmPasswordOpen(false)} onConfirm={executeClearAllData} title="ล้างข้อมูลทั้งหมด?" message="การกระทำนี้ไม่สามารถกู้คืนได้ กรุณายืนยันตัวตน" />
+            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
+            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
+            <DispatchCalendarDashboard isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} events={dispatchEventsOnly} onOpenForm={() => { setViewingDispatch(null); setIsDispatchModalOpen(true); }} onEventClick={(evt) => { setViewingDispatch(evt.originalData); setIsDispatchModalOpen(true); }} />
+            <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={() => setIsMeetingCalendarOpen(false)} events={meetingEventsOnly} onOpenForm={() => { setViewingMeeting(null); setIsMeetingModalOpen(true); }} onEventClick={handleCalendarEventClick} />
+            <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
+            <MeetingListModal isOpen={isMeetingListOpen} onClose={() => setIsMeetingListOpen(false)} meetings={meetings} onEdit={(m) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }} />
 
-        {/* 1. แทนที่ Header + aside เดิมด้วยคอมโพเนนต์ Sidebar ใหม่ */}
-        <Sidebar 
-            user={user} isSuperAdmin={isSuperAdmin} canEdit={canEdit} 
-            activeTab={activeTab} setActiveTab={setActiveTab}
-            isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed}
-            isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
-            onLogin={() => setIsLoginModalOpen(true)} onLogout={handleLogout} onChangePassword={() => setIsChangePasswordOpen(true)}
-            onOpenLog={() => setIsLogModalOpen(true)} onOpenUserMgmt={() => setIsUserMgmtOpen(true)} onOpenBackup={() => setIsBackupModalOpen(true)}
-            onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData}
-            onOpenMeetingList={() => setIsMeetingListOpen(true)} onOpenCalendar={() => setIsCalendarOpen(true)} onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
-            onOpenMeetingModal={() => setIsMeetingModalOpen(true)} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
-            isMagaAdmin={isMagaAdmin}
-            tabsConfig={tabsConfig} toggleTab={toggleTab}
-            isMobileMenuOpen={isMobileMenuOpen}
-            setIsMobileMenuOpen={setIsMobileMenuOpen}
-        />
+            {/* 1. Sidebar Component */}
+            <Sidebar 
+                user={user} isSuperAdmin={isSuperAdmin} canEdit={canEdit} 
+                activeTab={activeTab} setActiveTab={setActiveTab}
+                isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed}
+                isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
+                onLogin={() => setIsLoginModalOpen(true)} onLogout={handleLogout} onChangePassword={() => setIsChangePasswordOpen(true)}
+                onOpenLog={() => setIsLogModalOpen(true)} onOpenUserMgmt={() => setIsUserMgmtOpen(true)} onOpenBackup={() => setIsBackupModalOpen(true)}
+                onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData}
+                onOpenMeetingList={() => setIsMeetingListOpen(true)} onOpenCalendar={() => setIsCalendarOpen(true)} onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
+                onOpenMeetingModal={() => setIsMeetingModalOpen(true)} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
+                isMagaAdmin={isMagaAdmin}
+                tabsConfig={tabsConfig} toggleTab={toggleTab}
+                isMobileMenuOpen={isMobileMenuOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
 
-        {/* --- Mobile Topbar --- */}
-<div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
-    <div className="flex items-center gap-3">
-        {/* เพิ่มปุ่ม Hamburger ตรงนี้ */}
-        <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-            <List className="w-6 h-6" />
-        </button>
-        <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
-        <h1 className="text-sm font-bold text-slate-800">ระบบสัตวแพทย์</h1>
-    </div>
-    {user ? (
-        <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
-    ) : (
-        <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
-    )}
-</div>
+            {/* เพิ่มแผ่นใสๆ สีดำด้านหลังเมนู เมื่อเปิดเมนูบนมือถือ (ย้ายมาไว้ระดับนอกเพื่อให้บังเนื้อหาทั้งหมด) */}
+            {isMobileMenuOpen && (
+                <div 
+                    className="md:hidden fixed inset-0 bg-slate-900/50 z-[4999] backdrop-blur-sm transition-opacity"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
 
-{/* เพิ่มแผ่นใสๆ สีดำด้านหลังเมนู เมื่อเปิดเมนูบนมือถือ */}
-{isMobileMenuOpen && (
-    <div 
-        className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity"
-        onClick={() => setIsMobileMenuOpen(false)}
-    />
-)}
-
-        {/* 2. Main Content Area */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
-            
-            {/* --- Mobile Topbar (แสดงเฉพาะมือถือ เพื่อเป็น Header ด้านบน) --- */}
-            <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
-                <div className="flex items-center gap-3">
-                    <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
-                    <h1 className="text-sm font-bold text-slate-800">ระบบรายงานสัตวแพทย์</h1>
-                </div>
-                {user ? (
-                    <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
-                ) : (
-                    <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
-                )}
-            </div>
-
-            {/* --- พื้นที่ Content หลัก (Scroll ได้เฉพาะส่วนนี้) --- */}
-            <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8 custom-scrollbar">
+            {/* 2. Main Content Area */}
+            <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
                 
-                {/* แถบกรองข้อมูล (Filters) */}
-                <div className="bg-white p-5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-slate-200 mb-6 transition-all duration-300">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-3">
-                                <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                                    <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล
-                                </h3>
-                                <button onClick={() => setIsFilterExpanded(!isFilterExpanded)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors shadow-sm border border-transparent hover:border-slate-200" title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}>
-                                    {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                </button>
-                            </div>
-                            
-                            {(!isFilterExpanded && (searchTerm || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด')) && (
-                                <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
-                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
-                                    {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
-                                    {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear) + 543}</span>}
-                                    {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth) - 1]}</span>}
-                                    {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
-                                    {selectedDistrict !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-orange-100">{selectedDistrict}</span>}
+                {/* --- 🌟 Mobile Topbar (คงเหลือแค่อันนี้อันเดียว) --- */}
+                <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                            <List className="w-6 h-6" />
+                        </button>
+                        <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
+                        <h1 className="text-sm font-bold text-slate-800">ระบบสัตวแพทย์</h1>
+                    </div>
+                    {user ? (
+                        <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
+                    ) : (
+                        <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
+                    )}
+                </div>
+
+                {/* --- พื้นที่ Content หลัก (Scroll ได้เฉพาะส่วนนี้) --- */}
+                <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8 custom-scrollbar">
+                    
+                    {/* แถบกรองข้อมูล (Filters) */}
+                    <div className="bg-white p-5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-slate-200 mb-6 transition-all duration-300">
+                        {/* ... (โค้ดส่วน Filter ภายในคงเดิม) ... */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
+                                        <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล
+                                    </h3>
+                                    <button onClick={() => setIsFilterExpanded(!isFilterExpanded)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors shadow-sm border border-transparent hover:border-slate-200" title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}>
+                                        {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                    </button>
                                 </div>
+                                
+                                {(!isFilterExpanded && (searchTerm || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด')) && (
+                                    <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
+                                        {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
+                                        {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear) + 543}</span>}
+                                        {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth) - 1]}</span>}
+                                        {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
+                                        {selectedDistrict !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-orange-100">{selectedDistrict}</span>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
+                                <button 
+                                    onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} 
+                                    className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-transparent hover:border-rose-100"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" /> ล้างตัวกรองทั้งหมด
+                                </button>
                             )}
                         </div>
 
-                        {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
-                            <button 
-                                onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} 
-                                className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-transparent hover:border-rose-100"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" /> ล้างตัวกรองทั้งหมด
-                            </button>
+                        {isFilterExpanded && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                                <div className="relative">
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input type="text" placeholder="พิมพ์คำค้นหา..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                        {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                                        <option value="ทั้งหมด">ทุกปี</option>
+                                        {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                                        <option value="ทั้งหมด">ทุกเดือน</option>
+                                        {THAI_MONTHS.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
+                                        <option value="ทั้งหมด">ทุกหน่วยงาน</option>
+                                        {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
+                                        <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
+                                        {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                         )}
                     </div>
 
-                    {isFilterExpanded && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
-                            <div className="relative">
-                                <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input type="text" placeholder="พิมพ์คำค้นหา..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                                    {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
-                                <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                                    <option value="ทั้งหมด">ทุกปี</option>
-                                    {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
-                                <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                                    <option value="ทั้งหมด">ทุกเดือน</option>
-                                    {THAI_MONTHS.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
-                                <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
-                                    <option value="ทั้งหมด">ทุกหน่วยงาน</option>
-                                    {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
-                                <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
-                                    <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
-                                    {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
-                                </select>
-                            </div>
+                    {/* --- เนื้อหา Tab กราฟและตาราง (คงเดิม) --- */}
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center p-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                         </div>
-                    )}
-                </div>
+                    }>
+                        {isInitialLoading ? (
+                            <div className="flex flex-col items-center justify-center h-64 space-y-4 animate-in fade-in duration-300">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 border-t-transparent"></div>
+                                <p className="text-slate-500 font-bold">กำลังโหลดและจัดเตรียมข้อมูล...</p>
+                            </div>
+                        ) : (
+                            <>
+                                {activeTab === 'overview' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
+                                        <KPISection totals={totals} unitStats={unitStats} />
+                                        <StatisticsCharts 
+                                            trendData={trendData} 
+                                            unitStats={unitStats} 
+                                            dispatchStats={dispatchStats}
+                                            trendOffset={trendOffset}
+                                            setTrendOffset={setTrendOffset}
+                                            freqDailyOffset={freqDailyOffset}
+                                            setFreqDailyOffset={setFreqDailyOffset}
+                                            freqMonthlyOffset={freqMonthlyOffset}
+                                            setFreqMonthlyOffset={setFreqMonthlyOffset}/>
+                                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                                <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
+                                                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+                                                        <LeafletMap data={mapDisplayData} />
+                                                    </div>
+                                            </div>
+                                    </div>
+                                )}
 
-                {/* --- เนื้อหา Tab กราฟและตาราง (คงเดิม) --- */}
-                <Suspense fallback={
-                    <div className="flex items-center justify-center p-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                    </div>
-                }>
-                    {isInitialLoading ? (
-                        <div className="flex flex-col items-center justify-center h-64 space-y-4 animate-in fade-in duration-300">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 border-t-transparent"></div>
-                            <p className="text-slate-500 font-bold">กำลังโหลดและจัดเตรียมข้อมูล...</p>
-                        </div>
-                    ) : (
-                        <>
-                            {activeTab === 'overview' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
-                                    <KPISection totals={totals} unitStats={unitStats} />
-                                    <StatisticsCharts 
-                                        trendData={trendData} 
-                                        unitStats={unitStats} 
-                                        dispatchStats={dispatchStats}
-                                        trendOffset={trendOffset}
-                                        setTrendOffset={setTrendOffset}
-                                        freqDailyOffset={freqDailyOffset}
-                                        setFreqDailyOffset={setFreqDailyOffset}
-                                        freqMonthlyOffset={freqMonthlyOffset}
-                                        setFreqMonthlyOffset={setFreqMonthlyOffset}/>
-                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                            <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
-                                                <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                                    <LeafletMap data={mapDisplayData} />
-                                                </div>
-                                        </div>
-                                </div>
-                            )}
+                                {activeTab === 'outbreak' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
+                                        <RabiesOutbreakSection 
+                                            outbreakData={outbreakData} 
+                                            filterYear={outbreakFilterYear} 
+                                            setFilterYear={setOutbreakFilterYear} 
+                                            years={availableOutbreakYears} 
+                                            stats={outbreakStats} 
+                                            filteredOutbreaks={filteredOutbreaks} 
+                                            yearlyTrend={outbreakYearlyTrend} 
+                                            hiddenIds={hiddenOutbreakIds} 
+                                            toggleVisibility={toggleOutbreakVisibility} 
+                                            onEdit={openEditOutbreakModal} 
+                                            onDelete={handleDeleteOutbreak} 
+                                            canEdit={canEdit} 
+                                        />
+                                    </div>
+                                )}
 
-                            {activeTab === 'outbreak' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
-                                    <RabiesOutbreakSection 
-                                        outbreakData={outbreakData} 
-                                        filterYear={outbreakFilterYear} 
-                                        setFilterYear={setOutbreakFilterYear} 
-                                        years={availableOutbreakYears} 
-                                        stats={outbreakStats} 
-                                        filteredOutbreaks={filteredOutbreaks} 
-                                        yearlyTrend={outbreakYearlyTrend} 
-                                        hiddenIds={hiddenOutbreakIds} 
-                                        toggleVisibility={toggleOutbreakVisibility} 
-                                        onEdit={openEditOutbreakModal} 
-                                        onDelete={handleDeleteOutbreak} 
-                                        canEdit={canEdit} 
-                                    />
-                                </div>
-                            )}
+                                {activeTab === 'database' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
+                                        <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </Suspense>
+                </main>
+            </div>
 
-                            {activeTab === 'database' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
-                                    <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
-                                </div>
-                            )}
-                        </>
-                    )}
-                </Suspense>
-            </main>
+            {/* 3. Mobile Bottom Nav (มือถือ) */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
+                {(user || tabsConfig.overview) && (
+                    <button onClick={() => setActiveTab('overview')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <Activity className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">ภาพรวม</span>
+                    </button>
+                )}
+                {(user || tabsConfig.outbreak) && (
+                    <button onClick={() => setActiveTab('outbreak')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <Siren className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">จุดเสี่ยง</span>
+                    </button>
+                )}
+                {(user || tabsConfig.database) && (
+                    <button onClick={() => setActiveTab('database')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <Database className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">ฐานข้อมูล</span>
+                    </button>
+                )}
+            </div>
         </div>
-
-        {/* 3. Mobile Bottom Nav (มือถือ) */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
-            {(user || tabsConfig.overview) && (
-                <button onClick={() => setActiveTab('overview')} 
-                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                    <Activity className="w-5 h-5 mb-1" />
-                    <span className="text-[10px]">ภาพรวม</span>
-                </button>
-            )}
-            {(user || tabsConfig.outbreak) && (
-                <button onClick={() => setActiveTab('outbreak')} 
-                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                    <Siren className="w-5 h-5 mb-1" />
-                    <span className="text-[10px]">จุดเสี่ยง</span>
-                </button>
-            )}
-            {(user || tabsConfig.database) && (
-                <button onClick={() => setActiveTab('database')} 
-                    className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                    <Database className="w-5 h-5 mb-1" />
-                    <span className="text-[10px]">ฐานข้อมูล</span>
-                </button>
-            )}
-        </div>
-    </div>
-);
+    );
 }
