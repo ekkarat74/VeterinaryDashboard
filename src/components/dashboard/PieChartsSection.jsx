@@ -83,7 +83,6 @@ export default function PieChartsSection({
                     </ResponsiveContainer>
                 </div>
             </div>
-
         </div>
     );
 }

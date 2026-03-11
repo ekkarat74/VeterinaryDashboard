@@ -30,6 +30,7 @@ import PasswordConfirmModal from './components/modals/PasswordConfirmModal';
 import ImagePreviewModal from './components/modals/ImagePreviewModal';
 import { getUnitKey } from './utils/helpers';
 import PieChartsSection from './components/dashboard/PieChartsSection';
+const UnitComparisonChart = React.lazy(() => import('./components/dashboard/UnitComparisonChart.jsx'));
 
 // --- MAIN DASHBOARD COMPONENT ---
 
@@ -1545,7 +1546,7 @@ const parseCSVDate = (dateStr) => {
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                                             <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
                                                 <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                                    <LeafletMap data={mapDisplayData} />
+                                                    <LeafletMap data={mapDisplayData} outbreaks={outbreakData} />
                                                 </div>
                                         </div>
                                         <StatisticsCharts 
@@ -1565,6 +1566,7 @@ const parseCSVDate = (dateStr) => {
                                             unitByWorkTypePieData={unitByWorkTypePieData}
                                             outbreakPieData={outbreakPieData}
                                         />
+                                        <UnitComparisonChart unitStats={unitStats} />
                                     </div>
                                 )}
 

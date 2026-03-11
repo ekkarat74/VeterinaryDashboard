@@ -1,0 +1,124 @@
+// 🌟 สร้างไฟล์ใหม่: components/dashboard/UnitComparisonChart.jsx
+import React from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { Users } from 'lucide-react';
+
+export default function UnitComparisonChart({ unitStats }) {
+  if (!unitStats || unitStats.length === 0) return null;
+
+  return (
+    <div className="bg-indigo-50 p-8 rounded-3xl shadow-sm border border-indigo-100 overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/20 rounded-full -mr-32 -mt-32 blur-3xl" />
+      
+      <div className="relative z-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+              <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500">
+                <Users className="w-6 h-6" />
+              </div>
+              ประสิทธิภาพและจำนวนครั้งที่ออกหน่วย
+            </h2>
+            <p className="text-sm text-slate-500 mt-1 ml-12">
+              เปรียบเทียบยอดบริการสะสม กับจำนวนครั้งที่ลงพื้นที่แยกตามหน่วย
+            </p>
+          </div>
+          {/* Legend */}
+          <div className="flex gap-4 text-xs ml-12 md:ml-0">
+            <div className="flex items-center gap-2 text-slate-600">
+              <div className="w-3 h-3 bg-indigo-500 rounded-sm" /> ยอดบริการรวม
+            </div>
+            <div className="flex items-center gap-2 text-indigo-600 font-bold">
+              [ตัวเลข] ครั้ง = จำนวนที่ออกหน่วย
+            </div>
+          </div>
+        </div>
+        
+        <div className="h-96 w-full relative">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
+            <BarChart 
+              data={unitStats} 
+              layout="vertical" 
+              margin={{top: 5, right: 100, left: 20, bottom: 5}}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+              <XAxis type="number" hide />
+              <YAxis 
+                dataKey="name" 
+                type="category" 
+                width={110} 
+                tick={{fontSize: 13, fill: '#475569', fontWeight: 600}} 
+                axisLine={false} 
+                tickLine={false} 
+              />
+              <RechartsTooltip 
+                cursor={{fill: 'rgba(99, 102, 241, 0.05)'}}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white border border-slate-100 p-3 rounded-xl shadow-xl">
+                        <p className="text-indigo-600 font-bold mb-1">{label}</p>
+                        <div className="text-xs text-slate-600 space-y-1">
+                          <p>ยอดบริการ: <span className="text-slate-900 font-mono font-bold">{data.total.toLocaleString()}</span> เคส</p>
+                          <p>ออกหน่วย: <span className="text-slate-900 font-mono font-bold">{data.count}</span> ครั้ง</p>
+                          <p className="pt-1 border-t border-slate-100 mt-1 text-slate-400 italic">
+                            เฉลี่ย: {(data.total / data.count).toFixed(1)} เคส/ครั้ง
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              
+              <Bar 
+                dataKey="total" 
+                fill="#6366f1" 
+                radius={[0, 12, 12, 0]} 
+                barSize={28}
+                animationDuration={1500}
+                activeBar={{ fill: '#818cf8' }}
+              >
+                <LabelList 
+                  dataKey="total" 
+                  position="right" 
+                  content={(props) => {
+                    const { x, y, width, value, index } = props;
+                    const count = unitStats[index]?.count || 0;
+                    const displayValue = value || 0; 
+
+                    return (
+                      <g>
+                        <text 
+                          x={x + width + 10} 
+                          y={y + 18} 
+                          fill="#334155" 
+                          fontSize="14" 
+                          fontWeight="bold"
+                          className="font-mono"
+                        >
+                          {displayValue.toLocaleString()}
+                        </text>
+                        <text 
+                          x={x + width + 55} 
+                          y={y + 18} 
+                          fill="#6366f1" 
+                          fontSize="12"
+                          fontWeight="600"
+                        >
+                          | {count} ครั้ง
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
