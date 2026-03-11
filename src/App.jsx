@@ -1541,14 +1541,13 @@ const parseCSVDate = (dateStr) => {
                             <>
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
-                                        {/* --- เพิ่มส่วน Pie Charts (4 วง) ก่อน overview --- */}
-                                        <PieChartsSection 
-                                            unitByDistrictPieData={unitByDistrictPieData}
-                                            unitByUnitTypePieData={unitByUnitTypePieData}
-                                            unitByWorkTypePieData={unitByWorkTypePieData}
-                                            outbreakPieData={outbreakPieData}
-                                        />
                                         <KPISection totals={totals} unitStats={unitStats} />
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                            <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
+                                                <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
+                                                    <LeafletMap data={mapDisplayData} />
+                                                </div>
+                                        </div>
                                         <StatisticsCharts 
                                             trendData={trendData} 
                                             unitStats={unitStats} 
@@ -1558,13 +1557,14 @@ const parseCSVDate = (dateStr) => {
                                             freqDailyOffset={freqDailyOffset}
                                             setFreqDailyOffset={setFreqDailyOffset}
                                             freqMonthlyOffset={freqMonthlyOffset}
-                                            setFreqMonthlyOffset={setFreqMonthlyOffset}/>
-                                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                                <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
-                                                    <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                                        <LeafletMap data={mapDisplayData} />
-                                                    </div>
-                                            </div>
+                                            setFreqMonthlyOffset={setFreqMonthlyOffset}
+                                        />
+                                        <PieChartsSection 
+                                            unitByDistrictPieData={unitByDistrictPieData}
+                                            unitByUnitTypePieData={unitByUnitTypePieData}
+                                            unitByWorkTypePieData={unitByWorkTypePieData}
+                                            outbreakPieData={outbreakPieData}
+                                        />
                                     </div>
                                 )}
 
