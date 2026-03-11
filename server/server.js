@@ -22,8 +22,7 @@ const allowedOrigins = [
   "http://localhost:5173", 
   "http://localhost:5174", 
   "http://localhost:3000",
-  "https://veterinary-bkk.vercel.app",      
-  "https://veterinary-bkk.vercel.app/"      
+  "https://veterinary-bkk.vercel.app"
 ];
 
 // --- SERVER & SOCKET.IO SETUP ---
@@ -183,20 +182,21 @@ const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
 
 // --- HELPER FUNCTIONS ---
 
-// Function บันทึก Log (✅ ส่วนที่เพิ่มใหม่)
+// Function บันทึก Log
 const createLog = async (req, action, details, metadata = null) => {
     try {
-        const username = req.user ? req.user.username : (req.body.username || 'Unknown/System');
+        const username = req.user ? req.user.username : (req?.body?.username || 'Unknown/System');
         const role = req.user ? req.user.role : 'Guest';
-        // Get IP Address
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        
+        // ✅ แก้ไข: ใส่ ? เพื่อป้องกัน Error กรณี req.headers หรือ req.socket ไม่มีค่า
+        const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || 'Unknown IP';
 
         await SystemLog.create({
             action,
             user: username,
             role,
             details,
-            metadata, // <--- บันทึกลง Database
+            metadata, 
             ip
         });
     } catch (err) {
@@ -245,8 +245,9 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   user.lastLogin = new Date();
   await user.save();
 
-  // ✅ บันทึก Log
-  await createLog({ user: user, headers: req.headers }, 'LOGIN', 'เข้าสู่ระบบสำเร็จ');
+  // ✅ แก้ไข: ยัดค่า user ลงใน req ชั่วคราวเพื่อให้ createLog ดึงไปใช้ได้เลย
+  req.user = { username: user.username, role: user.role };
+  await createLog(req, 'LOGIN', 'เข้าสู่ระบบสำเร็จ');
 
   const token = jwt.sign({ _id: user._id, username: user.username, role: user.role }, JWT_SECRET);
   res.json({ token, role: user.role, username: user.username });
@@ -382,16 +383,33 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'sup
 
 app.get('/api/reports', async (req, res) => {
   try {
-    const reports = await Report.find()
-      // เลือกมาเฉพาะฟิลด์ที่จำเป็นต่อการแสดงผลและคำนวณ กรอง imageUrl และฟิลด์จุกจิกทิ้ง
+    const { startDate, endDate, year, limit } = req.query;
+    let query = {};
+
+    // เพิ่มเงื่อนไขการกรองข้อมูลจากวันที่
+    if (startDate && endDate) {
+        query.date = { $gte: startDate, $lte: endDate };
+    } else if (year) {
+        query.date = { $regex: `^${year}` }; // กรองเฉพาะปีที่ระบุ
+    }
+
+    const reportsQuery = Report.find(query)
       .select('_id date location district subdistrict unit lat long stats details createdBy')
       .sort({ date: -1 })
-      .lean(); // lean() สำคัญมาก ช่วยให้ Mongoose ทำงานเร็วขึ้น 3-5 เท่า
+      .lean();
+
+    // หาก Frontend มีการจำกัดจำนวนข้อมูล
+    if (limit) {
+        reportsQuery.limit(parseInt(limit, 10));
+    }
+
+    const reports = await reportsQuery;
     res.json(reports);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 // Create Report
 app.post('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
   try {
@@ -476,10 +494,23 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['MagaAdmin', 'super
 
 app.get('/api/outbreaks', async (req, res) => {
   try {
-    const outbreaks = await Outbreak.find()
-      .select('_id date location district lat long stats') // ลดขนาด Payload
+    const { year, limit } = req.query;
+    let query = {};
+
+    if (year) {
+        query.date = { $regex: `^${year}` };
+    }
+
+    const outbreaksQuery = Outbreak.find(query)
+      .select('_id date location district lat long stats')
       .sort({ date: -1 })
       .lean();
+
+    if (limit) {
+        outbreaksQuery.limit(parseInt(limit, 10));
+    }
+
+    const outbreaks = await outbreaksQuery;
     res.json(outbreaks);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -461,14 +461,20 @@ const [freqMonthlyOffset, setFreqMonthlyOffset] = useState(0);
 
 const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // Toast
-    const [toasts, setToasts] = useState([]);
-    const addToast = (type, message) => {
-        const id = Date.now();
-        setToasts(prev => [...prev, { id, type, message }]);
-        setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 3000);
-    };
-    const removeToast = (id) => { setToasts(prev => prev.filter(t => t.id !== id)); };
+//Toast
+const [toasts, setToasts] = useState([]);
+
+// 🟢 เพิ่ม useCallback
+const addToast = useCallback((type, message) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, type, message }]);
+    setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 3000);
+}, []);
+
+// 🟢 เพิ่ม useCallback
+const removeToast = useCallback((id) => { 
+    setToasts(prev => prev.filter(t => t.id !== id)); 
+}, []);
 
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -1303,7 +1309,7 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
         return Object.values(grouped).sort((a, b) => b.total - a.total);
     }, [filteredData]);
 
-    const trendData = useMemo(() => {
+const trendData = useMemo(() => {
     const dataMap = filteredData.reduce((acc, curr) => {
         const month = curr.date.substring(0, 7);
         const toNum = (val) => parseInt(val, 10) || 0;
@@ -1311,7 +1317,6 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
         if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
         
         acc[month].count += 1;
-        
         acc[month].vaccine += toNum(curr.stats?.vaccine);
         acc[month].sterilize += toNum(curr.stats?.sterilize);
         acc[month].register += toNum(curr.stats?.register);
@@ -1324,8 +1329,14 @@ const totals = useMemo(() => filteredData.reduce((acc, curr) => {
 
     const last10Months = [];
     for (let i = 9 + trendOffset; i >= trendOffset; i--) {
-        const d = new Date(); d.setMonth(d.getMonth() - i);
-        const monthStr = d.toISOString().substring(0, 7);
+        const d = new Date(); 
+        d.setMonth(d.getMonth() - i);
+        
+        // 🟢 แก้ไข: ใช้ Local Date ป้องกันบั๊ก Timezone Shift จาก toISOString()
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const monthStr = `${year}-${month}`; 
+        
         last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
     }
     return last10Months;
@@ -1503,7 +1514,10 @@ const rankingDistrictStats = useMemo(() => {
 }, [rankingFilteredData]);
 
 const parseCSVDate = (dateStr) => {
-    if (!dateStr) return new Date().toISOString().split('T')[0];
+    // 🟢 เพิ่ม Helper ฟังก์ชันเพื่อป้องกัน Timezone Shift
+    const getLocalDateString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    
+    if (!dateStr) return getLocalDateString(new Date());
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
     
     const parts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
@@ -1516,7 +1530,7 @@ const parseCSVDate = (dateStr) => {
     }
     
     const d = new Date(dateStr);
-    return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    return !isNaN(d.getTime()) ? getLocalDateString(d) : getLocalDateString(new Date());
 };
 
     // CSV Import Logic
@@ -1551,10 +1565,11 @@ const parseCSVDate = (dateStr) => {
                     if (cleanCols[5]) {
                         if(cleanCols[5].includes(',')){
                             const coords = cleanCols[5].split(',');
-                            lat = parseFloat(coords[0]) || 0;
-                            long = parseFloat(coords[1]) || 0;
+                            // 🟢 เพิ่ม .trim() ป้องกัน Error จากช่องว่าง
+                            lat = parseFloat(coords[0].trim()) || 0;
+                            long = parseFloat(coords[1].trim()) || 0;
                         } else {
-                            lat = parseFloat(cleanCols[5]) || 0;
+                            lat = parseFloat(cleanCols[5].trim()) || 0;
                         }
                     }
 
@@ -1650,12 +1665,9 @@ const parseCSVDate = (dateStr) => {
         setIsCsvModalOpen(true);
     };
 
-    // [เพิ่ม] Auto Scroll to top เมื่อเปลี่ยน Tab หรือเปิดหน้าใหม่
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
-
-// ... (โค้ดส่วนบนคงเดิมทั้งหมด) ...
 
     // --- 6. RENDER UI ---
 
