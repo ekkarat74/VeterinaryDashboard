@@ -167,7 +167,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
             lat: formData.lat ? parseFloat(formData.lat) : 0,
             long: formData.long ? parseFloat(formData.long) : 0,
             stats: { ...totals },
-            details: parsedDetails, // ใช้ข้อมูลที่แปลงเป็นตัวเลขแล้ว
+            details: parsedDetails, 
             imageUrl: finalImageUrl 
         };
 
@@ -193,41 +193,41 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     const labelClass = "block text-xs font-semibold text-slate-600 mb-1.5";
 
     return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200 overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border-0 sm:border border-slate-200">
 
-                {/* Header (Clean & Modern) */}
-                <div className="px-6 py-5 flex justify-between items-center shrink-0 border-b border-slate-100 bg-white z-10">
-                    <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${initialData ? 'bg-amber-100/50 text-amber-600' : 'bg-blue-100/50 text-blue-600'}`}>
-                            {initialData ? <Edit className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                {/* Header */}
+                <div className="px-4 sm:px-6 py-4 sm:py-5 mt-safe sm:mt-0 flex justify-between items-center shrink-0 border-b border-slate-100 bg-white z-10">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <div className={`p-2 sm:p-3 rounded-xl ${initialData ? 'bg-amber-100/50 text-amber-600' : 'bg-blue-100/50 text-blue-600'}`}>
+                            {initialData ? <Edit className="w-5 h-5 sm:w-6 sm:h-6" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6" />}
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">
+                            <h3 className="text-lg sm:text-xl font-bold text-slate-800">
                                 {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
                             </h3>
-                            <p className="text-slate-500 text-sm mt-0.5">
+                            <p className="text-slate-500 text-xs sm:text-sm mt-0.5 hidden sm:block">
                                 {initialData ? 'ปรับปรุงข้อมูลการลงพื้นที่ในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณให้ครบถ้วน'}
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2.5 rounded-full transition-all">
-                        <X className="w-5 h-5" />
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 sm:p-2.5 rounded-full transition-all">
+                        <X className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                 </div>
 
                 {/* Form Content */}
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden bg-slate-50/30">
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8 custom-scrollbar pb-24 sm:pb-6">
 
                         {/* SECTION 1: General Info */}
-                        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
                             <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
                                 <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
                                 ข้อมูลทั่วไป (General Information)
                             </h4>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5">
                                 <div className="md:col-span-3">
                                     <label className={labelClass}>วันที่เริ่มกิจกรรม</label>
                                     <input required type="date" className={inputClass} 
@@ -266,7 +266,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                     <select required className={inputClass} value={formData.subdistrict} 
                                         onChange={e => setFormData({...formData, subdistrict: e.target.value})} disabled={!formData.district}>
                                         <option value="">-- เลือกแขวง --</option>
-                                        {/* แก้ไข <option> ซ้ำซ้อน */}
                                         {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(sub => (
                                             <option key={sub} value={sub}>{sub}</option>
                                         ))}
@@ -295,7 +294,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                 </div>
 
                                 {/* อัปโหลดรูปภาพ */}
-                                <div className="md:col-span-12 mt-2 pt-5 border-t border-slate-100">
+                                <div className="md:col-span-12 mt-2 pt-4 sm:pt-5 border-t border-slate-100">
                                     <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                                         <div className="p-1.5 bg-slate-100 rounded-lg"><ImageIcon className="w-4 h-4 text-slate-600" /></div>
                                         รูปภาพประกอบ (Image Attachment)
@@ -323,13 +322,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                         </div>
 
                         {/* SECTION 2: Quantitative Data */}
-                        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
                             <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
                                 <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span>
                                 ข้อมูลเชิงปริมาณ (Quantitative Data)
                             </h4>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
 
                                 {/* 1. ฉีดวัคซีน */}
                                 <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -371,7 +370,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                         <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg"><Scissors className="w-4 h-4" /></div>
                                         ทำหมัน (Sterilization)
                                     </div>
-                                    <div className="p-5 space-y-6">
+                                    <div className="p-4 sm:p-5 space-y-6">
                                         {['dog', 'cat'].map((type) => (
                                             <div key={type} className="space-y-3">
                                                 <div className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2">
@@ -431,8 +430,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                             </div>
                         </div>
 
-                        {/* Summary Block (Redesigned) */}
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
+                        {/* Summary Block */}
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 sm:p-5 shadow-sm">
                             <div className="font-bold text-blue-800 flex items-center gap-2 mb-4">
                                 <Activity className="w-5 h-5 text-blue-600" /> สรุปยอดรวมอัตโนมัติ
                             </div>
@@ -445,7 +444,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                     { label: 'ขึ้นทะเบียน', value: totals.register, color: 'text-emerald-600' },
                                 ].map((item, idx) => (
                                     <div key={idx} className="bg-white rounded-xl p-3 border border-white/50 shadow-sm text-center">
-                                        <div className={`text-2xl font-bold ${item.color}`}>{item.value}</div>
+                                        <div className={`text-xl sm:text-2xl font-bold ${item.color}`}>{item.value}</div>
                                         <div className="text-xs text-slate-500 font-medium mt-1">{item.label}</div>
                                     </div>
                                 ))}
@@ -455,12 +454,12 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     </div>
 
                     {/* Action Button */}
-                    <div className="bg-white border-t border-slate-100 p-5 shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)] flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="px-6 py-3 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+                    <div className="bg-white border-t border-slate-100 p-4 sm:p-5 pb-8 sm:pb-5 shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)] flex justify-end gap-3">
+                        <button type="button" onClick={onClose} className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors text-sm sm:text-base">
                             ยกเลิก
                         </button>
-                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2">
-                            <Save className="w-5 h-5" />
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm sm:text-base">
+                            <Save className="w-4 h-4 sm:w-5 sm:h-5" />
                             {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
                         </button>
                     </div>
