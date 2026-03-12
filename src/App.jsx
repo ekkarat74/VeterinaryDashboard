@@ -1597,6 +1597,19 @@ const parseCSVDate = (dateStr) => {
                             </>
                         )}
                     </Suspense>
+                    <footer className="mt-12 pb-4 pt-6 border-t border-slate-200/60 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+                        <div>
+                            <p className="text-sm text-slate-600 font-bold">
+                                © {new Date().getFullYear()} ระบบฐานข้อมูลสัตวแพทย์
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Veterinary Management Dashboard
+                            </p>
+                        </div>
+                        <div className="text-xs text-slate-400 font-medium bg-slate-100 px-3 py-1.5 rounded-full">
+                            เวอร์ชัน 1.0.0
+                        </div>
+                    </footer>
                 </main>
             </div>
 

@@ -1,5 +1,3 @@
-// 🌟 สร้างไฟล์ใหม่: components/dashboard/UnitComparisonChart.jsx
-import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { Users } from 'lucide-react';
 

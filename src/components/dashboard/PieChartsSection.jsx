@@ -3,11 +3,11 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const PIE_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#84cc16', '#64748b'];
 
-export default function PieChartsSection({ 
-    unitByDistrictPieData, 
-    unitByUnitTypePieData, 
-    unitByWorkTypePieData, 
-    outbreakPieData 
+export default function PieChartsSection({
+    unitByDistrictPieData = [], 
+    unitByUnitTypePieData = [], 
+    unitByWorkTypePieData = [], 
+    outbreakPieData = [] 
 }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -56,7 +56,7 @@ export default function PieChartsSection({
                         <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                             <Pie data={unitByWorkTypePieData} cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
                                 style={{ fontSize: '11px' }}
-                                label={({ name, percent }) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : null}
+                                label={({ name, percent }) => percent > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : null}
                             >
                                 {unitByWorkTypePieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
                             </Pie>
