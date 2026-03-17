@@ -108,31 +108,33 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     ];
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in">
-            {/* ปรับขนาดและทำระบบ Scroll ภายใน Modal */}
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+        // 1. แก้ z-[3000] เป็น z-[99999] และเปลี่ยน p-4 เป็น p-0 บนมือถือ
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in">
+            
+            {/* 2. เปลี่ยนความสูงเป็น h-[100dvh] บนมือถือ และยกเลิกขอบมน (rounded-none) */}
+            <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] overflow-hidden border-0 sm:border border-slate-200">
                 
-                {/* Header (Sticky) */}
-                <div className="bg-red-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Skull className="w-6 h-6" /> 
+                {/* Header (Sticky) - เพิ่ม padding รองรับจอมือถือ */}
+                <div className="bg-red-600 px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center text-white shrink-0 mt-safe sm:mt-0 z-10">
+                    <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                        <Skull className="w-5 h-5 sm:w-6 sm:h-6" /> 
                         {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
                     </h3>
                     <button 
                         onClick={onClose} 
-                        className="hover:bg-red-700 p-1.5 rounded-full transition-colors"
+                        className="hover:bg-red-700 p-2 rounded-full transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Form Body (Scrollable) */}
-                <div className="overflow-y-auto p-6 flex-1 bg-slate-50/50">
-                    <form id="outbreak-form" onSubmit={handleSubmit} className="space-y-6">
+                <div className="overflow-y-auto p-4 sm:p-6 flex-1 bg-slate-50/50 custom-scrollbar">
+                    <form id="outbreak-form" onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                         
                         {/* Section 1: ข้อมูลทั่วไป */}
-                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                            <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
+                        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2 text-sm sm:text-base">
                                 <Map className="w-4 h-4 text-red-500" /> ข้อมูลสถานที่และเวลา
                             </h4>
                             
@@ -178,7 +180,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                                             } else {
                                                 setFormData({ ...formData, lat: value.trim(), long: '' });
                                             }
-                                        }}
+                                        }} 
                                     />
                                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 </div>
@@ -186,31 +188,31 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                         </div>
 
                         {/* Section 2: สถิติสัตว์ */}
-                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                            <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2">
+                        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2 text-sm sm:text-base">
                                 <Activity className="w-4 h-4 text-red-500" /> จำนวนสัตว์ที่สัมผัส/อยู่ในกลุ่มเสี่ยง
                             </h4>
 
                             <div className="space-y-3">
                                 {categories.map(category => (
-                                    <div key={category.key} className={`p-4 rounded-xl border ${category.color}`}>
+                                    <div key={category.key} className={`p-3 sm:p-4 rounded-xl border ${category.color}`}>
                                         <div className="font-bold text-sm mb-3">{category.label}</div>
                                         
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                             {/* โซนสุนัข */}
-                                            <div className="bg-white/60 p-3 rounded-lg flex items-center gap-3">
-                                                <div className="text-sm font-bold text-slate-700 w-16">🐶 สุนัข</div>
+                                            <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
+                                                <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐶 สุนัข</div>
                                                 <div className="flex-1 flex gap-2">
                                                     <div className="flex-1 text-center">
                                                         <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
-                                                        <input type="number" min="0" 
+                                                        <input type="number" min="0" placeholder="0"
                                                             className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
                                                             value={formData.stats[category.key].dog.male || ''}
                                                             onChange={e => handleStatChange(category.key, 'dog', 'male', e.target.value)} />
                                                     </div>
                                                     <div className="flex-1 text-center">
                                                         <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
-                                                        <input type="number" min="0" 
+                                                        <input type="number" min="0" placeholder="0"
                                                             className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
                                                             value={formData.stats[category.key].dog.female || ''}
                                                             onChange={e => handleStatChange(category.key, 'dog', 'female', e.target.value)} />
@@ -219,19 +221,19 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                                             </div>
 
                                             {/* โซนแมว */}
-                                            <div className="bg-white/60 p-3 rounded-lg flex items-center gap-3">
-                                                <div className="text-sm font-bold text-slate-700 w-16">🐱 แมว</div>
+                                            <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
+                                                <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐱 แมว</div>
                                                 <div className="flex-1 flex gap-2">
                                                     <div className="flex-1 text-center">
                                                         <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
-                                                        <input type="number" min="0" 
+                                                        <input type="number" min="0" placeholder="0"
                                                             className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
                                                             value={formData.stats[category.key].cat.male || ''}
                                                             onChange={e => handleStatChange(category.key, 'cat', 'male', e.target.value)} />
                                                     </div>
                                                     <div className="flex-1 text-center">
                                                         <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
-                                                        <input type="number" min="0" 
+                                                        <input type="number" min="0" placeholder="0"
                                                             className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" 
                                                             value={formData.stats[category.key].cat.female || ''}
                                                             onChange={e => handleStatChange(category.key, 'cat', 'female', e.target.value)} />
@@ -247,15 +249,15 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     </form>
                 </div>
 
-                {/* Footer (Sticky) */}
-                <div className="bg-white border-t border-slate-200 p-4 px-6 flex gap-3 shrink-0">
+                {/* Footer (Sticky) - 3. เพิ่ม pb-8 สำหรับมือถือ เพื่อป้องกันปุ่มโดนแถบ Home Indicator ด้านล่างทับ */}
+                <div className="bg-white border-t border-slate-200 p-4 sm:p-5 pb-8 sm:pb-5 px-4 sm:px-6 flex gap-3 shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)]">
                     <button type="button" onClick={onClose} 
-                        className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-300">
+                        className="flex-1 py-2.5 sm:py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm sm:text-base hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-300">
                         ยกเลิก
                     </button>
                     <button type="submit" form="outbreak-form" 
-                        className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                        {initialData ? <><Edit className="w-4 h-4" /> บันทึกการแก้ไข</> : <><Siren className="w-4 h-4" /> ยืนยันแจ้งเหตุ</>}
+                        className="flex-1 py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm sm:text-base shadow-md flex items-center justify-center gap-2 transition-all focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        {initialData ? <><Edit className="w-4 h-4 sm:w-5 sm:h-5" /> บันทึกการแก้ไข</> : <><Siren className="w-4 h-4 sm:w-5 sm:h-5" /> ยืนยันแจ้งเหตุ</>}
                     </button>
                 </div>
 

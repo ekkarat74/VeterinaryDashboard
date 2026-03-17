@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy, useDeferredValue } from 'react';
 import { 
     Activity, Database, X, Search, Trash2,Siren, List, ChevronUp, ChevronDown, Unlock, LogOut
 } from 'lucide-react';
@@ -54,6 +54,13 @@ export default function VeterinaryDashboard() {
     const [selectedDistrict, setSelectedDistrict] = useState('ทั้งหมด');
     const [rankingYear, setRankingYear] = useState('ทั้งหมด');
     const [rankingMonth, setRankingMonth] = useState('ทั้งหมด');
+
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+    const deferredYear = useDeferredValue(selectedYear);
+    const deferredMonth = useDeferredValue(selectedMonth);
+    const deferredUnit = useDeferredValue(selectedUnit);
+    const deferredDistrict = useDeferredValue(selectedDistrict);
+    const deferredReportData = useDeferredValue(reportData);
 
     const [outbreakFilterYear, setOutbreakFilterYear] = useState('ทั้งหมด');
 
@@ -708,55 +715,54 @@ const combinedEvents = useMemo(() => [
         return [...new Set(reportData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y))].sort().reverse();
     }, [reportData]);
 
- const filteredData = useMemo(() => {
-    if (!Array.isArray(reportData)) return [];
+    const filteredData = useMemo(() => {
+        if (!Array.isArray(deferredReportData)) return [];
 
-    // 1. นำการคำนวณคงที่ออกมานอก Loop 
-    const lowerSearch = searchTerm ? String(searchTerm).toLowerCase().trim() : '';
-    const isYearAll = selectedYear === 'ทั้งหมด';
-    const isMonthAll = selectedMonth === 'ทั้งหมด';
-    const isUnitAll = selectedUnit === 'ทั้งหมด';
-    const isDistrictAll = selectedDistrict === 'ทั้งหมด';
+        const lowerSearch = deferredSearchTerm ? String(deferredSearchTerm).toLowerCase().trim() : '';
+        const isYearAll = deferredYear === 'ทั้งหมด';
+        const isMonthAll = deferredMonth === 'ทั้งหมด';
+        const isUnitAll = deferredUnit === 'ทั้งหมด';
+        const isDistrictAll = deferredDistrict === 'ทั้งหมด';
 
-    return reportData.filter(item => {
-        try {
-            if (!item) return false;
+        return deferredReportData.filter(item => {
+            try {
+                if (!item) return false;
 
-            // 2. Date Logic
-            if (searchDate) { 
-                if (item.date !== searchDate) return false; 
-            } else if (!isYearAll || !isMonthAll) {
-                if (!item.date) return false;
-                const dateParts = String(item.date).split('-');
-                if (dateParts.length < 2) return false;
-                
-                if (!isYearAll && dateParts[0] !== String(selectedYear)) return false;
-                if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(selectedMonth, 10)) return false;
-            }
-
-            // 3. Unit & District Filter
-            if (!isUnitAll && item.unit !== selectedUnit) return false;
-            if (!isDistrictAll && (!item.district || item.district.trim() !== selectedDistrict)) return false;
-
-            // 4. Text Search Logic
-            if (lowerSearch) {
-                const itemLocation = item.location ? String(item.location).toLowerCase() : '';
-                const itemDistrict = item.district ? String(item.district).toLowerCase() : '';
-                const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
-                
-                if (!itemLocation.includes(lowerSearch) && 
-                    !itemDistrict.includes(lowerSearch) && 
-                    !itemSubdistrict.includes(lowerSearch)) {
-                    return false;
+                // Date Logic
+                if (searchDate) { 
+                    if (item.date !== searchDate) return false; 
+                } else if (!isYearAll || !isMonthAll) {
+                    if (!item.date) return false;
+                    const dateParts = String(item.date).split('-');
+                    if (dateParts.length < 2) return false;
+                    
+                    if (!isYearAll && dateParts[0] !== String(deferredYear)) return false;
+                    if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(deferredMonth, 10)) return false;
                 }
-            }
 
-            return true;
-        } catch (error) {
-            return false; 
-        }
-    });
-}, [reportData, selectedYear, selectedMonth, selectedUnit, selectedDistrict, searchTerm, searchDate]);
+                // Unit & District Filter
+                if (!isUnitAll && item.unit !== deferredUnit) return false;
+                if (!isDistrictAll && (!item.district || item.district.trim() !== deferredDistrict)) return false;
+
+                // Text Search Logic
+                if (lowerSearch) {
+                    const itemLocation = item.location ? String(item.location).toLowerCase() : '';
+                    const itemDistrict = item.district ? String(item.district).toLowerCase() : '';
+                    const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
+                    
+                    if (!itemLocation.includes(lowerSearch) && 
+                        !itemDistrict.includes(lowerSearch) && 
+                        !itemSubdistrict.includes(lowerSearch)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                return false; 
+            }
+        });
+    }, [deferredReportData, deferredYear, deferredMonth, deferredUnit, deferredDistrict, deferredSearchTerm, searchDate]);
 
     const dispatchStats = useMemo(() => {
         const initStats = () => ({ count: 0, sterilization: 0, vaccine_microchip: 0, governor: 0, cat_cage: 0, other: 0 });

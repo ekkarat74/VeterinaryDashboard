@@ -102,6 +102,7 @@ const reportSchema = new mongoose.Schema({
   updatedBy: { type: String }
 }, { timestamps: true });
 reportSchema.index({ date: -1, district: 1, unit: 1 });
+reportSchema.index({ location: 'text', subdistrict: 'text', district: 'text' });
 const Report = mongoose.model('Report', reportSchema);
 
 // 3. Outbreak Schema
@@ -127,7 +128,7 @@ const outbreakSchema = new mongoose.Schema({
   }
   // ------------------
 }, { timestamps: true });
-outbreakSchema.index({ date: -1 });
+outbreakSchema.index({ date: -1, district: 1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 
 // 4. System Log Schema (เพิ่มใหม่)
