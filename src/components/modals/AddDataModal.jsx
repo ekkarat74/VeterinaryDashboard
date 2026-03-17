@@ -255,10 +255,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
                                 <div className="md:col-span-3">
                                     <label className={labelClass}>เขต (District)</label>
-                                    <select className={inputClass} value={formData.district} 
-                                        onChange={e => setFormData({...formData, district: e.target.value, subdistrict: ''})}>
-                                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
+                                        <input 
+                                            required 
+                                            list="district-options"
+                                            placeholder="พิมพ์ค้นหาเขต..."
+                                            className={inputClass} 
+                                            value={formData.district} 
+                                            onChange={e => setFormData({...formData, district: e.target.value, subdistrict: ''})}
+                                        />
+                                        <datalist id="district-options">
+                                            {BANGKOK_DISTRICTS.map(d => <option key={d} value={d} />)}
+                                        </datalist>
                                 </div>
 
                                 <div className="md:col-span-3">
@@ -291,32 +298,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                         />
                                         <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     </div>
-                                </div>
-
-                                {/* อัปโหลดรูปภาพ */}
-                                <div className="md:col-span-12 mt-2 pt-4 sm:pt-5 border-t border-slate-100">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                        <div className="p-1.5 bg-slate-100 rounded-lg"><ImageIcon className="w-4 h-4 text-slate-600" /></div>
-                                        รูปภาพประกอบ (Image Attachment)
-                                    </label>
-                                    {!imagePreview ? (
-                                        <div className="border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-36 flex flex-col items-center justify-center cursor-pointer">
-                                            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                                            <div className="bg-white p-3 rounded-full shadow-sm border border-slate-100 mb-3 group-hover:scale-110 group-hover:text-blue-500 transition-all text-slate-400">
-                                                <Upload className="w-5 h-5" />
-                                            </div>
-                                            <p className="text-sm text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพประกอบ</p>
-                                        </div>
-                                    ) : (
-                                        <div className="relative w-full sm:w-80 h-48 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 group">
-                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
-                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button type="button" onClick={handleRemoveImage} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg flex items-center gap-2 transition-colors">
-                                                    <Trash2 className="w-4 h-4" /> ลบรูปภาพ
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -450,7 +431,34 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                                 ))}
                             </div>
                         </div>
-
+                        
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm mt-6">
+                            <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+                                <span className="w-1.5 h-4 bg-teal-500 rounded-full"></span>
+                                    รูปภาพประกอบ (Image Attachment)
+                            </h4>
+            
+                            <div className="md:col-span-12">
+                                {!imagePreview ? (
+                                <div className="border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-36 flex flex-col items-center justify-center cursor-pointer">
+                                    <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                                    <div className="bg-white p-3 rounded-full shadow-sm border border-slate-100 mb-3 group-hover:scale-110 group-hover:text-blue-500 transition-all text-slate-400">
+                                        <Upload className="w-5 h-5" />
+                                    </div>
+                                    <p className="text-sm text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพประกอบ</p>
+                                </div>
+                                ) : (
+                                <div className="relative w-full sm:w-80 h-48 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 group">
+                                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
+                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <button type="button" onClick={handleRemoveImage} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg flex items-center gap-2 transition-colors">
+                                            <Trash2 className="w-4 h-4" /> ลบรูปภาพ
+                                        </button>
+                                    </div>
+                                </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Action Button */}

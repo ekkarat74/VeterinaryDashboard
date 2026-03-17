@@ -60,7 +60,7 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-4 md:p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 flex items-center justify-center p-0 sm:p-4 md:p-6 animate-in fade-in duration-200">
             <div className="bg-slate-50 rounded-none sm:rounded-3xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col h-[100dvh] sm:h-[90dvh] sm:max-h-[95vh] border-0 sm:border border-white/20">
                 
                 {/* Header */}
@@ -281,7 +281,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-4 md:p-6 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 flex items-center justify-center p-0 sm:p-4 md:p-6 animate-in fade-in duration-200">
             <div className="bg-slate-50 rounded-none sm:rounded-3xl shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col h-[100dvh] sm:h-[90dvh] sm:max-h-[95vh] border-0 sm:border border-white/20">
                 
                 {/* Header */}

@@ -149,10 +149,17 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-600 mb-1.5">เขตพื้นที่ (District)</label>
-                                    <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
-                                        value={formData.district} onChange={e => setFormData({ ...formData, district: e.target.value })}>
-                                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
+                                    <input 
+                                        required 
+                                        list="outbreak-district-options"
+                                        placeholder="พิมพ์ค้นหาเขต..."
+                                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                                        value={formData.district} 
+                                        onChange={e => setFormData({ ...formData, district: e.target.value })}
+                                    />
+                                    <datalist id="outbreak-district-options">
+                                        {BANGKOK_DISTRICTS.map(d => <option key={d} value={d} />)}
+                                    </datalist>
                                 </div>
                             </div>
 
