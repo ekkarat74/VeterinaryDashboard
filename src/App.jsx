@@ -1480,15 +1480,6 @@ const parseCSVDate = (dateStr) => {
                                     </button>
                                 )}
                             </div>
-
-                            {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
-                                <button 
-                                    onClick={() => { setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate(''); }} 
-                                    className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-transparent hover:border-rose-100"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" /> ล้างตัวกรองทั้งหมด
-                                </button>
-                            )}
                         </div>
 
                         {isFilterExpanded && (

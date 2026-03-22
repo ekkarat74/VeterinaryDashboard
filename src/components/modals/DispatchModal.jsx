@@ -68,6 +68,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 
   const UNIT_OPTIONS = [
     { value: 'sterilization', label: 'หน่วยสัตว์แพทย์ (Veterinary Unit)', color: 'text-blue-600', icon: '🏥' },
+    { value: 'spay_neuter', label: 'หน่วยทำหมัน (Spay/Neuter Unit)', color: 'text-pink-600', icon: '✂️' }, // ✨ ส่วนที่เพิ่มเข้ามา
     { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป', color: 'text-teal-600', icon: '💉' },
     { value: 'governor', label: 'หน่วยผู้ว่า (Governor Unit)', color: 'text-purple-600', icon: '👔' },
     { value: 'cat_cage', label: 'หน่วยกรงแมว (Cat Cage)', color: 'text-orange-600', icon: '🐱' },
@@ -212,7 +213,7 @@ bankok เขต: ${generalInfo.district || '-'}
     let staffDetails = "";
     const commonStaff = `👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
 
-    if (unitType === 'sterilization') {
+    if (unitType === 'sterilization'|| unitType === 'spay_neuter') {
       staffDetails = `${commonStaff}
 📝 ลงทะเบียน: ${formatStaffList(staff.registration)}
 🐕 จับ/วางยา: ${formatStaffList(staff.prep_catch)}
@@ -641,9 +642,10 @@ ${staffDetails}
                 <StaffInputGroup roleKey="drivers" label="คนขับรถ (Drivers)" icon={Activity} staffList={staff.drivers} {...commonProps} />
                 
                 {/* Dynamic Team based on Unit Type */}
-                {(unitType === 'sterilization' || unitType === 'cat_cage') && (
+                {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( // ✨ แก้ไขบรรทัดนี้
                   <>
-                    {unitType === 'sterilization' && (
+                    {/* 2. แก้ไขให้แสดงช่อง "ลงทะเบียน" สำหรับหน่วยทำหมันด้วย */}
+                    {(unitType === 'sterilization' || unitType === 'spay_neuter') && ( // ✨ แก้ไขบรรทัดนี้
                       <StaffInputGroup roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
                     )}
                     <StaffInputGroup roleKey="prep_catch" label="จับ/วางยา" staffList={staff.prep_catch} {...commonProps} />
@@ -659,7 +661,7 @@ ${staffDetails}
                   </>
                 )}
 
-                {(unitType !== 'sterilization' && unitType !== 'cat_cage') && (
+                {(unitType !== 'sterilization' && unitType !== 'cat_cage' && unitType !== 'spay_neuter') && ( // ✨ แก้ไขบรรทัดนี้
                   <StaffInputGroup roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={staff.assistants} {...commonProps} />
                 )}
               </div>
