@@ -302,18 +302,18 @@ export default function VeterinaryDashboard() {
         if (storedUser) { setUser(JSON.parse(storedUser)); }
     }, []);
 
-    const handleLogin = (userData) => {
+    const handleLogin = useCallback((userData) => {
         setUser(userData);
         localStorage.setItem('vet_user', JSON.stringify(userData));
         setIsLoginModalOpen(false);
-    };
+    }, []);
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         if(window.confirm("ยืนยันการออกจากระบบ?")) {
             setUser(null);
             localStorage.removeItem('vet_user');
         }
-    };
+    }, []);
 
     const canEdit = user && (user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
     const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'MagaAdmin');

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Activity, X, Bell, MapPin, Link as LinkIcon, Users, 
-  Share2, Trash2, ChevronRight, Info, Calendar, Clock, 
-  Plus, UserPlus, FileText, ChevronDown 
+  Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown 
 } from 'lucide-react';
 
 // ตรวจสอบ Path ของ constants ให้ถูกต้อง
@@ -92,25 +91,26 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
   const [customUnitName, setCustomUnitName] = useState('');
   const [unitLetter, setUnitLetter] = useState(''); 
   const [unitColor, setUnitColor] = useState('bg-blue-500'); 
+
+  // State ควบคุมการแบ่งทีม
+  const [isSplitTeam, setIsSplitTeam] = useState(false);
+  const [activeDistrictField, setActiveDistrictField] = useState(null);
+
   const [generalInfo, setGeneralInfo] = useState({
     date: new Date().toISOString().split('T')[0],
-    locationName: '',
-    district: '',
-    mapLink: '',
-    departureTime: '07:30',
-    closingTime: '12:00',
-    note: ''
+    locationName: '', district: '', mapLink: '',
+    locationNameB: '', districtB: '', mapLinkB: '',
+    departureTime: '07:30', closingTime: '12:00', note: ''
   });
 
   const [staff, setStaff] = useState({
     vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], 
-    vaccine_staff: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
+    vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
   });
-
-  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
 
   useEffect(() => {
     if (isOpen && initialData) {
+      setIsSplitTeam(false); // ปิดการแบ่งทีมเมื่อกำลังแก้ไขข้อมูลเดิม
       setUnitType(initialData.unitType || 'sterilization');
       setCustomUnitName(initialData.customUnitName || '');
       setUnitLetter(initialData.unitLetter || ''); 
@@ -120,14 +120,30 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         locationName: initialData.location,
         district: initialData.district || '',
         mapLink: initialData.mapLink || '',
+        locationNameB: '', districtB: '', mapLinkB: '',
         departureTime: initialData.time || '07:30',
         closingTime: initialData.closingTime || '12:00',
         note: initialData.note || ''
       });
-      if (initialData.staff) setStaff(initialData.staff);
+      if (initialData.staff) {
+        setStaff({ 
+          vets: initialData.staff.vets || ['', ''], 
+          registration: initialData.staff.registration || [''], 
+          prep_catch: initialData.staff.prep_catch || [''], 
+          prep_shave: initialData.staff.prep_shave || [''], 
+          prep_lift: initialData.staff.prep_lift || [''], 
+          vaccine_staff: initialData.staff.vaccine_staff || [''], 
+          tattoo: initialData.staff.tattoo || [''], 
+          surgery_assist: initialData.staff.surgery_assist || [''], 
+          drivers: initialData.staff.drivers || [''], 
+          assistants: initialData.staff.assistants || [''] 
+        });
+      }
     } else if (isOpen && !initialData) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      setIsSplitTeam(false);
       setUnitType('sterilization');
       setCustomUnitName('');
       setUnitLetter(''); 
@@ -135,9 +151,10 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       setGeneralInfo({
         date: formatDateLocal(tomorrow), 
         locationName: '', district: '', mapLink: '',
+        locationNameB: '', districtB: '', mapLinkB: '',
         departureTime: '07:30', closingTime: '12:00', note: ''
       });
-      setStaff({ vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
+      setStaff({ vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
     }
   }, [isOpen, initialData]);
 
@@ -160,7 +177,11 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
   if (!isOpen) return null;
 
   const handleSendLine = () => {
-    if (!generalInfo.locationName) {
+    if (isSplitTeam && (!generalInfo.locationName || !generalInfo.locationNameB)) {
+      if(onToast) onToast('error', 'กรุณาระบุสถานที่ให้ครบทั้ง 2 ทีม');
+      else alert('กรุณาระบุสถานที่ให้ครบทั้ง 2 ทีม');
+      return;
+    } else if (!isSplitTeam && !generalInfo.locationName) {
       if(onToast) onToast('error', 'กรุณาระบุสถานที่');
       else alert('กรุณาระบุสถานที่');
       return;
@@ -174,7 +195,19 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       ? customUnitName 
       : currentUnit?.label;
 
-    const unitNameDisplay = `${currentUnit?.label} ${unitLetter}`.trim();
+    const unitNameDisplay = isSplitTeam 
+      ? `${displayUnitName} (ทีม A และ B)` 
+      : `${displayUnitName} ${unitLetter}`.trim();
+    
+    let locationText = '';
+    if (isSplitTeam) {
+      locationText = `📍 ทีม A: ${generalInfo.locationName} (เขต ${generalInfo.district || '-'})
+📍 ทีม B: ${generalInfo.locationNameB} (เขต ${generalInfo.districtB || '-'})`;
+    } else {
+      locationText = `📍 สถานที่: ${generalInfo.locationName}
+bankok เขต: ${generalInfo.district || '-'}
+🗺️ แผนที่: ${generalInfo.mapLink || '-'}`;
+    }
     
     let staffDetails = "";
     const commonStaff = `👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
@@ -187,6 +220,14 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 💪 ยกสัตว์: ${formatStaffList(staff.prep_lift)}
 💉 วัคซีน: ${formatStaffList(staff.vaccine_staff)}
 🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}`;
+    } else if (unitType === 'cat_cage') {
+      staffDetails = `${commonStaff}
+🐕 จับ/วางยา: ${formatStaffList(staff.prep_catch)}
+✂️ โกนขน: ${formatStaffList(staff.prep_shave)}
+💪 ยกสัตว์: ${formatStaffList(staff.prep_lift)}
+💉 วัคซีน: ${formatStaffList(staff.vaccine_staff)}
+✒️ สักตัว: ${formatStaffList(staff.tattoo)}
+🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}`;
     } else if (unitType === 'microchip') {
       staffDetails = `${commonStaff}
 🙋 ผู้ช่วย: ${formatStaffList(staff.assistants)}`;
@@ -198,9 +239,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     const message = `📢 *แจ้งเตือนการออกหน่วย*
 📌 *${unitNameDisplay}* ${currentColor?.emoji || ''}
 📅 วันที่: ${new Date(generalInfo.date).toLocaleDateString('th-TH')}
-📍 สถานที่: ${generalInfo.locationName}
-bankok เขต: ${generalInfo.district || '-'}
-🗺️ แผนที่: ${generalInfo.mapLink || '-'}
+${locationText}
 ⏰ เวลารถออก: ${generalInfo.departureTime} น.
 🛑 เวลาปิดหน่วย: ${generalInfo.closingTime} น.
 --------------------------------
@@ -217,27 +256,56 @@ ${staffDetails}
 
   const handleSaveLocal = () => {
     const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
-
     const displayTitle = unitType === 'other' && customUnitName.trim() !== ''
       ? customUnitName
       : currentUnitLabel;
 
-    const payload = {
-      _id: initialData?._id,
-      ...generalInfo,
-      unitType,
-      customUnitName,
-      unitLetter,
-      unitColor,
-      staff: staff, 
-      title: `${displayTitle} ${unitLetter}`.trim(),
-      location: generalInfo.locationName,
-      district: generalInfo.district,
-      time: generalInfo.departureTime,
-      team: staff.vets.filter(v => v).join(', ')
-    };
+    if (isSplitTeam) {
+      // 🟢 บันทึกทีม A
+      const payloadA = {
+        _id: undefined,
+        ...generalInfo,
+        unitType, customUnitName,
+        unitLetter: 'A', unitColor, staff: staff, 
+        title: `${displayTitle} A`.trim(),
+        location: generalInfo.locationName,
+        district: generalInfo.district,
+        mapLink: generalInfo.mapLink,
+        time: generalInfo.departureTime,
+        team: staff.vets.filter(v => v).join(', ')
+      };
+      // 🟢 บันทึกทีม B
+      const payloadB = {
+        _id: undefined,
+        ...generalInfo,
+        unitType, customUnitName,
+        unitLetter: 'B', unitColor, staff: staff, 
+        title: `${displayTitle} B`.trim(),
+        location: generalInfo.locationNameB,
+        district: generalInfo.districtB,
+        mapLink: generalInfo.mapLinkB,
+        time: generalInfo.departureTime,
+        team: staff.vets.filter(v => v).join(', ')
+      };
 
-    if (onSave) onSave(payload);
+      if (onSave) {
+        onSave(payloadA);
+        setTimeout(() => onSave(payloadB), 300); // หน่วงเวลาบันทึก B
+      }
+    } else {
+      const payload = {
+        _id: initialData?._id,
+        ...generalInfo,
+        unitType, customUnitName, unitLetter, unitColor, staff: staff, 
+        title: `${displayTitle} ${unitLetter}`.trim(),
+        location: generalInfo.locationName,
+        district: generalInfo.district,
+        mapLink: generalInfo.mapLink,
+        time: generalInfo.departureTime,
+        team: staff.vets.filter(v => v).join(', ')
+      };
+      if (onSave) onSave(payload);
+    }
   };
 
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
@@ -272,7 +340,7 @@ ${staffDetails}
               {/* --- Left Column (Controls & Time) --- */}
               <div className="lg:col-span-4 space-y-6">
                 
-                {/* Top Controls: Unit, Team, Color (ปรับดีไซน์ใหม่เรียง บน-ล่าง) */}
+                {/* Top Controls: Unit, Team, Color */}
                 <div className="space-y-5">
                   
                   {/* แถวที่ 1: ประเภทหน่วยงาน */}
@@ -282,7 +350,10 @@ ${staffDetails}
                       <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500" />
                       <select 
                         value={unitType} 
-                        onChange={(e) => setUnitType(e.target.value)}
+                        onChange={(e) => {
+                          setUnitType(e.target.value);
+                          if(e.target.value !== 'cat_cage') setIsSplitTeam(false); // ยกเลิกแบ่งทีมถ้าไม่ใช่กรงแมว
+                        }}
                         className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm cursor-pointer appearance-none"
                       >
                         {UNIT_OPTIONS.map(opt => (
@@ -293,6 +364,7 @@ ${staffDetails}
                         <ChevronDown className="w-4 h-4" />
                       </div>
                     </div>
+
                     {unitType === 'other' && (
                       <div className="mt-3 animate-in fade-in slide-in-from-top-1">
                         <input 
@@ -305,30 +377,48 @@ ${staffDetails}
                         />
                       </div>
                     )}
+
+                    {/* 🟢 Checkbox แบ่งทีม (แสดงเฉพาะตอนสร้างใหม่และเลือกกรงแมว) */}
+                    {(!initialData && unitType === 'cat_cage') && (
+                        <div className="mt-3 flex items-start gap-2 bg-indigo-50 p-3 rounded-xl border border-indigo-100 animate-in fade-in">
+                            <input 
+                                type="checkbox" 
+                                id="splitTeamToggle" 
+                                checked={isSplitTeam} 
+                                onChange={(e) => setIsSplitTeam(e.target.checked)}
+                                className="w-4 h-4 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <label htmlFor="splitTeamToggle" className="text-xs font-bold text-indigo-800 cursor-pointer leading-tight">
+                                ออกหน่วย 2 สถานที่ (ทีม A และ B) <br/> <span className="text-indigo-600/80">โดยใช้คนชุดเดียวกัน</span>
+                            </label>
+                        </div>
+                    )}
                   </div>
 
                   {/* แถวที่ 2: สาย/ทีม (A-G) และ สีประจำหน่วย */}
                   <div className="flex gap-4">
                     
-                    {/* สาย/ทีม (A-G) */}
-                    <div className="w-[85px] shrink-0">
-                      <label className="block text-xs font-bold text-slate-500 mb-2 text-center">สาย/ทีม</label>
-                      <div className="relative">
-                        <select 
-                          value={unitLetter} 
-                          onChange={(e) => setUnitLetter(e.target.value)}
-                          className="w-full pl-3 pr-6 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm cursor-pointer appearance-none text-center"
-                        >
-                          <option value="">-</option>
-                          {LETTER_OPTIONS.map(letter => (
-                            <option key={letter} value={letter}>{letter}</option>
-                          ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none text-slate-500">
-                          <ChevronDown className="w-4 h-4" />
+                    {/* สาย/ทีม (A-G) ซ่อนเมื่อเลือกแบ่งทีมแล้ว */}
+                    {!isSplitTeam && (
+                      <div className="w-[85px] shrink-0">
+                        <label className="block text-xs font-bold text-slate-500 mb-2 text-center">สาย/ทีม</label>
+                        <div className="relative">
+                          <select 
+                            value={unitLetter} 
+                            onChange={(e) => setUnitLetter(e.target.value)}
+                            className="w-full pl-3 pr-6 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm cursor-pointer appearance-none text-center"
+                          >
+                            <option value="">-</option>
+                            {LETTER_OPTIONS.map(letter => (
+                              <option key={letter} value={letter}>{letter}</option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none text-slate-500">
+                            <ChevronDown className="w-4 h-4" />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* สีประจำหน่วย */}
                     <div className="flex-1">
@@ -397,7 +487,10 @@ ${staffDetails}
                 <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
                   <MapPin className="w-4 h-4 text-rose-500" /> ข้อมูลสถานที่ (Location)
                 </h4>
+                
+                {/* 🟢 สถานที่ทีม A */}
                 <div className="space-y-5">
+                  {isSplitTeam && <h5 className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg inline-block">📍 สถานที่ ทีม A</h5>}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-slate-500 mb-1.5">ชื่อสถานที่</label>
@@ -410,7 +503,6 @@ ${staffDetails}
                       />
                     </div>
                     
-                    {/* เขต (District) แบบแท็บเลื่อนค้นหาได้ (Custom Autocomplete) */}
                     <div className="relative">
                       <label className="block text-xs font-bold text-slate-500 mb-1.5">เขต (District)</label>
                       <input 
@@ -420,32 +512,23 @@ ${staffDetails}
                         value={generalInfo.district} 
                         onChange={e => {
                           setGeneralInfo({ ...generalInfo, district: e.target.value });
-                          setShowDistrictDropdown(true);
+                          setActiveDistrictField('A');
                         }}
-                        onFocus={() => setShowDistrictDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
+                        onFocus={() => setActiveDistrictField('A')}
+                        onBlur={() => setTimeout(() => setActiveDistrictField(null), 200)}
                       />
-
-                      {/* Dropdown Menu */}
-                      {showDistrictDropdown && (
+                      {activeDistrictField === 'A' && (
                         <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar overflow-hidden">
                           {BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.district)).length > 0 ? (
                             BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.district)).map(d => (
-                              <div 
-                                key={d} 
-                                className="px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
-                                onClick={() => {
-                                  setGeneralInfo({ ...generalInfo, district: d });
-                                  setShowDistrictDropdown(false);
-                                }}
+                              <div key={d} className="px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
+                                onClick={() => { setGeneralInfo({ ...generalInfo, district: d }); setActiveDistrictField(null); }}
                               >
                                 {d}
                               </div>
                             ))
                           ) : (
-                            <div className="px-4 py-3 text-sm text-slate-400 text-center bg-slate-50">
-                              ไม่พบชื่อเขตที่ค้นหา
-                            </div>
+                            <div className="px-4 py-3 text-sm text-slate-400 text-center bg-slate-50">ไม่พบชื่อเขตที่ค้นหา</div>
                           )}
                         </div>
                       )}
@@ -456,8 +539,7 @@ ${staffDetails}
                       <div className="relative">
                         <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input 
-                          type="text" 
-                          placeholder="https://maps.google.com/..." 
+                          type="text" placeholder="http://googleusercontent.com/..." 
                           className="w-full pl-10 p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
                           value={generalInfo.mapLink} 
                           onChange={e => setGeneralInfo({ ...generalInfo, mapLink: e.target.value })} 
@@ -465,16 +547,79 @@ ${staffDetails}
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5">หมายเหตุ</label>
-                    <textarea 
-                      rows="3" 
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm"
-                      placeholder="รายละเอียดเพิ่มเติม..."
-                      value={generalInfo.note} 
-                      onChange={e => setGeneralInfo({ ...generalInfo, note: e.target.value })}
-                    />
+                </div>
+
+                {/* 🟢 สถานที่ทีม B (แสดงเมื่อ isSplitTeam เปิดใช้งาน) */}
+                {isSplitTeam && (
+                  <div className="space-y-5 border-t border-slate-100 pt-6 mt-6">
+                    <h5 className="text-sm font-bold text-rose-500 bg-rose-50 px-3 py-1.5 rounded-lg inline-block">📍 สถานที่ ทีม B</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">ชื่อสถานที่</label>
+                        <input 
+                          type="text" 
+                          placeholder="ระบุชื่อวัด, ชุมชน, หรือสถานที่..." 
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                          value={generalInfo.locationNameB} 
+                          onChange={e => setGeneralInfo({ ...generalInfo, locationNameB: e.target.value })} 
+                        />
+                      </div>
+                      
+                      <div className="relative">
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">เขต (District)</label>
+                        <input 
+                          type="text" placeholder="พิมพ์ค้นหาเขต..." 
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                          value={generalInfo.districtB} 
+                          onChange={e => {
+                            setGeneralInfo({ ...generalInfo, districtB: e.target.value });
+                            setActiveDistrictField('B');
+                          }}
+                          onFocus={() => setActiveDistrictField('B')}
+                          onBlur={() => setTimeout(() => setActiveDistrictField(null), 200)}
+                        />
+                        {activeDistrictField === 'B' && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar overflow-hidden">
+                            {BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.districtB)).length > 0 ? (
+                              BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.districtB)).map(d => (
+                                <div key={d} className="px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
+                                  onClick={() => { setGeneralInfo({ ...generalInfo, districtB: d }); setActiveDistrictField(null); }}
+                                >
+                                  {d}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-slate-400 text-center bg-slate-50">ไม่พบชื่อเขตที่ค้นหา</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1.5">ลิงก์แผนที่</label>
+                        <div className="relative">
+                          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input 
+                            type="text" placeholder="http://googleusercontent.com/..." 
+                            className="w-full pl-10 p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                            value={generalInfo.mapLinkB} 
+                            onChange={e => setGeneralInfo({ ...generalInfo, mapLinkB: e.target.value })} 
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
+
+                <div className="mt-6">
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">หมายเหตุ</label>
+                  <textarea 
+                    rows="3" 
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm"
+                    placeholder="รายละเอียดเพิ่มเติม..."
+                    value={generalInfo.note} 
+                    onChange={e => setGeneralInfo({ ...generalInfo, note: e.target.value })}
+                  />
                 </div>
               </div>
 
@@ -496,18 +641,25 @@ ${staffDetails}
                 <StaffInputGroup roleKey="drivers" label="คนขับรถ (Drivers)" icon={Activity} staffList={staff.drivers} {...commonProps} />
                 
                 {/* Dynamic Team based on Unit Type */}
-                {unitType === 'sterilization' && (
+                {(unitType === 'sterilization' || unitType === 'cat_cage') && (
                   <>
-                    <StaffInputGroup roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
+                    {unitType === 'sterilization' && (
+                      <StaffInputGroup roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
+                    )}
                     <StaffInputGroup roleKey="prep_catch" label="จับ/วางยา" staffList={staff.prep_catch} {...commonProps} />
                     <StaffInputGroup roleKey="prep_shave" label="โกนขน" staffList={staff.prep_shave} {...commonProps} />
                     <StaffInputGroup roleKey="prep_lift" label="ยกสัตว์" staffList={staff.prep_lift} {...commonProps} />
                     <StaffInputGroup roleKey="vaccine_staff" label="ฉีดวัคซีน" staffList={staff.vaccine_staff} {...commonProps} />
+                    
+                    {unitType === 'cat_cage' && (
+                      <StaffInputGroup roleKey="tattoo" label="สักตัว" staffList={staff.tattoo} {...commonProps} />
+                    )}
+                    
                     <StaffInputGroup roleKey="surgery_assist" label="ผู้ช่วยผ่าตัด" staffList={staff.surgery_assist} {...commonProps} />
                   </>
                 )}
 
-                {(unitType !== 'sterilization') && (
+                {(unitType !== 'sterilization' && unitType !== 'cat_cage') && (
                   <StaffInputGroup roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={staff.assistants} {...commonProps} />
                 )}
               </div>

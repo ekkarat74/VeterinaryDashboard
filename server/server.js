@@ -20,8 +20,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
 // Allowed Origins (Frontend URLs)
 const allowedOrigins = [
   "http://localhost:5173", 
-  "http://localhost:5174", 
-  "http://localhost:3000",
+  "http://localhost:5174",
   "https://veterinary-bkk.vercel.app"
 ];
 
@@ -384,28 +383,37 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'sup
 
 app.get('/api/reports', async (req, res) => {
   try {
-    const { startDate, endDate, year, limit } = req.query;
+    // รับค่า page และ limit จาก Frontend (ตั้งค่าเริ่มต้น page 1, ลิมิต 100)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    const skip = (page - 1) * limit;
+    
+    const { startDate, endDate, year } = req.query;
     let query = {};
 
-    // เพิ่มเงื่อนไขการกรองข้อมูลจากวันที่
     if (startDate && endDate) {
         query.date = { $gte: startDate, $lte: endDate };
     } else if (year) {
-        query.date = { $regex: `^${year}` }; // กรองเฉพาะปีที่ระบุ
+        query.date = { $regex: `^${year}` };
     }
 
-    const reportsQuery = Report.find(query)
-      .select('_id date location district subdistrict unit lat long stats details createdBy')
+    // เพิ่ม .skip() และ .limit() และยกเว้นการดึงรูปภาพในหน้ารวม (-imageUrl)
+    const reports = await Report.find(query)
+      .select('_id date location district subdistrict unit lat long stats details createdBy') // ไม่เอา imageUrl
       .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
-    // หาก Frontend มีการจำกัดจำนวนข้อมูล
-    if (limit) {
-        reportsQuery.limit(parseInt(limit, 10));
-    }
+    // ส่งจำนวนทั้งหมดกลับไปด้วย เพื่อไปทำปุ่มเปลี่ยนหน้าฝั่ง Frontend
+    const total = await Report.countDocuments(query);
 
-    const reports = await reportsQuery;
-    res.json(reports);
+    res.json({
+      data: reports,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

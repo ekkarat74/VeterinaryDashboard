@@ -392,31 +392,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </div>
                 </div>
 
-                {/* 2. รักษาสัตว์ */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
-                    <div className="p-1.5 bg-rose-100 text-rose-600 rounded-lg"><Stethoscope className="w-4 h-4" /></div>
-                    รักษาสัตว์ (Medical)
-                  </div>
-                  <div className="p-4 grid grid-cols-3 gap-3">
-                    {['dog', 'cat', 'other'].map((type) => (
-                      <div key={type}>
-                        <label className="text-xs text-slate-500 font-medium block mb-1.5">
-                          {type === 'dog' ? 'สุนัข' : type === 'cat' ? 'แมว' : 'อื่นๆ'}
-                        </label>
-                        <input 
-                          type="number" 
-                          min="0" 
-                          placeholder="0" 
-                          className={inputClass + " text-center font-medium"}
-                          value={breakdown[type].medical} 
-                          onChange={(e) => handleBreakdownChange(type, 'medical', e.target.value)} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {/* 3. ทำหมัน */}
                 <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm lg:row-span-2">
                   <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
@@ -508,6 +483,30 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </div>
                 </div>
 
+                {/* 2. รักษาสัตว์ */}
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
+                    <div className="p-1.5 bg-rose-100 text-rose-600 rounded-lg"><Stethoscope className="w-4 h-4" /></div>
+                    รักษาสัตว์ (Medical)
+                  </div>
+                  <div className="p-4 grid grid-cols-3 gap-3">
+                    {['dog', 'cat', 'other'].map((type) => (
+                      <div key={type}>
+                        <label className="text-xs text-slate-500 font-medium block mb-1.5">
+                          {type === 'dog' ? 'สุนัข' : type === 'cat' ? 'แมว' : 'อื่นๆ'}
+                        </label>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          placeholder="0" 
+                          className={inputClass + " text-center font-medium"}
+                          value={breakdown[type].medical} 
+                          onChange={(e) => handleBreakdownChange(type, 'medical', e.target.value)} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
