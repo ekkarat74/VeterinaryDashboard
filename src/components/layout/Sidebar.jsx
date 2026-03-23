@@ -6,9 +6,9 @@ import {
 } from 'lucide-react';
 
 // --------------------------------------------------------
-// 🧩 Reusable Component: ปุ่มเมนูย่อย เพื่อลดความซ้ำซ้อนของโค้ด
+// 🧩 Reusable Component: หุ้มด้วย React.memo เพื่อลดการ Re-render ที่ไม่จำเป็น
 // --------------------------------------------------------
-const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColor = 'indigo' }) => {
+const NavItem = React.memo(({ icon: Icon, label, isActive, onClick, isCollapsed, activeColor = 'indigo' }) => {
     const colorStyles = {
         indigo: isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
         rose: isActive ? 'bg-rose-50 text-rose-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
@@ -31,7 +31,7 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
             {!isCollapsed && <span className="whitespace-nowrap">{label}</span>}
         </button>
     );
-};
+});
 
 // --------------------------------------------------------
 // 🚀 Main Sidebar Component
@@ -66,7 +66,7 @@ const Sidebar = ({
             {/* 🟢 Mobile Backdrop */}
             {isMobileMenuOpen && (
                 <div 
-                    className="md:hidden fixed inset-0 bg-slate-900/40 z-[4999] backdrop-blur-sm transition-opacity"
+                    className="md:hidden fixed inset-0 bg-slate-900/40 z-[4999] backdrop-blur-sm transition-opacity duration-300"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
@@ -74,7 +74,7 @@ const Sidebar = ({
             <aside className={`
                 fixed md:relative top-0 left-0 h-[100dvh] z-[5000] md:z-auto
                 bg-white border-r border-slate-200 flex flex-col shrink-0
-                transition-all duration-300 ease-in-out
+                transition-[width,transform] duration-300 ease-in-out transform-gpu
                 ${isMobileMenuOpen ? 'translate-x-0 w-[260px] shadow-2xl' : '-translate-x-full w-[260px] md:translate-x-0'} 
                 ${isCollapsed ? 'md:w-20' : 'md:w-[260px]'}
             `}>

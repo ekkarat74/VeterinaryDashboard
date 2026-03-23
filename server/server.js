@@ -442,41 +442,163 @@ app.get('/api/reports/kpi-totals', async (req, res) => {
 });
 
 app.get('/api/reports', async (req, res) => {
-  try {
-    // รับค่า page และ limit จาก Frontend (ตั้งค่าเริ่มต้น page 1, ลิมิต 100)
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 100;
-    const skip = (page - 1) * limit;
-    
-    const { startDate, endDate, year } = req.query;
-    let query = {};
+  try {
+    // คลีนการรับค่าจาก req.query ไม่ให้ประกาศตัวแปรซ้ำซ้อน
+    const { search, year, month, unit, district, page = 1, limit = 50 } = req.query;
 
-    if (startDate && endDate) {
-        query.date = { $gte: startDate, $lte: endDate };
-    } else if (year) {
-        query.date = { $regex: `^${year}` };
+    let query = {};
+
+    // 1. Text Search (ต้องทำ Index text ไว้ก่อน ซึ่งทำไว้แล้วใน Schema)
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    // 2. กรองตาม ปี / เดือน
+    if ((year && year !== 'ทั้งหมด') || (month && month !== 'ทั้งหมด')) {
+        const y = (year && year !== 'ทั้งหมด') ? year : '\\d{4}';
+        const m = (month && month !== 'ทั้งหมด') ? month : '\\d{2}';
+        query.date = { $regex: `^${y}-${m}` };
+    }
+
+    // 3. กรองตาม หน่วยงาน / เขต
+    if (unit && unit !== 'ทั้งหมด') query.unit = unit;
+    if (district && district !== 'ทั้งหมด') query.district = district;
+
+    // การคำนวณ Pagination
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // ดึงข้อมูลและนับจำนวนทั้งหมดไปพร้อมกัน (Parallel) ทำให้ประมวลผลเร็วขึ้น
+    const [reports, totalRecords] = await Promise.all([
+        Report.find(query)
+            .select('_id date location district subdistrict unit lat long stats details createdBy') // ไม่เอา imageUrl เพื่อลดขนาด payload
+            .sort({ date: -1 }) // เรียงจากใหม่ไปเก่า
+            .skip(skip)
+            .limit(limitNumber)
+            .lean(),
+        Report.countDocuments(query)
+    ]);
+
+    // ส่งคืนเป็นโครงสร้าง Pagination
+    res.json({
+        data: reports,
+        pagination: {
+            totalRecords,
+            totalPages: Math.ceil(totalRecords / limitNumber),
+            currentPage: pageNumber,
+            limit: limitNumber
+        }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ==========================================
+// เพิ่มใหม่: ดึงข้อมูลสรุปสำหรับกราฟ (Server-Side Aggregation)
+// ==========================================
+app.get('/api/reports/chart-stats', async (req, res) => {
+    try {
+        const { search, year, month, unit, district } = req.query;
+        let matchStage = {};
+
+        // นำเงื่อนไขการกรอง (Filter) มาปรับใช้เหมือนกับ API ดึงข้อมูลตาราง
+        if (search) matchStage.$text = { $search: search };
+        if ((year && year !== 'ทั้งหมด') || (month && month !== 'ทั้งหมด')) {
+            const y = (year && year !== 'ทั้งหมด') ? year : '\\d{4}';
+            const m = (month && month !== 'ทั้งหมด') ? month : '\\d{2}';
+            matchStage.date = { $regex: `^${y}-${m}` };
+        }
+        if (unit && unit !== 'ทั้งหมด') matchStage.unit = unit;
+        if (district && district !== 'ทั้งหมด') matchStage.district = district;
+
+        // ใช้ $facet เพื่อประมวลผลหลายๆ Aggregation ใน Query เดียว (ประหยัดเวลามาก)
+        const result = await Report.aggregate([
+            { $match: matchStage }, // กรองข้อมูลก่อนเริ่มคำนวณ
+            {
+                $facet: {
+                    // 1. สรุปผลงานแยกตามหน่วยงาน (unitStats)
+                    unitStats: [
+                        {
+                            $group: {
+                                _id: { $ifNull: ["$unit", "ไม่ระบุ"] },
+                                count: { $sum: 1 },
+                                vaccine: { $sum: "$stats.vaccine" },
+                                sterilize: { $sum: "$stats.sterilize" },
+                                register: { $sum: "$stats.register" },
+                                microchip: { $sum: "$stats.microchip" },
+                                medical: { $sum: "$stats.medical" },
+                                total: { 
+                                    $sum: { 
+                                        $add: [
+                                            { $ifNull: ["$stats.vaccine", 0] },
+                                            { $ifNull: ["$stats.sterilize", 0] },
+                                            { $ifNull: ["$stats.register", 0] },
+                                            { $ifNull: ["$stats.microchip", 0] },
+                                            { $ifNull: ["$stats.medical", 0] }
+                                        ] 
+                                    } 
+                                }
+                            }
+                        },
+                        { $project: { name: "$_id", _id: 0, count: 1, vaccine: 1, sterilize: 1, register: 1, microchip: 1, medical: 1, total: 1 } },
+                        { $sort: { total: -1 } }
+                    ],
+                    // 2. แนวโน้มรายเดือน (trendData)
+                    trendData: [
+                        {
+                            $group: {
+                                _id: { $substr: ["$date", 0, 7] }, // ตัดเอาเฉพาะ YYYY-MM
+                                count: { $sum: 1 },
+                                vaccine: { $sum: "$stats.vaccine" },
+                                sterilize: { $sum: "$stats.sterilize" },
+                                register: { $sum: "$stats.register" },
+                                microchip: { $sum: "$stats.microchip" },
+                                medical: { $sum: "$stats.medical" },
+                                total: { 
+                                    $sum: { 
+                                        $add: [
+                                            { $ifNull: ["$stats.vaccine", 0] }, { $ifNull: ["$stats.sterilize", 0] },
+                                            { $ifNull: ["$stats.register", 0] }, { $ifNull: ["$stats.microchip", 0] },
+                                            { $ifNull: ["$stats.medical", 0] }
+                                        ] 
+                                    } 
+                                }
+                            }
+                        },
+                        { $project: { name: "$_id", _id: 0, count: 1, vaccine: 1, sterilize: 1, register: 1, microchip: 1, medical: 1, total: 1 } },
+                        { $sort: { name: -1 } }, // เรียงเดือนล่าสุดขึ้นก่อน
+                        { $limit: 12 } // ดึงแค่ 12 เดือนล่าสุด
+                    ],
+                    // 3. ยอดรวมตามเขต (สำหรับ Pie Chart)
+                    districtStats: [
+                        {
+                            $group: {
+                                _id: { $ifNull: ["$district", "ไม่ระบุ"] },
+                                value: { 
+                                    $sum: { 
+                                        $add: [
+                                            { $ifNull: ["$stats.vaccine", 0] }, { $ifNull: ["$stats.sterilize", 0] },
+                                            { $ifNull: ["$stats.register", 0] }, { $ifNull: ["$stats.microchip", 0] },
+                                            { $ifNull: ["$stats.medical", 0] }
+                                        ] 
+                                    } 
+                                }
+                            }
+                        },
+                        { $project: { name: "$_id", _id: 0, value: 1 } },
+                        { $sort: { value: -1 } },
+                        { $limit: 10 }
+                    ]
+                }
+            }
+        ]);
+
+        res.json(result[0]);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
-
-    // เพิ่ม .skip() และ .limit() และยกเว้นการดึงรูปภาพในหน้ารวม (-imageUrl)
-    const reports = await Report.find(query)
-      .select('_id date location district subdistrict unit lat long stats details createdBy') // ไม่เอา imageUrl
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    // ส่งจำนวนทั้งหมดกลับไปด้วย เพื่อไปทำปุ่มเปลี่ยนหน้าฝั่ง Frontend
-    const total = await Report.countDocuments(query);
-
-    res.json({
-      data: reports,
-      total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit)
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 // Create Report
