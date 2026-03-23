@@ -129,6 +129,12 @@ export default function VeterinaryDashboard() {
 
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
+    const [kpiTotals, setKpiTotals] = useState({
+    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0,
+    dog: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 },
+    cat: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
+});
+
     const dispatchEventsOnly = useMemo(() => dispatchEvents.map(d => ({
         ...d,
         type: 'dispatch',
@@ -373,18 +379,28 @@ export default function VeterinaryDashboard() {
     // --- 3. DATA FETCHING ---
 
     const fetchData = useCallback(async () => {
-        try {
-            setIsInitialLoading(true);
-            const response = await fetch(API_URL);
-            const data = await response.json();
-            setReportData(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error("Fetch Reports Error:", error);
-            setReportData([]);
-        } finally {
-        setIsInitialLoading(false);
+    try {
+        setIsInitialLoading(true);
+
+        // 1. ดึง KPI Totals แยกต่างหาก (เร็วมากเพราะ DB คำนวณมาให้แล้ว)
+        const kpiResponse = await fetch(`${BASE_URL}/api/reports/kpi-totals`);
+        if (kpiResponse.ok) {
+            const kpiData = await kpiResponse.json();
+            setKpiTotals(kpiData);
         }
-    }, [API_URL]);
+
+        // 2. ดึงข้อมูลตารางเดิม (เดี๋ยวเรามาทำ Pagination โหลดทีละนิดในจุดถัดไป)
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        setReportData(Array.isArray(data) ? data : []);
+
+    } catch (error) {
+        console.error("Fetch Reports Error:", error);
+        setReportData([]);
+    } finally {
+        setIsInitialLoading(false);
+    }
+}, [API_URL, BASE_URL]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -846,39 +862,6 @@ const combinedEvents = useMemo(() => [
             (parseFloat(d.lat) !== 0 || parseFloat(d.long) !== 0)
         );
     }, [filteredData]);
-
-const totals = useMemo(() => filteredData.reduce((acc, curr) => {
-    const d = curr.details?.dog || {};
-    const c = curr.details?.cat || {};
-    const toNum = (val) => parseInt(val, 10) || 0;
-
-    return {
-        vaccine: acc.vaccine + toNum(curr.stats?.vaccine), 
-        sterilize: acc.sterilize + toNum(curr.stats?.sterilize), 
-        register: acc.register + toNum(curr.stats?.register),
-        microchip: acc.microchip + toNum(curr.stats?.microchip), 
-        medical: acc.medical + toNum(curr.stats?.medical),
-        
-        dog: {
-            vaccine: acc.dog.vaccine + toNum(d.vaccine),
-            sterilize: acc.dog.sterilize + toNum(d.maleSterilize) + toNum(d.femaleSterilize),
-            register: acc.dog.register + toNum(d.register),
-            microchip: acc.dog.microchip + toNum(d.microchip),
-            medical: acc.dog.medical + toNum(d.medical),
-        },
-        cat: {
-            vaccine: acc.cat.vaccine + toNum(c.vaccine),
-            sterilize: acc.cat.sterilize + toNum(c.maleSterilize) + toNum(c.femaleSterilize),
-            register: acc.cat.register + toNum(c.register),
-            microchip: acc.cat.microchip + toNum(c.microchip),
-            medical: acc.cat.medical + toNum(c.medical),
-        }
-    };
-}, { 
-    vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0,
-    dog: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 },
-    cat: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
-}), [filteredData]);
 
     const unitStats = useMemo(() => {
         const grouped = filteredData.reduce((acc, curr) => {
@@ -1548,7 +1531,7 @@ const parseCSVDate = (dateStr) => {
                             <>
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
-                                        <KPISection totals={totals} unitStats={unitStats} />
+                                        <KPISection totals={kpiTotals} unitStats={unitStats} />
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                                             <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
                                                 <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">

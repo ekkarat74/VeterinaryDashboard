@@ -381,6 +381,66 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'sup
 // C. REPORTS
 // =======================
 
+app.get('/api/reports/kpi-totals', async (req, res) => {
+  try {
+    const result = await Report.aggregate([
+      {
+        $group: {
+          _id: null,
+          vaccine: { $sum: "$stats.vaccine" },
+          sterilize: { $sum: "$stats.sterilize" },
+          register: { $sum: "$stats.register" },
+          microchip: { $sum: "$stats.microchip" },
+          medical: { $sum: "$stats.medical" },
+          // ดึงข้อมูลรายละเอียดสุนัข
+          dogVaccine: { $sum: { $toInt: "$details.dog.vaccine" } },
+          dogSterilizeMale: { $sum: { $toInt: "$details.dog.maleSterilize" } },
+          dogSterilizeFemale: { $sum: { $toInt: "$details.dog.femaleSterilize" } },
+          dogRegister: { $sum: { $toInt: "$details.dog.register" } },
+          dogMicrochip: { $sum: { $toInt: "$details.dog.microchip" } },
+          dogMedical: { $sum: { $toInt: "$details.dog.medical" } },
+          // ดึงข้อมูลรายละเอียดแมว
+          catVaccine: { $sum: { $toInt: "$details.cat.vaccine" } },
+          catSterilizeMale: { $sum: { $toInt: "$details.cat.maleSterilize" } },
+          catSterilizeFemale: { $sum: { $toInt: "$details.cat.femaleSterilize" } },
+          catRegister: { $sum: { $toInt: "$details.cat.register" } },
+          catMicrochip: { $sum: { $toInt: "$details.cat.microchip" } },
+          catMedical: { $sum: { $toInt: "$details.cat.medical" } }
+        }
+      }
+    ]);
+
+    const raw = result[0] || {};
+    
+    // จัด Format ให้ตรงกับที่ Frontend ต้องการเป๊ะๆ
+    const totals = {
+      vaccine: raw.vaccine || 0,
+      sterilize: raw.sterilize || 0,
+      register: raw.register || 0,
+      microchip: raw.microchip || 0,
+      medical: raw.medical || 0,
+      dog: {
+        vaccine: raw.dogVaccine || 0,
+        sterilize: (raw.dogSterilizeMale || 0) + (raw.dogSterilizeFemale || 0),
+        register: raw.dogRegister || 0,
+        microchip: raw.dogMicrochip || 0,
+        medical: raw.dogMedical || 0
+      },
+      cat: {
+        vaccine: raw.catVaccine || 0,
+        sterilize: (raw.catSterilizeMale || 0) + (raw.catSterilizeFemale || 0),
+        register: raw.catRegister || 0,
+        microchip: raw.catMicrochip || 0,
+        medical: raw.catMedical || 0
+      }
+    };
+
+    res.json(totals);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/reports', async (req, res) => {
   try {
     // รับค่า page และ limit จาก Frontend (ตั้งค่าเริ่มต้น page 1, ลิมิต 100)
