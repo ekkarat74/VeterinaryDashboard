@@ -375,14 +375,19 @@ export default function VeterinaryDashboard() {
     const fetchData = useCallback(async () => {
         try {
             setIsInitialLoading(true);
-            const response = await fetch(API_URL);
-            const data = await response.json();
-            setReportData(Array.isArray(data) ? data : []);
+            // เพิ่ม ?limit=1000 หรือค่าที่เยอะพอ เพื่อให้ดึงข้อมูลมาทำกราฟและตารางฝั่ง Client ได้ครบ
+            const response = await fetch(`${API_URL}?limit=5000`);
+            const result = await response.json();
+            
+            // ✅ แก้ไข: รองรับกรณี Backend ส่งมาเป็น Object { data: [...], pagination: {...} }
+            const dataArray = Array.isArray(result) ? result : (result.data || []);
+            setReportData(dataArray);
+            
         } catch (error) {
             console.error("Fetch Reports Error:", error);
             setReportData([]);
         } finally {
-        setIsInitialLoading(false);
+            setIsInitialLoading(false);
         }
     }, [API_URL]);
 
