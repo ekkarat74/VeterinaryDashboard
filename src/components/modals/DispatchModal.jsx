@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, X, Bell, MapPin, Link as LinkIcon, Users, 
   Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown 
@@ -8,7 +8,7 @@ import {
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
 
 // --- Sub-Component: StaffInputGroup ---
-const StaffInputGroup = memo(({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon }) => (
+const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon }) => (
   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
     <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
       <div className="flex items-center gap-2">
@@ -53,7 +53,7 @@ const StaffInputGroup = memo(({ roleKey, label, staffList, onAdd, onRemove, onCh
       </button>
     </div>
   </div>
-));
+);
 
 // --- Main Component: DispatchModal ---
 const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
@@ -158,31 +158,21 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     }
   }, [isOpen, initialData]);
 
-  const handleStaffChange = useCallback((role, index, value) => {
-    setStaff(prevStaff => {
-      const newRoleList = [...prevStaff[role]];
-      newRoleList[index] = value;
-      return { ...prevStaff, [role]: newRoleList };
-    });
-  }, []);
+  const handleStaffChange = (role, index, value) => {
+    const newRoleList = [...staff[role]];
+    newRoleList[index] = value;
+    setStaff({ ...staff, [role]: newRoleList });
+  };
 
-  const addStaffField = useCallback((role) => {
-    setStaff(prevStaff => ({ ...prevStaff, [role]: [...prevStaff[role], ''] }));
-  }, []);
+  const addStaffField = (role) => {
+    setStaff({ ...staff, [role]: [...staff[role], ''] });
+  };
 
-  const removeStaffField = useCallback((role, index) => {
-    setStaff(prevStaff => {
-      const newRoleList = [...prevStaff[role]];
-      newRoleList.splice(index, 1);
-      return { ...prevStaff, [role]: newRoleList };
-    });
-  }, []);
-
-  const commonProps = useMemo(() => ({ 
-    onAdd: addStaffField, 
-    onRemove: removeStaffField, 
-    onChange: handleStaffChange 
-  }), [addStaffField, removeStaffField, handleStaffChange]);
+  const removeStaffField = (role, index) => {
+    const newRoleList = [...staff[role]];
+    newRoleList.splice(index, 1);
+    setStaff({ ...staff, [role]: newRoleList });
+  };
 
   if (!isOpen) return null;
 
@@ -317,6 +307,8 @@ ${staffDetails}
       if (onSave) onSave(payload);
     }
   };
+
+  const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
@@ -708,6 +700,7 @@ ${staffDetails}
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );

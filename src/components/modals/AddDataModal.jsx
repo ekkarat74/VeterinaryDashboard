@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Edit, Plus, X, FileText, ImageIcon, Upload, Trash2, 
   Calculator, Syringe, Scissors, Database, Stethoscope, 
@@ -107,18 +107,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     };
   }, [breakdown]);
 
-  const handleBreakdownChange = useCallback((type, field, value) => {
-    setBreakdown(prev => ({
-      ...prev,
-      [type]: { ...prev[type], [field]: value }
-    }));
-  }, []);
-
-  const filteredDistricts = useMemo(() => {
-    if (!formData.district) return BANGKOK_DISTRICTS;
-    return BANGKOK_DISTRICTS.filter(d => d.includes(formData.district));
-  }, [formData.district]);
-
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -134,6 +122,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   };
 
   if (!isOpen) return null;
+
+  const handleBreakdownChange = (type, field, value) => {
+    setBreakdown(prev => ({
+      ...prev,
+      [type]: { ...prev[type], [field]: value }
+    }));
+  };
 
   // 4. บันทึกข้อมูล
   const handleSubmit = async (e) => {
@@ -202,7 +197,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 transform-gpu overflow-hidden border-0 sm:border border-slate-200">
+      <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border-0 sm:border border-slate-200">
 
         {/* Header */}
         <div className="px-4 sm:px-6 py-4 sm:py-5 mt-safe sm:mt-0 flex justify-between items-center shrink-0 border-b border-slate-100 bg-white z-10">
@@ -300,8 +295,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   {/* ส่วนของแท็บเลื่อนลงมา (Dropdown Menu) */}
                   {showDistrictDropdown && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar overflow-hidden">
-                      {filteredDistricts.length > 0 ? (
-                        filteredDistricts.map(d => (
+                      {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).length > 0 ? (
+                        BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).map(d => (
                           <div 
                             key={d} 
                             className="px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
@@ -597,4 +592,4 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   );
 };
 
-export default React.memo(AddDataModal);
+export default AddDataModal;
