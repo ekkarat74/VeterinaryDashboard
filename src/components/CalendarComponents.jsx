@@ -20,6 +20,28 @@ const StatCard = ({ label, value, colorClass, icon: Icon }) => (
     </div>
 );
 
+// --- ฟังก์ชันคำนวณสถานะออกแบบ Real-time (ย้ายมาไว้ตรงกลางเพื่อให้เรียกใช้ได้ง่าย) ---
+const getDispatchStatus = (dateStr, timeStr, closeTimeStr) => {
+    if (!dateStr || !timeStr) return null;
+    const closeTime = closeTimeStr || '16:00'; // เผื่อกรณีไม่มีเวลาปิด
+
+    const now = new Date();
+    const start = new Date(`${dateStr}T${timeStr}:00`);
+    const end = new Date(`${dateStr}T${closeTime}:00`);
+    
+    const thirtyMins = 30 * 60 * 1000; // 30 นาทีในหน่วยมิลลิวินาที
+
+    if (now < new Date(start.getTime() - thirtyMins)) {
+        return { text: 'รอปฏิบัติงาน', badge: 'bg-slate-100 text-slate-500 border-slate-200' };
+    } else if (now >= new Date(start.getTime() - thirtyMins) && now < start) {
+        return { text: 'เตรียมพร้อมปฏิบัติงาน', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+    } else if (now >= start && now < new Date(end.getTime() - thirtyMins)) {
+        return { text: 'กำลังดำเนินงาน', badge: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    } else {
+        return { text: 'สิ้นสุดปฏิบัติงาน', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    }
+};
+
 // ----------------------------------------------------
 // 1. MeetingCalendarDashboard (ปฏิทินนัดหมายประชุม)
 // ----------------------------------------------------
@@ -82,10 +104,9 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                 {/* Body Layout */}
                 <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden">
                     
-                    {/* Right Panel: Calendar Grid (สลับมาอยู่ด้านบนในมือถือ) */}
+                    {/* Right Panel: Calendar Grid */}
                     <div className="flex-1 bg-slate-50/50 p-4 md:p-6 flex flex-col order-1 lg:order-2 shrink-0 h-auto lg:h-full lg:overflow-hidden">
                         
-                        {/* Calendar Navigation */}
                         <div className="flex justify-between items-center mb-4 sm:mb-6 px-1">
                             <h2 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight">
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
@@ -97,14 +118,12 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                             </div>
                         </div>
 
-                        {/* Days Header */}
                         <div className="grid grid-cols-7 mb-2">
                             {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map((d, i) => (
                                 <div key={d} className={`text-center text-xs sm:text-sm font-bold py-1 sm:py-2 ${i===0 || i===6 ? 'text-red-400' : 'text-slate-400'}`}>{d}</div>
                             ))}
                         </div>
 
-                        {/* Days Grid */}
                         <div className="grid grid-cols-7 grid-rows-6 gap-1.5 sm:gap-2 md:gap-3 lg:flex-1 lg:overflow-y-auto custom-scrollbar min-h-[350px] sm:min-h-[400px] md:min-h-[500px]">
                             {daysArray.map((day, i) => {
                                 if (i < firstDay) return <div key={i} />;
@@ -154,18 +173,15 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                         </div>
                     </div>
 
-                    {/* Left Panel: Sidebar (แสดงด้านล่างสุดในมือถือ) */}
+                    {/* Left Panel: Sidebar */}
                     <div className="w-full lg:w-[320px] bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shrink-0 order-2 lg:order-1 h-auto lg:h-full">
-                        {/* เพิ่ม pb-8 สำหรับมือถือกันขอบล่างบัง */}
                         <div className="p-4 sm:p-5 pb-8 sm:pb-5 flex flex-col gap-4 lg:overflow-y-auto custom-scrollbar flex-1">
                             
-                            {/* Stats */}
                             <div className="grid grid-cols-2 gap-3">
                                 <StatCard label="ทั้งหมด" value={totalEvents} colorClass="text-teal-600" icon={List} />
                                 <StatCard label="เร็วๆ นี้" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
                             </div>
 
-                            {/* CTA Button */}
                             <button 
                                 onClick={onOpenForm}
                                 className={`w-full py-3 sm:py-3.5 ${theme.primary} ${theme.primaryHover} text-white rounded-xl font-semibold shadow-lg shadow-teal-200 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-sm sm:text-base`}
@@ -173,7 +189,6 @@ const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], on
                                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> สร้างนัดหมายใหม่
                             </button>
 
-                            {/* Event List */}
                             <div className="mt-2">
                                 <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wider">
                                     <span className="w-1.5 h-4 bg-teal-500 rounded-full"></span>
@@ -382,7 +397,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 
                     {/* Left Panel: Sidebar */}
                     <div className="w-full lg:w-[320px] bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shrink-0 order-2 lg:order-1 h-auto lg:h-full">
-                        {/* เพิ่ม pb-8 ตรงนี้สำหรับมือถือ */}
                         <div className="p-4 sm:p-5 pb-8 sm:pb-5 flex flex-col gap-4 lg:overflow-y-auto custom-scrollbar flex-1">
                             <div className="grid grid-cols-2 gap-3">
                                 <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
@@ -411,6 +425,10 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                     ) : (
                                         selectedDateEvents.map((evt, idx) => {
                                             const styles = getEventStyles(evt); 
+                                            
+                                            // 🚨 1. เรียกใช้งานฟังก์ชันที่ย้ายไปด้านบน 🚨
+                                            const status = getDispatchStatus(evt.date, evt.time, evt.closingTime); 
+
                                             return (
                                             <div key={idx} onClick={() => onEventClick && onEventClick(evt)}
                                                 className={`group relative bg-white p-3 sm:p-4 rounded-2xl border shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 ${styles.card}`}>
@@ -418,11 +436,19 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                                         <span className="inline-flex items-center gap-1 text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-bold">
-                                                            <Clock className="w-3 h-3" /> {evt.time}
+                                                            {/* 🚨 2. โชว์เวลาเข้า-ออก 🚨 */}
+                                                            <Clock className="w-3 h-3" /> {evt.time} - {evt.closingTime || 'ไม่ระบุ'} 
                                                         </span>
                                                         <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-bold ${styles.badge}`}>
                                                             {evt.title || (evt.type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย')}
                                                         </span>
+
+                                                        {/* 🚨 3. โชว์ Badge 🚨 */}
+                                                        {status && (
+                                                            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-bold border ${status.badge}`}>
+                                                                {status.text}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {evt.unitLetter && (
                                                         <div className={`flex items-center justify-center min-w-[24px] sm:min-w-[28px] h-6 sm:h-7 px-1.5 rounded-lg text-xs sm:text-sm font-black shadow-sm shrink-0 border ${styles.badge}`}>
