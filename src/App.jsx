@@ -71,6 +71,27 @@ export default function VeterinaryDashboard() {
         toasts, addToast, removeToast
     } = useDashboardState();
 
+    const handleNotifySystemUpdate = async () => {
+        if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
+        
+        try {
+            const response = await fetch(`${BASE_URL}/api/system/notify-update`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                }
+            });
+            if (response.ok) {
+                addToast('success', "✅ ส่งคำสั่งอัปเดตระบบไปยังผู้ใช้ทั้งหมดแล้ว");
+            } else {
+                addToast('error', "❌ ไม่สามารถส่งคำสั่งได้ (อาจไม่มีสิทธิ์)");
+            }
+        } catch (error) {
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+        }
+    };
+
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
     // Constants
@@ -365,6 +386,14 @@ export default function VeterinaryDashboard() {
                     break;
                 default: break;
             }
+        });
+        socket.on('system_update_refresh', (payload) => {
+            addToast('info', `🔄 ${payload.message}`);
+
+            // หน่วงเวลา 3 วินาทีให้ผู้ใช้เห็นข้อความแจ้งเตือน ก่อนบังคับรีเฟรชหน้าต่างแบบข้าม Cache (true)
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 3000);
         });
         return () => { socket.disconnect(); };
     }, [BASE_URL, fetchData, setReportData, setOutbreakData, setMeetings, setDispatchEvents, setTabsConfig, addToast]);
@@ -900,10 +929,7 @@ const handleCsvExport = useCallback((filters) => {
         exportToCSV(dataToExport);
     }
 }, [csvMode, outbreakData, reportData]);
-    
-    // ---------------------------------------------------------
-    // 🛠 1. กลุ่ม Dashboard Stats & Pie Charts (มัดรวมในลูปเดียว)
-    // ---------------------------------------------------------
+
     const { 
         mapDisplayData, 
         totals, 
@@ -994,9 +1020,6 @@ const handleCsvExport = useCallback((filters) => {
         };
     }, [filteredData]);
 
-    // ---------------------------------------------------------
-    // 🛠 2. กลุ่ม Ranking จัดอันดับ (มัดรวมในลูปเดียว)
-    // ---------------------------------------------------------
     const { rankingNestedStats, rankingUnitStats } = useMemo(() => {
         const unitDict = {};
         
@@ -1295,6 +1318,7 @@ const handleCsvExport = useCallback((filters) => {
                 tabsConfig={tabsConfig} toggleTab={toggleTab}
                 isMobileMenuOpen={isMobileMenuOpen}
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
+                onNotifyUpdate={handleNotifySystemUpdate}
             />
 
             {isMobileMenuOpen && (

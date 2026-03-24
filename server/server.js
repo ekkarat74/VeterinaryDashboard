@@ -827,5 +827,22 @@ app.put('/api/settings/tabs', authenticateToken, authorizeRole(['MagaAdmin']), a
     }
 });
 
+// =======================
+// I. SYSTEM UPDATE (เพิ่มใหม่)
+// =======================
+app.post('/api/system/notify-update', authenticateToken, authorizeRole(['MagaAdmin']), async (req, res) => {
+try {
+        // บันทึก Log
+        await createLog(req, 'SYSTEM_UPDATE', 'ส่งแจ้งเตือนอัปเดตระบบ (บังคับรีเฟรชผู้ใช้ทั้งหมด)');
+
+        // ส่ง Event ไปหา Client "ทุกคน" (รวมถึงคนที่ไม่ได้ล็อกอิน) ที่เชื่อมต่อ Socket อยู่
+        io.emit('system_update_refresh', { message: 'ระบบมีการอัปเดตเวอร์ชันใหม่ กำลังรีเฟรชหน้าจอ...' });
+
+        res.json({ message: "ส่งคำสั่งรีเฟรชไปยังผู้ใช้งานทั้งหมดเรียบร้อยแล้ว" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // --- SERVER START ---
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
