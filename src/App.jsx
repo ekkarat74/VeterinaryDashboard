@@ -849,7 +849,6 @@ export default function VeterinaryDashboard() {
                         return false;
                     }
                 }
-
                 return true;
             } catch (error) {
                 return false; 
@@ -860,12 +859,47 @@ export default function VeterinaryDashboard() {
     const handleCsvFileChange = useCallback((e) => {
         if (csvMode === 'outbreak') handleOutbreakFileUpload(e);
         else handleFileUpload(e);
-    }, [csvMode]); // Removed handleOutbreakFileUpload and handleFileUpload from deps as they are redefined each render right now
+    }, [csvMode]);
 
-    const handleCsvExport = useCallback(() => {
-        if (csvMode === 'outbreak') exportOutbreaksToCSV(outbreakData);
-        else exportToCSV(filteredData);
-    }, [csvMode, outbreakData, filteredData]);
+const handleCsvExport = useCallback((filters) => {
+    let dataToExport = csvMode === 'outbreak' ? outbreakData : reportData;
+
+    if (filters) {
+        dataToExport = dataToExport.filter(item => {
+            const isYearAll = filters.year === 'ทั้งหมด';
+            const isMonthAll = filters.month === 'ทั้งหมด';
+            const isUnitAll = filters.unit === 'ทั้งหมด';
+            const isDistrictAll = filters.district === 'ทั้งหมด';
+
+            // กรอง ปี และ เดือน
+            if (!isYearAll || !isMonthAll) {
+                if (!item.date) return false;
+                const dateParts = String(item.date).split('-');
+                if (dateParts.length < 2) return false;
+                
+                if (!isYearAll && dateParts[0] !== String(filters.year)) return false;
+                if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(filters.month, 10)) return false;
+            }
+
+            // กรอง หน่วยงาน (ใช้เฉพาะโหมด Report)
+            if (csvMode !== 'outbreak' && !isUnitAll) {
+                if (item.unit !== filters.unit) return false;
+            }
+            
+            // กรอง เขต
+            if (!isDistrictAll && (!item.district || item.district.trim() !== filters.district)) return false;
+
+            return true;
+        });
+    }
+
+    // เรียกใช้ฟังก์ชัน Export
+    if (csvMode === 'outbreak') {
+        exportOutbreaksToCSV(dataToExport);
+    } else {
+        exportToCSV(dataToExport);
+    }
+}, [csvMode, outbreakData, reportData]);
     
     // ---------------------------------------------------------
     // 🛠 1. กลุ่ม Dashboard Stats & Pie Charts (มัดรวมในลูปเดียว)
@@ -1233,7 +1267,7 @@ export default function VeterinaryDashboard() {
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
             </Suspense>
-            <CsvActionModal isOpen={isCsvModalOpen} onClose={closeCsvModal} onFileChange={handleCsvFileChange} onExport={handleCsvExport} />
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={closeCsvModal} onFileChange={handleCsvFileChange} onExport={handleCsvExport}availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears}thaiMonths={THAI_MONTHS}units={UNIT_TYPES}districts={BANGKOK_DISTRICTS}csvMode={csvMode}/>
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={closeBackupModal} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={closeImagePreview} />
             <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
