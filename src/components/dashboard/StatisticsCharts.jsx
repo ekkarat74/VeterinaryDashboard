@@ -1,20 +1,57 @@
 import React, { useState } from 'react';
 import { 
   Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  Legend, ResponsiveContainer, Area, ComposedChart, LabelList 
+  Legend, ResponsiveContainer, Area, ComposedChart 
 } from 'recharts';
-import { Calendar, Users, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// ประกาศอาร์เรย์เดือนไว้ด้านนอก Component เพื่อไม่ต้องสร้างใหม่ทุกครั้งที่เรนเดอร์
+const THAI_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", 
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
+
+const formatCompactNumber = (number) => {
+  if (number >= 1000) {
+    return (number / 1000).toFixed(number % 1000 !== 0 ? 1 : 0) + 'k';
+  }
+  return number;
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 shadow-xl rounded-lg z-50">
+        <p className="text-sm font-bold text-slate-700 mb-2 border-b pb-1">{label}</p>
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center justify-between gap-6 text-xs py-0.5">
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="text-slate-500">{entry.name}:</span>
+            </span>
+            <span className="font-mono font-bold text-slate-800">
+              {entry.value !== undefined && entry.value !== null ? entry.value.toLocaleString() : '0'}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 const StatisticsCharts = ({ 
   trendData, unitStats, dispatchStats,
   trendOffset, setTrendOffset,
   freqDailyOffset, setFreqDailyOffset,
-  freqMonthlyOffset, setFreqMonthlyOffset
+  freqMonthlyOffset, setFreqMonthlyOffset,
+  chartBaseYear, setChartBaseYear,
+  chartBaseMonth, setChartBaseMonth,
+  availableYears
 }) => {
   const [freqFilter, setFreqFilter] = useState('monthly'); 
   const currentFreqData = freqFilter === 'monthly' ? (dispatchStats?.monthly || []) : (dispatchStats?.daily || []);
 
-  // เพิ่มฟังก์ชันจัดการคลิกเลื่อนกราฟความถี่
   const handleFreqPrev = () => {
     if (freqFilter === 'monthly') setFreqMonthlyOffset(prev => prev + 1);
     else setFreqDailyOffset(prev => prev + 1);
@@ -36,7 +73,6 @@ const StatisticsCharts = ({
     );
   }
 
-  // --- เพิ่มส่วนนี้: กรณีโหลดสำเร็จแต่ไม่มีข้อมูล ---
   if (trendData.length === 0 && unitStats.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-slate-50 rounded-2xl border border-slate-200 border-dashed m-2">
@@ -46,43 +82,50 @@ const StatisticsCharts = ({
     );
   }
 
-// --- เพิ่มไว้ด้านบน นอก Component StatisticsCharts ---
-const formatCompactNumber = (number) => {
-  if (number >= 1000) {
-    return (number / 1000).toFixed(number % 1000 !== 0 ? 1 : 0) + 'k';
-  }
-  return number;
-};
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 shadow-xl rounded-lg z-50">
-        <p className="text-sm font-bold text-slate-700 mb-2 border-b pb-1">{label}</p>
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center justify-between gap-6 text-xs py-0.5">
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-slate-500">{entry.name}:</span>
-            </span>
-            <span className="font-mono font-bold text-slate-800">
-              {/* แก้ไข: เช็ค undefined/null แทนการเช็ค truthy เพื่อให้ค่า 0 แสดงผลได้ถูกต้อง */}
-              {entry.value !== undefined && entry.value !== null ? entry.value.toLocaleString() : '0'}
-            </span>
-          </div>
+  // Component ย่อยสำหรับแสดง Dropdown เดือนและปี
+  const FilterSelectors = () => (
+    <div className="flex gap-2">
+      <select 
+        className="px-2 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-white text-slate-600 shadow-sm cursor-pointer"
+        value={chartBaseMonth}
+        onChange={(e) => {
+          const val = e.target.value;
+          setChartBaseMonth(val === 'ทั้งหมด' ? 'ทั้งหมด' : parseInt(val));
+          setTrendOffset(0); 
+          setFreqDailyOffset(0);
+          setFreqMonthlyOffset(0);
+        }}
+      >
+        <option value="ทั้งหมด">ทุกเดือน</option>
+        {THAI_MONTHS.map((m, i) => (
+          <option key={i} value={i + 1}>{m}</option>
         ))}
-      </div>
-    );
-  }
-  return null;
-};
+      </select>
+      <select 
+        className="px-2 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-white text-slate-600 shadow-sm cursor-pointer"
+        value={chartBaseYear}
+        onChange={(e) => {
+          const val = e.target.value;
+          setChartBaseYear(val === 'ทั้งหมด' ? 'ทั้งหมด' : parseInt(val));
+          setTrendOffset(0); 
+          setFreqDailyOffset(0);
+          setFreqMonthlyOffset(0);
+        }}
+      >
+        <option value="ทั้งหมด">ทุกปี</option>
+        {(availableYears?.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
+          <option key={y} value={y}>{parseInt(y) + 543}</option>
+        ))}
+      </select>
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-2">
       
       {/* 1. Monthly Trend Chart */}
-      <div className="bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 transition-all hover:shadow-md">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-indigo-500" />
@@ -93,18 +136,21 @@ const CustomTooltip = ({ active, payload, label }) => {
             </p>
           </div>
           
-          {/* เพิ่มส่วนปุ่มเลื่อนกราฟ Trend ตรงนี้ */}
-          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100">
-            <button onClick={() => setTrendOffset(prev => prev + 1)} className="p-1.5 hover:bg-white rounded-md shadow-sm text-slate-500 hover:text-indigo-600 transition-all" title="ดูข้อมูลเก่าขึ้น">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={() => setTrendOffset(prev => Math.max(0, prev - 1))} disabled={trendOffset === 0} className="p-1.5 hover:bg-white rounded-md shadow-sm text-slate-500 hover:text-indigo-600 transition-all disabled:opacity-30 disabled:hover:text-slate-500 disabled:shadow-none" title="ดูข้อมูลใหม่ขึ้น">
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterSelectors />
+            
+            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100">
+              <button onClick={() => setTrendOffset(prev => prev + 1)} className="p-1.5 hover:bg-white rounded-md shadow-sm text-slate-500 hover:text-indigo-600 transition-all" title="ดูข้อมูลเก่าขึ้น">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button onClick={() => setTrendOffset(prev => Math.max(0, prev - 1))} disabled={trendOffset === 0} className="p-1.5 hover:bg-white rounded-md shadow-sm text-slate-500 hover:text-indigo-600 transition-all disabled:opacity-30 disabled:hover:text-slate-500 disabled:shadow-none" title="ดูข้อมูลใหม่ขึ้น">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
         
-        <div className="h-80 w-full relative"> {/* เพิ่ม relative ย้ำความกว้าง */}
+        <div className="h-80 w-full relative">
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
             <ComposedChart data={trendData} margin={{top:10, right:10, left: -20, bottom:0}}>
               <defs>
@@ -120,19 +166,19 @@ const CustomTooltip = ({ active, payload, label }) => {
               <RechartsTooltip content={<CustomTooltip />} />
               <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} />
               
-              <Area yAxisId="left" type="monotone" dataKey="total" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} name="ยอดรวมทั้งหมด" />
-              <Bar yAxisId="left" dataKey="vaccine" fill="#38bdf8" barSize={12} radius={[4,4,0,0]} name="วัคซีน + ไมโครชิป" activeBar={{ stroke: '#0284c7', strokeWidth: 1, fill: '#7dd3fc' }} />
-              <Bar yAxisId="left" dataKey="sterilize" fill="#fb923c" barSize={12} radius={[4,4,0,0]} name="ทำหมัน" activeBar={{ stroke: '#ea580c', strokeWidth: 1, fill: '#fdba74' }} />
-              <Bar yAxisId="left" dataKey="medical" fill="#f472b6" barSize={12} radius={[4,4,0,0]} name="รักษาสัตว์" activeBar={{ stroke: '#db2777', strokeWidth: 1, fill: '#f9a8d4' }} />
-              <Line yAxisId="right" type="monotone" dataKey="register" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} name="ขึ้นทะเบียน" />
+              <Area isAnimationActive={false} yAxisId="left" type="monotone" dataKey="total" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} name="ยอดรวมทั้งหมด" />
+              <Bar isAnimationActive={false} yAxisId="left" dataKey="vaccine" fill="#38bdf8" barSize={12} radius={[4,4,0,0]} name="วัคซีน + ไมโครชิป" activeBar={{ stroke: '#0284c7', strokeWidth: 1, fill: '#7dd3fc' }} />
+              <Bar isAnimationActive={false} yAxisId="left" dataKey="sterilize" fill="#fb923c" barSize={12} radius={[4,4,0,0]} name="ทำหมัน" activeBar={{ stroke: '#ea580c', strokeWidth: 1, fill: '#fdba74' }} />
+              <Bar isAnimationActive={false} yAxisId="left" dataKey="medical" fill="#f472b6" barSize={12} radius={[4,4,0,0]} name="รักษาสัตว์" activeBar={{ stroke: '#db2777', strokeWidth: 1, fill: '#f9a8d4' }} />
+              <Line isAnimationActive={false} yAxisId="right" type="monotone" dataKey="register" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} name="ขึ้นทะเบียน" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-     {/* 2. Frequency Chart */}
+      {/* 2. Frequency Chart */}
       <div className="bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-teal-500" />
@@ -143,8 +189,9 @@ const CustomTooltip = ({ active, payload, label }) => {
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
-            {/* เพิ่มส่วนปุ่มเลื่อนกราฟ Frequency ตรงนี้ */}
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterSelectors />
+            
             <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100">
               <button onClick={handleFreqPrev} className="p-1.5 hover:bg-white rounded-md shadow-sm text-slate-500 hover:text-teal-600 transition-all" title="ดูข้อมูลเก่าขึ้น">
                 <ChevronLeft className="w-4 h-4" />
@@ -168,7 +215,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             </div>
           </div>
         </div>
-        <div className="h-80 w-full relative"> {/* เพิ่ม w-full และ relative */}
+        <div className="h-80 w-full relative">
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
             <BarChart data={currentFreqData} margin={{top:10, right:5, left:-25, bottom:10}}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -188,10 +235,13 @@ const CustomTooltip = ({ active, payload, label }) => {
               />
               <Legend iconType="rect" wrapperStyle={{ paddingTop: '20px', fontSize: '11px' }} />
               
-              <Bar dataKey="sterilization" fill="#60a5fa" name="สัตวแพทย์" radius={[3,3,0,0]} stackId="a" />
-              <Bar dataKey="vaccine_microchip" fill="#34d399" name="วัคซีน + ไมโครชิป" radius={[3,3,0,0]} stackId="a" />
-              <Bar dataKey="governor" fill="#fb923c" name="ผู้ว่าฯ" radius={[3,3,0,0]} stackId="a" />
-              <Bar dataKey="cat_cage" fill="#a78bfa" name="กรงแมว" radius={[3,3,0,0]} stackId="a" />
+              {/* แก้ไข: เอา radius ออกจากแท่งฐาน เพื่อไม่ให้เกิดรอยแหว่งตอนซ้อนทับกัน */}
+              <Bar dataKey="sterilization" fill="#60a5fa" name="สัตวแพทย์" stackId="a" />
+              <Bar dataKey="vaccine_microchip" fill="#34d399" name="วัคซีน + ไมโครชิป" stackId="a" />
+              <Bar dataKey="governor" fill="#fb923c" name="ผู้ว่าฯ" stackId="a" />
+              <Bar dataKey="cat_cage" fill="#a78bfa" name="กรงแมว" stackId="a" />
+              
+              {/* ใส่ radius ไว้แค่แท่งบนสุดแท่งเดียว */}
               <Bar dataKey="other" fill="#cbd5e1" name="อื่นๆ" radius={[3,3,0,0]} stackId="a" />
             </BarChart>
           </ResponsiveContainer>

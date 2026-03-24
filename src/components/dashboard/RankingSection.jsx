@@ -43,11 +43,11 @@ const RankingSection = ({
   // Helper Component สำหรับแสดง Stat ย่อย
   // แก้ไข Helper Component สำหรับแสดง Stat ย่อย และไฮไลต์ค่าสูงสุด
   const ServiceStat = ({ icon: Icon, color, label, value, isHighest }) => (
-    <div className={`flex flex-col items-center p-2 rounded-lg border transition-all relative ${
-      isHighest ? 'bg-indigo-50 border-indigo-200 shadow-sm transform scale-105' : 'bg-slate-50 border-slate-100'
+    <div className={`flex flex-col items-center p-2 rounded-lg border transition-colors relative ${
+      isHighest ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-slate-50 border-slate-100'
     }`}>
       {isHighest && (
-        <Star className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-500 fill-yellow-400 drop-shadow-sm animate-pulse" />
+        <Star className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-500 fill-yellow-400 drop-shadow-sm" />
       )}
       <div className={`p-1.5 rounded-full mb-1 ${color}`}>
         <Icon className="w-3.5 h-3.5" />

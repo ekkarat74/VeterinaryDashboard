@@ -10,10 +10,8 @@ const getPercentage = (part, total) => (total > 0 ? (part / total) * 100 : 0);
 
 // --- 1. Sub-Component: การ์ด KPI (สำหรับยอดรวม) ---
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, dogCount = 0, catCount = 0 }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default group relative overflow-hidden h-full">
-        {/* Decoration: Background Circle */}
-        <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 transition-transform group-hover:scale-150 duration-500 ${colorClass}`}></div>
-        
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow duration-300 cursor-default group relative overflow-hidden h-full">
+        <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 ${colorClass}`}></div>
         <div className="flex justify-between items-start w-full relative z-10 mb-4">
             <div className="flex-1 pr-2">
                 <p className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1 leading-tight line-clamp-2 min-h-[2rem]">
@@ -23,12 +21,12 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
                     {(value || 0).toLocaleString()}
                 </h3>
                 <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full inline-block animate-pulse ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full inline-block ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
                     {subtext}
                 </p>
             </div>
             
-            <div className={`w-14 h-14 rounded-2xl ${colorClass} ${shadowClass} flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+            <div className={`w-14 h-14 rounded-2xl ${colorClass} ${shadowClass} flex items-center justify-center shrink-0`}>
                 <Icon className="w-7 h-7 text-white drop-shadow-md" />
             </div>
         </div>
@@ -87,7 +85,7 @@ const UnitCard = ({ unit, index, maxVal }) => {
             <div className="p-5 flex flex-col flex-grow">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1"> 
-                        <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center bg-white shadow-sm group-hover:scale-110 transition-transform`}>
+                        <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center bg-white shadow-sm`}>
                             <IconComponent className={`w-5 h-5 ${theme.icon}`} />
                         </div>
                         <div className="min-w-0"> 
@@ -126,7 +124,7 @@ const UnitCard = ({ unit, index, maxVal }) => {
 
             <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-200/30">
                 <div 
-                    className={`h-full ${theme.bar} group-hover:h-1.5 transition-all duration-700 ease-out`} 
+                    className={`h-full ${theme.bar}`} 
                     style={{ width: `${percentage}%` }}
                 ></div>
             </div>
@@ -142,19 +140,21 @@ const KPISection = ({ totals = {}, unitStats = [] }) => {
         <div className="p-4 space-y-10">
             {/* 1. ส่วนสถิติแยกตามหน่วย (Unit Dispatch) */}
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
-                            <Truck className="w-5 h-5 text-white" /> 
+                <div>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200">
+                                <Truck className="w-5 h-5 text-white" /> 
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-800 leading-none mb-1">สถิติการออกปฏิบัติงาน</h3>
+                                <p className="text-xs text-slate-400 font-medium">แยกตามหน่วยให้บริการ (Unit Dispatch)</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-800 leading-none mb-1">สถิติการออกปฏิบัติงาน</h3>
-                            <p className="text-xs text-slate-400 font-medium">แยกตามหน่วยให้บริการ (Unit Dispatch)</p>
-                        </div>
+                        <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
+                            Active: {unitStats.length} Units
+                        </span>
                     </div>
-                    <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
-                        Active: {unitStats.length} Units
-                    </span>
                 </div>
 
                 {unitStats.length > 0 ? (
@@ -178,9 +178,11 @@ const KPISection = ({ totals = {}, unitStats = [] }) => {
 
             {/* 2. ส่วนยอดรวม (Overall Statistics) */}
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                <div className="flex items-center gap-2 mb-5">
-                    <BarChart3 className="w-5 h-5 text-blue-600" />
-                    <h3 className="text-lg font-bold text-slate-700">สรุปยอดรวมการให้บริการ (Overall)</h3>
+                <div>
+                    <div className="flex items-center gap-2 mb-5">
+                        <BarChart3 className="w-5 h-5 text-blue-600" />
+                        <h3 className="text-lg font-bold text-slate-700">สรุปยอดรวมการให้บริการ (Overall)</h3>
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">

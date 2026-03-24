@@ -367,21 +367,20 @@ ${staffDetails}
                     </div>
 
                     {unitType === 'other' && (
-                      <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                      <div className="mt-3"> 
                         <input 
                           type="text" 
                           placeholder="ระบุชื่อหน่วยงานที่ต้องการ..."
                           className="w-full pl-4 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-indigo-500 outline-none shadow-sm transition-all"
                           value={customUnitName}
                           onChange={(e) => setCustomUnitName(e.target.value)}
-                          autoFocus
                         />
                       </div>
                     )}
 
                     {/* 🟢 Checkbox แบ่งทีม (แสดงเฉพาะตอนสร้างใหม่และเลือกกรงแมว) */}
                     {(!initialData && unitType === 'cat_cage') && (
-                        <div className="mt-3 flex items-start gap-2 bg-indigo-50 p-3 rounded-xl border border-indigo-100 animate-in fade-in">
+                        <div className="mt-3 flex items-start gap-2 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
                             <input 
                                 type="checkbox" 
                                 id="splitTeamToggle" 

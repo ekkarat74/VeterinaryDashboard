@@ -142,8 +142,8 @@ const Sidebar = ({
                                     </button>
                                     
                                     {/* Dropdown Content */}
-                                    {isSystemMenuOpen && (
-                                        <div className="pl-11 pr-3 py-2 space-y-3 animate-in fade-in slide-in-from-top-2">
+                                   {isSystemMenuOpen && (
+                                        <div className="pl-11 pr-3 py-2 space-y-3">
                                             {isMagaAdmin && (
                                                 <div className="bg-slate-50/80 p-3 rounded-xl border border-slate-100">
                                                     <p className="text-[11px] font-semibold text-slate-400 mb-2 uppercase">แสดงแท็บเมนู</p>
@@ -198,7 +198,7 @@ const Sidebar = ({
                             {!isCollapsed && <span className="whitespace-nowrap">แจ้งโรคระบาด</span>}
                         </button>
                         <button onClick={() => handleAction(onOpenAddData)} title="เพิ่มข้อมูลบริการ" 
-                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-10 h-10 p-0' : 'w-full px-4 py-2.5'} rounded-xl font-semibold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5`}>
+                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-10 h-10 p-0' : 'w-full px-4 py-2.5'} rounded-xl font-semibold text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-300 shadow-sm hover:shadow-md`}>
                             <Plus className="w-4 h-4 shrink-0" />
                             {!isCollapsed && <span className="whitespace-nowrap">เพิ่มข้อมูลบริการ</span>}
                         </button>
@@ -208,8 +208,8 @@ const Sidebar = ({
                 {/* --- 5. Footer / Profile Section --- */}
                 <div className="p-4 border-t border-slate-200 bg-slate-50 shrink-0">
                     {!user ? (
-                        <button onClick={() => handleAction(onLogin)} title="เข้าสู่ระบบ" className={`group w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2.5' : 'px-4 py-2.5'} bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all`}>
-                            <Unlock className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" />
+                        <button onClick={() => handleAction(onLogin)} title="เข้าสู่ระบบ" className={`group w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2.5' : 'px-4 py-2.5'} bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-colors`}>
+                            <Unlock className="w-4 h-4 shrink-0" />
                             {!isCollapsed && <span className="whitespace-nowrap">เข้าสู่ระบบ</span>}
                         </button>
                     ) : (

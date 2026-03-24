@@ -196,8 +196,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const labelClass = "block text-xs font-semibold text-slate-600 mb-1.5";
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden border-0 sm:border border-slate-200">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6">
+      <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200">
 
         {/* Header */}
         <div className="px-4 sm:px-6 py-4 sm:py-5 mt-safe sm:mt-0 flex justify-between items-center shrink-0 border-b border-slate-100 bg-white z-10">
@@ -251,12 +251,12 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                   {formData.unit === 'หน่วยอื่น ๆ' && (
-                    <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                    <div className="mt-3">
                       <input 
                         required 
                         type="text" 
                         placeholder="โปรดระบุชื่อหน่วย..." 
-                        className="w-full px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-blue-800 placeholder:text-blue-400 transition-all"
+                        className="w-full px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-blue-800 placeholder:text-blue-400 transition-colors"
                         value={formData.otherUnit} 
                         onChange={e => setFormData({...formData, otherUnit: e.target.value})} 
                       />
@@ -546,7 +546,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       onChange={handleImageChange} 
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <div className="bg-white p-3 rounded-full shadow-sm border border-slate-100 mb-3 group-hover:scale-110 group-hover:text-blue-500 transition-all text-slate-400">
+                    <div className="bg-white p-3 rounded-full shadow-sm border border-slate-100 mb-3 group-hover:text-blue-500 transition-colors text-slate-400">
                       <Upload className="w-5 h-5" />
                     </div>
                     <p className="text-sm text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพประกอบ</p>

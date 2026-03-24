@@ -311,7 +311,7 @@ app.post('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmi
 // Get All Users
 app.get('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
   try {
-    const users = await User.find({}, '-password').sort({ _id: -1 });
+    const users = await User.find({}, '-password').sort({ _id: -1 }).lean();
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
