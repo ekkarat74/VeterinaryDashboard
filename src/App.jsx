@@ -254,9 +254,12 @@ export default function VeterinaryDashboard() {
         }
     }, [setUser]);
 
-    const canEdit = user && (user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
-    const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'MagaAdmin');
-    const isMagaAdmin = user && user.role === 'MagaAdmin';
+    const isSystemDeveloper = user && user.role === 'Developer';
+    
+    // ✅ นำ Developer เข้าไปรวมกับสิทธิ์ระดับสูงอื่นๆ เพื่อให้ใช้งานฟังก์ชันทั่วไปได้
+    const canEdit = user && (user.role === 'Developer' || user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
+    const isSuperAdmin = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
+    const isMagaAdmin = user && (user.role === 'Developer' || user.role === 'MagaAdmin');
 
     useEffect(() => {
         const fetchTabsConfig = async () => {
@@ -1306,6 +1309,7 @@ const handleCsvExport = useCallback((filters) => {
 
             <Sidebar 
                 user={user} isSuperAdmin={isSuperAdmin} canEdit={canEdit} 
+                isSystemDeveloper={isSystemDeveloper}
                 activeTab={activeTab} setActiveTab={setActiveTab}
                 isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed}
                 isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}

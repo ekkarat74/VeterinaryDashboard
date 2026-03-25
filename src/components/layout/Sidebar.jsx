@@ -52,7 +52,7 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
 // 🚀 Main Sidebar Component
 // --------------------------------------------------------
 const Sidebar = ({ 
-    user, isSuperAdmin, canEdit, isSystemMenuOpen, setIsSystemMenuOpen,
+    user, isSuperAdmin, canEdit, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen,
     onLogin, onLogout, onChangePassword, onOpenLog, onOpenUserMgmt,
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
     onOpenMeetingList, onOpenCalendar, onOpenMeetingCalendar,
@@ -198,10 +198,12 @@ const Sidebar = ({
                                                             <button onClick={() => handleAction(onOpenCsvOutbreak)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors"><Download className="w-4 h-4 shrink-0"/> นำเข้า CSV ระบาด</button>
                                                             <button onClick={() => handleAction(onOpenCsvReport)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"><Download className="w-4 h-4 shrink-0"/> นำเข้า CSV บริการ</button>
                                                             
-                                                            <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-2 rounded-lg text-sm font-medium text-sky-600 bg-sky-50/80 hover:text-sky-700 hover:bg-sky-100 flex items-center gap-2.5 transition-all shadow-sm border border-sky-100/50">
-                                                                <RefreshCw className="w-4 h-4 shrink-0" />
-                                                                บังคับอัปเดตระบบ
-                                                            </button>
+                                                            {isSystemDeveloper && (
+                                                                <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-2 rounded-lg text-sm font-medium text-sky-600 bg-sky-50/80 hover:text-sky-700 hover:bg-sky-100 flex items-center gap-2.5 transition-all shadow-sm border border-sky-100/50">
+                                                                    <RefreshCw className="w-4 h-4 shrink-0" />
+                                                                    บังคับอัปเดตระบบ
+                                                                </button>
+                                                            )}
                                                         </>
                                                     )}
                                                 </div>
@@ -249,9 +251,12 @@ const Sidebar = ({
                                         {user.username.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="flex flex-col min-w-0 flex-1">
-                                        <span className="text-sm font-bold text-slate-800 truncate">{user.username}</span>
-                                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider truncate">{user.role}</span>
-                                    </div>
+                                    <span className="text-sm font-bold text-slate-800 truncate">{user.username}</span>
+                                    {/* ✅ แปลงข้อความ Role 'Developer' ให้เป็น 'ผู้พัฒนาระบบ' */}
+                                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider truncate">
+                                        {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
+                                    </span>
+                                </div>
                                 </div>
                             )}
                             <div className={`flex ${isCollapsed ? 'flex-col gap-2 w-full' : 'gap-1 shrink-0'}`}>

@@ -48,7 +48,10 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                     <h3 className="text-lg font-bold tracking-wide">{user.username}</h3>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mt-1 rounded-full bg-slate-800/50 border border-slate-700">
                         <UserCog className="w-3.5 h-3.5 text-slate-300" />
-                        <span className="text-xs text-slate-300 uppercase tracking-wider font-medium">{user.role}</span>
+                        {/* ✅ เปลี่ยนให้แสดงคำว่า ผู้พัฒนาระบบ */}
+                        <span className="text-xs text-slate-300 uppercase tracking-wider font-medium">
+                            {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
+                        </span>
                     </div>
                     
                     <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors">
@@ -88,14 +91,23 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
-                                            value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                            <option value="MagaAdmin">MagaAdmin</option>
-                                            <option value="superadmin">SuperAdmin</option>
-                                            <option value="admin">Admin</option>
-                                            <option value="user">User</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
+                                        {/* ✅ ล็อค Dropdown ไม่ให้เปลี่ยนสิทธิ์ของ Developer ได้ */}
+                                        {user.role === 'Developer' ? (
+                                            <div className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-semibold text-center cursor-not-allowed">
+                                                ผู้พัฒนาระบบ (ไม่สามารถแก้ไขได้)
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+                                                    value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                                    <option value="MagaAdmin">MagaAdmin</option>
+                                                    <option value="superadmin">SuperAdmin</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="user">User</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
@@ -278,6 +290,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
     // Helper: Badge Style
     const getRoleBadgeStyle = (r) => {
         switch(r) {
+            case 'Developer': return 'bg-sky-100 text-sky-800 border-sky-300'; // ✅ เพิ่มสีสำหรับผู้พัฒนาระบบ
             case 'MagaAdmin': return 'bg-rose-100 text-rose-700 border-rose-200';
             case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
             case 'admin': return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -429,17 +442,26 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                                 <td className="p-3 font-semibold text-slate-700">{u.username}</td>
                                                 <td className="p-3 text-center">
                                                     <div className="relative inline-block w-full">
-                                                        <select 
-                                                            className={`text-xs font-bold pl-3 pr-6 py-1.5 rounded-lg border outline-none cursor-pointer appearance-none text-center w-full transition-colors ${getRoleBadgeStyle(u.role)}`}
-                                                            value={u.role}
-                                                            onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
-                                                        >
-                                                            <option value="MagaAdmin">MagaAdmin</option>
-                                                            <option value="superadmin">SuperAdmin</option>
-                                                            <option value="admin">Admin</option>
-                                                            <option value="user">User</option>
-                                                        </select>
-                                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none"/>
+                                                        {/* ✅ ถ้าเป็น Developer ให้แสดงเป็นป้ายข้อความล็อคไว้ ไม่ให้มี Dropdown */}
+                                                        {u.role === 'Developer' ? (
+                                                            <div className={`text-xs font-bold px-3 py-1.5 rounded-lg border text-center w-full ${getRoleBadgeStyle(u.role)}`}>
+                                                                ผู้พัฒนาระบบ
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <select 
+                                                                    className={`text-xs font-bold pl-3 pr-6 py-1.5 rounded-lg border outline-none cursor-pointer appearance-none text-center w-full transition-colors ${getRoleBadgeStyle(u.role)}`}
+                                                                    value={u.role}
+                                                                    onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
+                                                                >
+                                                                    <option value="MagaAdmin">MagaAdmin</option>
+                                                                    <option value="superadmin">SuperAdmin</option>
+                                                                    <option value="admin">Admin</option>
+                                                                    <option value="user">User</option>
+                                                                </select>
+                                                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none"/>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="p-3">

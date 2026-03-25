@@ -72,7 +72,7 @@ mongoose.connect(MONGO_URI)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['MagaAdmin', 'superadmin', 'admin', 'user'], default: 'user' }, // เพิ่ม 'MagaAdmin'
+  role: { type: String, enum: ['Developer', 'MagaAdmin', 'superadmin', 'admin', 'user'], default: 'user' },
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   lastLogin: { type: Date }
 });
@@ -291,9 +291,12 @@ app.get('/api/logs', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin'
 // =======================
 
 // Create User
-app.post('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
+app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { username, password, role } = req.body;
+        if (role === 'Developer') {
+             return res.status(403).json({ message: "ไม่อนุญาตให้ตั้งค่าตำแหน่ง 'ผู้พัฒนาระบบ' ได้" });
+        }
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         const newUser = new User({ username, password: hashedPassword, role }); 
@@ -319,9 +322,12 @@ app.get('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin
 });
 
 // Update User
-app.put('/api/users/:id', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
+app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { username, role, status } = req.body;
+        if (role === 'Developer') {
+             return res.status(403).json({ message: "ไม่อนุญาตให้เปลี่ยนตำแหน่งเป็น 'ผู้พัฒนาระบบ' ได้" });
+        }
         if (req.user._id === req.params.id && status === 'suspended') {
              return res.status(400).json({ message: "ไม่สามารถระงับบัญชีตัวเองได้" });
         }
@@ -828,9 +834,9 @@ app.put('/api/settings/tabs', authenticateToken, authorizeRole(['MagaAdmin']), a
 });
 
 // =======================
-// I. SYSTEM UPDATE (เพิ่มใหม่)
+// I. SYSTEM UPDATE
 // =======================
-app.post('/api/system/notify-update', authenticateToken, authorizeRole(['MagaAdmin']), async (req, res) => {
+app.post('/api/system/notify-update', authenticateToken, authorizeRole(['Developer']), async (req, res) => {
 try {
         // บันทึก Log
         await createLog(req, 'SYSTEM_UPDATE', 'ส่งแจ้งเตือนอัปเดตระบบ (บังคับรีเฟรชผู้ใช้ทั้งหมด)');
