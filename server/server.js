@@ -739,7 +739,7 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['Developer', '
 // =======================
 // G. DISPATCH PLANS (นำเข้าจากไฟล์แยก)
 // =======================
-const dispatchRoutes = require('./dispatchRoutes'); // แก้ Path ให้ตรงกับที่คุณเซฟไฟล์ไว้
+const dispatchRoutes = require('./routes/dispatchRoutes');
 app.use('/api/dispatches', dispatchRoutes(io, authenticateToken, authorizeRole, createLog));
 
 // =======================
