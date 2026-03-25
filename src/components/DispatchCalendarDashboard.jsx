@@ -100,13 +100,11 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     };
 
     return (
-        // [MODIFIED]: ปรับ Container นอกสุดให้กางเต็มขอบจอเสมอ ไม่มี Padding
         <div className={isInline 
-            ? "w-full h-full flex flex-col bg-white animate-in fade-in duration-200" 
-            : "fixed inset-0 z-50 bg-white animate-in fade-in duration-200"}>
+            ? "w-full flex-1 flex flex-col bg-white" // กางเต็มพื้นที่ของหน้าหลัก
+            : "fixed inset-0 z-50 bg-white animate-in fade-in duration-200"}> // โหมด Popup เต็มจอ
             
-            {/* [MODIFIED]: ลบ max-w-7xl, ขอบมน และความสูงตายตัวออก ให้เป็น w-full และ 100dvh */}
-            <div className="w-full h-[100dvh] flex flex-col overflow-hidden">
+            <div className={`w-full flex flex-col overflow-hidden ${isInline ? 'h-full' : 'h-[100dvh]'}`}>
                 
                 {/* Header */}
                 <div className="bg-white px-4 sm:px-6 py-4 mt-safe sm:mt-0 flex justify-between items-center border-b border-slate-100 shrink-0 z-10">
