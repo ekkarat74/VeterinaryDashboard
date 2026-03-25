@@ -275,8 +275,8 @@ app.post('/api/change-password', authenticateToken, async (req, res) => {
     }
 });
 
-// Get Logs (SuperAdmin Only) (✅ ส่วนที่เพิ่มใหม่)
-app.get('/api/logs', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
+// Get Logs (SuperAdmin & Developer Only)
+app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         // ดึง Log 200 รายการล่าสุด
         const logs = await SystemLog.find().sort({ createdAt: -1 }).limit(200);

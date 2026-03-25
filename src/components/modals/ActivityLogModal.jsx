@@ -203,7 +203,10 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                             </td>
                                             <td className="px-6 py-3">
                                                 <div className="font-bold text-slate-800">{log.user}</div>
-                                                <div className="text-[10px] text-slate-400 font-semibold uppercase">{log.role}</div>
+                                                {/* ✅ เปลี่ยนให้แสดงคำว่า ผู้พัฒนาระบบ ถ้า role เป็น Developer */}
+                                                <div className="text-[10px] text-slate-400 font-semibold uppercase">
+                                                    {log.role === 'Developer' ? 'ผู้พัฒนาระบบ' : log.role}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-3">
                                                 {getActionBadge(log.action)}
