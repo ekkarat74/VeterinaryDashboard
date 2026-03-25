@@ -35,6 +35,7 @@ import { getUnitKey } from './utils/helpers';
 import PieChartsSection from './components/dashboard/PieChartsSection';
 const UnitComparisonChart = React.lazy(() => import('./components/dashboard/UnitComparisonChart.jsx'));
 import ClearDataModal from './components/modals/ClearDataModal';
+import DispatchCalendarDashboard from './components/DispatchCalendarDashboard';
 
 // --- MAIN DASHBOARD COMPONENT ---
 
