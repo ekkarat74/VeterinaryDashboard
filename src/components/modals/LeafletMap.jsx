@@ -9,12 +9,12 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { 
     Filter, AlertTriangle, ChevronDown, ChevronUp, 
-    Map as MapIcon, PawPrint, MapPin, Trash2, Layers, Activity, Eye, EyeOff
+    Map as MapIcon, PawPrint, MapPin, Trash2, Layers, Activity, Eye, EyeOff, Edit2
 } from 'lucide-react';
 
 import { UNIT_TYPES } from '../../constants/locations'; 
 
-const LeafletMap = ({ data = [], outbreaks = [] }) => {
+const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit }) => {
     const centerPosition = [13.7563, 100.5018];
     const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
@@ -119,10 +119,11 @@ const LeafletMap = ({ data = [], outbreaks = [] }) => {
             `}</style>
 
             {/* --- Floating Control Panel --- */}
-            <div className={`absolute top-4 right-4 z-[500] flex flex-col bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-white transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
+            <div className={`absolute top-4 right-4 z-[500] flex flex-col bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-white transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0 max-h-[calc(100%-2rem)] overflow-hidden'}`}> 
                 
+                {/* Header (shrink-0 เพื่อป้องกันการหดตัว) */}
                 <div 
-                    className={`flex items-center justify-between cursor-pointer ${isCollapsed ? 'w-full h-full justify-center' : 'p-4 border-b border-slate-100/80'}`}
+                    className={`flex items-center justify-between cursor-pointer shrink-0 ${isCollapsed ? 'w-full h-full justify-center' : 'p-4 border-b border-slate-100/80'}`}
                     onClick={() => setIsCollapsed(!isCollapsed)}
                 >
                     {isCollapsed ? (
@@ -145,13 +146,13 @@ const LeafletMap = ({ data = [], outbreaks = [] }) => {
                     )}
                 </div>
 
-                {/* Content Panel */}
+                {/* Content Panel (ใช้ flex-1 และ overflow-y-auto เพื่อให้ Scroll ได้พอดีกรอบ) */}
                 {!isCollapsed && (
-                    <div className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300 flex-1 overflow-y-auto custom-scrollbar">
                         
                         {/* 1. Unit List (ข้อมูลผลการปฏิบัติงาน) */}
                         {data && data.length > 0 && (
-                            <div className="p-3 space-y-1.5">
+                            <div className="p-3 space-y-1.5 shrink-0">
                                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
                                     ประเภทหน่วยออกงาน
                                 </div>
@@ -200,9 +201,9 @@ const LeafletMap = ({ data = [], outbreaks = [] }) => {
                             </div>
                         )}
 
-                        {/* 2. รัศมีแจ้งเตือนและจุดเกิดเหตุล่าสุด (เพิ่มใหม่) */}
+                        {/* 2. รัศมีแจ้งเตือนและจุดเกิดเหตุล่าสุด */}
                         {(outbreaks && outbreaks.length > 0) && (
-                            <div className="border-t border-slate-200/80 mt-1 pt-4 pb-3 px-3 bg-red-50/40">
+                            <div className="border-t border-slate-200/80 mt-1 pt-4 pb-3 px-3 bg-red-50/40 shrink-0">
                                 
                                 {/* รัศมีแจ้งเตือน */}
                                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1 ml-1">
@@ -233,7 +234,6 @@ const LeafletMap = ({ data = [], outbreaks = [] }) => {
                                     จุดแจ้งเตือนล่าสุด
                                 </div>
                                 
-                                {/* เพิ่ม max-h-[180px], overflow-y-auto และ custom-scrollbar ตรงนี้ */}
                                 <div className="max-h-[180px] overflow-y-auto custom-scrollbar space-y-2 pr-1 pb-1">
                                     {recentOutbreaks.map((item, idx) => {
                                         const isHidden = hiddenMapIds.includes(item._id);
@@ -376,6 +376,20 @@ const LeafletMap = ({ data = [], outbreaks = [] }) => {
                                                 <span className="text-[10px] text-slate-400 font-medium">กิจกรรมรวมทั้งสิ้น</span>
                                                 <div className="text-2xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
                                             </div>
+
+                                            {canEdit && (
+                                                <div className="mt-3 w-full border-t border-slate-100 pt-3">
+                                                    <button 
+                                                        onClick={(e) => { 
+                                                            e.stopPropagation(); 
+                                                            onEdit(item); 
+                                                        }}
+                                                        className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-2 rounded-lg transition-colors text-xs border border-indigo-100"
+                                                    >
+                                                        <Edit2 className="w-3.5 h-3.5" /> แก้ไขข้อมูล
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </Popup>
@@ -436,6 +450,19 @@ const LeafletMap = ({ data = [], outbreaks = [] }) => {
                                                 <div className="flex flex-col"><span>🐱 แมว</span><span>{ catCount }</span></div>
                                             </div>
                                         </div>
+                                        {canEdit && (
+                                            <div className="mt-2 w-full">
+                                                <button 
+                                                    onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        if (onEditOutbreak) onEditOutbreak(item); 
+                                                    }}
+                                                    className="w-full flex items-center justify-center gap-1.5 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg transition-colors text-xs"
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" /> แก้ไขจุดแจ้งเหตุ
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </Popup>
                             </Marker>

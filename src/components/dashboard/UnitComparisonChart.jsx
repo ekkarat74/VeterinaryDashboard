@@ -1,3 +1,4 @@
+import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { Users } from 'lucide-react';
 
@@ -5,11 +6,11 @@ export default function UnitComparisonChart({ unitStats }) {
   if (!unitStats || unitStats.length === 0) return null;
 
   return (
-    <div className="bg-indigo-50 p-8 rounded-3xl shadow-sm border border-indigo-100 overflow-hidden relative">
+    <div className="bg-indigo-50 p-8 rounded-3xl shadow-sm border border-indigo-100 overflow-hidden relative h-full flex flex-col">
       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-200/20 rounded-full -mr-32 -mt-32 blur-3xl" />
       
-      <div className="relative z-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="relative z-10 flex flex-col flex-1 h-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 shrink-0">
           <div>
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
               <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-500">
@@ -32,7 +33,7 @@ export default function UnitComparisonChart({ unitStats }) {
           </div>
         </div>
         
-        <div className="h-96 w-full relative">
+        <div className="flex-1 w-full relative min-h-[400px]">
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
             <BarChart 
               data={unitStats} 

@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
-    Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut
+    Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -1453,14 +1453,39 @@ const handleCsvExport = useCallback((filters) => {
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
                                         <KPISection totals={totals} unitStats={unitStats} />
-                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                            <RankingSection rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} rankingNestedStats={rankingNestedStats} />
-                                                <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[56rem] relative z-0">
-                                                    <LeafletMap data={mapDisplayData} outbreaks={outbreakData} />
-                                                </div>
-                                        </div>
+
+        {/* แถวที่ 1: ข้างบนฝั่งซ้าย (สถิติหน่วยงาน) | ฝั่งขวา (Map) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <RankingSection 
+                type="table" 
+                rankingYear={rankingYear} 
+                setRankingYear={setRankingYear} 
+                rankingMonth={rankingMonth} 
+                setRankingMonth={setRankingMonth} 
+                availableYears={availableYears} 
+                thaiMonths={THAI_MONTHS} 
+                rankingUnitStats={rankingUnitStats} 
+            />
+            
+            <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] h-full relative z-0">
+                <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
+            </div>
+        </div>
+
+        {/* แถวที่ 2: ข้างล่างฝั่งซ้าย (เจาะลึก 5 อันดับแรก) | ฝั่งขวา (ประสิทธิภาพและจำนวนครั้ง) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <RankingSection 
+                type="deepdive" 
+                rankingNestedStats={rankingNestedStats} 
+            />
+            
+            <div className="lg:col-span-7 h-full">
+                <UnitComparisonChart unitStats={unitStats} />
+            </div>
+        </div>
+
                                         <StatisticsCharts 
-                                            trendData={trendData} 
+                                            trendData={trendData}
                                             unitStats={unitStats} 
                                             dispatchStats={dispatchStats}
                                             trendOffset={trendOffset}
@@ -1481,7 +1506,6 @@ const handleCsvExport = useCallback((filters) => {
                                             unitByWorkTypePieData={unitByWorkTypePieData}
                                             outbreakPieData={outbreakPieData}
                                         />
-                                        <UnitComparisonChart unitStats={unitStats} />
                                     </div>
                                 )}
 
@@ -1507,6 +1531,21 @@ const handleCsvExport = useCallback((filters) => {
                                 {activeTab === 'database' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
                                         <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
+                                    </div>
+                                )}
+
+                                {activeTab === 'calendar' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto h-[calc(100vh-140px)]">
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full relative">
+                                            {/* เรนเดอร์ปฏิทินแบบ Inline (ส่งค่า isInline เป็น true) */}
+                                            <DispatchCalendarDashboard 
+                                                isOpen={true} 
+                                                events={dispatchEventsOnly} 
+                                                onOpenForm={openDispatchForm} 
+                                                onEventClick={openDispatchEvent} 
+                                                isInline={true} 
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </>
@@ -1551,6 +1590,14 @@ const handleCsvExport = useCallback((filters) => {
                     >
                         <Database className="w-5 h-5 mb-1" />
                         <span className="text-[10px]">ฐานข้อมูล</span>
+                    </button>
+                )}
+                {(user || tabsConfig.calendar) && (
+                    <button onClick={() => setActiveTab('calendar')} 
+                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-blue-600 font-bold bg-blue-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        <CalendarDays className="w-5 h-5 mb-1" />
+                        <span className="text-[10px]">ปฏิทิน</span>
                     </button>
                 )}
             </div>

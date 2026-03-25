@@ -138,16 +138,17 @@ const Sidebar = ({
                     {(user || tabsConfig?.overview) && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
                     {(user || tabsConfig?.outbreak) && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
                     {(user || tabsConfig?.database) && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
-
+                    {(user || tabsConfig?.calendar) && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
                     {/* 🟢 ปฏิทิน & นัดหมาย */}
-                    {user && (
-                        <>
-                            {renderSectionHeader('ปฏิทิน & นัดหมาย')}
-                            <NavItem icon={List} label="ประวัติประชุม" onClick={() => handleAction(onOpenMeetingList)} isCollapsed={isCollapsed} />
-                            <NavItem icon={CalendarDays} label="แผนออกหน่วย" onClick={() => handleAction(onOpenCalendar)} isCollapsed={isCollapsed} />
-                            <NavItem icon={CalendarDays} label="ปฏิทินประชุม" onClick={() => handleAction(onOpenMeetingCalendar)} isCollapsed={isCollapsed} />
-                        </>
-                    )}
+{/* 🟢 ปฏิทิน & นัดหมาย */}
+{user && (
+    <>
+        {renderSectionHeader('ปฏิทิน & นัดหมาย')}
+        <NavItem icon={List} label="ประวัติประชุม" onClick={() => handleAction(onOpenMeetingList)} isCollapsed={isCollapsed} />
+        {/* ลบ "แผนออกหน่วย" ออกจากตรงนี้ เพราะย้ายขึ้นไปด้านบนแล้ว */}
+        <NavItem icon={CalendarDays} label="ปฏิทินประชุม" onClick={() => handleAction(onOpenMeetingCalendar)} isCollapsed={isCollapsed} />
+    </>
+)}
 
                     {/* 🟢 ตั้งค่าระบบ */}
                     {user && (isSuperAdmin || canEdit) && (
@@ -174,7 +175,8 @@ const Sidebar = ({
                                                             {[
                                                                 { id: 'overview', label: 'ภาพรวม' },
                                                                 { id: 'outbreak', label: 'จุดเสี่ยง' },
-                                                                { id: 'database', label: 'ฐานข้อมูล' }
+                                                                { id: 'database', label: 'ฐานข้อมูล' },
+                                                                { id: 'calendar', label: 'ปฏิทิน' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
                                                                     <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
