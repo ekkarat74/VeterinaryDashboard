@@ -345,45 +345,53 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                 <div className="md:col-span-3">
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="block text-xs font-semibold text-slate-600">หน่วยกิจกรรม</label>
-                    {customUnitsObj.length > 0 && (
-                      <button 
-                        type="button" 
-                        onClick={() => setIsManagingUnits(!isManagingUnits)}
-                        className="text-[10px] text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-md transition-colors"
-                      >
-                        {isManagingUnits ? 'ปิดการจัดการ' : '⚙️ จัดการหน่วย'}
-                      </button>
-                    )}
+                    
+                    {/* เอาเงื่อนไข customUnitsObj.length > 0 ออก เพื่อให้ปุ่มแสดงตลอดเวลา */}
+                    <button 
+                      type="button" 
+                      onClick={() => setIsManagingUnits(!isManagingUnits)}
+                      className="text-[10px] text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-md transition-colors"
+                    >
+                      {isManagingUnits ? 'ปิดการจัดการ' : '⚙️ จัดการหน่วย'}
+                    </button>
                   </div>
 
+                  {/* ส่วนที่สลับการแสดงผลระหว่าง "โหมดจัดการ" กับ "โหมดเลือกปกติ" */}
                   {isManagingUnits ? (
                     <div className="border border-slate-200 rounded-xl p-2 bg-slate-50 max-h-40 overflow-y-auto custom-scrollbar">
-                      {customUnitsObj.map(u => (
-                        <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1.5 rounded-lg border border-slate-100 shadow-sm">
-                          {editingUnitId === u._id ? (
-                            <input 
-                              type="text" 
-                              className="flex-1 text-sm border-b border-indigo-300 px-1 py-0.5 outline-none mr-2 bg-indigo-50/30"
-                              value={editingUnitName}
-                              onChange={e => setEditingUnitName(e.target.value)}
-                            />
-                          ) : (
-                            <span className="text-sm text-slate-700 truncate pr-2">{u.name}</span>
-                          )}
-                          
-                          <div className="flex gap-1 shrink-0">
+                      {customUnitsObj.length > 0 ? (
+                        customUnitsObj.map(u => (
+                          <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1.5 rounded-lg border border-slate-100 shadow-sm">
                             {editingUnitId === u._id ? (
-                              <button type="button" onClick={() => handleUpdateCustomUnit(u._id)} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md"><Check className="w-3.5 h-3.5"/></button>
+                              <input 
+                                type="text" 
+                                className="flex-1 text-sm border-b border-indigo-300 px-1 py-0.5 outline-none mr-2 bg-indigo-50/30"
+                                value={editingUnitName}
+                                onChange={e => setEditingUnitName(e.target.value)}
+                              />
                             ) : (
-                              <button type="button" onClick={() => { setEditingUnitId(u._id); setEditingUnitName(u.name); }} className="text-amber-500 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-md"><Edit2 className="w-3.5 h-3.5"/></button>
+                              <span className="text-sm text-slate-700 truncate pr-2">{u.name}</span>
                             )}
-                            <button type="button" onClick={() => handleDeleteCustomUnit(u._id, u.name)} className="text-rose-500 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md"><Trash2 className="w-3.5 h-3.5"/></button>
+                            
+                            <div className="flex gap-1 shrink-0">
+                              {editingUnitId === u._id ? (
+                                <button type="button" onClick={() => handleUpdateCustomUnit(u._id)} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md"><Check className="w-3.5 h-3.5"/></button>
+                              ) : (
+                                <button type="button" onClick={() => { setEditingUnitId(u._id); setEditingUnitName(u.name); }} className="text-amber-500 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-md"><Edit2 className="w-3.5 h-3.5"/></button>
+                              )}
+                              <button type="button" onClick={() => handleDeleteCustomUnit(u._id, u.name)} className="text-rose-500 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md"><Trash2 className="w-3.5 h-3.5"/></button>
+                            </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="text-center text-xs text-slate-400 py-3">
+                          ยังไม่มีหน่วยที่เพิ่มเอง
                         </div>
-                      ))}
+                      )}
                     </div>
                   ) : (
                     <>
+                      {/* Dropdown เลือกหน่วยปกติ */}
                       <select 
                         className={inputClass}
                         value={formData.unit} 
@@ -391,6 +399,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       >
                         {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
+                      
+                      {/* กล่องพิมพ์ชื่อหน่วยใหม่ เมื่อเลือก "หน่วยอื่น ๆ" */}
                       {formData.unit === 'หน่วยอื่น ๆ' && (
                         <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
                           <input 
