@@ -1537,15 +1537,9 @@ const handleCsvExport = useCallback((filters) => {
 
                                 {activeTab === 'calendar' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto h-[calc(100vh-140px)]">
-                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full relative">
-                                            {/* เรนเดอร์ปฏิทินแบบ Inline (ส่งค่า isInline เป็น true) */}
-                                            <DispatchCalendarDashboard 
-                                                isOpen={true} 
-                                                events={dispatchEventsOnly} 
-                                                onOpenForm={openDispatchForm} 
-                                                onEventClick={openDispatchEvent} 
-                                                isInline={true} 
-                                            />
+                                        {/* ให้ปฏิทินกางเต็มพื้นที่ไปเลย */}
+                                        <div className="w-full h-full mt-4 flex-1">
+                                            <DispatchCalendarDashboard isInline={true} events={events} />
                                         </div>
                                     </div>
                                 )}
