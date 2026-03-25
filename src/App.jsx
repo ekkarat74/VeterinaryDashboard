@@ -1297,7 +1297,7 @@ const handleCsvExport = useCallback((filters) => {
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={closeBackupModal} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={closeImagePreview} />
             <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
-            <UserManagementModal isOpen={isUserMgmtOpen} onClose={closeUserMgmtModal} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <UserManagementModal isOpen={isUserMgmtOpen} onClose={closeUserMgmtModal} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
             <ClearDataModal isOpen={isClearDataModalOpen} onClose={closeClearDataModal} onConfirm={executeClearAllData} availableYears={availableYears} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={closeChangePasswordModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={closeLogModal} token={user?.token} apiBaseUrl={BASE_URL} />

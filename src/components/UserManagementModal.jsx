@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 // --- Sub-Component: Edit User Modal ---
-const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => {
+const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, currentUserRole }) => {
     const [formData, setFormData] = useState({ username: '', role: 'user', status: 'active' });
     const [newPassword, setNewPassword] = useState('');
     const [activeTab, setActiveTab] = useState('info'); // 'info' | 'password'
@@ -91,8 +91,8 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        {/* ✅ ล็อค Dropdown ไม่ให้เปลี่ยนสิทธิ์ของ Developer ได้ */}
-                                        {user.role === 'Developer' ? (
+                                        {/* ✅ ล็อค Dropdown เฉพาะถ้าผู้ใช้เป็น Developer และคนแก้ 'ไม่ใช่' Developer */}
+                                        {(user.role === 'Developer' && currentUserRole !== 'Developer') ? (
                                             <div className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-semibold text-center cursor-not-allowed">
                                                 ผู้พัฒนาระบบ (ไม่สามารถแก้ไขได้)
                                             </div>
@@ -100,6 +100,10 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
                                             <>
                                                 <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
                                                     value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                                    
+                                                    {/* ✅ เพิ่มตัวเลือก Developer เฉพาะถ้าคนกำลังแก้คือ Developer */}
+                                                    {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
+                                                    
                                                     <option value="MagaAdmin">MagaAdmin</option>
                                                     <option value="superadmin">SuperAdmin</option>
                                                     <option value="admin">Admin</option>
@@ -161,7 +165,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword }) => 
 };
 
 // --- Main Component: User Management Modal ---
-const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) => {
+const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, currentUserRole }) => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("admin");
@@ -282,10 +286,21 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
         }
     };
 
-    // Filtered Users (Bug Fix: Used to be just declaring it, now applied in table map)
-    const filteredUsers = userList.filter(u => 
-        u.username.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // ✅ Bug Fix: กรองข้อมูลผู้ใช้ และนำตัวแปรนี้ไปใช้ในตาราง (เดิมไม่ได้ถูกเรียกใช้)
+    const filteredUsers = userList.filter(u => {
+        // 1. ถ้าคนล็อกอิน "ไม่ใช่" Developer และบัญชีในลูป "คือ" Developer -> ให้ซ่อน (return false)
+        if (currentUserRole !== 'Developer' && u.role === 'Developer') {
+            return false;
+        }
+        
+        // 2. [ส่วนที่เพิ่มใหม่] ถ้าคนล็อกอิน "คือ" Developer ให้ซ่อนบัญชีที่ "ไม่ใช่" Developer (ผู้พัฒนาระบบจะไม่เห็นผู้ใช้คนอื่น)
+        if (currentUserRole === 'Developer' && u.role !== 'Developer') {
+            return false;
+        }
+        
+        // 3. กรองตามคำค้นหาปกติ (เพิ่ม optional chaining '?.' เพื่อป้องกัน Error กรณีไม่มีข้อมูล username)
+        return u.username?.toLowerCase().includes(searchTerm?.toLowerCase() || '');
+    });
 
     // Helper: Badge Style
     const getRoleBadgeStyle = (r) => {
@@ -308,6 +323,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                 user={editingUser}
                 onUpdate={handleUpdateUser}
                 onResetPassword={handleAdminResetPassword}
+                currentUserRole={currentUserRole}
             />
             <div className="bg-white rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
                 
@@ -352,6 +368,10 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                     <div className="relative">
                                         <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl bg-slate-50 appearance-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium text-slate-700 transition-all cursor-pointer" 
                                             value={role} onChange={e=>setRole(e.target.value)}>
+                                            
+                                            {/* ✅ เพิ่มตัวเลือก Developer เข้าไปในเมนูสร้างไอดี เฉพาะเมื่อแอดมินคือ Developer */}
+                                            {currentUserRole === 'Developer' && <option value="Developer">Developer (ผู้พัฒนาระบบ)</option>}
+                                            
                                             <option value="MagaAdmin">MagaAdmin (สูงสุด + จัดการแท็บ)</option>
                                             <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
                                             <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
@@ -442,27 +462,29 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast }) =>
                                                 <td className="p-3 font-semibold text-slate-700">{u.username}</td>
                                                 <td className="p-3 text-center">
                                                     <div className="relative inline-block w-full">
-                                                        {/* ✅ ถ้าเป็น Developer ให้แสดงเป็นป้ายข้อความล็อคไว้ ไม่ให้มี Dropdown */}
-                                                        {u.role === 'Developer' ? (
-                                                            <div className={`text-xs font-bold px-3 py-1.5 rounded-lg border text-center w-full ${getRoleBadgeStyle(u.role)}`}>
-                                                                ผู้พัฒนาระบบ
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <select 
-                                                                    className={`text-xs font-bold pl-3 pr-6 py-1.5 rounded-lg border outline-none cursor-pointer appearance-none text-center w-full transition-colors ${getRoleBadgeStyle(u.role)}`}
-                                                                    value={u.role}
-                                                                    onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
-                                                                >
-                                                                    <option value="MagaAdmin">MagaAdmin</option>
-                                                                    <option value="superadmin">SuperAdmin</option>
-                                                                    <option value="admin">Admin</option>
-                                                                    <option value="user">User</option>
-                                                                </select>
-                                                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none"/>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                    {/* ✅ ล็อค Dropdown เฉพาะถ้าผู้ใช้เป็น Developer และคนแก้ 'ไม่ใช่' Developer */}
+                                                    {(u.role === 'Developer' && currentUserRole !== 'Developer') ? (
+                                                        <div className={`text-xs font-bold px-3 py-1.5 rounded-lg border text-center w-full ${getRoleBadgeStyle(u.role)}`}>
+                                                            ผู้พัฒนาระบบ
+                                                        </div>
+                                                    ) : (
+                                                         <>
+                                                            <select 
+                                                                className={`text-xs font-bold pl-3 pr-6 py-1.5 rounded-lg border outline-none cursor-pointer appearance-none text-center w-full transition-colors ${getRoleBadgeStyle(u.role)}`}
+                                                                value={u.role}
+                                                                onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
+                                                            >
+                                                                {/* ✅ แสดงตัวเลือก Developer ให้เปลี่ยนได้ ถ้าคนที่ล็อกอินคือ Developer */}
+                                                                {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
+                                                                <option value="MagaAdmin">MagaAdmin</option>
+                                                                <option value="superadmin">SuperAdmin</option>
+                                                                <option value="admin">Admin</option>
+                                                                <option value="user">User</option>
+                                                            </select>
+                                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none"/>
+                                                        </>
+                                                    )}
+                                                </div>
                                                 </td>
                                                 <td className="p-3">
                                                     <div className="flex justify-end gap-1.5">

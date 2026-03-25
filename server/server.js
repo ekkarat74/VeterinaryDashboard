@@ -188,7 +188,7 @@ const createLog = async (req, action, details, metadata = null) => {
         const username = req.user ? req.user.username : (req?.body?.username || 'Unknown/System');
         const role = req.user ? req.user.role : 'Guest';
         
-        // ✅ แก้ไข: ใส่ ? เพื่อป้องกัน Error กรณี req.headers หรือ req.socket ไม่มีค่า
+        // ✅ แก้ไข: ใส่ ? เพื่อป้องกัน Error กรณี req.headers หรือ req.socket ไม่มีค่า (สาเหตุที่ทำให้บันทึก Log ไม่ได้)
         const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || 'Unknown IP';
 
         await SystemLog.create({
@@ -245,7 +245,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   user.lastLogin = new Date();
   await user.save();
 
-  // ✅ แก้ไข: ยัดค่า user ลงใน req ชั่วคราวเพื่อให้ createLog ดึงไปใช้ได้เลย
+  // ✅ แก้ไข: ยัดค่า user ลงใน req ชั่วคราวเพื่อให้ createLog ดึงไปใช้บันทึกประวัติการเข้าสู่ระบบได้
   req.user = { username: user.username, role: user.role };
   await createLog(req, 'LOGIN', 'เข้าสู่ระบบสำเร็จ');
 
@@ -312,9 +312,15 @@ app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin'
 });
 
 // Get All Users
-app.get('/api/users', authenticateToken, authorizeRole(['MagaAdmin', 'superadmin']), async (req, res) => {
+app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
   try {
-    const users = await User.find({}, '-password').sort({ _id: -1 }).lean();
+    let query = {};
+    
+    if (req.user.role === 'Developer') {
+        query = { _id: req.user._id };
+    }
+
+    const users = await User.find(query, '-password').sort({ _id: -1 }).lean();
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
