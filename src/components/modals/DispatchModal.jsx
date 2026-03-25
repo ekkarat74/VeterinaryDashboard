@@ -68,7 +68,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 
   const UNIT_OPTIONS = [
     { value: 'sterilization', label: 'หน่วยสัตว์แพทย์ (Veterinary Unit)', color: 'text-blue-600', icon: '🏥' },
-    { value: 'spay_neuter', label: 'หน่วยทำหมัน (Spay/Neuter Unit)', color: 'text-pink-600', icon: '✂️' }, // ✨ ส่วนที่เพิ่มเข้ามา
+    { value: 'spay_neuter', label: 'หน่วยทำหมัน (Spay/Neuter Unit)', color: 'text-pink-600', icon: '✂️' },
     { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป', color: 'text-teal-600', icon: '💉' },
     { value: 'governor', label: 'หน่วยผู้ว่า (Governor Unit)', color: 'text-purple-600', icon: '👔' },
     { value: 'cat_cage', label: 'หน่วยกรงแมว (Cat Cage)', color: 'text-orange-600', icon: '🐱' },
@@ -111,7 +111,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 
   useEffect(() => {
     if (isOpen && initialData) {
-      setIsSplitTeam(false); // ปิดการแบ่งทีมเมื่อกำลังแก้ไขข้อมูลเดิม
+      setIsSplitTeam(false);
       setUnitType(initialData.unitType || 'sterilization');
       setCustomUnitName(initialData.customUnitName || '');
       setUnitLetter(initialData.unitLetter || ''); 
@@ -262,7 +262,6 @@ ${staffDetails}
       : currentUnitLabel;
 
     if (isSplitTeam) {
-      // 🟢 บันทึกทีม A
       const payloadA = {
         _id: undefined,
         ...generalInfo,
@@ -275,7 +274,6 @@ ${staffDetails}
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
-      // 🟢 บันทึกทีม B
       const payloadB = {
         _id: undefined,
         ...generalInfo,
@@ -291,7 +289,7 @@ ${staffDetails}
 
       if (onSave) {
         onSave(payloadA);
-        setTimeout(() => onSave(payloadB), 300); // หน่วงเวลาบันทึก B
+        setTimeout(() => onSave(payloadB), 300);
       }
     } else {
       const payload = {
@@ -312,8 +310,11 @@ ${staffDetails}
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
+    // 🔴 แก้ไขที่บรรทัดนี้: เพิ่ม pb-24 (หรือประมาณ 6rem) สำหรับดันจากจอด้านล่างบนมือถือ และ sm:p-6 รีเซ็ตให้จอใหญ่ปกติ
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 pb-24 sm:p-6 sm:pb-6 animate-in fade-in duration-200">
+      
+      // 🔴 แก้ไขที่บรรทัดนี้: ปรับ max-h-[85vh] สำหรับมือถือ ให้ความสูงกล่องไม่ทะลุลงไปถึงขอบจอล่าง
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
         
         {/* Header */}
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center shrink-0 z-10">
@@ -335,16 +336,13 @@ ${staffDetails}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar">
           <div className="max-w-5xl mx-auto space-y-8">
             
-            {/* Section 1: ข้อมูลหลัก (Main Info - Redesigned UI) */}
+            {/* Section 1: ข้อมูลหลัก */}
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
-              {/* --- Left Column (Controls & Time) --- */}
               <div className="lg:col-span-4 space-y-6">
                 
                 {/* Top Controls: Unit, Team, Color */}
                 <div className="space-y-5">
-                  
-                  {/* แถวที่ 1: ประเภทหน่วยงาน */}
                   <div className="w-full">
                     <label className="block text-xs font-bold text-slate-500 mb-2">ประเภทหน่วยงาน</label>
                     <div className="relative">
@@ -353,7 +351,7 @@ ${staffDetails}
                         value={unitType} 
                         onChange={(e) => {
                           setUnitType(e.target.value);
-                          if(e.target.value !== 'cat_cage') setIsSplitTeam(false); // ยกเลิกแบ่งทีมถ้าไม่ใช่กรงแมว
+                          if(e.target.value !== 'cat_cage') setIsSplitTeam(false);
                         }}
                         className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm cursor-pointer appearance-none"
                       >
@@ -378,7 +376,6 @@ ${staffDetails}
                       </div>
                     )}
 
-                    {/* 🟢 Checkbox แบ่งทีม (แสดงเฉพาะตอนสร้างใหม่และเลือกกรงแมว) */}
                     {(!initialData && unitType === 'cat_cage') && (
                         <div className="mt-3 flex items-start gap-2 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
                             <input 
@@ -395,10 +392,7 @@ ${staffDetails}
                     )}
                   </div>
 
-                  {/* แถวที่ 2: สาย/ทีม (A-G) และ สีประจำหน่วย */}
                   <div className="flex gap-4">
-                    
-                    {/* สาย/ทีม (A-G) ซ่อนเมื่อเลือกแบ่งทีมแล้ว */}
                     {!isSplitTeam && (
                       <div className="w-[85px] shrink-0">
                         <label className="block text-xs font-bold text-slate-500 mb-2 text-center">สาย/ทีม</label>
@@ -420,7 +414,6 @@ ${staffDetails}
                       </div>
                     )}
 
-                    {/* สีประจำหน่วย */}
                     <div className="flex-1">
                       <label className="block text-xs font-bold text-slate-500 mb-2 text-center">สีประจำหน่วย</label>
                       <div className="grid grid-cols-4 gap-2 justify-items-center">
@@ -482,13 +475,12 @@ ${staffDetails}
                 </div>
               </div>
 
-              {/* --- Right Column (Location Form) --- */}
+              {/* Right Column (Location Form) */}
               <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                 <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
                   <MapPin className="w-4 h-4 text-rose-500" /> ข้อมูลสถานที่ (Location)
                 </h4>
                 
-                {/* 🟢 สถานที่ทีม A */}
                 <div className="space-y-5">
                   {isSplitTeam && <h5 className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg inline-block">📍 สถานที่ ทีม A</h5>}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -549,7 +541,6 @@ ${staffDetails}
                   </div>
                 </div>
 
-                {/* 🟢 สถานที่ทีม B (แสดงเมื่อ isSplitTeam เปิดใช้งาน) */}
                 {isSplitTeam && (
                   <div className="space-y-5 border-t border-slate-100 pt-6 mt-6">
                     <h5 className="text-sm font-bold text-rose-500 bg-rose-50 px-3 py-1.5 rounded-lg inline-block">📍 สถานที่ ทีม B</h5>
@@ -625,7 +616,7 @@ ${staffDetails}
 
             </section>
 
-            {/* Section 2: รายชื่อผู้ปฏิบัติงาน (Staff) */}
+            {/* Section 2: รายชื่อผู้ปฏิบัติงาน */}
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-px flex-1 bg-slate-200"></div>
@@ -636,15 +627,12 @@ ${staffDetails}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Core Team */}
                 <StaffInputGroup roleKey="vets" label="สัตวแพทย์ (Vets)" icon={UserPlus} staffList={staff.vets} {...commonProps} />
                 <StaffInputGroup roleKey="drivers" label="คนขับรถ (Drivers)" icon={Activity} staffList={staff.drivers} {...commonProps} />
                 
-                {/* Dynamic Team based on Unit Type */}
-                {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( // ✨ แก้ไขบรรทัดนี้
+                {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( 
                   <>
-                    {/* 2. แก้ไขให้แสดงช่อง "ลงทะเบียน" สำหรับหน่วยทำหมันด้วย */}
-                    {(unitType === 'sterilization' || unitType === 'spay_neuter') && ( // ✨ แก้ไขบรรทัดนี้
+                    {(unitType === 'sterilization' || unitType === 'spay_neuter') && ( 
                       <StaffInputGroup roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
                     )}
                     <StaffInputGroup roleKey="prep_catch" label="จับ/วางยา" staffList={staff.prep_catch} {...commonProps} />
@@ -660,7 +648,7 @@ ${staffDetails}
                   </>
                 )}
 
-                {(unitType !== 'sterilization' && unitType !== 'cat_cage' && unitType !== 'spay_neuter') && ( // ✨ แก้ไขบรรทัดนี้
+                {(unitType !== 'sterilization' && unitType !== 'cat_cage' && unitType !== 'spay_neuter') && (
                   <StaffInputGroup roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={staff.assistants} {...commonProps} />
                 )}
               </div>
@@ -670,6 +658,7 @@ ${staffDetails}
         </div>
 
         {/* Footer Actions */}
+        {/* 🔴 แก้ไขที่บรรทัดนี้: ลดระยะห่าง (gap) ในจอเล็ก เพื่อป้องกันปุ่มเบียดกันจนตกขอบ */}
         <div className="p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-between items-center shrink-0">
           {initialData && onDelete ? (
             <button 
@@ -680,24 +669,24 @@ ${staffDetails}
             </button>
           ) : <div></div>}
 
-          <div className="flex w-full sm:w-auto gap-3">
+          <div className="flex w-full sm:w-auto gap-2 sm:gap-3">
             <button 
               onClick={onClose} 
-              className="flex-1 sm:flex-none px-6 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-colors"
+              className="flex-1 sm:flex-none px-2 sm:px-6 py-2.5 border border-slate-300 text-slate-700 text-sm sm:text-base font-bold rounded-xl hover:bg-slate-50 transition-colors"
             >
               ยกเลิก
             </button>
             <button 
               onClick={handleSaveLocal} 
-              className="flex-1 sm:flex-none px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
+              className="flex-1 sm:flex-none px-2 sm:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
             >
-              {initialData ? 'บันทึกแก้ไข' : 'บันทึกข้อมูล'}
+              {initialData ? 'บันทึกแก้ไข' : 'บันทึก'}
             </button>
             <button 
               onClick={handleSendLine} 
-              className="flex-1 sm:flex-none px-6 py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white font-bold rounded-xl shadow-lg shadow-green-200 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
+              className="flex-1 sm:flex-none px-2 sm:px-6 py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white text-sm sm:text-base font-bold rounded-xl shadow-lg shadow-green-200 flex items-center justify-center gap-1 sm:gap-2 transition-all transform hover:-translate-y-0.5"
             >
-              <Share2 className="w-5 h-5" /> Line
+              <Share2 className="w-4 h-4 sm:w-5 sm:h-5" /> Line
             </button>
           </div>
         </div>
