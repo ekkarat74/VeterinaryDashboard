@@ -75,7 +75,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           setImageFile(null);
         }
       } else {
-        setFormData(defaultFormData);
+        // --- ส่วนที่แก้ไข/เพิ่มเติม: ดึงค่าหน่วยล่าสุดที่เคยบันทึกไว้ ---
+        const lastSavedUnit = localStorage.getItem('lastSavedUnit');
+        const isStandardUnit = lastSavedUnit ? UNIT_TYPES.includes(lastSavedUnit) : false;
+
+        setFormData({
+          ...defaultFormData,
+          unit: lastSavedUnit ? (isStandardUnit ? lastSavedUnit : 'หน่วยอื่น ๆ') : defaultFormData.unit,
+          otherUnit: lastSavedUnit && !isStandardUnit ? lastSavedUnit : ''
+        });
+        // ----------------------------------------------------
+        
         setBreakdown(defaultBreakdown);
         setCoordInput("");
         setImageFile(null);
@@ -173,6 +183,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       details: parsedDetails, 
       imageUrl: finalImageUrl 
     };
+
+    // --- ส่วนที่เพิ่มเติม: ให้ระบบจำค่าหน่วยที่ใช้งานล่าสุด ---
+    localStorage.setItem('lastSavedUnit', dataPayload.unit);
+    // ----------------------------------------------------
 
     if (initialData) {
       onUpdate(initialData._id, dataPayload);
