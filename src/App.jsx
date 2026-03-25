@@ -1536,13 +1536,16 @@ const handleCsvExport = useCallback((filters) => {
                                 )}
 
                                 {activeTab === 'calendar' && (
-                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto h-[calc(100vh-140px)]">
-                                        {/* ให้ปฏิทินกางเต็มพื้นที่ไปเลย */}
-                                        <div className="w-full h-full mt-4 flex-1">
-                                            <DispatchCalendarDashboard isInline={true} events={events} />
-                                        </div>
-                                    </div>
-                                )}
+    // ดึงกล่องให้ทะลุ Padding ของ <main> ออกไปให้ชิดขอบจอทั้ง 4 ด้าน
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-120px)] md:h-[calc(100vh-60px)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 -mb-24 md:-mb-8 flex flex-col">
+        <DispatchCalendarDashboard 
+            isInline={true} 
+            events={dispatchEventsOnly} 
+            onOpenForm={openDispatchForm} 
+            onEventClick={openDispatchEvent} 
+        />
+    </div>
+)}
                             </>
                         )}
                     </Suspense>
