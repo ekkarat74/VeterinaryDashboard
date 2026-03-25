@@ -93,7 +93,6 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
   const [unitLetter, setUnitLetter] = useState(''); 
   const [unitColor, setUnitColor] = useState('bg-blue-500'); 
 
-  // State ควบคุมการแบ่งทีม
   const [isSplitTeam, setIsSplitTeam] = useState(false);
   const [activeDistrictField, setActiveDistrictField] = useState(null);
 
@@ -310,11 +309,10 @@ ${staffDetails}
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
   return (
-    // ปรับ Padding เพื่อไม่ให้ Footer ลอยหรือบังเนื้อหา
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
       
-      {/* ปรับเป็น h-full บนมือถือ เพื่อให้เนื้อหาเต็มจอและ Scroll ได้สะดวก */}
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
+      {/* 🔴 จุดที่ 1: เปลี่ยน h-[90vh] เป็น h-full และจำกัด max-h ให้พอดีขอบจอเพื่อไม่ให้ล้นมือถือ */}
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-full max-h-[calc(100vh-2rem)] sm:h-auto sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
         
         {/* Header */}
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center shrink-0 z-10">
@@ -332,8 +330,8 @@ ${staffDetails}
           </button>
         </div>
 
-        {/* Scrollable Content (ใส่ pb-8 ให้เนื้อหาไม่ติดขอบล่างจนเกินไปตอนเลื่อนลงสุด) */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white custom-scrollbar">
+        {/* 🔴 จุดที่ 2: เพิ่ม min-h-0 ลงในคลาส เพื่อไม่ให้เนื้อหายาวเกินจนดัน Footer ตกขอบจอ */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-white custom-scrollbar">
           <div className="max-w-5xl mx-auto space-y-8 pb-8">
             
             {/* Section 1: ข้อมูลหลัก */}
@@ -657,8 +655,8 @@ ${staffDetails}
           </div>
         </div>
 
-        {/* 🔴 ส่วนที่ถูกปรับปรุง: Footer สไตล์เรียบง่ายคล้ายภาพต้นแบบ */}
-        <div className="p-4 sm:p-6 bg-white flex flex-row items-center justify-between shrink-0">
+        {/* 🔴 จุดที่ 3: เพิ่มเส้นขอบบน (border-t) ให้ Footer เห็นชัดเจนว่าแยกกับเนื้อหาด้านบน */}
+        <div className="p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-row items-center justify-between shrink-0 z-10">
           
           {/* ซ้าย: ปุ่มลบ (ถ้ามี) */}
           <div className="flex-1">
