@@ -310,9 +310,11 @@ ${staffDetails}
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
   return (
-    // 🔴 แก้ไขที่บรรทัดนี้: เพิ่ม pb-24 (หรือประมาณ 6rem) สำหรับดันจากจอด้านล่างบนมือถือ และ sm:p-6 รีเซ็ตให้จอใหญ่ปกติ
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 pb-24 sm:p-6 sm:pb-6 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
+    // ปรับ Padding เพื่อไม่ให้ Footer ลอยหรือบังเนื้อหา
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+      
+      {/* ปรับเป็น h-full บนมือถือ เพื่อให้เนื้อหาเต็มจอและ Scroll ได้สะดวก */}
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
         
         {/* Header */}
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center shrink-0 z-10">
@@ -330,9 +332,9 @@ ${staffDetails}
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar">
-          <div className="max-w-5xl mx-auto space-y-8">
+        {/* Scrollable Content (ใส่ pb-8 ให้เนื้อหาไม่ติดขอบล่างจนเกินไปตอนเลื่อนลงสุด) */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white custom-scrollbar">
+          <div className="max-w-5xl mx-auto space-y-8 pb-8">
             
             {/* Section 1: ข้อมูลหลัก */}
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -655,37 +657,47 @@ ${staffDetails}
           </div>
         </div>
 
-        {/* Footer Actions */}
-        {/* 🔴 แก้ไขที่บรรทัดนี้: ลดระยะห่าง (gap) ในจอเล็ก เพื่อป้องกันปุ่มเบียดกันจนตกขอบ */}
-        <div className="p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-between items-center shrink-0">
-          {initialData && onDelete ? (
-            <button 
-              onClick={() => onDelete(initialData._id)} 
-              className="text-red-500 hover:text-red-700 text-sm font-semibold flex items-center gap-1 px-3 py-2 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> ลบรายการ
-            </button>
-          ) : <div></div>}
+        {/* 🔴 ส่วนที่ถูกปรับปรุง: Footer สไตล์เรียบง่ายคล้ายภาพต้นแบบ */}
+        <div className="p-4 sm:p-6 bg-white flex flex-row items-center justify-between shrink-0">
+          
+          {/* ซ้าย: ปุ่มลบ (ถ้ามี) */}
+          <div className="flex-1">
+            {initialData && onDelete && (
+              <button 
+                onClick={() => onDelete(initialData._id)} 
+                className="text-slate-400 hover:text-red-500 text-sm font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">ลบรายการ</span>
+              </button>
+            )}
+          </div>
 
-          <div className="flex w-full sm:w-auto gap-2 sm:gap-3">
+          {/* ขวา: กลุ่มปุ่มทำงาน */}
+          <div className="flex gap-3 items-center">
             <button 
               onClick={onClose} 
-              className="flex-1 sm:flex-none px-2 sm:px-6 py-2.5 border border-slate-300 text-slate-700 text-sm sm:text-base font-bold rounded-xl hover:bg-slate-50 transition-colors"
+              className="text-slate-500 hover:text-slate-800 font-semibold px-4 py-2 transition-colors text-sm sm:text-base"
             >
               ยกเลิก
             </button>
-            <button 
-              onClick={handleSaveLocal} 
-              className="flex-1 sm:flex-none px-2 sm:px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5"
-            >
-              {initialData ? 'บันทึกแก้ไข' : 'บันทึก'}
-            </button>
-            <button 
-              onClick={handleSendLine} 
-              className="flex-1 sm:flex-none px-2 sm:px-6 py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white text-sm sm:text-base font-bold rounded-xl shadow-lg shadow-green-200 flex items-center justify-center gap-1 sm:gap-2 transition-all transform hover:-translate-y-0.5"
-            >
-              <Share2 className="w-4 h-4 sm:w-5 sm:h-5" /> Line
-            </button>
+            <div className="flex gap-2">
+               <button 
+                onClick={handleSaveLocal} 
+                className="px-6 sm:px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-bold rounded-lg shadow-sm transition-all flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" /> 
+                <span className="hidden sm:inline">{initialData ? 'บันทึกข้อมูล' : 'บันทึกข้อมูล'}</span>
+                <span className="inline sm:hidden">บันทึก</span>
+              </button>
+              
+              <button 
+                onClick={handleSendLine} 
+                className="px-4 py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg shadow-sm transition-all flex items-center justify-center"
+                title="แชร์ไปที่ Line"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
