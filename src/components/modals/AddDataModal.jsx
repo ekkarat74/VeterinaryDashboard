@@ -35,6 +35,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
 
+  const [customUnits, setCustomUnits] = useState([]);
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('customUnits') || '[]');
+    setCustomUnits(saved);
+  }, []);
+  const allUnitOptions = useMemo(() => {
+    const baseUnits = UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ');
+    // รวมหน่วยพื้นฐาน + หน่วยที่พิมพ์เอง + ปิดท้ายด้วย 'หน่วยอื่น ๆ' ให้ไม่ซ้ำกัน
+    return [...new Set([...baseUnits, ...customUnits, 'หน่วยอื่น ๆ'])];
+  }, [customUnits]);
+
   // 2. ตั้งค่าเริ่มต้นเมื่อเปิด Modal
   useEffect(() => {
     if (isOpen) {
@@ -75,14 +86,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           setImageFile(null);
         }
       } else {
-        // --- ส่วนที่แก้ไข/เพิ่มเติม: ดึงค่าหน่วยล่าสุดที่เคยบันทึกไว้ ---
+        // --- 2. ส่วนที่แก้ไข: ให้ระบบเช็คค่าหน่วยล่าสุด เทียบกับ List ทั้งหมด ---
         const lastSavedUnit = localStorage.getItem('lastSavedUnit');
-        const isStandardUnit = lastSavedUnit ? UNIT_TYPES.includes(lastSavedUnit) : false;
+        const savedCustom = JSON.parse(localStorage.getItem('customUnits') || '[]');
+        const currentOptions = [...new Set([...UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ'), ...savedCustom, 'หน่วยอื่น ๆ'])];
+        
+        const isStandardOrSavedUnit = lastSavedUnit ? currentOptions.includes(lastSavedUnit) : false;
 
         setFormData({
           ...defaultFormData,
-          unit: lastSavedUnit ? (isStandardUnit ? lastSavedUnit : 'หน่วยอื่น ๆ') : defaultFormData.unit,
-          otherUnit: lastSavedUnit && !isStandardUnit ? lastSavedUnit : ''
+          unit: lastSavedUnit ? (isStandardOrSavedUnit ? lastSavedUnit : 'หน่วยอื่น ๆ') : defaultFormData.unit,
+          otherUnit: lastSavedUnit && !isStandardOrSavedUnit ? lastSavedUnit : ''
         });
         // ----------------------------------------------------
         
@@ -172,11 +186,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       other: parseBreakdown(breakdown.other)
     };
 
+    const finalUnit = formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim() !== '' 
+        ? formData.otherUnit.trim() 
+        : formData.unit;
+
     const dataPayload = {
       ...formData,
-      unit: formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim() !== '' 
-        ? formData.otherUnit 
-        : formData.unit,
+      unit: finalUnit,
       lat: formData.lat ? parseFloat(formData.lat) : 0,
       long: formData.long ? parseFloat(formData.long) : 0,
       stats: { ...totals },
@@ -184,9 +200,18 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       imageUrl: finalImageUrl 
     };
 
-    // --- ส่วนที่เพิ่มเติม: ให้ระบบจำค่าหน่วยที่ใช้งานล่าสุด ---
-    localStorage.setItem('lastSavedUnit', dataPayload.unit);
-    // ----------------------------------------------------
+    localStorage.setItem('lastSavedUnit', finalUnit);
+    
+    // ตรวจสอบว่าถ้าไม่ใช่หน่วยพื้นฐาน ให้เพิ่มเข้าไปในลิสต์ customUnits
+    if (!UNIT_TYPES.includes(finalUnit)) {
+      const savedCustom = JSON.parse(localStorage.getItem('customUnits') || '[]');
+      if (!savedCustom.includes(finalUnit)) {
+        const newCustomUnits = [...savedCustom, finalUnit];
+        localStorage.setItem('customUnits', JSON.stringify(newCustomUnits));
+        setCustomUnits(newCustomUnits); 
+      }
+    }
+    // ---------------------------------------------------------
 
     if (initialData) {
       onUpdate(initialData._id, dataPayload);
@@ -257,13 +282,15 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                 </div>
                 <div className="md:col-span-3">
                   <label className={labelClass}>หน่วยกิจกรรม</label>
+                  {/* --- 4. ส่วนที่แก้ไข: ใช้ allUnitOptions แทน UNIT_TYPES --- */}
                   <select 
                     className={inputClass}
                     value={formData.unit} 
-                    onChange={e => setFormData({...formData, unit: e.target.value})}
+                    onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}
                   >
-                    {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                    {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
+                  {/* -------------------------------------------------- */}
                   {formData.unit === 'หน่วยอื่น ๆ' && (
                     <div className="mt-3">
                       <input 
