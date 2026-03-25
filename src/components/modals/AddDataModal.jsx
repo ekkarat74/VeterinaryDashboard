@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Edit, Plus, X, FileText, ImageIcon, Upload, Trash2, 
   Calculator, Syringe, Scissors, Database, Stethoscope, 
-  Activity, Save, MapPin 
+  Activity, Save, MapPin, Edit2, Check
 } from 'lucide-react';
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
@@ -35,11 +35,32 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
 
+  // State สำหรับจัดการ Custom Units
+  const [customUnitsObj, setCustomUnitsObj] = useState([]);
   const [customUnits, setCustomUnits] = useState([]);
+  const [isManagingUnits, setIsManagingUnits] = useState(false); 
+  const [editingUnitId, setEditingUnitId] = useState(null);
+  const [editingUnitName, setEditingUnitName] = useState("");
+
+  // ดึงข้อมูลจาก Database แทน LocalStorage
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('customUnits') || '[]');
-    setCustomUnits(saved);
-  }, []);
+    const fetchCustomUnits = async () => {
+      try {
+        const res = await fetch('https://veterinarydashboard-hwho.onrender.com/api/custom-units');
+        if (res.ok) {
+          const data = await res.json();
+          setCustomUnitsObj(data);
+          setCustomUnits(data.map(u => u.name));
+        }
+      } catch (error) {
+        console.error("Fetch custom units error", error);
+      }
+    };
+    if (isOpen) {
+      fetchCustomUnits();
+    }
+  }, [isOpen]);
+
   const allUnitOptions = useMemo(() => {
     const baseUnits = UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ');
     // รวมหน่วยพื้นฐาน + หน่วยที่พิมพ์เอง + ปิดท้ายด้วย 'หน่วยอื่น ๆ' ให้ไม่ซ้ำกัน
@@ -57,8 +78,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           location: initialData.location,
           district: initialData.district ? initialData.district.trim() : '',
           subdistrict: initialData.subdistrict ? initialData.subdistrict.trim() : '', 
-          unit: isStandardUnit ? initialData.unit : 'หน่วยอื่น ๆ',
-          otherUnit: !isStandardUnit ? (initialData.unit || '') : '', // ป้องกัน Uncontrolled Input
+          unit: isStandardUnit ? initialData.unit : (allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ'),
+          otherUnit: (!isStandardUnit && !allUnitOptions.includes(initialData.unit)) ? (initialData.unit || '') : '', 
           lat: initialData.lat,
           long: initialData.long
         });
@@ -86,19 +107,14 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           setImageFile(null);
         }
       } else {
-        // --- 2. ส่วนที่แก้ไข: ให้ระบบเช็คค่าหน่วยล่าสุด เทียบกับ List ทั้งหมด ---
         const lastSavedUnit = localStorage.getItem('lastSavedUnit');
-        const savedCustom = JSON.parse(localStorage.getItem('customUnits') || '[]');
-        const currentOptions = [...new Set([...UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ'), ...savedCustom, 'หน่วยอื่น ๆ'])];
-        
-        const isStandardOrSavedUnit = lastSavedUnit ? currentOptions.includes(lastSavedUnit) : false;
+        const isStandardOrSavedUnit = lastSavedUnit ? allUnitOptions.includes(lastSavedUnit) : false;
 
         setFormData({
           ...defaultFormData,
           unit: lastSavedUnit ? (isStandardOrSavedUnit ? lastSavedUnit : 'หน่วยอื่น ๆ') : defaultFormData.unit,
           otherUnit: lastSavedUnit && !isStandardOrSavedUnit ? lastSavedUnit : ''
         });
-        // ----------------------------------------------------
         
         setBreakdown(defaultBreakdown);
         setCoordInput("");
@@ -106,7 +122,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         setImagePreview(null);
       }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, allUnitOptions]);
 
   // 3. ป้องกัน Memory Leak จากการสร้าง Object URL
   useEffect(() => {
@@ -143,6 +159,43 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
+  };
+
+  const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
+
+  const handleDeleteCustomUnit = async (id, name) => {
+    if(!window.confirm(`ยืนยันลบหน่วย: ${name} ?`)) return;
+    try {
+      const res = await fetch(`https://veterinarydashboard-hwho.onrender.com/api/custom-units/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getUserToken()}` }
+      });
+      if(res.ok) {
+        setCustomUnitsObj(prev => prev.filter(u => u._id !== id));
+        setCustomUnits(prev => prev.filter(u => u !== name));
+        if(formData.unit === name) setFormData({...formData, unit: UNIT_TYPES[0]});
+        if(onToast) onToast('success', 'ลบหน่วยสำเร็จ');
+      }
+    } catch(err) { console.error(err); }
+  };
+
+  const handleUpdateCustomUnit = async (id) => {
+    if(!editingUnitName.trim()) return;
+    try {
+      const res = await fetch(`https://veterinarydashboard-hwho.onrender.com/api/custom-units/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getUserToken()}` },
+        body: JSON.stringify({ name: editingUnitName })
+      });
+      if(res.ok) {
+        const updated = await res.json();
+        setCustomUnitsObj(prev => prev.map(u => u._id === id ? updated : u));
+        setCustomUnits(prev => prev.map(u => u === customUnitsObj.find(old => old._id === id).name ? updated.name : u));
+        setEditingUnitId(null);
+        if(formData.unit === customUnitsObj.find(old => old._id === id).name) setFormData({...formData, unit: updated.name});
+        if(onToast) onToast('success', 'แก้ไขหน่วยสำเร็จ');
+      }
+    } catch(err) { console.error(err); }
   };
 
   if (!isOpen) return null;
@@ -202,16 +255,24 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
     localStorage.setItem('lastSavedUnit', finalUnit);
     
-    // ตรวจสอบว่าถ้าไม่ใช่หน่วยพื้นฐาน ให้เพิ่มเข้าไปในลิสต์ customUnits
+    // บันทึกหน่วยใหม่ลง Database 
     if (!UNIT_TYPES.includes(finalUnit)) {
-      const savedCustom = JSON.parse(localStorage.getItem('customUnits') || '[]');
-      if (!savedCustom.includes(finalUnit)) {
-        const newCustomUnits = [...savedCustom, finalUnit];
-        localStorage.setItem('customUnits', JSON.stringify(newCustomUnits));
-        setCustomUnits(newCustomUnits); 
+      const existingUnit = customUnitsObj.find(u => u.name === finalUnit);
+      if (!existingUnit) {
+        fetch('https://veterinarydashboard-hwho.onrender.com/api/custom-units', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getUserToken()}` },
+          body: JSON.stringify({ name: finalUnit })
+        })
+        .then(res => res.json())
+        .then(newU => {
+          if(newU._id) {
+            setCustomUnitsObj(prev => [...prev, newU]);
+            setCustomUnits(prev => [...prev, newU.name]);
+          }
+        }).catch(console.error);
       }
     }
-    // ---------------------------------------------------------
 
     if (initialData) {
       onUpdate(initialData._id, dataPayload);
@@ -280,30 +341,72 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     onChange={e => setFormData({...formData, date: e.target.value})} 
                   />
                 </div>
+                
                 <div className="md:col-span-3">
-                  <label className={labelClass}>หน่วยกิจกรรม</label>
-                  {/* --- 4. ส่วนที่แก้ไข: ใช้ allUnitOptions แทน UNIT_TYPES --- */}
-                  <select 
-                    className={inputClass}
-                    value={formData.unit} 
-                    onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}
-                  >
-                    {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                  {/* -------------------------------------------------- */}
-                  {formData.unit === 'หน่วยอื่น ๆ' && (
-                    <div className="mt-3">
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="โปรดระบุชื่อหน่วย..." 
-                        className="w-full px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-blue-800 placeholder:text-blue-400 transition-colors"
-                        value={formData.otherUnit} 
-                        onChange={e => setFormData({...formData, otherUnit: e.target.value})} 
-                      />
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-600">หน่วยกิจกรรม</label>
+                    {customUnitsObj.length > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsManagingUnits(!isManagingUnits)}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-md transition-colors"
+                      >
+                        {isManagingUnits ? 'ปิดการจัดการ' : '⚙️ จัดการหน่วย'}
+                      </button>
+                    )}
+                  </div>
+
+                  {isManagingUnits ? (
+                    <div className="border border-slate-200 rounded-xl p-2 bg-slate-50 max-h-40 overflow-y-auto custom-scrollbar">
+                      {customUnitsObj.map(u => (
+                        <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1.5 rounded-lg border border-slate-100 shadow-sm">
+                          {editingUnitId === u._id ? (
+                            <input 
+                              type="text" 
+                              className="flex-1 text-sm border-b border-indigo-300 px-1 py-0.5 outline-none mr-2 bg-indigo-50/30"
+                              value={editingUnitName}
+                              onChange={e => setEditingUnitName(e.target.value)}
+                            />
+                          ) : (
+                            <span className="text-sm text-slate-700 truncate pr-2">{u.name}</span>
+                          )}
+                          
+                          <div className="flex gap-1 shrink-0">
+                            {editingUnitId === u._id ? (
+                              <button type="button" onClick={() => handleUpdateCustomUnit(u._id)} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md"><Check className="w-3.5 h-3.5"/></button>
+                            ) : (
+                              <button type="button" onClick={() => { setEditingUnitId(u._id); setEditingUnitName(u.name); }} className="text-amber-500 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-md"><Edit2 className="w-3.5 h-3.5"/></button>
+                            )}
+                            <button type="button" onClick={() => handleDeleteCustomUnit(u._id, u.name)} className="text-rose-500 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md"><Trash2 className="w-3.5 h-3.5"/></button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  ) : (
+                    <>
+                      <select 
+                        className={inputClass}
+                        value={formData.unit} 
+                        onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}
+                      >
+                        {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                      {formData.unit === 'หน่วยอื่น ๆ' && (
+                        <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="โปรดระบุชื่อหน่วยใหม่..." 
+                            className="w-full px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-blue-800 placeholder:text-blue-400 transition-colors"
+                            value={formData.otherUnit} 
+                            onChange={e => setFormData({...formData, otherUnit: e.target.value})} 
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
+
                 <div className="md:col-span-6">
                   <label className={labelClass}>สถานที่ (Location)</label>
                   <input 
@@ -316,7 +419,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   />
                 </div>
 
-                {/* แก้ไขช่อง เขต (District) ให้เป็นแบบแท็บเลื่อนค้นหาได้ (Custom Autocomplete) */}
                 <div className="md:col-span-3 relative">
                   <label className={labelClass}>เขต (District)</label>
                   <input 
@@ -333,7 +435,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
                   />
                   
-                  {/* ส่วนของแท็บเลื่อนลงมา (Dropdown Menu) */}
                   {showDistrictDropdown && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar overflow-hidden">
                       {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).length > 0 ? (

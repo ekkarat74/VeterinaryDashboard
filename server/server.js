@@ -180,6 +180,13 @@ const systemSettingSchema = new mongoose.Schema({
 });
 const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
 
+// 8. Custom Unit Schema (เพิ่มใหม่: เก็บหน่วยงานที่พิมพ์เอง)
+const customUnitSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: String
+}, { timestamps: true });
+const CustomUnit = mongoose.model('CustomUnit', customUnitSchema);
+
 // --- HELPER FUNCTIONS ---
 
 // Function บันทึก Log
@@ -846,6 +853,54 @@ try {
         io.emit('system_update_refresh', { message: 'ระบบมีการอัปเดตเวอร์ชันใหม่ กำลังรีเฟรชหน้าจอ...' });
 
         res.json({ message: "ส่งคำสั่งรีเฟรชไปยังผู้ใช้งานทั้งหมดเรียบร้อยแล้ว" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// =======================
+// J. CUSTOM UNITS (หน่วยที่เพิ่มเอง)
+// =======================
+app.get('/api/custom-units', async (req, res) => {
+    try {
+        const units = await CustomUnit.find().sort({ createdAt: -1 }).lean();
+        res.json(units);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.post('/api/custom-units', authenticateToken, async (req, res) => {
+    try {
+        const { name } = req.body;
+        const existing = await CustomUnit.findOne({ name });
+        if (existing) return res.status(400).json({ message: "มีหน่วยงานนี้อยู่แล้ว" });
+
+        const newUnit = new CustomUnit({ name, createdBy: req.user.username });
+        const savedUnit = await newUnit.save();
+        
+        io.emit('server_data_update', { type: 'CUSTOM_UNIT_ADDED', data: savedUnit });
+        res.status(201).json(savedUnit);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.put('/api/custom-units/:id', authenticateToken, async (req, res) => {
+    try {
+        const updatedUnit = await CustomUnit.findByIdAndUpdate(req.params.id, { name: req.body.name }, { new: true });
+        io.emit('server_data_update', { type: 'CUSTOM_UNIT_UPDATED', data: updatedUnit });
+        res.json(updatedUnit);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.delete('/api/custom-units/:id', authenticateToken, async (req, res) => {
+    try {
+        await CustomUnit.findByIdAndDelete(req.params.id);
+        io.emit('server_data_update', { type: 'CUSTOM_UNIT_DELETED', id: req.params.id });
+        res.json({ message: "ลบสำเร็จ" });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
