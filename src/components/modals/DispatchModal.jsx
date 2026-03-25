@@ -309,10 +309,11 @@ ${staffDetails}
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+    // 🔴 จุดที่ 1: เพิ่ม pb-24 ในคลาสนี้ เพื่อดัน Modal ทั้งก้อนให้ลอยพ้นจากแถบ Navigation ด้านล่างของแอป
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 pb-24 sm:p-6 sm:pb-6 animate-in fade-in duration-200">
       
-      {/* 🔴 จุดที่ 1: เปลี่ยน h-[90vh] เป็น h-full และจำกัด max-h ให้พอดีขอบจอเพื่อไม่ให้ล้นมือถือ */}
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-full max-h-[calc(100vh-2rem)] sm:h-auto sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
+      {/* 🔴 จุดที่ 2: เปลี่ยนจาก h-full เป็น max-h-full เพื่อให้กล่องหดตัวตามพื้นที่ที่เหลือจาก pb-24 */}
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-full sm:h-auto sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
         
         {/* Header */}
         <div className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center shrink-0 z-10">
@@ -330,7 +331,7 @@ ${staffDetails}
           </button>
         </div>
 
-        {/* 🔴 จุดที่ 2: เพิ่ม min-h-0 ลงในคลาส เพื่อไม่ให้เนื้อหายาวเกินจนดัน Footer ตกขอบจอ */}
+        {/* Scrollable Content (มี min-h-0 เพื่อป้องกันบั๊ก Flexbox ให้มันเลื่อนได้เสมอ) */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-white custom-scrollbar">
           <div className="max-w-5xl mx-auto space-y-8 pb-8">
             
@@ -655,7 +656,7 @@ ${staffDetails}
           </div>
         </div>
 
-        {/* 🔴 จุดที่ 3: เพิ่มเส้นขอบบน (border-t) ให้ Footer เห็นชัดเจนว่าแยกกับเนื้อหาด้านบน */}
+        {/* Footer */}
         <div className="p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-row items-center justify-between shrink-0 z-10">
           
           {/* ซ้าย: ปุ่มลบ (ถ้ามี) */}
