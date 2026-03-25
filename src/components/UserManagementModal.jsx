@@ -288,12 +288,6 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
 
     // ✅ Bug Fix: กรองข้อมูลผู้ใช้ และนำตัวแปรนี้ไปใช้ในตาราง (เดิมไม่ได้ถูกเรียกใช้)
     const filteredUsers = userList.filter(u => {
-        // 1. ถ้าคนล็อกอิน "ไม่ใช่" Developer และบัญชีในลูป "คือ" Developer -> ให้ซ่อน (return false)
-        if (currentUserRole !== 'Developer' && u.role === 'Developer') {
-            return false;
-        }
-        
-        // 3. กรองตามคำค้นหาปกติ (เพิ่ม optional chaining '?.' เพื่อป้องกัน Error กรณีไม่มีข้อมูล username)
         return u.username?.toLowerCase().includes(searchTerm?.toLowerCase() || '');
     });
 
