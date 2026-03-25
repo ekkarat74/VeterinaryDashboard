@@ -312,8 +312,6 @@ ${staffDetails}
   return (
     // 🔴 แก้ไขที่บรรทัดนี้: เพิ่ม pb-24 (หรือประมาณ 6rem) สำหรับดันจากจอด้านล่างบนมือถือ และ sm:p-6 รีเซ็ตให้จอใหญ่ปกติ
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 pb-24 sm:p-6 sm:pb-6 animate-in fade-in duration-200">
-      
-      // 🔴 แก้ไขที่บรรทัดนี้: ปรับ max-h-[85vh] สำหรับมือถือ ให้ความสูงกล่องไม่ทะลุลงไปถึงขอบจอล่าง
       <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
         
         {/* Header */}
