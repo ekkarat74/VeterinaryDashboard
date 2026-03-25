@@ -22,7 +22,7 @@ import RankingSection from './components/dashboard/RankingSection';
 const LeafletMap = lazy(() => import('./components/modals/LeafletMap'));
 import LoginModal from './components/modals/LoginModal';
 const AddOutbreakModal = lazy(() => import('./components/modals/AddOutbreakModal'));
-import { MeetingCalendarDashboard, DispatchCalendarDashboard } from './components/CalendarComponents.jsx';
+import { MeetingCalendarDashboard} from './components/CalendarComponents.jsx';
 import DispatchModal from './components/modals/DispatchModal';
 import { MeetingModal, MeetingListModal } from './components/modals/MeetingModal';
 import ActivityLogModal from './components/modals/ActivityLogModal';
