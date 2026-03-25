@@ -293,11 +293,6 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
             return false;
         }
         
-        // 2. [ส่วนที่เพิ่มใหม่] ถ้าคนล็อกอิน "คือ" Developer ให้ซ่อนบัญชีที่ "ไม่ใช่" Developer (ผู้พัฒนาระบบจะไม่เห็นผู้ใช้คนอื่น)
-        if (currentUserRole === 'Developer' && u.role !== 'Developer') {
-            return false;
-        }
-        
         // 3. กรองตามคำค้นหาปกติ (เพิ่ม optional chaining '?.' เพื่อป้องกัน Error กรณีไม่มีข้อมูล username)
         return u.username?.toLowerCase().includes(searchTerm?.toLowerCase() || '');
     });

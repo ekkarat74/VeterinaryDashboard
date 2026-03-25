@@ -315,10 +315,6 @@ app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin'
 app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
   try {
     let query = {};
-    
-    if (req.user.role === 'Developer') {
-        query = { _id: req.user._id };
-    }
 
     const users = await User.find(query, '-password').sort({ _id: -1 }).lean();
     res.json(users);
