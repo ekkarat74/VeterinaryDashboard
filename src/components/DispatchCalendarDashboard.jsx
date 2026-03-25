@@ -102,7 +102,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
     return (
         <div className={isInline 
             ? "w-full flex-1 flex flex-col bg-white" // กางเต็มพื้นที่ของหน้าหลัก
-            : "fixed inset-0 z-50 bg-white animate-in fade-in duration-200"}> // โหมด Popup เต็มจอ
+            : "fixed inset-0 z-50 bg-white animate-in fade-in duration-200"}>
             
             <div className={`w-full flex flex-col overflow-hidden ${isInline ? 'h-full' : 'h-[100dvh]'}`}>
                 
