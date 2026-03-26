@@ -106,7 +106,7 @@ export default function VeterinaryDashboard() {
     const canEdit = user && (user.role === 'Developer' || user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
     const isSuperAdmin = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
     const isMagaAdmin = user && (user.role === 'Developer' || user.role === 'MagaAdmin');
-    const isDevOrSuper = user && (user.role === 'Developer' || user.role === 'superadmin');
+    const isDevOrSuper = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
 
     useEffect(() => {
         // หากไม่ใช่ Dev/SuperAdmin และแท็บปัจจุบันที่เปิดอยู่ถูกตั้งค่าให้ซ่อน -> ให้เด้งไปหน้าอื่นที่เปิดอยู่
