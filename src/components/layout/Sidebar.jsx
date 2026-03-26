@@ -77,6 +77,13 @@ const Sidebar = ({
         )
     );
 
+    // ✨ Helper: ตรวจสอบสิทธิ์การมองเห็นแท็บตามแต่ละ Role และการตั้งค่า
+    const checkTabVisibility = (tabName) => {
+        if (!user) return tabsConfig?.[`public_${tabName}`] || false; // ถ้าไม่ได้ล็อกอิน
+        if (user.role === 'superadmin') return tabsConfig?.[`sa_${tabName}`] || false; // ถ้าเป็น SuperAdmin
+        return true; // Developer, MagaAdmin และระดับที่สูงกว่าให้เห็นทั้งหมด
+    };
+
     return (
         <>
             {/* 🟢 Mobile Backdrop */}
@@ -135,12 +142,12 @@ const Sidebar = ({
                     
                     {/* 🟢 แดชบอร์ด & ข้อมูล */}
                     {renderSectionHeader('แดชบอร์ด')}
-                    {(isDevOrSuper || tabsConfig?.overview) && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
-                    {(isDevOrSuper || tabsConfig?.outbreak) && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
-                    {(isDevOrSuper || tabsConfig?.database) && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
-                    {(isDevOrSuper || tabsConfig?.calendar) && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('overview') && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('outbreak') && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
+                    {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
+                    {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
                     
-                    {/* 🟢 ปฏิทิน & นัดหมาย (✨ ซ่อนจาก superadmin) */}
+                    {/* 🟢 ปฏิทิน & นัดหมาย (ซ่อนจาก superadmin) */}
                     {user && user.role !== 'superadmin' && (
                     <>
                         {renderSectionHeader('ปฏิทิน & นัดหมาย')}
@@ -149,7 +156,7 @@ const Sidebar = ({
                         </>
                     )}
 
-                    {/* 🟢 ตั้งค่าระบบ (✨ ซ่อนจาก superadmin) */}
+                    {/* 🟢 ตั้งค่าระบบ (ซ่อนจาก superadmin) */}
                     {user && user.role !== 'superadmin' && (isSuperAdmin || canEdit) && (
                         <>
                             {renderSectionHeader('การตั้งค่า')}
@@ -167,22 +174,49 @@ const Sidebar = ({
                                    <div className={`grid transition-all duration-300 ease-in-out ${isSystemMenuOpen ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
                                             <div className="pl-11 pr-3 py-2 space-y-3 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
+                                                
+                                                {/* ✨ โซนจัดการแท็บ (เฉพาะ MagaAdmin / Developer) */}
                                                 {(isMagaAdmin || isSystemDeveloper) && (
-                                                    <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 shadow-sm">
-                                                        <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">แสดงแท็บข้อมูล (ระดับบริหาร)</p>
-                                                        <div className="space-y-2.5">
-                                                            {[
-                                                                { id: 'overview', label: 'ภาพรวม' },
-                                                                { id: 'outbreak', label: 'จุดเสี่ยง' },
-                                                                { id: 'database', label: 'ฐานข้อมูล' },
-                                                                { id: 'calendar', label: 'ปฏิทิน' }
-                                                            ].map(tab => (
-                                                                <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
-                                                                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
-                                                                    <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="w-3.5 h-3.5 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all" />
-                                                                </label>
-                                                            ))}
+                                                    <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                                                        
+                                                        {/* ส่วนที่ 1: สำหรับ SuperAdmin */}
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">เปิด-ปิดแท็บ (SuperAdmin)</p>
+                                                            <div className="space-y-2.5">
+                                                                {[
+                                                                    { id: 'sa_overview', label: 'ภาพรวม' },
+                                                                    { id: 'sa_outbreak', label: 'จุดเสี่ยง' },
+                                                                    { id: 'sa_database', label: 'ฐานข้อมูล' },
+                                                                    { id: 'sa_calendar', label: 'ปฏิทิน' }
+                                                                ].map(tab => (
+                                                                    <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
+                                                                        <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
+                                                                        <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="w-3.5 h-3.5 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all" />
+                                                                    </label>
+                                                                ))}
+                                                            </div>
                                                         </div>
+
+                                                        <div className="h-px bg-slate-200"></div>
+
+                                                        {/* ส่วนที่ 2: สำหรับคนทั่วไป */}
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">เปิด-ปิดแท็บ (ไม่ได้ล็อกอิน)</p>
+                                                            <div className="space-y-2.5">
+                                                                {[
+                                                                    { id: 'public_overview', label: 'ภาพรวม' },
+                                                                    { id: 'public_outbreak', label: 'จุดเสี่ยง' },
+                                                                    { id: 'public_database', label: 'ฐานข้อมูล' },
+                                                                    { id: 'public_calendar', label: 'ปฏิทิน' }
+                                                                ].map(tab => (
+                                                                    <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
+                                                                        <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
+                                                                        <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="w-3.5 h-3.5 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all" />
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
                                                     </div>
                                                 )}
                                                 
@@ -222,7 +256,8 @@ const Sidebar = ({
                 </div>
 
                 {/* --- 4. ดำเนินการด่วน (Action Buttons) --- */}
-                {user && canEdit && (
+                {/* ✨ ซ่อนปุ่มการกระทำทั้งหมดจาก superadmin */}
+                {user && canEdit && user.role !== 'superadmin' && (
                     <div className={`p-4 shrink-0 border-t border-slate-100 bg-white space-y-2.5 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         <button onClick={() => handleAction(onOpenAddOutbreak)} title="แจ้งโรคระบาด" 
                             className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-11 h-11 p-0 rounded-xl' : 'w-full px-4 py-2.5 rounded-xl'} font-semibold text-sm bg-rose-50/50 text-rose-600 hover:bg-rose-500 hover:text-white transition-all duration-300 border border-rose-200/60 hover:border-rose-500 hover:shadow-md hover:shadow-rose-500/20`}>
@@ -261,9 +296,12 @@ const Sidebar = ({
                                 </div>
                             )}
                             <div className={`flex ${isCollapsed ? 'flex-col gap-2 w-full' : 'gap-1 shrink-0'}`}>
-                                <button onClick={() => handleAction(onChangePassword)} className={`p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all shrink-0 ${isCollapsed ? 'flex justify-center w-full bg-white border border-slate-200 shadow-sm' : ''}`} title="เปลี่ยนรหัสผ่าน">
-                                    <Key className="w-[18px] h-[18px]" />
-                                </button>
+                                {/* ✨ ซ่อนปุ่มเปลี่ยนรหัสจาก superadmin */}
+                                {user.role !== 'superadmin' && (
+                                    <button onClick={() => handleAction(onChangePassword)} className={`p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all shrink-0 ${isCollapsed ? 'flex justify-center w-full bg-white border border-slate-200 shadow-sm' : ''}`} title="เปลี่ยนรหัสผ่าน">
+                                        <Key className="w-[18px] h-[18px]" />
+                                    </button>
+                                )}
                                 <button onClick={() => handleAction(onLogout)} className={`p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shrink-0 ${isCollapsed ? 'flex justify-center w-full bg-white border border-slate-200 shadow-sm' : ''}`} title="ออกจากระบบ">
                                     <LogOut className="w-[18px] h-[18px]" />
                                 </button>
