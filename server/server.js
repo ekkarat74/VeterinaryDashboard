@@ -1006,20 +1006,22 @@ app.post('/api/settings/test-email', authenticateToken, authorizeRole(['Develope
             return res.status(400).json({ message: "กรุณาระบุอีเมลที่ต้องการทดสอบ" });
         }
         
-        // 1. ตั้งค่าการเชื่อมต่ออีเมล (ระบุพอร์ตและ Host ให้ชัดเจน)
+        // 1. ตั้งค่าการเชื่อมต่ออีเมล (เปลี่ยนเป็น Port 587 สำหรับ Cloud Server)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
-            port: 465,
-            secure: true, // บังคับใช้ SSL/TLS
+            port: 587,
+            secure: false, // บังคับเป็น false เมื่อใช้ port 587
+            requireTLS: true, // บังคับใช้ TLS แทน
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
             tls: {
-                rejectUnauthorized: false // ป้องกันปัญหา SSL Certificate ฝั่ง Server
+                ciphers: 'SSLv3',
+                rejectUnauthorized: false
             }
         });
-
+        
         // 2. รูปแบบข้อความอีเมลที่จะส่ง
         const mailOptions = {
             from: `"ระบบสัตวแพทย์" <${process.env.EMAIL_USER}>`,
