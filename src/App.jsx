@@ -1455,36 +1455,45 @@ const handleCsvExport = useCallback((filters) => {
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
                                         <KPISection totals={totals} unitStats={unitStats} />
 
-        {/* แถวที่ 1: ข้างบนฝั่งซ้าย (สถิติหน่วยงาน) | ฝั่งขวา (Map) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <RankingSection 
-                type="table" 
-                rankingYear={rankingYear} 
-                setRankingYear={setRankingYear} 
-                rankingMonth={rankingMonth} 
-                setRankingMonth={setRankingMonth} 
-                availableYears={availableYears} 
-                thaiMonths={THAI_MONTHS} 
-                rankingUnitStats={rankingUnitStats} 
-            />
             
-            <div className="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] h-full relative z-0">
-                <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
+            {/* คอลัมน์ซ้าย (บนมือถือจะแสดงก่อน): สถิติหน่วยงาน + เจาะลึก 5 อันดับแรก */}
+            <div className="lg:col-span-5 flex flex-col gap-8">
+                <RankingSection 
+                    type="table" 
+                    rankingYear={rankingYear} 
+                    setRankingYear={setRankingYear} 
+                    rankingMonth={rankingMonth} 
+                    setRankingMonth={setRankingMonth} 
+                    availableYears={availableYears} 
+                    thaiMonths={THAI_MONTHS} 
+                    rankingUnitStats={rankingUnitStats} 
+                />
+                
+                <RankingSection 
+                    type="deepdive" 
+                    rankingNestedStats={rankingNestedStats} 
+                />
             </div>
-        </div>
-
-        {/* แถวที่ 2: ข้างล่างฝั่งซ้าย (เจาะลึก 5 อันดับแรก) | ฝั่งขวา (ประสิทธิภาพและจำนวนครั้ง) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <RankingSection 
-                type="deepdive" 
-                rankingNestedStats={rankingNestedStats} 
-            />
             
-            <div className="lg:col-span-7 h-full">
-                <UnitComparisonChart unitStats={unitStats} />
+            {/* คอลัมน์ขวา (บนมือถือจะแสดงด้านล่างต่อจากสถิติ): แผนที่ + กราฟเปรียบเทียบ */}
+            <div className="lg:col-span-7 flex flex-col gap-8">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
+                    <LeafletMap 
+                        data={mapDisplayData} 
+                        outbreaks={outbreakData} 
+                        onEdit={openEditModal} 
+                        onEditOutbreak={openEditOutbreakModal} 
+                        canEdit={canEdit}
+                    />
+                </div>
+                
+                <div className="h-full">
+                    <UnitComparisonChart unitStats={unitStats} />
+                </div>
             </div>
+            
         </div>
-
                                         <StatisticsCharts 
                                             trendData={trendData}
                                             unitStats={unitStats} 
@@ -1536,8 +1545,8 @@ const handleCsvExport = useCallback((filters) => {
                                 )}
 
                                 {activeTab === 'calendar' && (
-    // ดึงกล่องให้ทะลุ Padding ของ <main> ออกไปให้ชิดขอบจอทั้ง 4 ด้าน
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-120px)] md:h-[calc(100vh-60px)] -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 -mb-24 md:-mb-8 flex flex-col">
+    // ลบ Negative margin (พวก -mx, -mt) ออก เพื่อให้ขอบซ้าย-ขวาตรงกับกล่องค้นหาด้านบน
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-240px)] min-h-[600px] flex flex-col w-full">
         <DispatchCalendarDashboard 
             isInline={true} 
             events={dispatchEventsOnly} 

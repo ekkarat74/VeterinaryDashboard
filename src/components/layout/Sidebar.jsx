@@ -140,15 +140,13 @@ const Sidebar = ({
                     {(user || tabsConfig?.database) && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
                     {(user || tabsConfig?.calendar) && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
                     {/* 🟢 ปฏิทิน & นัดหมาย */}
-{/* 🟢 ปฏิทิน & นัดหมาย */}
-{user && (
-    <>
-        {renderSectionHeader('ปฏิทิน & นัดหมาย')}
-        <NavItem icon={List} label="ประวัติประชุม" onClick={() => handleAction(onOpenMeetingList)} isCollapsed={isCollapsed} />
-        {/* ลบ "แผนออกหน่วย" ออกจากตรงนี้ เพราะย้ายขึ้นไปด้านบนแล้ว */}
-        <NavItem icon={CalendarDays} label="ปฏิทินประชุม" onClick={() => handleAction(onOpenMeetingCalendar)} isCollapsed={isCollapsed} />
-    </>
-)}
+                    {user && (
+                    <>
+                        {renderSectionHeader('ปฏิทิน & นัดหมาย')}
+                            <NavItem icon={List} label="ประวัติประชุม" onClick={() => handleAction(onOpenMeetingList)} isCollapsed={isCollapsed} />
+                            <NavItem icon={CalendarDays} label="ปฏิทินประชุม" onClick={() => handleAction(onOpenMeetingCalendar)} isCollapsed={isCollapsed} />
+                        </>
+                    )}
 
                     {/* 🟢 ตั้งค่าระบบ */}
                     {user && (isSuperAdmin || canEdit) && (
@@ -168,7 +166,7 @@ const Sidebar = ({
                                    <div className={`grid transition-all duration-300 ease-in-out ${isSystemMenuOpen ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
                                             <div className="pl-11 pr-3 py-2 space-y-3 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
-                                                {isMagaAdmin && (
+                                                {(isMagaAdmin || isSystemDeveloper) && (
                                                     <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 shadow-sm">
                                                         <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">แสดงแท็บเมนู</p>
                                                         <div className="space-y-2.5">

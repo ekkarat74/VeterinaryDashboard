@@ -309,31 +309,31 @@ ${staffDetails}
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
   return (
-    // 🔴 จุดที่ 1: เพิ่ม pb-24 ในคลาสนี้ เพื่อดัน Modal ทั้งก้อนให้ลอยพ้นจากแถบ Navigation ด้านล่างของแอป
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[3000] flex items-center justify-center p-4 pb-24 sm:p-6 sm:pb-6 animate-in fade-in duration-200">
+    // 🔴 1. ปรับ Wrapper (p-0 บนมือถือ เพื่อให้ชิดขอบจอ) และปรับ z-index ให้สูงเท่ากัน
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
       
-      {/* 🔴 จุดที่ 2: เปลี่ยนจาก h-full เป็น max-h-full เพื่อให้กล่องหดตัวตามพื้นที่ที่เหลือจาก pb-24 */}
-      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-full sm:h-auto sm:max-h-[90vh] overflow-hidden ring-1 ring-slate-900/5">
+      {/* 🔴 2. ปรับตัวกล่อง Modal (h-[100dvh] และ rounded-none บนมือถือ เพื่อให้เต็มจอและไม่มีขอบโค้ง) */}
+      <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200">
         
         {/* Header */}
-        <div className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center shrink-0 z-10">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 mt-safe sm:mt-0 bg-white border-b border-slate-100 flex justify-between items-center shrink-0 z-10">
           <div>
-            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
               <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
-                <Bell className="w-5 h-5" />
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               บันทึกและแจ้งเตือนออกหน่วย
             </h3>
-            <p className="text-sm text-slate-500 mt-1 ml-11 hidden sm:block">จัดการข้อมูลการออกหน่วยและส่งเข้า Line กลุ่ม</p>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1 ml-11 hidden sm:block">จัดการข้อมูลการออกหน่วยและส่งเข้า Line กลุ่ม</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 sm:p-2.5 rounded-full transition-all">
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
-        {/* Scrollable Content (มี min-h-0 เพื่อป้องกันบั๊ก Flexbox ให้มันเลื่อนได้เสมอ) */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-white custom-scrollbar">
-          <div className="max-w-5xl mx-auto space-y-8 pb-8">
+        {/* Scrollable Content (เพิ่ม pb-24 บนมือถือเพื่อเว้นที่ให้ Navigation Bar ล่างสุด) */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/30 custom-scrollbar pb-24 sm:pb-6">
+          <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
             
             {/* Section 1: ข้อมูลหลัก */}
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -341,7 +341,7 @@ ${staffDetails}
               <div className="lg:col-span-4 space-y-6">
                 
                 {/* Top Controls: Unit, Team, Color */}
-                <div className="space-y-5">
+                <div className="space-y-5 bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm">
                   <div className="w-full">
                     <label className="block text-xs font-bold text-slate-500 mb-2">ประเภทหน่วยงาน</label>
                     <div className="relative">
@@ -475,7 +475,7 @@ ${staffDetails}
               </div>
 
               {/* Right Column (Location Form) */}
-              <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <div className="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
                   <MapPin className="w-4 h-4 text-rose-500" /> ข้อมูลสถานที่ (Location)
                 </h4>
@@ -616,8 +616,8 @@ ${staffDetails}
             </section>
 
             {/* Section 2: รายชื่อผู้ปฏิบัติงาน */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
+            <section className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-5">
                 <div className="h-px flex-1 bg-slate-200"></div>
                 <h4 className="text-sm font-bold text-slate-600 flex items-center gap-2">
                   <Users className="w-4 h-4" /> ทีมงาน (Staff)
@@ -656,8 +656,8 @@ ${staffDetails}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:p-6 bg-white border-t border-slate-100 flex flex-row items-center justify-between shrink-0 z-10">
+        {/* 🔴 3. ปรับปุ่ม Footer ให้รองรับ Safe Area บนมือถือ และจัดให้อยู่ตำแหน่งล่างสุดสวยงาม */}
+        <div className="bg-white border-t border-slate-100 p-4 sm:p-5 pb-8 sm:pb-5 flex items-center justify-between shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)]">
           
           {/* ซ้าย: ปุ่มลบ (ถ้ามี) */}
           <div className="flex-1">
@@ -666,35 +666,35 @@ ${staffDetails}
                 onClick={() => onDelete(initialData._id)} 
                 className="text-slate-400 hover:text-red-500 text-sm font-semibold flex items-center gap-1.5 transition-colors"
               >
-                <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">ลบรายการ</span>
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">ลบรายการ</span>
               </button>
             )}
           </div>
 
           {/* ขวา: กลุ่มปุ่มทำงาน */}
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-2 sm:gap-3 items-center">
             <button 
               onClick={onClose} 
-              className="text-slate-500 hover:text-slate-800 font-semibold px-4 py-2 transition-colors text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors text-sm sm:text-base"
             >
               ยกเลิก
             </button>
             <div className="flex gap-2">
                <button 
                 onClick={handleSaveLocal} 
-                className="px-6 sm:px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-bold rounded-lg shadow-sm transition-all flex items-center gap-2"
+                className="px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-semibold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2"
               >
-                <FileText className="w-4 h-4" /> 
-                <span className="hidden sm:inline">{initialData ? 'บันทึกข้อมูล' : 'บันทึกข้อมูล'}</span>
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5" /> 
+                <span className="hidden sm:inline">บันทึกข้อมูล</span>
                 <span className="inline sm:hidden">บันทึก</span>
               </button>
               
               <button 
                 onClick={handleSendLine} 
-                className="px-4 py-2.5 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-lg shadow-sm transition-all flex items-center justify-center"
+                className="px-4 py-2.5 sm:py-3 bg-[#06C755] hover:bg-[#05b64d] text-white rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center"
                 title="แชร์ไปที่ Line"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>

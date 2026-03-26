@@ -78,7 +78,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
         text: 'text-indigo-700',
     };
 
-    // จัดการสีของกล่องกิจกรรม
     const getEventStyles = (evt) => {
         if (evt.type === 'meeting') {
             return { border: 'border-l-teal-500', bg: 'bg-teal-50', text: 'text-teal-700' };
@@ -101,13 +100,13 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
 
     return (
         <div className={isInline 
-            ? "w-full flex-1 flex flex-col bg-white" // กางเต็มพื้นที่ของหน้าหลัก
+            ? "w-full flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" // ✨ แก้ไขตรงนี้
             : "fixed inset-0 z-50 bg-white animate-in fade-in duration-200"}>
             
-            <div className={`w-full flex flex-col overflow-hidden ${isInline ? 'h-full' : 'h-[100dvh]'}`}>
+            <div className={`w-full flex flex-col overflow-hidden ${isInline ? 'h-full min-h-[600px]' : 'h-[100dvh]'}`}> {/* ✨ แก้ไขตรงนี้ */}
                 
                 {/* Header */}
-                <div className="bg-white px-4 sm:px-6 py-4 mt-safe sm:mt-0 flex justify-between items-center border-b border-slate-100 shrink-0 z-10">
+                <div className="bg-white px-4 sm:px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0 z-10">
                     <div className="flex items-center gap-3">
                         <div className={`p-2.5 rounded-xl ${theme.lightBg}`}>
                             <CalendarDays className={`w-5 h-5 sm:w-6 sm:h-6 ${theme.text}`} />
@@ -127,17 +126,15 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                 {/* Body Layout */}
                 <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden">
                     
-                    {/* Left Panel: Sidebar (รายการวันนั้นๆ) */}
+                    {/* Left Panel */}
                     <div className="w-full lg:w-[340px] bg-white border-b lg:border-b-0 lg:border-r border-slate-100 flex flex-col shrink-0 order-2 lg:order-1 h-auto lg:h-full z-10">
                         <div className="p-5 flex flex-col gap-5 lg:overflow-y-auto custom-scrollbar flex-1">
                             
-                            {/* Stat Cards */}
                             <div className="grid grid-cols-2 gap-3">
                                 <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
                                 <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
                             </div>
 
-                            {/* Add Button */}
                             <button 
                                 onClick={onOpenForm}
                                 className={`w-full py-3.5 ${theme.primary} ${theme.primaryHover} text-white rounded-xl font-bold shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-sm sm:text-base`}
@@ -145,7 +142,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                 <Plus className="w-5 h-5" /> บันทึกออกหน่วย
                             </button>
 
-                            {/* Daily Events List */}
                             <div className="mt-2 flex-1">
                                 <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
                                     <span className="w-1.5 h-5 bg-[#545BE8] rounded-full"></span>
@@ -203,10 +199,8 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                         </div>
                     </div>
 
-                    {/* Right Panel: Calendar Grid (ตารางปฏิทิน) */}
-                    <div className="flex-1 bg-slate-50/50 p-5 md:p-8 flex flex-col order-1 lg:order-2 shrink-0 h-auto lg:h-full lg:overflow-hidden relative">
-                        
-                        {/* Month Header & Controls */}
+                    {/* Right Panel: Calendar Grid */}
+                    <div className="flex-1 bg-slate-50/50 p-4 md:p-6 flex flex-col order-1 lg:order-2 shrink-0 h-auto lg:h-full lg:overflow-hidden relative">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
@@ -218,15 +212,13 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                             </div>
                         </div>
 
-                        {/* Days Header */}
                         <div className="grid grid-cols-7 mb-3">
                             {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map((d, i) => (
                                 <div key={d} className={`text-center text-xs sm:text-sm font-bold pb-2 ${i===0 || i===6 ? 'text-rose-500' : 'text-slate-400'}`}>{d}</div>
                             ))}
                         </div>
 
-                        {/* Calendar Grid */}
-                        <div className="grid grid-cols-7 grid-rows-6 gap-2 lg:flex-1 lg:overflow-y-auto custom-scrollbar min-h-[400px] md:min-h-[500px] pb-4 pr-1">
+                        <div className="grid grid-cols-7 grid-rows-6 gap-1.5 sm:gap-2 flex-1 min-h-0 pb-2 custom-scrollbar overflow-y-auto lg:overflow-hidden">
                             {daysArray.map((day, i) => {
                                 if (i < firstDay) return <div key={i} className="bg-transparent rounded-2xl" />;
                                 const dayNum = i - firstDay + 1;
@@ -239,7 +231,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                 return (
                                     <div key={i} onClick={() => setSelectedDate(dObj)}
                                         className={`
-                                            relative p-2 rounded-2xl border cursor-pointer flex flex-col gap-1.5 transition-all duration-200 group min-h-[80px] sm:min-h-[100px] bg-white
+                                            relative p-1.5 sm:p-2 rounded-xl sm:rounded-2xl border cursor-pointer flex flex-col gap-1 transition-all duration-200 group h-full min-h-[60px] bg-white overflow-hidden
                                             ${isSelected 
                                                 ? 'border-[#545BE8] ring-2 ring-[#545BE8]/20 shadow-md z-10' 
                                                 : 'border-slate-100 hover:border-[#545BE8]/40 hover:shadow-md'
@@ -259,7 +251,6 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                             )}
                                         </div>
 
-                                        {/* Events Inside Cell */}
                                         <div className="flex flex-col gap-1.5 overflow-hidden">
                                             {dayEvents.slice(0, 3).map((evt, idx) => {
                                                 const styles = getEventStyles(evt); 
