@@ -95,6 +95,11 @@ export default function VeterinaryDashboard() {
 
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
+    const isSystemDeveloper = user && user.role === 'Developer';
+    const canEdit = user && (user.role === 'Developer' || user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
+    const isSuperAdmin = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
+    const isMagaAdmin = user && (user.role === 'Developer' || user.role === 'MagaAdmin');
+
     // Constants
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
     const API_URL = `${BASE_URL}/api/reports`;
@@ -280,13 +285,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
             localStorage.removeItem('vet_user');
         }
     }, [setUser]);
-
-    const isSystemDeveloper = user && user.role === 'Developer';
-    
-    // ✅ นำ Developer เข้าไปรวมกับสิทธิ์ระดับสูงอื่นๆ เพื่อให้ใช้งานฟังก์ชันทั่วไปได้
-    const canEdit = user && (user.role === 'Developer' || user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
-    const isSuperAdmin = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
-    const isMagaAdmin = user && (user.role === 'Developer' || user.role === 'MagaAdmin');
 
     useEffect(() => {
         const fetchTabsConfig = async () => {
