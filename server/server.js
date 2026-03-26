@@ -8,7 +8,6 @@ const bcrypt = require('bcryptjs');
 const http = require('http');
 const { Server } = require("socket.io");
 const helmet = require('helmet');
-const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
