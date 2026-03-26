@@ -47,7 +47,7 @@ const NotificationSettingsModal = ({ isOpen, onClose, apiBaseUrl, token, onToast
         } finally { setSaving(false); }
     };
 
-    // ✨ ฟังก์ชันใหม่ สำหรับกดยิง API ทดสอบ
+    // ✨ ฟังก์ชันใหม่ สำหรับกดยิง API ทดสอบ (ดัก Error ให้ฉลาดขึ้น)
     const handleTestEmail = async () => {
         if (!settings.targetEmails.trim()) {
             return onToast('error', 'กรุณาระบุอีเมลก่อนทำการทดสอบ');
@@ -60,6 +60,13 @@ const NotificationSettingsModal = ({ isOpen, onClose, apiBaseUrl, token, onToast
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ emails: settings.targetEmails })
             });
+
+            // ดักจับกรณี Server ล่มหรือ Timeout แล้วตอบกลับมาเป็น HTML
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Server ไม่ตอบสนอง (อาจจะ Timeout)");
+            }
+
             const data = await res.json();
             
             if (res.ok) {
@@ -68,7 +75,8 @@ const NotificationSettingsModal = ({ isOpen, onClose, apiBaseUrl, token, onToast
                 onToast('error', data.message || 'ส่งทดสอบไม่สำเร็จ');
             }
         } catch (error) {
-            onToast('error', 'เกิดข้อผิดพลาด ไม่สามารถเชื่อมต่อกับ Server ได้');
+            console.error("Test Email Catch Error:", error);
+            onToast('error', `เกิดข้อผิดพลาด: ${error.message}`);
         } finally {
             setTestingEmail(false);
         }
