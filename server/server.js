@@ -167,6 +167,13 @@ const customUnitSchema = new mongoose.Schema({
 }, { timestamps: true });
 const CustomUnit = mongoose.model('CustomUnit', customUnitSchema);
 
+// 9. Animal Category Schema (เพิ่มใหม่: เก็บหมวดหมู่สัตว์ที่กำหนดเอง)
+const animalCategorySchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: String
+}, { timestamps: true });
+const AnimalCategory = mongoose.model('AnimalCategory', animalCategorySchema);
+
 // --- HELPER FUNCTIONS ---
 
 // Function บันทึก Log
@@ -498,7 +505,6 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    // ✅ [แก้ไข] ส่ง updatedReport เป็น parameter ตัวที่ 4
     await createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id}`, updatedReport);
 
     io.emit('server_data_update', { type: 'REPORT_UPDATED', data: updatedReport });
@@ -872,6 +878,122 @@ app.delete('/api/custom-units/:id', authenticateToken, async (req, res) => {
         res.json({ message: "ลบสำเร็จ" });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+// =======================
+// K. ANIMAL CATEGORIES (จัดการหมวดหมู่สัตว์)
+// =======================
+app.get('/api/animal-categories', async (req, res) => {
+    try {
+        const categories = await AnimalCategory.find().sort({ createdAt: -1 }).lean();
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.post('/api/animal-categories', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+    try {
+        const { name } = req.body;
+        const existing = await AnimalCategory.findOne({ name });
+        if (existing) return res.status(400).json({ message: "มีหมวดหมู่นี้อยู่แล้ว" });
+
+        const newCategory = new AnimalCategory({ name, createdBy: req.user.username });
+        const savedCategory = await newCategory.save();
+        
+        await createLog(req, 'CREATE_ANIMAL_CATEGORY', `เพิ่มหมวดหมู่สัตว์: ${name}`);
+        io.emit('server_data_update', { type: 'ANIMAL_CATEGORY_ADDED', data: savedCategory });
+        
+        res.status(201).json(savedCategory);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+    try {
+        const deletedCategory = await AnimalCategory.findByIdAndDelete(req.params.id);
+        if (!deletedCategory) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+        await createLog(req, 'DELETE_ANIMAL_CATEGORY', `ลบหมวดหมู่สัตว์: ${deletedCategory.name}`);
+        io.emit('server_data_update', { type: 'ANIMAL_CATEGORY_DELETED', id: req.params.id });
+        
+        res.json({ message: "ลบสำเร็จ" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+
+// =======================
+// L. NOTIFICATION SETTINGS (ตั้งค่าการแจ้งเตือน)
+// =======================
+app.get('/api/settings/notifications', authenticateToken, async (req, res) => {
+    try {
+        let setting = await SystemSetting.findOne({ key: 'notificationConfig' });
+        if (!setting) {
+            return res.json({ emailReport: true, pushOutbreak: true, lineNotify: false });
+        }
+        res.json(setting.value);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.put('/api/settings/notifications', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+    try {
+        const { notificationConfig } = req.body;
+        const updatedSetting = await SystemSetting.findOneAndUpdate(
+            { key: 'notificationConfig' },
+            { value: notificationConfig },
+            { upsert: true, new: true }
+        );
+
+        await createLog(req, 'UPDATE_NOTIFICATION_CONFIG', `เปลี่ยนแปลงการตั้งค่าการแจ้งเตือนระบบ`);
+        io.emit('server_data_update', { type: 'NOTIFICATION_CONFIG_UPDATED', data: notificationConfig });
+
+        res.json({ message: "อัปเดตการแจ้งเตือนสำเร็จ", data: notificationConfig });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+
+// =======================
+// M. ROLE PERMISSIONS SETTINGS (จัดการสิทธิ์การเข้าถึงเชิงลึก)
+// =======================
+app.get('/api/settings/permissions', authenticateToken, async (req, res) => {
+    try {
+        let setting = await SystemSetting.findOne({ key: 'rolePermissionsConfig' });
+        if (!setting) {
+            // ค่า Default พื้นฐาน
+            return res.json({ 
+                strictHierarchy: true, 
+                allowSuperAdminToClearData: false 
+            });
+        }
+        res.json(setting.value);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.put('/api/settings/permissions', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
+    try {
+        const { rolePermissionsConfig } = req.body;
+        const updatedSetting = await SystemSetting.findOneAndUpdate(
+            { key: 'rolePermissionsConfig' },
+            { value: rolePermissionsConfig },
+            { upsert: true, new: true }
+        );
+
+        await createLog(req, 'UPDATE_ROLE_PERMISSIONS', `ปรับปรุงกฎและสิทธิ์การเข้าถึงเชิงลึก`);
+        io.emit('server_data_update', { type: 'ROLE_PERMISSIONS_UPDATED', data: rolePermissionsConfig });
+
+        res.json({ message: "อัปเดตสิทธิ์สำเร็จ", data: rolePermissionsConfig });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
     }
 });
 

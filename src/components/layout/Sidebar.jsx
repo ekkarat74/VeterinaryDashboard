@@ -3,28 +3,26 @@ import {
     Activity, Unlock, Settings, ChevronDown, FileText, Users, 
     Database, Download, Zap, List, CalendarDays, AlertTriangle, 
     Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X,
-    RefreshCw 
+    RefreshCw, Building2, Trash2, Sparkles, PaintBucket, Bell, // ✨ ไอคอนใหม่
+    PawPrint, ShieldCheck // ✨ ไอคอนใหม่
 } from 'lucide-react';
 
 // --------------------------------------------------------
 // 🧩 Reusable Component: ปุ่มเมนูย่อย
 // --------------------------------------------------------
 const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColor = 'indigo' }) => {
-    // กำหนดสีพื้นหลังและตัวอักษร
     const colorStyles = {
         indigo: isActive ? 'bg-indigo-50/80 text-indigo-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
         rose: isActive ? 'bg-rose-50/80 text-rose-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
         emerald: isActive ? 'bg-emerald-50/80 text-emerald-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
     };
 
-    // กำหนดสีไอคอน
     const iconColors = {
         indigo: isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500',
         rose: isActive ? 'text-rose-600' : 'text-slate-400 group-hover:text-rose-500',
         emerald: isActive ? 'text-emerald-600' : 'text-slate-400 group-hover:text-emerald-500',
     };
 
-    // กำหนดสีของแถบ Indicator ด้านซ้าย (เพื่อความโมเดิร์น)
     const indicatorColors = {
         indigo: 'bg-indigo-600',
         rose: 'bg-rose-600',
@@ -37,7 +35,6 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
             title={label} 
             className={`relative group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl text-sm ${isActive ? 'font-semibold' : 'font-medium'} transition-all duration-200 ${colorStyles[activeColor]}`}
         >
-            {/* Active Indicator Line */}
             {isActive && !isCollapsed && (
                 <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full ${indicatorColors[activeColor]}`} />
             )}
@@ -57,7 +54,12 @@ const Sidebar = ({
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
     onOpenMeetingList, onOpenCalendar, onOpenMeetingCalendar,
     onOpenMeetingModal, onOpenAddOutbreak, onOpenAddData,
-    onNotifyUpdate,
+    onNotifyUpdate, onOpenCustomUnits, onClearData, 
+    // ✨ Props สำหรับปุ่มใหม่ (รอการพัฒนาในอนาคต)
+    onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
+    onOpenNotificationSettings = () => alert("กำลังพัฒนาระบบตั้งค่าแจ้งเตือน..."),
+    onOpenAnimalCategory = () => alert("กำลังพัฒนาระบบจัดการหมวดหมู่สัตว์..."),
+    onOpenRolePermissions = () => alert("กำลังพัฒนาระบบจัดการสิทธิ์เชิงลึก..."),
     isMagaAdmin, tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen 
 }) => {
@@ -77,16 +79,14 @@ const Sidebar = ({
         )
     );
 
-    // ✨ Helper: ตรวจสอบสิทธิ์การมองเห็นแท็บตามแต่ละ Role และการตั้งค่า
     const checkTabVisibility = (tabName) => {
-        if (!user) return tabsConfig?.[`public_${tabName}`] || false; // ถ้าไม่ได้ล็อกอิน
-        if (user.role === 'superadmin') return tabsConfig?.[`sa_${tabName}`] || false; // ถ้าเป็น SuperAdmin
-        return true; // Developer, MagaAdmin และระดับที่สูงกว่าให้เห็นทั้งหมด
+        if (!user) return tabsConfig?.[`public_${tabName}`] || false; 
+        if (user.role === 'superadmin') return tabsConfig?.[`sa_${tabName}`] || false; 
+        return true; 
     };
 
     return (
         <>
-            {/* 🟢 Mobile Backdrop */}
             {isMobileMenuOpen && (
                 <div 
                     className="md:hidden fixed inset-0 bg-slate-900/40 z-[4999] backdrop-blur-sm transition-opacity"
@@ -111,7 +111,6 @@ const Sidebar = ({
                                 alt="Logo" 
                                 className="w-10 h-10 object-cover rounded-xl border border-slate-100 shrink-0 shadow-sm" 
                             />
-                            {/* Decorative dot */}
                             <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
                         </div>
                         <div className="flex flex-col whitespace-nowrap">
@@ -159,13 +158,13 @@ const Sidebar = ({
                     {/* 🟢 ตั้งค่าระบบ (ซ่อนจาก superadmin) */}
                     {user && user.role !== 'superadmin' && (isSuperAdmin || canEdit) && (
                         <>
-                            {renderSectionHeader('การตั้งค่า')}
+                            {renderSectionHeader('การตั้งค่าระบบ')}
                             {!isCollapsed ? (
                                 <div className="space-y-1">
                                     <button onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)} className="w-full flex items-center justify-between px-3 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-800 rounded-xl transition-all group">
                                         <div className="flex items-center gap-3">
                                             <Settings className={`w-5 h-5 shrink-0 transition-colors ${isSystemMenuOpen ? 'text-slate-800' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                                            <span className={`text-sm whitespace-nowrap ${isSystemMenuOpen ? 'font-semibold text-slate-800' : 'font-medium'}`}>เครื่องมือระบบ</span>
+                                            <span className={`text-sm whitespace-nowrap ${isSystemMenuOpen ? 'font-semibold text-slate-800' : 'font-medium'}`}>ศูนย์ควบคุม (Control Panel)</span>
                                         </div>
                                         <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform duration-300 ${isSystemMenuOpen ? 'rotate-180 text-slate-800' : ''}`} />
                                     </button>
@@ -173,15 +172,14 @@ const Sidebar = ({
                                     {/* Dropdown Content */}
                                    <div className={`grid transition-all duration-300 ease-in-out ${isSystemMenuOpen ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
-                                            <div className="pl-11 pr-3 py-2 space-y-3 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
+                                            <div className="pl-11 pr-3 py-2 space-y-5 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
                                                 
                                                 {/* ✨ โซนจัดการแท็บ (เฉพาะ MagaAdmin / Developer) */}
                                                 {(isMagaAdmin || isSystemDeveloper) && (
                                                     <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 shadow-sm space-y-4">
-                                                        
                                                         {/* ส่วนที่ 1: สำหรับ SuperAdmin */}
                                                         <div>
-                                                            <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">เปิด-ปิดแท็บ (SuperAdmin)</p>
+                                                            <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider flex items-center gap-1"><Users className="w-3 h-3"/> เปิด-ปิดแท็บ (SuperAdmin)</p>
                                                             <div className="space-y-2.5">
                                                                 {[
                                                                     { id: 'sa_overview', label: 'ภาพรวม' },
@@ -196,12 +194,10 @@ const Sidebar = ({
                                                                 ))}
                                                             </div>
                                                         </div>
-
                                                         <div className="h-px bg-slate-200"></div>
-
                                                         {/* ส่วนที่ 2: สำหรับคนทั่วไป */}
                                                         <div>
-                                                            <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider">เปิด-ปิดแท็บ (ไม่ได้ล็อกอิน)</p>
+                                                            <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider flex items-center gap-1"><Unlock className="w-3 h-3"/> เปิด-ปิดแท็บ (ไม่ได้ล็อกอิน)</p>
                                                             <div className="space-y-2.5">
                                                                 {[
                                                                     { id: 'public_overview', label: 'ภาพรวม' },
@@ -216,38 +212,63 @@ const Sidebar = ({
                                                                 ))}
                                                             </div>
                                                         </div>
-
                                                     </div>
                                                 )}
                                                 
-                                                <div className="space-y-0.5">
+                                                {/* ✨ หมวดหมู่: จัดการระบบ (System Management) */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">จัดการระบบหลัก</p>
+                                                    
+                                                    <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><PaintBucket className="w-4 h-4 shrink-0"/> รูปแบบหน้าจอ (Theme)</button>
+                                                    <button onClick={() => handleAction(onOpenNotificationSettings)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><Bell className="w-4 h-4 shrink-0"/> การแจ้งเตือน</button>
+
                                                     {isSuperAdmin && (
                                                         <>
-                                                            <button onClick={() => handleAction(onOpenLog)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><FileText className="w-4 h-4 shrink-0"/> ประวัติใช้งาน</button>
-                                                            <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><Users className="w-4 h-4 shrink-0"/> จัดการผู้ใช้</button>
+                                                            <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><Users className="w-4 h-4 shrink-0"/> จัดการบัญชีผู้ใช้</button>
+                                                            <button onClick={() => handleAction(onOpenCustomUnits)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><Building2 className="w-4 h-4 shrink-0"/> จัดการรายชื่อหน่วยงาน</button>
+                                                            <button onClick={() => handleAction(onOpenAnimalCategory)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><PawPrint className="w-4 h-4 shrink-0"/> จัดการหมวดหมู่สัตว์</button>
                                                         </>
+                                                    )}
+                                                    
+                                                    {isDevOrSuper && (
+                                                        <button onClick={() => handleAction(onOpenRolePermissions)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors"><ShieldCheck className="w-4 h-4 shrink-0"/> สิทธิ์การเข้าถึงเชิงลึก</button>
+                                                    )}
+                                                    
+                                                    {isSystemDeveloper && (
+                                                        <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-2 rounded-lg text-sm font-medium text-sky-600 bg-sky-50/80 hover:text-sky-700 hover:bg-sky-100 flex items-center gap-2.5 transition-all shadow-sm border border-sky-100/50">
+                                                            <RefreshCw className="w-4 h-4 shrink-0" />
+                                                            บังคับอัปเดตระบบ
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* ✨ หมวดหมู่: ความปลอดภัย & ข้อมูล (Data & Security) */}
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">ความปลอดภัย & ข้อมูล</p>
+                                                    {isSuperAdmin && (
+                                                        <button onClick={() => handleAction(onOpenLog)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"><FileText className="w-4 h-4 shrink-0"/> ประวัติใช้งานระบบ (Log)</button>
                                                     )}
                                                     {canEdit && (
                                                         <>
-                                                            <button onClick={() => handleAction(onOpenBackup)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"><Database className="w-4 h-4 shrink-0"/> สำรองข้อมูล</button>
-                                                            <button onClick={() => handleAction(onOpenCsvOutbreak)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors"><Download className="w-4 h-4 shrink-0"/> นำเข้า CSV ระบาด</button>
-                                                            <button onClick={() => handleAction(onOpenCsvReport)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"><Download className="w-4 h-4 shrink-0"/> นำเข้า CSV บริการ</button>
-                                                            
-                                                            {isSystemDeveloper && (
-                                                                <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-2 rounded-lg text-sm font-medium text-sky-600 bg-sky-50/80 hover:text-sky-700 hover:bg-sky-100 flex items-center gap-2.5 transition-all shadow-sm border border-sky-100/50">
-                                                                    <RefreshCw className="w-4 h-4 shrink-0" />
-                                                                    บังคับอัปเดตระบบ
-                                                                </button>
-                                                            )}
+                                                            <button onClick={() => handleAction(onOpenBackup)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"><Database className="w-4 h-4 shrink-0"/> สำรอง/กู้คืนข้อมูล</button>
+                                                            <button onClick={() => handleAction(onOpenCsvOutbreak)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors"><Download className="w-4 h-4 shrink-0"/> นำเข้า CSV (ระบาด)</button>
+                                                            <button onClick={() => handleAction(onOpenCsvReport)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"><Download className="w-4 h-4 shrink-0"/> นำเข้า CSV (บริการ)</button>
                                                         </>
                                                     )}
+                                                    {isDevOrSuper && (
+                                                        <button onClick={() => handleAction(onGenerateMock)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><Sparkles className="w-4 h-4 shrink-0"/> สร้างข้อมูลจำลอง (Mock)</button>
+                                                    )}
+                                                    {isSuperAdmin && (
+                                                        <button onClick={() => handleAction(onClearData)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors"><Trash2 className="w-4 h-4 shrink-0"/> ล้างข้อมูลทั้งหมดในระบบ</button>
+                                                    )}
                                                 </div>
+
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <button onClick={() => { setIsSidebarCollapsed(false); setIsSystemMenuOpen(true); }} title="เครื่องมือระบบ" className="w-full flex justify-center p-3 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-800 transition-colors">
+                                <button onClick={() => { setIsSidebarCollapsed(false); setIsSystemMenuOpen(true); }} title="ศูนย์ควบคุม" className="w-full flex justify-center p-3 rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-800 transition-colors">
                                     <Settings className="w-5 h-5 shrink-0" />
                                 </button>
                             )}
@@ -256,7 +277,6 @@ const Sidebar = ({
                 </div>
 
                 {/* --- 4. ดำเนินการด่วน (Action Buttons) --- */}
-                {/* ✨ ซ่อนปุ่มการกระทำทั้งหมดจาก superadmin */}
                 {user && canEdit && user.role !== 'superadmin' && (
                     <div className={`p-4 shrink-0 border-t border-slate-100 bg-white space-y-2.5 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         <button onClick={() => handleAction(onOpenAddOutbreak)} title="แจ้งโรคระบาด" 
@@ -288,7 +308,6 @@ const Sidebar = ({
                                     </div>
                                     <div className="flex flex-col min-w-0 flex-1">
                                     <span className="text-sm font-bold text-slate-800 truncate">{user.username}</span>
-                                    {/* ✅ แปลงข้อความ Role 'Developer' ให้เป็น 'ผู้พัฒนาระบบ' */}
                                     <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider truncate">
                                         {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
                                     </span>
@@ -296,7 +315,6 @@ const Sidebar = ({
                                 </div>
                             )}
                             <div className={`flex ${isCollapsed ? 'flex-col gap-2 w-full' : 'gap-1 shrink-0'}`}>
-                                {/* ✨ ซ่อนปุ่มเปลี่ยนรหัสจาก superadmin */}
                                 {user.role !== 'superadmin' && (
                                     <button onClick={() => handleAction(onChangePassword)} className={`p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all shrink-0 ${isCollapsed ? 'flex justify-center w-full bg-white border border-slate-200 shadow-sm' : ''}`} title="เปลี่ยนรหัสผ่าน">
                                         <Key className="w-[18px] h-[18px]" />

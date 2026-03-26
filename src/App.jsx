@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays
 } from 'lucide-react';
@@ -29,13 +29,16 @@ import ActivityLogModal from './components/modals/ActivityLogModal';
 import CsvActionModal from './components/modals/CsvActionModal';
 import BackupSystemModal from './components/modals/BackupSystemModal';
 import ToastContainer from './path/to/ToastContainer';
-import PasswordConfirmModal from './components/modals/PasswordConfirmModal';
 import ImagePreviewModal from './components/modals/ImagePreviewModal';
 import { getUnitKey } from './utils/helpers';
 import PieChartsSection from './components/dashboard/PieChartsSection';
 const UnitComparisonChart = React.lazy(() => import('./components/dashboard/UnitComparisonChart.jsx'));
 import ClearDataModal from './components/modals/ClearDataModal';
 import DispatchCalendarDashboard from './components/DispatchCalendarDashboard';
+const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal'));
+const NotificationSettingsModal = lazy(() => import('./components/modals/NotificationSettingsModal'));
+const AnimalCategoryModal = lazy(() => import('./components/modals/AnimalCategoryModal'));
+const RolePermissionsModal = lazy(() => import('./components/modals/RolePermissionsModal'));
 
 // --- MAIN DASHBOARD COMPONENT ---
 
@@ -71,6 +74,12 @@ export default function VeterinaryDashboard() {
         chartBaseMonth, setChartBaseMonth,
         toasts, addToast, removeToast
     } = useDashboardState();
+
+    const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
+    const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+    const [isAnimalCategoryModalOpen, setIsAnimalCategoryModalOpen] = useState(false);
+    const [isRolePermissionsModalOpen, setIsRolePermissionsModalOpen] = useState(false);
+
 
     const handleNotifySystemUpdate = async () => {
         if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
@@ -872,6 +881,14 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
 
+    const openCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(true), []);
+    const closeCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(false), []);
+    const openNotificationModal = useCallback(() => setIsNotificationModalOpen(true), []);
+    const closeNotificationModal = useCallback(() => setIsNotificationModalOpen(false), []);
+    const openAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(true), []);
+    const closeAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(false), []);
+    const openRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(true), []);
+    const closeRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(false), []);
 
     // --- 5. CALCULATIONS ---
 
@@ -1329,6 +1346,10 @@ const handleCsvExport = useCallback((filters) => {
             <Suspense fallback={<div className="hidden">Loading...</div>}>
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
+                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <NotificationSettingsModal isOpen={isNotificationModalOpen} onClose={closeNotificationModal} />
+                <AnimalCategoryModal isOpen={isAnimalCategoryModalOpen} onClose={closeAnimalCategoryModal} />
+                <RolePermissionsModal isOpen={isRolePermissionsModalOpen} onClose={closeRolePermissionsModal} />
             </Suspense>
             <CsvActionModal isOpen={isCsvModalOpen} onClose={closeCsvModal} onFileChange={handleCsvFileChange} onExport={handleCsvExport}availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears}thaiMonths={THAI_MONTHS}units={UNIT_TYPES}districts={BANGKOK_DISTRICTS}csvMode={csvMode}/>
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={closeBackupModal} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
@@ -1361,7 +1382,10 @@ const handleCsvExport = useCallback((filters) => {
                 isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
                 onLogin={openLoginModal} onLogout={handleLogout} onChangePassword={openChangePasswordModal}
                 onOpenLog={openLogModal} onOpenUserMgmt={openUserMgmtModal} onOpenBackup={openBackupModal}
-                onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData}
+                onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData} onClearData={handleClearAllData} onOpenCustomUnits={openCustomUnitModal}
+                onOpenNotificationSettings={openNotificationModal}
+                onOpenAnimalCategory={openAnimalCategoryModal}
+                onOpenRolePermissions={openRolePermissionsModal}
                 onOpenMeetingList={openMeetingListModal} onOpenCalendar={openCalendarModal} onOpenMeetingCalendar={openMeetingCalendarModal}
                 onOpenMeetingModal={openMeetingModalDialog} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
                 isMagaAdmin={isMagaAdmin}
@@ -1603,40 +1627,50 @@ const handleCsvExport = useCallback((filters) => {
                 </main>
             </div>
 
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
-                {(isDevOrSuper || tabsConfig?.overview) && (
-                    <button onClick={() => setActiveTab('overview')} 
-                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        <Activity className="w-5 h-5 mb-1" />
-                        <span className="text-[10px]">ภาพรวม</span>
-                    </button>
-                )}
-                {(isDevOrSuper || tabsConfig?.outbreak) && (
-                    <button onClick={() => setActiveTab('outbreak')} 
-                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        <Siren className="w-5 h-5 mb-1" />
-                        <span className="text-[10px]">จุดเสี่ยง</span>
-                    </button>
-                )}
-                {(isDevOrSuper || tabsConfig?.database) && (
-                    <button onClick={() => setActiveTab('database')} 
-                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        <Database className="w-5 h-5 mb-1" />
-                        <span className="text-[10px]">ฐานข้อมูล</span>
-                    </button>
-                )}
-                {(isDevOrSuper || tabsConfig?.calendar) && (
-                    <button onClick={() => setActiveTab('calendar')} 
-                        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-blue-600 font-bold bg-blue-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        <CalendarDays className="w-5 h-5 mb-1" />
-                        <span className="text-[10px]">ปฏิทิน</span>
-                    </button>
-                )}
-            </div>
+            {(() => {
+                const checkMobileTabVisibility = (tabName) => {
+                    if (!user) return tabsConfig?.[`public_${tabName}`];
+                    if (user.role === 'superadmin') return tabsConfig?.[`sa_${tabName}`];
+                    return true; 
+                };
+
+                return (
+                    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
+                        {checkMobileTabVisibility('overview') && (
+                            <button onClick={() => setActiveTab('overview')} 
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <Activity className="w-5 h-5 mb-1" />
+                                <span className="text-[10px]">ภาพรวม</span>
+                            </button>
+                        )}
+                        {checkMobileTabVisibility('outbreak') && (
+                            <button onClick={() => setActiveTab('outbreak')} 
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <Siren className="w-5 h-5 mb-1" />
+                                <span className="text-[10px]">จุดเสี่ยง</span>
+                            </button>
+                        )}
+                        {checkMobileTabVisibility('database') && (
+                            <button onClick={() => setActiveTab('database')} 
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <Database className="w-5 h-5 mb-1" />
+                                <span className="text-[10px]">ฐานข้อมูล</span>
+                            </button>
+                        )}
+                        {checkMobileTabVisibility('calendar') && (
+                            <button onClick={() => setActiveTab('calendar')} 
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-blue-600 font-bold bg-blue-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <CalendarDays className="w-5 h-5 mb-1" />
+                                <span className="text-[10px]">ปฏิทิน</span>
+                            </button>
+                        )}
+                    </div>
+                );
+            })()}
         </div>
     );
 }
