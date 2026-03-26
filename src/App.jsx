@@ -1347,9 +1347,9 @@ const handleCsvExport = useCallback((filters) => {
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
                 <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-                <NotificationSettingsModal isOpen={isNotificationModalOpen} onClose={closeNotificationModal} />
-                <AnimalCategoryModal isOpen={isAnimalCategoryModalOpen} onClose={closeAnimalCategoryModal} />
-                <RolePermissionsModal isOpen={isRolePermissionsModalOpen} onClose={closeRolePermissionsModal} />
+                <NotificationSettingsModal isOpen={isNotificationModalOpen} onClose={closeNotificationModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <AnimalCategoryModal isOpen={isAnimalCategoryModalOpen} onClose={closeAnimalCategoryModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <RolePermissionsModal isOpen={isRolePermissionsModalOpen} onClose={closeRolePermissionsModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} userRole={user?.role} />
             </Suspense>
             <CsvActionModal isOpen={isCsvModalOpen} onClose={closeCsvModal} onFileChange={handleCsvFileChange} onExport={handleCsvExport}availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears}thaiMonths={THAI_MONTHS}units={UNIT_TYPES}districts={BANGKOK_DISTRICTS}csvMode={csvMode}/>
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={closeBackupModal} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />

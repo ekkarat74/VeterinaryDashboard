@@ -167,7 +167,7 @@ const customUnitSchema = new mongoose.Schema({
 }, { timestamps: true });
 const CustomUnit = mongoose.model('CustomUnit', customUnitSchema);
 
-// 9. Animal Category Schema (เพิ่มใหม่: เก็บหมวดหมู่สัตว์ที่กำหนดเอง)
+// 9. Animal Category Schema (เก็บหมวดหมู่สัตว์)
 const animalCategorySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   createdBy: String
@@ -886,7 +886,7 @@ app.delete('/api/custom-units/:id', authenticateToken, async (req, res) => {
 // =======================
 app.get('/api/animal-categories', async (req, res) => {
     try {
-        const categories = await AnimalCategory.find().sort({ createdAt: -1 }).lean();
+        const categories = await AnimalCategory.find().sort({ createdAt: 1 }).lean();
         res.json(categories);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -925,23 +925,20 @@ app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Deve
     }
 });
 
-
 // =======================
 // L. NOTIFICATION SETTINGS (ตั้งค่าการแจ้งเตือน)
 // =======================
 app.get('/api/settings/notifications', authenticateToken, async (req, res) => {
     try {
         let setting = await SystemSetting.findOne({ key: 'notificationConfig' });
-        if (!setting) {
-            return res.json({ emailReport: true, pushOutbreak: true, lineNotify: false });
-        }
+        if (!setting) return res.json({ emailReport: true, pushOutbreak: true, lineNotify: false });
         res.json(setting.value);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-app.put('/api/settings/notifications', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.put('/api/settings/notifications', authenticateToken, async (req, res) => {
     try {
         const { notificationConfig } = req.body;
         const updatedSetting = await SystemSetting.findOneAndUpdate(
@@ -950,15 +947,12 @@ app.put('/api/settings/notifications', authenticateToken, authorizeRole(['Develo
             { upsert: true, new: true }
         );
 
-        await createLog(req, 'UPDATE_NOTIFICATION_CONFIG', `เปลี่ยนแปลงการตั้งค่าการแจ้งเตือนระบบ`);
-        io.emit('server_data_update', { type: 'NOTIFICATION_CONFIG_UPDATED', data: notificationConfig });
-
+        await createLog(req, 'UPDATE_NOTIFICATION_CONFIG', `เปลี่ยนแปลงการตั้งค่าการแจ้งเตือนส่วนตัว`);
         res.json({ message: "อัปเดตการแจ้งเตือนสำเร็จ", data: notificationConfig });
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
-
 
 // =======================
 // M. ROLE PERMISSIONS SETTINGS (จัดการสิทธิ์การเข้าถึงเชิงลึก)
@@ -966,13 +960,7 @@ app.put('/api/settings/notifications', authenticateToken, authorizeRole(['Develo
 app.get('/api/settings/permissions', authenticateToken, async (req, res) => {
     try {
         let setting = await SystemSetting.findOne({ key: 'rolePermissionsConfig' });
-        if (!setting) {
-            // ค่า Default พื้นฐาน
-            return res.json({ 
-                strictHierarchy: true, 
-                allowSuperAdminToClearData: false 
-            });
-        }
+        if (!setting) return res.json({ strictHierarchy: true, allowSuperAdminToClearData: false });
         res.json(setting.value);
     } catch (err) {
         res.status(500).json({ message: err.message });

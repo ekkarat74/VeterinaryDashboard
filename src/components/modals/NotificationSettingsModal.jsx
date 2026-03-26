@@ -1,12 +1,46 @@
-import React, { useState } from 'react';
-import { X, Bell, Mail, Smartphone, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Bell, Mail, Smartphone, AlertCircle, Loader2 } from 'lucide-react';
 
-const NotificationSettingsModal = ({ isOpen, onClose }) => {
-    const [settings, setSettings] = useState({
-        emailReport: true,
-        pushOutbreak: true,
-        lineNotify: false
-    });
+const NotificationSettingsModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
+    const [settings, setSettings] = useState({ emailReport: true, pushOutbreak: true, lineNotify: false });
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchSettings = async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`${apiBaseUrl}/api/settings/notifications`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) setSettings(await res.json());
+                } catch (error) {
+                    console.error(error);
+                } finally { setLoading(false); }
+            };
+            fetchSettings();
+        }
+    }, [isOpen, apiBaseUrl, token]);
+
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            const res = await fetch(`${apiBaseUrl}/api/settings/notifications`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ notificationConfig: settings })
+            });
+            if (res.ok) {
+                onToast('success', 'บันทึกการตั้งค่าการแจ้งเตือนสำเร็จ');
+                onClose();
+            } else {
+                onToast('error', 'บันทึกไม่สำเร็จ');
+            }
+        } catch (error) {
+            onToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        } finally { setSaving(false); }
+    };
 
     if (!isOpen) return null;
 
@@ -19,14 +53,17 @@ const NotificationSettingsModal = ({ isOpen, onClose }) => {
                             <Bell className="w-5 h-5" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-800">การแจ้งเตือนระบบ</h2>
+                            <h2 className="text-lg font-bold text-slate-800">การแจ้งเตือนส่วนตัว</h2>
                             <p className="text-xs text-slate-500">ตั้งค่าช่องทางการรับข้อมูลข่าวสาร</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-colors"><X className="w-5 h-5" /></button>
                 </div>
 
-                <div className="p-6 space-y-5">
+                <div className="p-6 space-y-5 relative">
+                    {loading && (
+                        <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-indigo-600"/></div>
+                    )}
                     {/* Item 1 */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -62,18 +99,20 @@ const NotificationSettingsModal = ({ isOpen, onClose }) => {
                         <div className="flex items-center gap-3">
                             <Smartphone className="w-5 h-5 text-green-500" />
                             <div>
-                                <p className="text-sm font-bold text-slate-700">Line Notify (ส่วนตัว)</p>
+                                <p className="text-sm font-bold text-slate-700">Line Notify (เร็วๆ นี้)</p>
                                 <p className="text-xs text-slate-500">แจ้งเตือนประวัติการแก้ไขข้อมูลต่างๆ</p>
                             </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" checked={settings.lineNotify} onChange={() => setSettings(s => ({...s, lineNotify: !s.lineNotify}))} />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        <label className="relative inline-flex items-center cursor-not-allowed opacity-50">
+                            <input type="checkbox" className="sr-only peer" disabled checked={settings.lineNotify} />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                         </label>
                     </div>
                 </div>
                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
-                    <button onClick={onClose} className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors">บันทึกการตั้งค่า</button>
+                    <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors flex items-center gap-2">
+                        {saving && <Loader2 className="w-4 h-4 animate-spin"/>} บันทึกการตั้งค่า
+                    </button>
                 </div>
             </div>
         </div>
