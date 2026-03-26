@@ -468,7 +468,7 @@ app.get('/api/reports', async (req, res) => {
 });
 
 // Create Report
-app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
     const newReport = new Report({
         ...req.body,
@@ -476,7 +476,6 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     });
     const savedReport = await newReport.save();
 
-    // ✅ [แก้ไข] ส่ง savedReport เป็น parameter ตัวที่ 4
     await createLog(req, 'CREATE_REPORT', `เพิ่มข้อมูลปฏิบัติงาน: ${savedReport.location}`, savedReport);
 
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
@@ -574,12 +573,11 @@ app.get('/api/outbreaks', async (req, res) => {
   }
 });
 
-app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
     const newOutbreak = new Outbreak(req.body);
     const savedOutbreak = await newOutbreak.save();
 
-    // ✅ [แก้ไข] ส่ง savedOutbreak เป็น parameter ตัวที่ 4
     await createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak);
 
     io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
@@ -589,7 +587,7 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
   }
 });
 
-app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
     const updatedOutbreak = await Outbreak.findByIdAndUpdate(
       req.params.id,
@@ -793,7 +791,8 @@ app.get('/api/settings/tabs', async (req, res) => {
     }
 });
 
-app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer', 'superadmin', 'MagaAdmin']), async (req, res) => {
+// ✨ ลบ 'superadmin' ออกจาก Array ใน authorizeRole
+app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const { tabsConfig } = req.body;
         const updatedSetting = await SystemSetting.findOneAndUpdate(
