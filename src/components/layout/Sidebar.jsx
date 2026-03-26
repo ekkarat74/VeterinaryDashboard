@@ -140,8 +140,8 @@ const Sidebar = ({
                     {(isDevOrSuper || tabsConfig?.database) && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
                     {(isDevOrSuper || tabsConfig?.calendar) && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
                     
-                    {/* 🟢 ปฏิทิน & นัดหมาย */}
-                    {user && (
+                    {/* 🟢 ปฏิทิน & นัดหมาย (✨ ซ่อนจาก superadmin) */}
+                    {user && user.role !== 'superadmin' && (
                     <>
                         {renderSectionHeader('ปฏิทิน & นัดหมาย')}
                             <NavItem icon={List} label="ประวัติประชุม" onClick={() => handleAction(onOpenMeetingList)} isCollapsed={isCollapsed} />
@@ -149,8 +149,8 @@ const Sidebar = ({
                         </>
                     )}
 
-                    {/* 🟢 ตั้งค่าระบบ */}
-                    {user && (isSuperAdmin || canEdit) && (
+                    {/* 🟢 ตั้งค่าระบบ (✨ ซ่อนจาก superadmin) */}
+                    {user && user.role !== 'superadmin' && (isSuperAdmin || canEdit) && (
                         <>
                             {renderSectionHeader('การตั้งค่า')}
                             {!isCollapsed ? (

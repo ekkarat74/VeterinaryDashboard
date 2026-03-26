@@ -276,21 +276,29 @@ app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin',
 // B. USER MANAGEMENT
 // =======================
 
+// =======================
+// B. USER MANAGEMENT
+// =======================
+
 // Create User
 app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { username, password, role } = req.body;
-        if (role === 'Developer') {
-             return res.status(403).json({ message: "ไม่อนุญาตให้ตั้งค่าตำแหน่ง 'ผู้พัฒนาระบบ' ได้" });
+        
+        // ✨ เพิ่มระบบป้องกันการสร้างบัญชีข้ามสิทธิ์
+        if (req.user.role === 'superadmin' && (role === 'Developer' || role === 'MagaAdmin')) {
+             return res.status(403).json({ message: "SuperAdmin ไม่สามารถสร้างบัญชีระดับผู้บริหารหรือผู้พัฒนาได้" });
         }
+        if (req.user.role === 'MagaAdmin' && role === 'Developer') {
+             return res.status(403).json({ message: "MagaAdmin ไม่สามารถสร้างบัญชีระดับผู้พัฒนาได้" });
+        }
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         const newUser = new User({ username, password: hashedPassword, role }); 
         await newUser.save();
 
-        // ✅ บันทึก Log
         await createLog(req, 'CREATE_USER', `สร้างผู้ใช้ใหม่: ${username} (${role})`);
-
         res.status(201).json({ message: "สร้างผู้ใช้งานสำเร็จ" });
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -301,7 +309,6 @@ app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin'
 app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
   try {
     let query = {};
-
     const users = await User.find(query, '-password').sort({ _id: -1 }).lean();
     res.json(users);
   } catch (err) {
@@ -313,19 +320,32 @@ app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin'
 app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
     try {
         const { username, role, status } = req.body;
-        if (role === 'Developer') {
-             return res.status(403).json({ message: "ไม่อนุญาตให้เปลี่ยนตำแหน่งเป็น 'ผู้พัฒนาระบบ' ได้" });
+        
+        // ดึงข้อมูล User เดิมที่จะแก้ไขมาก่อน
+        const targetUser = await User.findById(req.params.id);
+        if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
+
+        // ✨ ป้องกันการแก้ไขบัญชีที่ตำแหน่งสูงกว่าตัวเอง หรือพยายามปรับตำแหน่งให้สูงกว่าตัวเอง
+        if (req.user.role === 'superadmin' && (targetUser.role === 'Developer' || targetUser.role === 'MagaAdmin' || role === 'Developer' || role === 'MagaAdmin')) {
+             return res.status(403).json({ message: "SuperAdmin ไม่มีสิทธิ์จัดการหรือแต่งตั้งบัญชีระดับผู้บริหารได้" });
         }
+        if (req.user.role === 'MagaAdmin' && (targetUser.role === 'Developer' || role === 'Developer')) {
+             return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์จัดการหรือแต่งตั้งบัญชีระดับผู้พัฒนาได้" });
+        }
+
         if (req.user._id === req.params.id && status === 'suspended') {
              return res.status(400).json({ message: "ไม่สามารถระงับบัญชีตัวเองได้" });
         }
-        const updatedUser = await User.findByIdAndUpdate(
-            req.params.id, { username, role, status }, { new: true }
-        ).select('-password');
+        
+        targetUser.username = username;
+        targetUser.role = role;
+        targetUser.status = status;
+        await targetUser.save();
 
-        // ✅ บันทึก Log
         await createLog(req, 'UPDATE_USER', `แก้ไขข้อมูลผู้ใช้: ${username} (Role: ${role}, Status: ${status})`);
 
+        // โหลดข้อมูลล่าสุดส่งกลับไป (ไม่เอา password)
+        const updatedUser = await User.findById(req.params.id).select('-password');
         res.json(updatedUser);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -339,13 +359,18 @@ app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['Deve
         const targetUser = await User.findById(req.params.id);
         if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
+        // ✨ ป้องกันการรีเซ็ตรหัสผ่านบัญชีที่สูงกว่า
+        if (req.user.role === 'superadmin' && (targetUser.role === 'Developer' || targetUser.role === 'MagaAdmin')) {
+             return res.status(403).json({ message: "SuperAdmin ไม่มีสิทธิ์รีเซ็ตรหัสผ่านผู้บริหารได้" });
+        }
+        if (req.user.role === 'MagaAdmin' && targetUser.role === 'Developer') {
+             return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์รีเซ็ตรหัสผ่านผู้พัฒนาระบบได้" });
+        }
+
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
-        
-        targetUser.password = hashedPassword;
+        targetUser.password = await bcrypt.hash(newPassword, salt);
         await targetUser.save();
 
-        // ✅ บันทึก Log
         await createLog(req, 'RESET_PASSWORD', `รีเซ็ตรหัสผ่านให้ผู้ใช้: ${targetUser.username}`);
 
         res.json({ message: "รีเซ็ตรหัสผ่านเรียบร้อยแล้ว" });
@@ -360,10 +385,21 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
       if (req.user._id === req.params.id) {
           return res.status(400).json({ message: "ไม่สามารถลบบัญชีตัวเองได้" });
       }
-      const deletedUser = await User.findByIdAndDelete(req.params.id);
+
+      const targetUser = await User.findById(req.params.id);
+      if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
+
+      // ✨ ป้องกันการลบบัญชีที่ตำแหน่งสูงกว่า
+      if (req.user.role === 'superadmin' && (targetUser.role === 'Developer' || targetUser.role === 'MagaAdmin')) {
+           return res.status(403).json({ message: "SuperAdmin ไม่มีสิทธิ์ลบบัญชีผู้บริหารได้" });
+      }
+      if (req.user.role === 'MagaAdmin' && targetUser.role === 'Developer') {
+           return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์ลบบัญชีผู้พัฒนาระบบได้" });
+      }
+
+      await User.findByIdAndDelete(req.params.id);
       
-      // ✅ บันทึก Log
-      await createLog(req, 'DELETE_USER', `ลบผู้ใช้: ${deletedUser ? deletedUser.username : req.params.id}`);
+      await createLog(req, 'DELETE_USER', `ลบผู้ใช้: ${targetUser.username}`);
 
       res.json({ message: "ลบผู้ใช้งานเรียบร้อย" });
     } catch (err) {
