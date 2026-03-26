@@ -1623,10 +1623,11 @@ const handleCsvExport = useCallback((filters) => {
 
             {(() => {
                 const checkMobileTabVisibility = (tabName) => {
-                    if (!user) return tabsConfig?.[`public_${tabName}`];
-                    if (user.role === 'superadmin') return tabsConfig?.[`sa_${tabName}`];
-                    return true; 
-                };
+    if (!user) return tabsConfig?.[`public_${tabName}`];
+    // ใช้ isSuperAdmin แทน เพราะตัวแปรนี้รวม Developer, superadmin และ MagaAdmin ไว้แล้ว
+    if (isSuperAdmin) return tabsConfig?.[`sa_${tabName}`];
+    return true; 
+};
 
                 return (
                     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
