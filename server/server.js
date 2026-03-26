@@ -1006,12 +1006,12 @@ app.post('/api/settings/test-email', authenticateToken, authorizeRole(['Develope
             return res.status(400).json({ message: "กรุณาระบุอีเมลที่ต้องการทดสอบ" });
         }
         
-        // 1. ตั้งค่าการเชื่อมต่ออีเมล (เปลี่ยนเป็น Port 587 สำหรับ Cloud Server)
+        // 1. ตั้งค่าการเชื่อมต่ออีเมล
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
-            secure: false, // บังคับเป็น false เมื่อใช้ port 587
-            requireTLS: true, // บังคับใช้ TLS แทน
+            secure: false, 
+            requireTLS: true,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
@@ -1019,7 +1019,8 @@ app.post('/api/settings/test-email', authenticateToken, authorizeRole(['Develope
             tls: {
                 ciphers: 'SSLv3',
                 rejectUnauthorized: false
-            }
+            },
+            family: 4 // ✨ เพิ่มบรรทัดนี้เข้าไปครับ บังคับให้วิ่งผ่าน IPv4 เท่านั้น
         });
         
         // 2. รูปแบบข้อความอีเมลที่จะส่ง
