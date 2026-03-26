@@ -938,36 +938,6 @@ app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Deve
 });
 
 // =======================
-// L. NOTIFICATION SETTINGS (ตั้งค่าการแจ้งเตือน)
-// =======================
-app.get('/api/settings/notifications', authenticateToken, async (req, res) => {
-    try {
-        let setting = await SystemSetting.findOne({ key: 'notificationConfig' });
-        if (!setting) return res.json({ emailReport: true, pushOutbreak: true, lineNotify: false });
-        res.json(setting.value);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-// ✨ เพิ่ม authorizeRole เพื่อความปลอดภัย
-app.put('/api/settings/notifications', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
-    try {
-        const { notificationConfig } = req.body;
-        const updatedSetting = await SystemSetting.findOneAndUpdate(
-            { key: 'notificationConfig' },
-            { value: notificationConfig },
-            { upsert: true, new: true }
-        );
-
-        await createLog(req, 'UPDATE_NOTIFICATION_CONFIG', `เปลี่ยนแปลงการตั้งค่าการแจ้งเตือนของระบบ`);
-        res.json({ message: "อัปเดตการแจ้งเตือนสำเร็จ", data: notificationConfig });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
-
-// =======================
 // M. ROLE PERMISSIONS SETTINGS (จัดการสิทธิ์การเข้าถึงเชิงลึก)
 // =======================
 app.get('/api/settings/permissions', authenticateToken, async (req, res) => {
@@ -995,56 +965,6 @@ app.put('/api/settings/permissions', authenticateToken, authorizeRole(['Develope
         res.json({ message: "อัปเดตสิทธิ์สำเร็จ", data: rolePermissionsConfig });
     } catch (err) {
         res.status(400).json({ message: err.message });
-    }
-});
-
-// API สำหรับทดสอบส่งอีเมล
-app.post('/api/settings/test-email', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
-    try {
-        const { emails } = req.body;
-        if (!emails) {
-            return res.status(400).json({ message: "กรุณาระบุอีเมลที่ต้องการทดสอบ" });
-        }
-        
-        const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,            // ลองเปลี่ยนกลับมาใช้ 587
-    secure: false,        // ถ้าใช้ 587 ต้องเป็น false
-    requireTLS: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    family: 4             // บังคับ IPv4 เหมือนเดิม
-});
-        
-        // 2. รูปแบบข้อความอีเมลที่จะส่ง
-        const mailOptions = {
-            from: `"ระบบสัตวแพทย์" <${process.env.EMAIL_USER}>`,
-            to: emails, // ส่งไปตามอีเมลที่กรอกมา
-            subject: '🧪 ทดสอบระบบการแจ้งเตือน',
-            html: `
-                <div style="font-family: sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px; max-width: 600px;">
-                    <h2 style="color: #4f46e5;">การทดสอบส่งอีเมลสำเร็จ! 🎉</h2>
-                    <p>นี่คืออีเมลทดสอบจาก <strong>ระบบฐานข้อมูลสัตวแพทย์</strong></p>
-                    <p>หากคุณได้รับอีเมลฉบับนี้ แสดงว่าระบบสามารถเชื่อมต่อกับเซิร์ฟเวอร์อีเมลและพร้อมสำหรับการใช้งานแล้วครับ</p>
-                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                    <p style="font-size: 12px; color: #64748b;">
-                        ดำเนินการทดสอบโดย: ${req.user.username}<br>
-                        วันเวลาที่ทดสอบ: ${new Date().toLocaleString('th-TH')}
-                    </p>
-                </div>
-            `
-        };
-
-        // 3. สั่งส่งอีเมล
-        await transporter.sendMail(mailOptions);
-
-        await createLog(req, 'TEST_EMAIL', `ทดสอบส่งอีเมลไปยัง: ${emails}`);
-        res.json({ message: "ส่งอีเมลทดสอบสำเร็จ! ตรวจสอบที่กล่องจดหมายของคุณ" });
-    } catch (err) {
-        console.error("Test Email Error:", err);
-        res.status(500).json({ message: "ไม่สามารถส่งอีเมลได้ ตรวจสอบการตั้งค่า App Password: " + err.message });
     }
 });
 
