@@ -100,9 +100,35 @@ export default function VeterinaryDashboard() {
     const API_URL = `${BASE_URL}/api/reports`;
     const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
-    const dispatchEventsOnly = useMemo(() => dispatchEvents.map(d => ({
+    // --- ส่วนที่แก้ไข: กรองการแสดงผลหากไม่ได้ล็อกอิน ---
+const dispatchEventsOnly = useMemo(() => {
+    // ถ้าไม่ได้ล็อกอิน (ไม่มีสิทธิ์ canEdit) ให้เห็นเฉพาะอันที่ isVisibleToPublic เป็น true (หรือไม่มีค่าซึ่งถือว่า true)
+    const filteredEvents = canEdit 
+        ? dispatchEvents 
+        : dispatchEvents.filter(d => d.isVisibleToPublic !== false);
+
+    return filteredEvents.map(d => ({
         ...d, type: 'dispatch', originalData: d
-    })), [dispatchEvents]);
+    }));
+}, [dispatchEvents, canEdit]);
+
+// --- ส่วนที่เพิ่มใหม่: ฟังก์ชันสำหรับ Toggle สถานะ ---
+const handleToggleDispatchVisibility = async (id, currentStatus) => {
+    try {
+        const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+            body: JSON.stringify({ isVisibleToPublic: !currentStatus })
+        });
+        if (res.ok) {
+            addToast('success', currentStatus ? 'ซ่อนหน่วยงานจากประชาชนแล้ว' : 'เปิดหน่วยงานให้ประชาชนเห็นแล้ว');
+        } else {
+            addToast('error', 'ปรับสถานะไม่สำเร็จ');
+        }
+    } catch (error) {
+        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+};
 
     const meetingEventsOnly = useMemo(() => meetings.map(m => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
@@ -1303,7 +1329,15 @@ const handleCsvExport = useCallback((filters) => {
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={closeChangePasswordModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={closeLogModal} token={user?.token} apiBaseUrl={BASE_URL} />
             <DispatchModal isOpen={isDispatchModalOpen} onClose={closeDispatchModal} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
-            <DispatchCalendarDashboard isOpen={isCalendarOpen} onClose={closeCalendar} events={dispatchEventsOnly} onOpenForm={openDispatchForm} onEventClick={openDispatchEvent} />
+            <DispatchCalendarDashboard 
+    isOpen={isCalendarOpen} 
+    onClose={closeCalendar} 
+    events={dispatchEventsOnly} 
+    onOpenForm={openDispatchForm} 
+    onEventClick={openDispatchEvent} 
+    canEdit={canEdit}
+    onToggleVisibility={handleToggleDispatchVisibility}
+/>
             <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={closeMeetingCalendar} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
             <MeetingModal isOpen={isMeetingModalOpen} onClose={closeMeetingModal} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
             <MeetingListModal isOpen={isMeetingListOpen} onClose={closeMeetingList} meetings={meetings} onEdit={editMeetingFromList} />
@@ -1454,46 +1488,26 @@ const handleCsvExport = useCallback((filters) => {
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
                                         <KPISection totals={totals} unitStats={unitStats} />
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+                                            {/* คอลัมน์ซ้าย (บนมือถือจะแสดงก่อน): สถิติหน่วยงาน + เจาะลึก 5 อันดับแรก */}
+                                            <div className="lg:col-span-5 flex flex-col gap-8">
+                                                <RankingSection type="table" rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} />
+                                                <RankingSection type="deepdive" rankingNestedStats={rankingNestedStats} />
+                                            </div>
+            
+                                            {/* คอลัมน์ขวา (บนมือถือจะแสดงด้านล่างต่อจากสถิติ): แผนที่ + กราฟเปรียบเทียบ */}
+                                            <div className="lg:col-span-7 flex flex-col gap-8">
+                                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
+                                                    <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
+                                                </div>
+                
+                                                <div className="h-full">
+                                                    <UnitComparisonChart unitStats={unitStats} />
+                                                </div>
+                                            </div>
+                                        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* คอลัมน์ซ้าย (บนมือถือจะแสดงก่อน): สถิติหน่วยงาน + เจาะลึก 5 อันดับแรก */}
-            <div className="lg:col-span-5 flex flex-col gap-8">
-                <RankingSection 
-                    type="table" 
-                    rankingYear={rankingYear} 
-                    setRankingYear={setRankingYear} 
-                    rankingMonth={rankingMonth} 
-                    setRankingMonth={setRankingMonth} 
-                    availableYears={availableYears} 
-                    thaiMonths={THAI_MONTHS} 
-                    rankingUnitStats={rankingUnitStats} 
-                />
-                
-                <RankingSection 
-                    type="deepdive" 
-                    rankingNestedStats={rankingNestedStats} 
-                />
-            </div>
-            
-            {/* คอลัมน์ขวา (บนมือถือจะแสดงด้านล่างต่อจากสถิติ): แผนที่ + กราฟเปรียบเทียบ */}
-            <div className="lg:col-span-7 flex flex-col gap-8">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
-                    <LeafletMap 
-                        data={mapDisplayData} 
-                        outbreaks={outbreakData} 
-                        onEdit={openEditModal} 
-                        onEditOutbreak={openEditOutbreakModal} 
-                        canEdit={canEdit}
-                    />
-                </div>
-                
-                <div className="h-full">
-                    <UnitComparisonChart unitStats={unitStats} />
-                </div>
-            </div>
-            
-        </div>
                                         <StatisticsCharts 
                                             trendData={trendData}
                                             unitStats={unitStats} 
@@ -1545,13 +1559,14 @@ const handleCsvExport = useCallback((filters) => {
                                 )}
 
                                 {activeTab === 'calendar' && (
-    // ลบ Negative margin (พวก -mx, -mt) ออก เพื่อให้ขอบซ้าย-ขวาตรงกับกล่องค้นหาด้านบน
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-240px)] min-h-[600px] flex flex-col w-full">
         <DispatchCalendarDashboard 
             isInline={true} 
             events={dispatchEventsOnly} 
             onOpenForm={openDispatchForm} 
             onEventClick={openDispatchEvent} 
+            canEdit={canEdit}
+            onToggleVisibility={handleToggleDispatchVisibility}
         />
     </div>
 )}

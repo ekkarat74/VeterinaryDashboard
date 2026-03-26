@@ -20,7 +20,8 @@ const dispatchPlanSchema = new mongoose.Schema({
     note: String,
     staff: { type: Object, default: {} }, // เก็บรายชื่อเจ้าหน้าที่ทั้งหมด
     team: String,        // ชื่อทีม (เช่น ทีม 1, หรือรายชื่อสัตวแพทย์)
-    createdBy: String
+    createdBy: String,
+    isVisibleToPublic: { type: Boolean, default: true }
 }, { timestamps: true });
 
 const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);

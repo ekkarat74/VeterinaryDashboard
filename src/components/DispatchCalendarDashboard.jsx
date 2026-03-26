@@ -3,6 +3,7 @@ import {
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 
+
 // ==========================================
 // 1. Shared Components (คอมโพเนนต์ใช้ร่วมกัน)
 // ==========================================
@@ -45,7 +46,7 @@ const getDispatchStatus = (dateStr, timeStr, closeTimeStr) => {
 // ==========================================
 // 3. Main Component: DispatchCalendarDashboard
 // ==========================================
-const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick, isInline = false }) => {
+const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick, isInline = false, canEdit, onToggleVisibility }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -131,16 +132,18 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                         <div className="p-5 flex flex-col gap-5 lg:overflow-y-auto custom-scrollbar flex-1">
                             
                             <div className="grid grid-cols-2 gap-3">
-                                <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
-                                <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
-                            </div>
+    <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
+    <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
+</div>
 
-                            <button 
-                                onClick={onOpenForm}
-                                className={`w-full py-3.5 ${theme.primary} ${theme.primaryHover} text-white rounded-xl font-bold shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-sm sm:text-base`}
-                            >
-                                <Plus className="w-5 h-5" /> บันทึกออกหน่วย
-                            </button>
+                            {canEdit && (
+    <button 
+        onClick={onOpenForm}
+        className={`w-full py-3.5 ${theme.primary} ${theme.primaryHover} text-white rounded-xl font-bold shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-sm sm:text-base mt-5`}
+    >
+        <Plus className="w-5 h-5" /> บันทึกออกหน่วย
+    </button>
+)}
 
                             <div className="mt-2 flex-1">
                                 <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
@@ -159,39 +162,63 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                             const styles = getEventStyles(evt); 
                                             const status = typeof getDispatchStatus === 'function' ? getDispatchStatus(evt.date, evt.time, evt.closingTime) : null; 
 
-                                            return (
-                                            <div key={idx} onClick={() => onEventClick && onEventClick(evt)}
-                                                className={`group bg-white p-4 rounded-2xl border border-y-slate-100 border-r-slate-100 border-l-4 ${styles.border} shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md cursor-pointer transition-all duration-200`}>
-                                                
-                                                <div className="flex flex-col items-start gap-2 mb-3">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-semibold">
-                                                            <Clock className="w-3 h-3" /> {evt.time} - {evt.closingTime || '12:00'} 
-                                                        </span>
-                                                        <span className={`inline-flex items-center gap-1 text-[10px] sm:text-xs px-2 py-1 rounded-md font-bold ${styles.bg} ${styles.text}`}>
-                                                            {evt.title || (evt.type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย')}
-                                                        </span>
-                                                    </div>
+                                            {/* ภายใน selectedDateEvents.map(...) ตรงส่วนที่เรนเดอร์เนื้อหาการ์ด */}
+return (
+    <div key={idx} onClick={() => onEventClick && onEventClick(evt)}
+        className={`group bg-white p-4 rounded-2xl border border-y-slate-100 border-r-slate-100 border-l-4 ${styles.border} shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md cursor-pointer transition-all duration-200`}>
+        
+        {/* --- ส่วนที่แก้ไข เพิ่มปุ่ม Switch --- */}
+        <div className="flex justify-between items-start gap-2 mb-3">
+            <div className="flex flex-col items-start gap-2 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-semibold">
+                        <Clock className="w-3 h-3" /> {evt.time} - {evt.closingTime || '12:00'} 
+                    </span>
+                    <span className={`inline-flex items-center gap-1 text-[10px] sm:text-xs px-2 py-1 rounded-md font-bold ${styles.bg} ${styles.text}`}>
+                        {evt.title || (evt.type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย')}
+                    </span>
+                </div>
 
-                                                    {status && (
-                                                        <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-bold border ${status.badge}`}>
-                                                            {status.text}
-                                                        </span>
-                                                    )}
-                                                </div>
+                {status && (
+                    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md font-bold border ${status.badge}`}>
+                        {status.text}
+                    </span>
+                )}
+            </div>
 
-                                                <div className={`font-bold text-slate-800 text-sm sm:text-base mb-3 transition-colors line-clamp-2 group-hover:${styles.text}`}>
-                                                    {evt.location}
-                                                </div>
-                                                
-                                                <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
-                                                    <div className={`flex items-center gap-1.5 text-xs font-semibold ${styles.text}`}>
-                                                        <Users className="w-4 h-4" />
-                                                        <span className="truncate">{evt.team || 'ไม่ได้ระบุ'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            );
+            {/* แสดงปุ่ม Toggle ให้เฉพาะคนที่ Login (canEdit) */}
+            {canEdit && (
+                <div 
+                    className="shrink-0 pt-0.5" 
+                    onClick={(e) => e.stopPropagation()} /* ป้องกันไม่ให้การกด Switch ทะลุไปเปิด Modal แก้ไข */
+                    title={evt.isVisibleToPublic !== false ? "แสดงให้ประชาชนเห็น" : "ซ่อนจากประชาชน"}
+                >
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={evt.isVisibleToPublic !== false} 
+                            onChange={() => onToggleVisibility(evt._id, evt.isVisibleToPublic !== false)}
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+            )}
+        </div>
+        {/* --- สิ้นสุดส่วนที่แก้ไข --- */}
+
+        <div className={`font-bold text-slate-800 text-sm sm:text-base mb-3 transition-colors line-clamp-2 group-hover:${styles.text}`}>
+            {evt.location}
+        </div>
+        
+        <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
+            <div className={`flex items-center gap-1.5 text-xs font-semibold ${styles.text}`}>
+                <Users className="w-4 h-4" />
+                <span className="truncate">{evt.team || 'ไม่ได้ระบุ'}</span>
+            </div>
+        </div>
+    </div>
+);
                                         })
                                     )}
                                 </div>
