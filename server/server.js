@@ -757,7 +757,7 @@ app.get('/api/settings/tabs', async (req, res) => {
     }
 });
 
-app.put('/api/settings/tabs', authenticateToken, authorizeRole(['MagaAdmin']), async (req, res) => {
+app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer','MagaAdmin']), async (req, res) => {
     try {
         const { tabsConfig } = req.body;
         const updatedSetting = await SystemSetting.findOneAndUpdate(
