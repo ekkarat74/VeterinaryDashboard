@@ -1006,16 +1006,16 @@ app.post('/api/settings/test-email', authenticateToken, authorizeRole(['Develope
             return res.status(400).json({ message: "กรุณาระบุอีเมลที่ต้องการทดสอบ" });
         }
         
-        // ใน Backend (/api/settings/test-email)
-const transporter = nodemailer.createTransport({
+        const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465, // เปลี่ยนจาก 587 เป็น 465
-    secure: true, // เปลี่ยนจาก false เป็น true (บังคับใช้ SSL)
+    port: 587,            // ลองเปลี่ยนกลับมาใช้ 587
+    secure: false,        // ถ้าใช้ 587 ต้องเป็น false
+    requireTLS: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    family: 4 // คงบรรทัดนี้ไว้ สำคัญมากสำหรับการแก้ปัญหา IPv6 บน Vercel
+    family: 4             // บังคับ IPv4 เหมือนเดิม
 });
         
         // 2. รูปแบบข้อความอีเมลที่จะส่ง
