@@ -36,7 +36,6 @@ const UnitComparisonChart = React.lazy(() => import('./components/dashboard/Unit
 import ClearDataModal from './components/modals/ClearDataModal';
 import DispatchCalendarDashboard from './components/DispatchCalendarDashboard';
 const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal'));
-const NotificationSettingsModal = lazy(() => import('./components/modals/NotificationSettingsModal'));
 const AnimalCategoryModal = lazy(() => import('./components/modals/AnimalCategoryModal'));
 const RolePermissionsModal = lazy(() => import('./components/modals/RolePermissionsModal'));
 
@@ -76,7 +75,6 @@ export default function VeterinaryDashboard() {
     } = useDashboardState();
 
     const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
-    const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
     const [isAnimalCategoryModalOpen, setIsAnimalCategoryModalOpen] = useState(false);
     const [isRolePermissionsModalOpen, setIsRolePermissionsModalOpen] = useState(false);
 
@@ -883,8 +881,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
 
     const openCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(true), []);
     const closeCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(false), []);
-    const openNotificationModal = useCallback(() => setIsNotificationModalOpen(true), []);
-    const closeNotificationModal = useCallback(() => setIsNotificationModalOpen(false), []);
     const openAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(true), []);
     const closeAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(false), []);
     const openRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(true), []);
@@ -1347,7 +1343,6 @@ const handleCsvExport = useCallback((filters) => {
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
                 <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-                <NotificationSettingsModal isOpen={isNotificationModalOpen} onClose={closeNotificationModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
                 <AnimalCategoryModal isOpen={isAnimalCategoryModalOpen} onClose={closeAnimalCategoryModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
                 <RolePermissionsModal isOpen={isRolePermissionsModalOpen} onClose={closeRolePermissionsModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} userRole={user?.role} />
             </Suspense>
@@ -1383,7 +1378,6 @@ const handleCsvExport = useCallback((filters) => {
                 onLogin={openLoginModal} onLogout={handleLogout} onChangePassword={openChangePasswordModal}
                 onOpenLog={openLogModal} onOpenUserMgmt={openUserMgmtModal} onOpenBackup={openBackupModal}
                 onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData} onClearData={handleClearAllData} onOpenCustomUnits={openCustomUnitModal}
-                onOpenNotificationSettings={openNotificationModal}
                 onOpenAnimalCategory={openAnimalCategoryModal}
                 onOpenRolePermissions={openRolePermissionsModal}
                 onOpenMeetingList={openMeetingListModal} onOpenCalendar={openCalendarModal} onOpenMeetingCalendar={openMeetingCalendarModal}
