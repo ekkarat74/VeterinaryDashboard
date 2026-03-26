@@ -1005,13 +1005,18 @@ app.post('/api/settings/test-email', authenticateToken, authorizeRole(['Develope
         if (!emails) {
             return res.status(400).json({ message: "กรุณาระบุอีเมลที่ต้องการทดสอบ" });
         }
-
-        // 1. ตั้งค่าการเชื่อมต่ออีเมล (ดึงจาก .env)
+        
+        // 1. ตั้งค่าการเชื่อมต่ออีเมล (ระบุพอร์ตและ Host ให้ชัดเจน)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true, // บังคับใช้ SSL/TLS
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
+            },
+            tls: {
+                rejectUnauthorized: false // ป้องกันปัญหา SSL Certificate ฝั่ง Server
             }
         });
 
