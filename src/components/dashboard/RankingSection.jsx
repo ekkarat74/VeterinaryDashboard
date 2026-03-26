@@ -40,17 +40,23 @@ const RankingSection = ({
   };
 
   const ServiceStat = ({ icon: Icon, color, label, value, isHighest }) => (
-    <div className={`flex flex-col items-center p-2 rounded-lg border transition-colors relative ${
+    // 1. เพิ่ม h-full เพื่อให้ทุกกล่องมีความสูงเท่ากันตาม Grid
+    <div className={`flex flex-col items-center p-2 rounded-lg border transition-colors relative h-full ${
       isHighest ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-slate-50 border-slate-100'
     }`}>
       {isHighest && (
         <Star className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-500 fill-yellow-400 drop-shadow-sm" />
       )}
-      <div className={`p-1.5 rounded-full mb-1 ${color}`}>
+      {/* 2. เพิ่ม shrink-0 ป้องกันไอคอนเบี้ยว */}
+      <div className={`p-1.5 rounded-full mb-1 shrink-0 ${color}`}>
         <Icon className="w-3.5 h-3.5" />
       </div>
-      <span className="text-[10px] text-slate-500 font-medium">{label}</span>
-      <span className={`text-sm font-bold ${isHighest ? 'text-indigo-700' : 'text-slate-700'}`}>
+      {/* 3. จัดข้อความให้อยู่ตรงกลาง และเว้นระยะด้านล่างเล็กน้อย */}
+      <span className="text-[10px] text-slate-500 font-medium text-center leading-tight mb-1">
+        {label}
+      </span>
+      {/* 4. เพิ่ม mt-auto ตรงนี้ คือหัวใจสำคัญที่จะดันตัวเลขให้อยู่ติดขอบล่างสุดและตรงกันทุกช่อง */}
+      <span className={`text-sm font-bold mt-auto ${isHighest ? 'text-indigo-700' : 'text-slate-700'}`}>
         {value.toLocaleString()}
       </span>
     </div>
