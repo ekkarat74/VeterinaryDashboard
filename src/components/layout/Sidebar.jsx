@@ -52,7 +52,7 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
 // 🚀 Main Sidebar Component
 // --------------------------------------------------------
 const Sidebar = ({ 
-    user, isSuperAdmin, canEdit, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen,
+    user, isSuperAdmin, canEdit, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen, isDevOrSuper,
     onLogin, onLogout, onChangePassword, onOpenLog, onOpenUserMgmt,
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
     onOpenMeetingList, onOpenCalendar, onOpenMeetingCalendar,
@@ -135,10 +135,11 @@ const Sidebar = ({
                     
                     {/* 🟢 แดชบอร์ด & ข้อมูล */}
                     {renderSectionHeader('แดชบอร์ด')}
-                    {(user || tabsConfig?.overview) && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
-                    {(user || tabsConfig?.outbreak) && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
-                    {(user || tabsConfig?.database) && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
-                    {(user || tabsConfig?.calendar) && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {(isDevOrSuper || tabsConfig?.overview) && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {(isDevOrSuper || tabsConfig?.outbreak) && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
+                    {(isDevOrSuper || tabsConfig?.database) && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
+                    {(isDevOrSuper || tabsConfig?.calendar) && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    
                     {/* 🟢 ปฏิทิน & นัดหมาย */}
                     {user && (
                     <>
@@ -168,7 +169,7 @@ const Sidebar = ({
                                             <div className="pl-11 pr-3 py-2 space-y-3 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-slate-200">
                                                 {(isMagaAdmin || isSystemDeveloper) && (
                                                     <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-100 shadow-sm">
-                                                        <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">แสดงแท็บเมนู</p>
+                                                        <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">แสดงแท็บข้อมูล (ระดับบริหาร)</p>
                                                         <div className="space-y-2.5">
                                                             {[
                                                                 { id: 'overview', label: 'ภาพรวม' },

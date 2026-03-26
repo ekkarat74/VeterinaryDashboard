@@ -132,18 +132,18 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                         <div className="p-5 flex flex-col gap-5 lg:overflow-y-auto custom-scrollbar flex-1">
                             
                             <div className="grid grid-cols-2 gap-3">
-    <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
-    <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
-</div>
+                                <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-[#545BE8]" icon={CheckCircle} />
+                                <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" icon={Clock} />
+                            </div>
 
                             {canEdit && (
-    <button 
-        onClick={onOpenForm}
-        className={`w-full py-3.5 ${theme.primary} ${theme.primaryHover} text-white rounded-xl font-bold shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-sm sm:text-base mt-5`}
-    >
-        <Plus className="w-5 h-5" /> บันทึกออกหน่วย
-    </button>
-)}
+                                <button 
+                                    onClick={onOpenForm}
+                                    className={`w-full py-3.5 ${theme.primary} ${theme.primaryHover} text-white rounded-xl font-bold shadow-lg shadow-indigo-200/50 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-sm sm:text-base mt-5`}
+                                >
+                                    <Plus className="w-5 h-5" /> บันทึกออกหน่วย
+                                </button>
+                            )}
 
                             <div className="mt-2 flex-1">
                                 <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
@@ -162,12 +162,10 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                             const styles = getEventStyles(evt); 
                                             const status = typeof getDispatchStatus === 'function' ? getDispatchStatus(evt.date, evt.time, evt.closingTime) : null; 
 
-                                            {/* ภายใน selectedDateEvents.map(...) ตรงส่วนที่เรนเดอร์เนื้อหาการ์ด */}
 return (
-    <div key={idx} onClick={() => onEventClick && onEventClick(evt)}
-        className={`group bg-white p-4 rounded-2xl border border-y-slate-100 border-r-slate-100 border-l-4 ${styles.border} shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md cursor-pointer transition-all duration-200`}>
-        
-        {/* --- ส่วนที่แก้ไข เพิ่มปุ่ม Switch --- */}
+    <div key={idx}onClick={() => canEdit && onEventClick && onEventClick(evt)}
+        className={`group bg-white p-4 rounded-2xl border border-y-slate-100 border-r-slate-100 border-l-4 ${styles.border} shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-200 ${canEdit ? 'cursor-pointer hover:shadow-md' : 'cursor-default'}`}
+    >
         <div className="flex justify-between items-start gap-2 mb-3">
             <div className="flex flex-col items-start gap-2 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -205,9 +203,9 @@ return (
                 </div>
             )}
         </div>
-        {/* --- สิ้นสุดส่วนที่แก้ไข --- */}
 
-        <div className={`font-bold text-slate-800 text-sm sm:text-base mb-3 transition-colors line-clamp-2 group-hover:${styles.text}`}>
+        {/* 3. ลบ group-hover:${styles.text} ออกถ้าไม่ต้องการให้สีตัวอักษรเปลี่ยนตอนเมาส์ชี้ในโหมดดูอย่างเดียว หรือคงไว้ก็ได้ครับ */}
+        <div className={`font-bold text-slate-800 text-sm sm:text-base mb-3 transition-colors line-clamp-2 ${canEdit ? `group-hover:${styles.text}` : ''}`}>
             {evt.location}
         </div>
         

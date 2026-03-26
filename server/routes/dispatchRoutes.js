@@ -29,7 +29,6 @@ const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);
 // ==========================================
 // 2. ROUTES (API Endpoints)
 // ==========================================
-// Export เป็นฟังก์ชันเพื่อรับ Middleware และ Socket.io มาจากไฟล์ server.js หลัก
 module.exports = function(io, authenticateToken, authorizeRole, createLog) {
 
     // GET: ดึงข้อมูลแผนออกหน่วยทั้งหมด

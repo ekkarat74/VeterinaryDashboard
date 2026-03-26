@@ -73,25 +73,25 @@ export default function VeterinaryDashboard() {
     } = useDashboardState();
 
     const handleNotifySystemUpdate = async () => {
-        if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
-        
-        try {
-            const response = await fetch(`${BASE_URL}/api/system/notify-update`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
-                }
-            });
-            if (response.ok) {
-                addToast('success', "✅ ส่งคำสั่งอัปเดตระบบไปยังผู้ใช้ทั้งหมดแล้ว");
-            } else {
-                addToast('error', "❌ ไม่สามารถส่งคำสั่งได้ (อาจไม่มีสิทธิ์)");
-            }
-        } catch (error) {
-            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
-        }
-    };
+        if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/system/notify-update`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                }
+            });
+            if (response.ok) {
+                addToast('success', "✅ ส่งคำสั่งอัปเดตระบบไปยังผู้ใช้ทั้งหมดแล้ว");
+            } else {
+                addToast('error', "❌ ไม่สามารถส่งคำสั่งได้ (อาจไม่มีสิทธิ์)");
+            }
+        } catch (error) {
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
+        }
+    };
 
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
@@ -99,6 +99,17 @@ export default function VeterinaryDashboard() {
     const canEdit = user && (user.role === 'Developer' || user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
     const isSuperAdmin = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
     const isMagaAdmin = user && (user.role === 'Developer' || user.role === 'MagaAdmin');
+    const isDevOrSuper = user && (user.role === 'Developer' || user.role === 'superadmin');
+
+    useEffect(() => {
+        // หากไม่ใช่ Dev/SuperAdmin และแท็บปัจจุบันที่เปิดอยู่ถูกตั้งค่าให้ซ่อน -> ให้เด้งไปหน้าอื่นที่เปิดอยู่
+        if (!isDevOrSuper && tabsConfig && tabsConfig[activeTab] === false) {
+            if (tabsConfig.overview) setActiveTab('overview');
+            else if (tabsConfig.outbreak) setActiveTab('outbreak');
+            else if (tabsConfig.database) setActiveTab('database');
+            else if (tabsConfig.calendar) setActiveTab('calendar');
+        }
+    }, [user, tabsConfig, activeTab, setActiveTab, isDevOrSuper]);
 
     // Constants
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
@@ -285,6 +296,7 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
             localStorage.removeItem('vet_user');
         }
     }, [setUser]);
+
 
     useEffect(() => {
         const fetchTabsConfig = async () => {
@@ -1343,6 +1355,7 @@ const handleCsvExport = useCallback((filters) => {
             <Sidebar 
                 user={user} isSuperAdmin={isSuperAdmin} canEdit={canEdit} 
                 isSystemDeveloper={isSystemDeveloper}
+                isDevOrSuper={isDevOrSuper}
                 activeTab={activeTab} setActiveTab={setActiveTab}
                 isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed}
                 isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
@@ -1591,7 +1604,7 @@ const handleCsvExport = useCallback((filters) => {
             </div>
 
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">
-                {(user || tabsConfig.overview) && (
+                {(isDevOrSuper || tabsConfig?.overview) && (
                     <button onClick={() => setActiveTab('overview')} 
                         className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
@@ -1599,7 +1612,7 @@ const handleCsvExport = useCallback((filters) => {
                         <span className="text-[10px]">ภาพรวม</span>
                     </button>
                 )}
-                {(user || tabsConfig.outbreak) && (
+                {(isDevOrSuper || tabsConfig?.outbreak) && (
                     <button onClick={() => setActiveTab('outbreak')} 
                         className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
@@ -1607,7 +1620,7 @@ const handleCsvExport = useCallback((filters) => {
                         <span className="text-[10px]">จุดเสี่ยง</span>
                     </button>
                 )}
-                {(user || tabsConfig.database) && (
+                {(isDevOrSuper || tabsConfig?.database) && (
                     <button onClick={() => setActiveTab('database')} 
                         className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
@@ -1615,7 +1628,7 @@ const handleCsvExport = useCallback((filters) => {
                         <span className="text-[10px]">ฐานข้อมูล</span>
                     </button>
                 )}
-                {(user || tabsConfig.calendar) && (
+                {(isDevOrSuper || tabsConfig?.calendar) && (
                     <button onClick={() => setActiveTab('calendar')} 
                         className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-blue-600 font-bold bg-blue-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                     >

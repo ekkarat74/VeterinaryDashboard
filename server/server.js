@@ -757,7 +757,7 @@ app.get('/api/settings/tabs', async (req, res) => {
     }
 });
 
-app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer','MagaAdmin']), async (req, res) => {
+app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer', 'superadmin', 'MagaAdmin']), async (req, res) => {
     try {
         const { tabsConfig } = req.body;
         const updatedSetting = await SystemSetting.findOneAndUpdate(
@@ -766,7 +766,7 @@ app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer','Mag
             { upsert: true, new: true }
         );
 
-        await createLog(req, 'UPDATE_TABS_CONFIG', `เปลี่ยนแปลงการแสดงผลแท็บ`);
+        await createLog(req, 'UPDATE_TABS_CONFIG', `เปลี่ยนแปลงการตั้งค่าการแสดงผลแท็บเมนู`);
         io.emit('server_data_update', { type: 'TABS_CONFIG_UPDATED', data: tabsConfig });
 
         res.json({ message: "อัปเดตแท็บสำเร็จ", data: tabsConfig });
