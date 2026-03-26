@@ -57,7 +57,6 @@ const Sidebar = ({
     onNotifyUpdate, onOpenCustomUnits, onClearData, 
     // ✨ Props สำหรับปุ่มใหม่ (รอการพัฒนาในอนาคต)
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
-    onOpenNotificationSettings = () => alert("กำลังพัฒนาระบบตั้งค่าแจ้งเตือน..."),
     onOpenAnimalCategory = () => alert("กำลังพัฒนาระบบจัดการหมวดหมู่สัตว์..."),
     onOpenRolePermissions = () => alert("กำลังพัฒนาระบบจัดการสิทธิ์เชิงลึก..."),
     isMagaAdmin, tabsConfig, toggleTab, activeTab, setActiveTab, 
@@ -220,7 +219,6 @@ const Sidebar = ({
                                                     <p className="text-[10px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">จัดการระบบหลัก</p>
                                                     
                                                     <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><PaintBucket className="w-4 h-4 shrink-0"/> รูปแบบหน้าจอ (Theme)</button>
-                                                    <button onClick={() => handleAction(onOpenNotificationSettings)} className="w-full text-left py-2 px-3 rounded-lg text-sm font-medium text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-2.5 transition-colors"><Bell className="w-4 h-4 shrink-0"/> การแจ้งเตือน</button>
 
                                                     {isSuperAdmin && (
                                                         <>
