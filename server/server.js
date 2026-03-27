@@ -315,12 +315,15 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAd
              return res.status(400).json({ message: "ไม่สามารถระงับบัญชีตัวเองได้" });
         }
         
-        targetUser.username = username;
-        targetUser.role = role;
-        targetUser.status = status;
+        // ✨ [ส่วนที่แก้ไข] ตรวจสอบว่ามีค่าส่งมาหรือไม่ ถ้ามีค่อยอัปเดต (รองรับการอัปเดตแค่ Role จากตาราง)
+        if (username !== undefined) targetUser.username = username;
+        if (role !== undefined) targetUser.role = role;
+        if (status !== undefined) targetUser.status = status;
+        
         await targetUser.save();
 
-        await createLog(req, 'UPDATE_USER', `แก้ไขข้อมูลผู้ใช้: ${username} (Role: ${role}, Status: ${status})`);
+        // ✨ [ส่วนที่แก้ไข] ปรับให้บันทึก Log โดยดึงค่าจาก targetUser (ป้องกันค่าเป็น undefined)
+        await createLog(req, 'UPDATE_USER', `แก้ไขข้อมูลผู้ใช้: ${targetUser.username} (Role: ${targetUser.role}, Status: ${targetUser.status})`);
 
         const updatedUser = await User.findById(req.params.id).select('-password');
         res.json(updatedUser);
