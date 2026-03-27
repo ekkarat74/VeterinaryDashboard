@@ -35,8 +35,8 @@ const io = new Server(server, {
 });
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 นาที
-    max: 10, // จำกัด 10 ครั้งต่อ IP
+    windowMs: 15 * 60 * 1000, 
+    max: 10, 
     message: { message: "เข้าสู่ระบบผิดพลาดหลายครั้งเกินไป กรุณารอสักครู่" }
 });
 
@@ -55,7 +55,6 @@ app.use(cors({
   credentials: true
 }));
 
-// Support large payload (Images Base64)
 app.use(helmet());
 app.use(compression());
 app.use(express.json({ limit: '50mb' }));
@@ -68,11 +67,11 @@ mongoose.connect(MONGO_URI)
 
 // --- SCHEMAS & MODELS ---
 
-// 1. User Schema
+// 1. User Schema (✨ เพิ่ม executive เข้าไป)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['Developer', 'MagaAdmin', 'superadmin', 'admin', 'user'], default: 'user' },
+  role: { type: String, enum: ['Developer', 'MagaAdmin', 'superadmin', 'executive', 'admin', 'user'], default: 'user' },
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   lastLogin: { type: Date }
 });
@@ -112,36 +111,35 @@ const outbreakSchema = new mongoose.Schema({
   lat: { type: Number, required: true },
   long: { type: Number, required: true },
   stats: {
-    owned: { // สัตว์มีเจ้าของ
+    owned: { 
       dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
       cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     },
-    unowned: { // สัตว์ไม่มีเจ้าของ
+    unowned: { 
       dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
       cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     },
-    feeder: { // สัตว์มีผู้ให้อาหาร
+    feeder: { 
       dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
       cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     }
   }
-  // ------------------
 }, { timestamps: true });
 outbreakSchema.index({ date: -1, district: 1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 
-// 4. System Log Schema (เพิ่มใหม่)
+// 4. System Log Schema
 const logSchema = new mongoose.Schema({
-    action: { type: String, required: true }, // LOGIN, CREATE_REPORT, DELETE_REPORT etc.
-    user: { type: String, required: true },   // Username
-    role: { type: String, required: true },   // Role
-    details: { type: String },                // รายละเอียดเพิ่มเติม
+    action: { type: String, required: true }, 
+    user: { type: String, required: true },   
+    role: { type: String, required: true },   
+    details: { type: String },                
     metadata: { type: Object },
-    ip: String                                // IP Address
+    ip: String                                
 }, { timestamps: true });
 const SystemLog = mongoose.model('SystemLog', logSchema);
 
-// 5. Meeting Schema (เพิ่มใหม่)
+// 5. Meeting Schema
 const meetingSchema = new mongoose.Schema({
     title: { type: String, required: true },
     date: { type: String, required: true },
@@ -153,52 +151,43 @@ const meetingSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Meeting = mongoose.model('Meeting', meetingSchema);
 
-// 7. System Setting Schema (เพิ่มใหม่: สำหรับเก็บการตั้งค่าระบบ เช่น การเปิดปิดแท็บ)
+// 7. System Setting Schema
 const systemSettingSchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
     value: { type: Object, required: true }
 });
 const SystemSetting = mongoose.model('SystemSetting', systemSettingSchema);
 
-// 8. Custom Unit Schema (เพิ่มใหม่: เก็บหน่วยงานที่พิมพ์เอง)
+// 8. Custom Unit Schema
 const customUnitSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   createdBy: String
 }, { timestamps: true });
 const CustomUnit = mongoose.model('CustomUnit', customUnitSchema);
 
-// 9. Animal Category Schema (เก็บหมวดหมู่สัตว์)
+// 9. Animal Category Schema
 const animalCategorySchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   createdBy: String
 }, { timestamps: true });
 const AnimalCategory = mongoose.model('AnimalCategory', animalCategorySchema);
 
-// --- HELPER FUNCTIONS ---
 
-// Function บันทึก Log
+// --- HELPER FUNCTIONS ---
 const createLog = async (req, action, details, metadata = null) => {
     try {
         const username = req.user ? req.user.username : (req?.body?.username || 'Unknown/System');
         const role = req.user ? req.user.role : 'Guest';
-        
-        // ✅ แก้ไข: ใส่ ? เพื่อป้องกัน Error กรณี req.headers หรือ req.socket ไม่มีค่า (สาเหตุที่ทำให้บันทึก Log ไม่ได้)
         const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || 'Unknown IP';
 
         await SystemLog.create({
-            action,
-            user: username,
-            role,
-            details,
-            metadata, 
-            ip
+            action, user: username, role, details, metadata, ip
         });
     } catch (err) {
         console.error("Log Error:", err);
     }
 };
 
-// Middleware: Verify Token
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -211,7 +200,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Middleware: Check Role
 const authorizeRole = (roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -220,7 +208,6 @@ const authorizeRole = (roles) => {
     next();
   };
 };
-// --- ROUTES ---
 
 // =======================
 // A. AUTHENTICATION & LOGS
@@ -235,7 +222,6 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) return res.status(400).json({ message: "รหัสผ่านไม่ถูกต้อง" });
 
-  // Update Last Login
   user.lastLogin = new Date();
   await user.save();
 
@@ -259,19 +245,16 @@ app.post('/api/change-password', authenticateToken, async (req, res) => {
         user.password = await bcrypt.hash(newPassword, salt);
         await user.save();
 
-        // ✅ บันทึก Log
         await createLog(req, 'CHANGE_PASSWORD', 'เปลี่ยนรหัสผ่านส่วนตัว');
-
         res.json({ message: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว" });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Get Logs (SuperAdmin & Developer Only)
-app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+// Get Logs (เฉพาะ Developer, MagaAdmin)
+app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
-        // ดึง Log 200 รายการล่าสุด
         const logs = await SystemLog.find().sort({ createdAt: -1 }).limit(200);
         res.json(logs);
     } catch (err) {
@@ -280,22 +263,15 @@ app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin',
 });
 
 // =======================
-// B. USER MANAGEMENT
-// =======================
-
-// =======================
-// B. USER MANAGEMENT
+// B. USER MANAGEMENT (เฉพาะ Developer, MagaAdmin)
 // =======================
 
 // Create User
-app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin', 'superadmin']), async (req, res) => {
+app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin']), async (req, res) => {
     try {
         const { username, password, role } = req.body;
         
-        // ✨ เพิ่มระบบป้องกันการสร้างบัญชีข้ามสิทธิ์
-        if (req.user.role === 'superadmin' && (role === 'Developer' || role === 'MagaAdmin')) {
-             return res.status(403).json({ message: "SuperAdmin ไม่สามารถสร้างบัญชีระดับผู้บริหารหรือผู้พัฒนาได้" });
-        }
+        // ✨ ป้องกัน MagaAdmin สร้าง Developer
         if (req.user.role === 'MagaAdmin' && role === 'Developer') {
              return res.status(403).json({ message: "MagaAdmin ไม่สามารถสร้างบัญชีระดับผู้พัฒนาได้" });
         }
@@ -313,7 +289,7 @@ app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin'
 });
 
 // Get All Users
-app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
     let query = {};
     const users = await User.find(query, '-password').sort({ _id: -1 }).lean();
@@ -324,18 +300,13 @@ app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin'
 });
 
 // Update User
-app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const { username, role, status } = req.body;
-        
-        // ดึงข้อมูล User เดิมที่จะแก้ไขมาก่อน
         const targetUser = await User.findById(req.params.id);
         if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
-        // ✨ ป้องกันการแก้ไขบัญชีที่ตำแหน่งสูงกว่าตัวเอง หรือพยายามปรับตำแหน่งให้สูงกว่าตัวเอง
-        if (req.user.role === 'superadmin' && (targetUser.role === 'Developer' || targetUser.role === 'MagaAdmin' || role === 'Developer' || role === 'MagaAdmin')) {
-             return res.status(403).json({ message: "SuperAdmin ไม่มีสิทธิ์จัดการหรือแต่งตั้งบัญชีระดับผู้บริหารได้" });
-        }
+        // ✨ ป้องกัน MagaAdmin จัดการบัญชี Developer
         if (req.user.role === 'MagaAdmin' && (targetUser.role === 'Developer' || role === 'Developer')) {
              return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์จัดการหรือแต่งตั้งบัญชีระดับผู้พัฒนาได้" });
         }
@@ -351,7 +322,6 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAd
 
         await createLog(req, 'UPDATE_USER', `แก้ไขข้อมูลผู้ใช้: ${username} (Role: ${role}, Status: ${status})`);
 
-        // โหลดข้อมูลล่าสุดส่งกลับไป (ไม่เอา password)
         const updatedUser = await User.findById(req.params.id).select('-password');
         res.json(updatedUser);
     } catch (err) {
@@ -359,17 +329,14 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAd
     }
 });
 
-// Reset Password by Admin
-app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+// Reset Password
+app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const { newPassword } = req.body;
         const targetUser = await User.findById(req.params.id);
         if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
-        // ✨ ป้องกันการรีเซ็ตรหัสผ่านบัญชีที่สูงกว่า
-        if (req.user.role === 'superadmin' && (targetUser.role === 'Developer' || targetUser.role === 'MagaAdmin')) {
-             return res.status(403).json({ message: "SuperAdmin ไม่มีสิทธิ์รีเซ็ตรหัสผ่านผู้บริหารได้" });
-        }
+        // ✨ ป้องกัน MagaAdmin เปลี่ยนรหัสผ่าน Developer
         if (req.user.role === 'MagaAdmin' && targetUser.role === 'Developer') {
              return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์รีเซ็ตรหัสผ่านผู้พัฒนาระบบได้" });
         }
@@ -387,7 +354,7 @@ app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['Deve
 });
 
 // Delete User
-app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
       if (req.user._id === req.params.id) {
           return res.status(400).json({ message: "ไม่สามารถลบบัญชีตัวเองได้" });
@@ -396,16 +363,11 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
       const targetUser = await User.findById(req.params.id);
       if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
-      // ✨ ป้องกันการลบบัญชีที่ตำแหน่งสูงกว่า
-      if (req.user.role === 'superadmin' && (targetUser.role === 'Developer' || targetUser.role === 'MagaAdmin')) {
-           return res.status(403).json({ message: "SuperAdmin ไม่มีสิทธิ์ลบบัญชีผู้บริหารได้" });
-      }
       if (req.user.role === 'MagaAdmin' && targetUser.role === 'Developer') {
            return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์ลบบัญชีผู้พัฒนาระบบได้" });
       }
 
       await User.findByIdAndDelete(req.params.id);
-      
       await createLog(req, 'DELETE_USER', `ลบผู้ใช้: ${targetUser.username}`);
 
       res.json({ message: "ลบผู้ใช้งานเรียบร้อย" });
@@ -414,68 +376,59 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
     }
 });
 
+
 // =======================
 // C. REPORTS
 // =======================
 
 app.get('/api/reports', async (req, res) => {
-  try {
-    // รวบรวมค่าจาก req.query ทั้งหมดไว้ที่เดียว ไม่ให้ประกาศตัวแปรซ้ำซ้อน
-    const { search, year, month, unit, district, startDate, endDate, page = 1, limit = 50 } = req.query;
+  try {
+    const { search, year, month, unit, district, startDate, endDate, page = 1, limit = 50 } = req.query;
 
-    let query = {};
+    let query = {};
 
-    // 1. Text Search (ต้องทำ Index text ไว้ก่อน)
-    if (search) {
-      query.$text = { $search: search };
-    }
+    if (search) {
+      query.$text = { $search: search };
+    }
 
-    // 2. กรองตาม วันที่ หรือ ปี/เดือน (รวม Logic จากทั้งสองฝั่ง)
-    if (startDate && endDate) {
-        query.date = { $gte: startDate, $lte: endDate };
-    } else if ((year && year !== 'ทั้งหมด') || (month && month !== 'ทั้งหมด')) {
-        const y = (year && year !== 'ทั้งหมด') ? year : '\\d{4}';
-        const m = (month && month !== 'ทั้งหมด') ? month : '\\d{2}';
-        query.date = { $regex: `^${y}-${m}` };
-    }
+    if (startDate && endDate) {
+        query.date = { $gte: startDate, $lte: endDate };
+    } else if ((year && year !== 'ทั้งหมด') || (month && month !== 'ทั้งหมด')) {
+        const y = (year && year !== 'ทั้งหมด') ? year : '\\d{4}';
+        const m = (month && month !== 'ทั้งหมด') ? month : '\\d{2}';
+        query.date = { $regex: `^${y}-${m}` };
+    }
 
-    // 3. กรองตาม หน่วยงาน / เขต
-    if (unit && unit !== 'ทั้งหมด') query.unit = unit;
-    if (district && district !== 'ทั้งหมด') query.district = district;
+    if (unit && unit !== 'ทั้งหมด') query.unit = unit;
+    if (district && district !== 'ทั้งหมด') query.district = district;
 
-    // การคำนวณ Pagination
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
-    const skip = (pageNumber - 1) * limitNumber;
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const skip = (pageNumber - 1) * limitNumber;
 
-    // ดึงข้อมูลและนับจำนวนทั้งหมดไปพร้อมกัน (Parallel) ทำให้ประมวลผลเร็วขึ้น
-    const [reports, totalRecords] = await Promise.all([
-        Report.find(query)
-            .select('_id date location district subdistrict unit lat long stats details createdBy') // ยกเว้น imageUrl
-            .sort({ date: -1 }) // เรียงจากใหม่ไปเก่า
-            .skip(skip)
-            .limit(limitNumber)
-            .lean(),
-        Report.countDocuments(query)
-    ]);
+    const [reports, totalRecords] = await Promise.all([
+        Report.find(query)
+            .select('_id date location district subdistrict unit lat long stats details createdBy') 
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limitNumber)
+            .lean(),
+        Report.countDocuments(query)
+    ]);
 
-    // ส่งคืนเป็นโครงสร้าง Pagination
-    res.json({
-        data: reports,
-        pagination: {
-            totalRecords,
-            totalPages: Math.ceil(totalRecords / limitNumber),
-            currentPage: pageNumber,
-            limit: limitNumber
-        }
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    res.json({
+        data: reports,
+        pagination: {
+            totalRecords, totalPages: Math.ceil(totalRecords / limitNumber), currentPage: pageNumber, limit: limitNumber
+        }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// Create Report
-app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+// ✨ Create Report: อนุญาตให้ user ใช้งานด้วย (แต่แก้ไขไม่ได้)
+app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
     const newReport = new Report({
         ...req.body,
@@ -492,21 +445,17 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
   }
 });
 
-// Update Report
-app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+// ✨ Update Report: (เฉพาะ Developer, MagaAdmin, Admin)
+app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id, 
-      { 
-          ...req.body,
-          updatedBy: req.user.username 
-      }, 
+      { ...req.body, updatedBy: req.user.username }, 
       { new: true }
     );
     if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
     await createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id}`, updatedReport);
-
     io.emit('server_data_update', { type: 'REPORT_UPDATED', data: updatedReport });
     res.json(updatedReport);
   } catch (err) {
@@ -514,15 +463,13 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
   }
 });
 
-// Delete Report
-app.delete('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+// ✨ Delete Report
+app.delete('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
     const deletedReport = await Report.findByIdAndDelete(req.params.id);
     if (!deletedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    // ✅ บันทึก Log
     await createLog(req, 'DELETE_REPORT', `ลบข้อมูล ID: ${req.params.id} (${deletedReport.location})`);
-
     io.emit('server_data_update', { type: 'REPORT_DELETED', id: req.params.id });
     res.json({ message: "ลบข้อมูลสำเร็จ", id: req.params.id });
   } catch (err) {
@@ -530,28 +477,15 @@ app.delete('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'M
   }
 });
 
-// Clear All Reports (SuperAdmin, MagaAdmin, Developer)
-app.delete('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+// Clear All Reports 
+app.delete('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
     const { password } = req.body;
-
-    // ✨ ตรวจสอบการตั้งค่าสิทธิ์ก่อนว่าอนุญาตให้ SuperAdmin ลบหรือไม่
-    if (req.user.role === 'superadmin') {
-        const permSetting = await SystemSetting.findOne({ key: 'rolePermissionsConfig' });
-        const allowClearData = permSetting && permSetting.value && permSetting.value.allowSuperAdminToClearData === true;
-        
-        if (!allowClearData) {
-            return res.status(403).json({ message: "ระบบไม่อนุญาตให้ SuperAdmin ล้างข้อมูล (โปรดติดต่อ Developer หรือ ผู้บริหาร)" });
-        }
-    }
-
     const user = await User.findById(req.user._id);
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "รหัสผ่านไม่ถูกต้อง" });
 
     const result = await Report.deleteMany({});
-
-    // ✅ บันทึก Log
     await createLog(req, 'CLEAR_ALL_REPORTS', `ล้างข้อมูลรายงานทั้งหมด (${result.deletedCount} รายการ)`);
 
     io.emit('server_data_update', { type: 'REPORTS_CLEARED' });
@@ -561,6 +495,7 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaA
   }
 });
 
+
 // =======================
 // D. OUTBREAKS
 // =======================
@@ -569,19 +504,10 @@ app.get('/api/outbreaks', async (req, res) => {
   try {
     const { year, limit } = req.query;
     let query = {};
+    if (year) query.date = { $regex: `^${year}` };
 
-    if (year) {
-        query.date = { $regex: `^${year}` };
-    }
-
-    const outbreaksQuery = Outbreak.find(query)
-      .select('_id date location district lat long stats')
-      .sort({ date: -1 })
-      .lean();
-
-    if (limit) {
-        outbreaksQuery.limit(parseInt(limit, 10));
-    }
+    const outbreaksQuery = Outbreak.find(query).select('_id date location district lat long stats').sort({ date: -1 }).lean();
+    if (limit) outbreaksQuery.limit(parseInt(limit, 10));
 
     const outbreaks = await outbreaksQuery;
     res.json(outbreaks);
@@ -590,13 +516,12 @@ app.get('/api/outbreaks', async (req, res) => {
   }
 });
 
-app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
+// ✨ Create Outbreak (user มีสิทธิ์แจ้ง)
+app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
     const newOutbreak = new Outbreak(req.body);
     const savedOutbreak = await newOutbreak.save();
-
     await createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak);
-
     io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
     res.status(201).json(savedOutbreak);
   } catch (err) {
@@ -604,36 +529,25 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
   }
 });
 
-app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
+app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
-    const updatedOutbreak = await Outbreak.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
+    const updatedOutbreak = await Outbreak.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updatedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    // ✅ บันทึก Log
     await createLog(req, 'UPDATE_OUTBREAK', `แก้ไขจุดแจ้งเหตุ: ${updatedOutbreak.location}`, updatedOutbreak);
-
-    // ส่ง Event ให้ Frontend ทราบว่ามีการแก้ไข
     io.emit('server_data_update', { type: 'OUTBREAK_UPDATED', data: updatedOutbreak });
-    
     res.json(updatedOutbreak);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 });
 
-app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
     const deletedOutbreak = await Outbreak.findByIdAndDelete(req.params.id);
     if (!deletedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    // ✅ บันทึก Log
     await createLog(req, 'DELETE_OUTBREAK', `ลบแจ้งเหตุโรคระบาด: ${deletedOutbreak.location}`);
-
     io.emit('server_data_update', { type: 'OUTBREAK_DELETED', id: req.params.id });
     res.json({ message: "ลบข้อมูลเรียบร้อย", id: req.params.id });
   } catch (err) {
@@ -641,26 +555,19 @@ app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 
   }
 });
 
+
 // =======================
 // E. SYSTEM BACKUP & RESTORE
 // =======================
 
-app.get('/api/system/backup', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.get('/api/system/backup', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         const reports = await Report.find().sort({ date: -1 });
         const outbreaks = await Outbreak.find().sort({ date: -1 });
 
-        // ✅ บันทึก Log (Optional: อาจจะไม่ต้องบันทึกก็ได้ถ้าโหลดบ่อย)
-        // await createLog(req, 'SYSTEM_BACKUP', 'ดาวน์โหลดไฟล์ Backup');
-
         const backupData = {
-            metadata: {
-                exportDate: new Date(),
-                version: "1.0",
-                exportedBy: req.user.username
-            },
-            reports: reports,
-            outbreaks: outbreaks
+            metadata: { exportDate: new Date(), version: "1.0", exportedBy: req.user.username },
+            reports: reports, outbreaks: outbreaks
         };
         res.json(backupData);
     } catch (err) {
@@ -668,34 +575,24 @@ app.get('/api/system/backup', authenticateToken, authorizeRole(['Developer', 'Ma
     }
 });
 
-app.post('/api/system/restore', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.post('/api/system/restore', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     
     try {
         const { reports, outbreaks } = req.body;
-        if (!Array.isArray(reports) || !Array.isArray(outbreaks)) {
-            throw new Error("รูปแบบไฟล์ไม่ถูกต้อง");
-        }
+        if (!Array.isArray(reports) || !Array.isArray(outbreaks)) throw new Error("รูปแบบไฟล์ไม่ถูกต้อง");
 
         await Report.deleteMany({}, { session });
         await Outbreak.deleteMany({}, { session });
-
         if (reports.length > 0) await Report.insertMany(reports, { session });
         if (outbreaks.length > 0) await Outbreak.insertMany(outbreaks, { session });
 
         await session.commitTransaction();
         session.endSession();
 
-        // ✅ บันทึก Log
         await createLog(req, 'SYSTEM_RESTORE', `กู้คืนระบบสำเร็จ (Reports: ${reports.length}, Outbreaks: ${outbreaks.length})`);
-
-        res.json({
-            message: "กู้คืนข้อมูลสำเร็จ",
-            reportCount: reports.length,
-            outbreakCount: outbreaks.length
-        });
-
+        res.json({ message: "กู้คืนข้อมูลสำเร็จ", reportCount: reports.length, outbreakCount: outbreaks.length });
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
@@ -704,7 +601,7 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['Developer', '
 });
 
 // =======================
-// F. MEETINGS (เพิ่มใหม่)
+// F. MEETINGS 
 // =======================
 app.get('/api/meetings', async (req, res) => {
     try {
@@ -715,21 +612,19 @@ app.get('/api/meetings', async (req, res) => {
     }
 });
 
-app.post('/api/meetings', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.post('/api/meetings', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         const newMeeting = new Meeting({ ...req.body, createdBy: req.user.username });
         const savedMeeting = await newMeeting.save();
-        
         await createLog(req, 'CREATE_MEETING', `นัดหมายประชุม: ${savedMeeting.title}`);
         io.emit('server_data_update', { type: 'MEETING_ADDED', data: savedMeeting });
-        
         res.status(201).json(savedMeeting);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
 
-app.put('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.put('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         const updatedMeeting = await Meeting.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedMeeting) return res.status(404).json({ message: "ไม่พบข้อมูล" });
@@ -742,7 +637,7 @@ app.put('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', 'Mag
     }
 });
 
-app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         await Meeting.findByIdAndDelete(req.params.id);
         io.emit('server_data_update', { type: 'MEETING_DELETED', id: req.params.id });
@@ -753,9 +648,9 @@ app.delete('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', '
 });
 
 // =======================
-// BULK IMPORTS (เพิ่มใหม่)
+// BULK IMPORTS 
 // =======================
-app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         const reports = req.body; 
         if (!Array.isArray(reports)) return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
@@ -772,7 +667,7 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
     }
 });
 
-app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
+app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         const outbreaks = req.body;
         if (!Array.isArray(outbreaks)) return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
@@ -788,7 +683,7 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['Developer', '
 });
 
 // =======================
-// G. DISPATCH PLANS (นำเข้าจากไฟล์แยก)
+// G. DISPATCH PLANS 
 // =======================
 const dispatchRoutes = require('./routes/dispatchRoutes');
 app.use('/api/dispatches', dispatchRoutes(io, authenticateToken, authorizeRole, createLog));
@@ -808,14 +703,11 @@ app.get('/api/settings/tabs', async (req, res) => {
     }
 });
 
-// ✨ ลบ 'superadmin' ออกจาก Array ใน authorizeRole
 app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const { tabsConfig } = req.body;
         const updatedSetting = await SystemSetting.findOneAndUpdate(
-            { key: 'tabsConfig' },
-            { value: tabsConfig },
-            { upsert: true, new: true }
+            { key: 'tabsConfig' }, { value: tabsConfig }, { upsert: true, new: true }
         );
 
         await createLog(req, 'UPDATE_TABS_CONFIG', `เปลี่ยนแปลงการตั้งค่าการแสดงผลแท็บเมนู`);
@@ -831,13 +723,9 @@ app.put('/api/settings/tabs', authenticateToken, authorizeRole(['Developer', 'Ma
 // I. SYSTEM UPDATE
 // =======================
 app.post('/api/system/notify-update', authenticateToken, authorizeRole(['Developer']), async (req, res) => {
-try {
-        // บันทึก Log
+    try {
         await createLog(req, 'SYSTEM_UPDATE', 'ส่งแจ้งเตือนอัปเดตระบบ (บังคับรีเฟรชผู้ใช้ทั้งหมด)');
-
-        // ส่ง Event ไปหา Client "ทุกคน" (รวมถึงคนที่ไม่ได้ล็อกอิน) ที่เชื่อมต่อ Socket อยู่
         io.emit('system_update_refresh', { message: 'ระบบมีการอัปเดตเวอร์ชันใหม่ กำลังรีเฟรชหน้าจอ...' });
-
         res.json({ message: "ส่งคำสั่งรีเฟรชไปยังผู้ใช้งานทั้งหมดเรียบร้อยแล้ว" });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -845,7 +733,7 @@ try {
 });
 
 // =======================
-// J. CUSTOM UNITS (หน่วยที่เพิ่มเอง)
+// J. CUSTOM UNITS
 // =======================
 app.get('/api/custom-units', async (req, res) => {
     try {
@@ -856,7 +744,7 @@ app.get('/api/custom-units', async (req, res) => {
     }
 });
 
-app.post('/api/custom-units', authenticateToken, async (req, res) => {
+app.post('/api/custom-units', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const { name } = req.body;
         const existing = await CustomUnit.findOne({ name });
@@ -872,7 +760,7 @@ app.post('/api/custom-units', authenticateToken, async (req, res) => {
     }
 });
 
-app.put('/api/custom-units/:id', authenticateToken, async (req, res) => {
+app.put('/api/custom-units/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const updatedUnit = await CustomUnit.findByIdAndUpdate(req.params.id, { name: req.body.name }, { new: true });
         io.emit('server_data_update', { type: 'CUSTOM_UNIT_UPDATED', data: updatedUnit });
@@ -882,7 +770,7 @@ app.put('/api/custom-units/:id', authenticateToken, async (req, res) => {
     }
 });
 
-app.delete('/api/custom-units/:id', authenticateToken, async (req, res) => {
+app.delete('/api/custom-units/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         await CustomUnit.findByIdAndDelete(req.params.id);
         io.emit('server_data_update', { type: 'CUSTOM_UNIT_DELETED', id: req.params.id });
@@ -893,7 +781,7 @@ app.delete('/api/custom-units/:id', authenticateToken, async (req, res) => {
 });
 
 // =======================
-// K. ANIMAL CATEGORIES (จัดการหมวดหมู่สัตว์)
+// K. ANIMAL CATEGORIES
 // =======================
 app.get('/api/animal-categories', async (req, res) => {
     try {
@@ -904,7 +792,7 @@ app.get('/api/animal-categories', async (req, res) => {
     }
 });
 
-app.post('/api/animal-categories', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.post('/api/animal-categories', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const { name } = req.body;
         const existing = await AnimalCategory.findOne({ name });
@@ -922,7 +810,7 @@ app.post('/api/animal-categories', authenticateToken, authorizeRole(['Developer'
     }
 });
 
-app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin']), async (req, res) => {
+app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const deletedCategory = await AnimalCategory.findByIdAndDelete(req.params.id);
         if (!deletedCategory) return res.status(404).json({ message: "ไม่พบข้อมูล" });
@@ -937,7 +825,7 @@ app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Deve
 });
 
 // =======================
-// M. ROLE PERMISSIONS SETTINGS (จัดการสิทธิ์การเข้าถึงเชิงลึก)
+// M. ROLE PERMISSIONS SETTINGS
 // =======================
 app.get('/api/settings/permissions', authenticateToken, async (req, res) => {
     try {
@@ -953,9 +841,7 @@ app.put('/api/settings/permissions', authenticateToken, authorizeRole(['Develope
     try {
         const { rolePermissionsConfig } = req.body;
         const updatedSetting = await SystemSetting.findOneAndUpdate(
-            { key: 'rolePermissionsConfig' },
-            { value: rolePermissionsConfig },
-            { upsert: true, new: true }
+            { key: 'rolePermissionsConfig' }, { value: rolePermissionsConfig }, { upsert: true, new: true }
         );
 
         await createLog(req, 'UPDATE_ROLE_PERMISSIONS', `ปรับปรุงกฎและสิทธิ์การเข้าถึงเชิงลึก`);
@@ -967,5 +853,4 @@ app.put('/api/settings/permissions', authenticateToken, authorizeRole(['Develope
     }
 });
 
-// --- SERVER START ---
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -4,10 +4,8 @@ import {
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
-// --- Custom Hook ---
-import useDashboardState from './hooks/useDashboardState'; // <-- นำเข้า Custom Hook
+import useDashboardState from './hooks/useDashboardState'; 
 
-// --- Custom Components & Constants ---
 import KPISection from './components/dashboard/KPICards';
 import UserManagementModal from './components/UserManagementModal';
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from './constants/locations';
@@ -40,9 +38,7 @@ const AnimalCategoryModal = lazy(() => import('./components/modals/AnimalCategor
 const RolePermissionsModal = lazy(() => import('./components/modals/RolePermissionsModal'));
 
 // --- MAIN DASHBOARD COMPONENT ---
-
 export default function VeterinaryDashboard() {
-    // --- 1. STATE MANAGEMENT (เรียกใช้จาก Custom Hook) ---
     const {
         reportData, setReportData, outbreakData, setOutbreakData,
         dispatchEvents, setDispatchEvents, meetings, setMeetings,
@@ -78,10 +74,21 @@ export default function VeterinaryDashboard() {
     const [isAnimalCategoryModalOpen, setIsAnimalCategoryModalOpen] = useState(false);
     const [isRolePermissionsModalOpen, setIsRolePermissionsModalOpen] = useState(false);
 
+    const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
+
+    // ✨ จัดการสิทธิ์การแสดงผลใหม่
+    const isSystemDeveloper = user?.role === 'Developer';
+    const isTopAdmin = user && ['Developer', 'MagaAdmin'].includes(user.role);
+    const isMagaAdmin = user && ['Developer', 'MagaAdmin'].includes(user.role);
+
+    // ✨ Admin, MagaAdmin, Developer แก้ไขข้อมูลได้ | (User, executive, superadmin ห้ามแก้)
+    const canEdit = user && ['Developer', 'MagaAdmin', 'admin'].includes(user.role) && !isReadOnlyMode;
+    
+    // ✨ User สามารถเพิ่มข้อมูลได้ด้วย
+    const canAdd = user && ['Developer', 'MagaAdmin', 'admin', 'user'].includes(user.role) && !isReadOnlyMode;
 
     const handleNotifySystemUpdate = async () => {
         if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
-
         try {
             const response = await fetch(`${BASE_URL}/api/system/notify-update`, {
                 method: 'POST',
@@ -100,58 +107,36 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
-
-    const isSystemDeveloper = user && user.role === 'Developer';
-    const canEdit = user && (user.role === 'Developer' || user.role === 'admin' || user.role === 'superadmin' || user.role === 'MagaAdmin') && !isReadOnlyMode;
-    const isSuperAdmin = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
-    const isMagaAdmin = user && (user.role === 'Developer' || user.role === 'MagaAdmin');
-    const isDevOrSuper = user && (user.role === 'Developer' || user.role === 'superadmin' || user.role === 'MagaAdmin');
-
-    useEffect(() => {
-        // หากไม่ใช่ Dev/SuperAdmin และแท็บปัจจุบันที่เปิดอยู่ถูกตั้งค่าให้ซ่อน -> ให้เด้งไปหน้าอื่นที่เปิดอยู่
-        if (!isDevOrSuper && tabsConfig && tabsConfig[activeTab] === false) {
-            if (tabsConfig.overview) setActiveTab('overview');
-            else if (tabsConfig.outbreak) setActiveTab('outbreak');
-            else if (tabsConfig.database) setActiveTab('database');
-            else if (tabsConfig.calendar) setActiveTab('calendar');
-        }
-    }, [user, tabsConfig, activeTab, setActiveTab, isDevOrSuper]);
-
-    // Constants
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
     const API_URL = `${BASE_URL}/api/reports`;
     const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
-    // --- ส่วนที่แก้ไข: กรองการแสดงผลหากไม่ได้ล็อกอิน ---
-const dispatchEventsOnly = useMemo(() => {
-    // ถ้าไม่ได้ล็อกอิน (ไม่มีสิทธิ์ canEdit) ให้เห็นเฉพาะอันที่ isVisibleToPublic เป็น true (หรือไม่มีค่าซึ่งถือว่า true)
-    const filteredEvents = canEdit 
-        ? dispatchEvents 
-        : dispatchEvents.filter(d => d.isVisibleToPublic !== false);
+    const dispatchEventsOnly = useMemo(() => {
+        const filteredEvents = canEdit 
+            ? dispatchEvents 
+            : dispatchEvents.filter(d => d.isVisibleToPublic !== false);
 
-    return filteredEvents.map(d => ({
-        ...d, type: 'dispatch', originalData: d
-    }));
-}, [dispatchEvents, canEdit]);
+        return filteredEvents.map(d => ({
+            ...d, type: 'dispatch', originalData: d
+        }));
+    }, [dispatchEvents, canEdit]);
 
-// --- ส่วนที่เพิ่มใหม่: ฟังก์ชันสำหรับ Toggle สถานะ ---
-const handleToggleDispatchVisibility = async (id, currentStatus) => {
-    try {
-        const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-            body: JSON.stringify({ isVisibleToPublic: !currentStatus })
-        });
-        if (res.ok) {
-            addToast('success', currentStatus ? 'ซ่อนหน่วยงานจากประชาชนแล้ว' : 'เปิดหน่วยงานให้ประชาชนเห็นแล้ว');
-        } else {
-            addToast('error', 'ปรับสถานะไม่สำเร็จ');
+    const handleToggleDispatchVisibility = async (id, currentStatus) => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                body: JSON.stringify({ isVisibleToPublic: !currentStatus })
+            });
+            if (res.ok) {
+                addToast('success', currentStatus ? 'ซ่อนหน่วยงานจากประชาชนแล้ว' : 'เปิดหน่วยงานให้ประชาชนเห็นแล้ว');
+            } else {
+                addToast('error', 'ปรับสถานะไม่สำเร็จ');
+            }
+        } catch (error) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
         }
-    } catch (error) {
-        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    }
-};
+    };
 
     const meetingEventsOnly = useMemo(() => meetings.map(m => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
@@ -193,8 +178,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
             addToast('error', 'ลบไม่สำเร็จ');
         }
     };
-
-    // --- 2. AUTHENTICATION LOGIC ---
 
     useEffect(() => {
         const fetchDispatches = async () => {
@@ -304,7 +287,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
         }
     }, [setUser]);
 
-
     useEffect(() => {
         const fetchTabsConfig = async () => {
             try {
@@ -340,15 +322,22 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
         }
     };
 
+    // ✨ จัดการเรื่องระบบการเห็น Tabs (Guest, User, Executive, Superadmin เห็นเฉพาะ Tab ที่ระบุ)
     useEffect(() => {
-        if (!user && !tabsConfig[activeTab]) {
-            if (tabsConfig.overview) setActiveTab('overview');
-            else if (tabsConfig.outbreak) setActiveTab('outbreak');
-            else if (tabsConfig.database) setActiveTab('database');
+        const checkTabVisibility = (tabName) => {
+            if (!user) return tabsConfig?.[`public_${tabName}`] ?? true;
+            if (['user'].includes(user.role)) return tabsConfig?.[`public_${tabName}`] ?? true;
+            if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`] ?? true;
+            return true;
+        };
+
+        if (!checkTabVisibility(activeTab)) {
+            if (checkTabVisibility('overview')) setActiveTab('overview');
+            else if (checkTabVisibility('outbreak')) setActiveTab('outbreak');
+            else if (checkTabVisibility('database')) setActiveTab('database');
+            else if (checkTabVisibility('calendar')) setActiveTab('calendar');
         }
     }, [user, tabsConfig, activeTab, setActiveTab]);
-
-    // --- 3. DATA FETCHING ---
 
     const fetchData = useCallback(async () => {
         try {
@@ -436,11 +425,7 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
         });
         socket.on('system_update_refresh', (payload) => {
             addToast('info', `🔄 ${payload.message}`);
-
-            // หน่วงเวลา 3 วินาทีให้ผู้ใช้เห็นข้อความแจ้งเตือน ก่อนบังคับรีเฟรชหน้าต่างแบบข้าม Cache (true)
-            setTimeout(() => {
-                window.location.reload(true);
-            }, 3000);
+            setTimeout(() => { window.location.reload(true); }, 3000);
         });
         return () => { socket.disconnect(); };
     }, [BASE_URL, fetchData, setReportData, setOutbreakData, setMeetings, setDispatchEvents, setTabsConfig, addToast]);
@@ -549,8 +534,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
     const openEditOutbreakModal = (item) => { setEditingOutbreak(item); setIsOutbreakModalOpen(true); };
     const openAddOutbreakModal = () => { setEditingOutbreak(null); setIsOutbreakModalOpen(true); };
 
-    // --- 4. API HANDLERS ---
-
     const handleAddNewData = async (newRecord) => {
         try {
             const response = await fetch(API_URL, {
@@ -629,8 +612,8 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
     };
 
     const handleClearAllData = async () => {
-        if (!isSuperAdmin) {
-            alert("⛔️ ขออภัย เฉพาะ SuperAdmin เท่านั้นที่มีสิทธิ์ล้างข้อมูล");
+        if (!isTopAdmin) {
+            alert("⛔️ ขออภัย เฉพาะระดับผู้บริหารเท่านั้นที่มีสิทธิ์ล้างข้อมูล");
             return;
         }
         setIsClearDataModalOpen(true);
@@ -828,9 +811,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
         reader.readAsText(file);
     };
 
-    // ---------------------------------------------------------
-    // 🛠 3. ฟังก์ชัน useCallback สำหรับลดการ Render ซ้ำซ้อนของ UI
-    // ---------------------------------------------------------
     const closeAddDataModal = useCallback(() => setIsModalOpen(false), [setIsModalOpen]);
     const closeOutbreakModal = useCallback(() => setIsOutbreakModalOpen(false), [setIsOutbreakModalOpen]);
     const closeCsvModal = useCallback(() => setIsCsvModalOpen(false), [setIsCsvModalOpen]);
@@ -885,8 +865,6 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
     const closeAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(false), []);
     const openRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(true), []);
     const closeRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(false), []);
-
-    // --- 5. CALCULATIONS ---
 
     const availableYears = useMemo(() => {
         if (!Array.isArray(reportData)) return [];
@@ -943,45 +921,41 @@ const handleToggleDispatchVisibility = async (id, currentStatus) => {
         else handleFileUpload(e);
     }, [csvMode]);
 
-const handleCsvExport = useCallback((filters) => {
-    let dataToExport = csvMode === 'outbreak' ? outbreakData : reportData;
+    const handleCsvExport = useCallback((filters) => {
+        let dataToExport = csvMode === 'outbreak' ? outbreakData : reportData;
 
-    if (filters) {
-        dataToExport = dataToExport.filter(item => {
-            const isYearAll = filters.year === 'ทั้งหมด';
-            const isMonthAll = filters.month === 'ทั้งหมด';
-            const isUnitAll = filters.unit === 'ทั้งหมด';
-            const isDistrictAll = filters.district === 'ทั้งหมด';
+        if (filters) {
+            dataToExport = dataToExport.filter(item => {
+                const isYearAll = filters.year === 'ทั้งหมด';
+                const isMonthAll = filters.month === 'ทั้งหมด';
+                const isUnitAll = filters.unit === 'ทั้งหมด';
+                const isDistrictAll = filters.district === 'ทั้งหมด';
 
-            // กรอง ปี และ เดือน
-            if (!isYearAll || !isMonthAll) {
-                if (!item.date) return false;
-                const dateParts = String(item.date).split('-');
-                if (dateParts.length < 2) return false;
+                if (!isYearAll || !isMonthAll) {
+                    if (!item.date) return false;
+                    const dateParts = String(item.date).split('-');
+                    if (dateParts.length < 2) return false;
+                    
+                    if (!isYearAll && dateParts[0] !== String(filters.year)) return false;
+                    if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(filters.month, 10)) return false;
+                }
+
+                if (csvMode !== 'outbreak' && !isUnitAll) {
+                    if (item.unit !== filters.unit) return false;
+                }
                 
-                if (!isYearAll && dateParts[0] !== String(filters.year)) return false;
-                if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(filters.month, 10)) return false;
-            }
+                if (!isDistrictAll && (!item.district || item.district.trim() !== filters.district)) return false;
 
-            // กรอง หน่วยงาน (ใช้เฉพาะโหมด Report)
-            if (csvMode !== 'outbreak' && !isUnitAll) {
-                if (item.unit !== filters.unit) return false;
-            }
-            
-            // กรอง เขต
-            if (!isDistrictAll && (!item.district || item.district.trim() !== filters.district)) return false;
+                return true;
+            });
+        }
 
-            return true;
-        });
-    }
-
-    // เรียกใช้ฟังก์ชัน Export
-    if (csvMode === 'outbreak') {
-        exportOutbreaksToCSV(dataToExport);
-    } else {
-        exportToCSV(dataToExport);
-    }
-}, [csvMode, outbreakData, reportData]);
+        if (csvMode === 'outbreak') {
+            exportOutbreaksToCSV(dataToExport);
+        } else {
+            exportToCSV(dataToExport);
+        }
+    }, [csvMode, outbreakData, reportData]);
 
     const { 
         mapDisplayData, 
@@ -1015,12 +989,10 @@ const handleCsvExport = useCallback((filters) => {
             const med = toNum(curr.stats?.medical);
             const workTotal = v + s + r + m + med;
 
-            // 1. Map Data
             if (curr.lat && curr.long && !isNaN(parseFloat(curr.lat)) && !isNaN(parseFloat(curr.long)) && (parseFloat(curr.lat) !== 0 || parseFloat(curr.long) !== 0)) {
                 newMapDisplayData.push(curr);
             }
 
-            // 2. Totals
             newTotals.vaccine += v; newTotals.sterilize += s; newTotals.register += r; newTotals.microchip += m; newTotals.medical += med;
 
             const d = curr.details?.dog || {};
@@ -1038,7 +1010,6 @@ const handleCsvExport = useCallback((filters) => {
             newTotals.cat.microchip += toNum(c.microchip);
             newTotals.cat.medical += toNum(c.medical);
 
-            // 3. Unit Stats & Unit Pie
             const unitName = curr.unit || 'ไม่ระบุ';
             if (!unitDict[unitName]) {
                 unitDict[unitName] = { name: unitName, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0, dog: 0, cat: 0 };
@@ -1049,7 +1020,6 @@ const handleCsvExport = useCallback((filters) => {
             unitDict[unitName].dog += (toNum(d.vaccine) + toNum(d.maleSterilize) + toNum(d.femaleSterilize) + toNum(d.microchip) + toNum(d.register) + toNum(d.medical));
             unitDict[unitName].cat += (toNum(c.vaccine) + toNum(c.maleSterilize) + toNum(c.femaleSterilize) + toNum(c.microchip) + toNum(c.register) + toNum(c.medical));
 
-            // 4. District Pie
             const distName = curr.district || 'ไม่ระบุ';
             if (!districtDict[distName]) districtDict[distName] = { name: distName, value: 0 };
             districtDict[distName].value += workTotal;
@@ -1318,8 +1288,6 @@ const handleCsvExport = useCallback((filters) => {
         return Object.values(grouped).sort((a, b) => b.value - a.value).slice(0, 10);
     }, [filteredOutbreaks]);
 
-    // --- 6. RENDER UI ---
-
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
             <style>{`
@@ -1356,22 +1324,22 @@ const handleCsvExport = useCallback((filters) => {
             <ActivityLogModal isOpen={isLogModalOpen} onClose={closeLogModal} token={user?.token} apiBaseUrl={BASE_URL} />
             <DispatchModal isOpen={isDispatchModalOpen} onClose={closeDispatchModal} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
             <DispatchCalendarDashboard 
-    isOpen={isCalendarOpen} 
-    onClose={closeCalendar} 
-    events={dispatchEventsOnly} 
-    onOpenForm={openDispatchForm} 
-    onEventClick={openDispatchEvent} 
-    canEdit={canEdit}
-    onToggleVisibility={handleToggleDispatchVisibility}
-/>
+                isOpen={isCalendarOpen} 
+                onClose={closeCalendar} 
+                events={dispatchEventsOnly} 
+                onOpenForm={openDispatchForm} 
+                onEventClick={openDispatchEvent} 
+                canEdit={canEdit}
+                onToggleVisibility={handleToggleDispatchVisibility}
+            />
             <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={closeMeetingCalendar} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
             <MeetingModal isOpen={isMeetingModalOpen} onClose={closeMeetingModal} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
             <MeetingListModal isOpen={isMeetingListOpen} onClose={closeMeetingList} meetings={meetings} onEdit={editMeetingFromList} />
 
             <Sidebar 
-                user={user} isSuperAdmin={isSuperAdmin} canEdit={canEdit} 
+                user={user} isSuperAdmin={isTopAdmin} canEdit={canEdit} canAdd={canAdd} 
                 isSystemDeveloper={isSystemDeveloper}
-                isDevOrSuper={isDevOrSuper}
+                isDevOrSuper={isTopAdmin}
                 activeTab={activeTab} setActiveTab={setActiveTab}
                 isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed}
                 isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
@@ -1519,13 +1487,11 @@ const handleCsvExport = useCallback((filters) => {
                                         <KPISection totals={totals} unitStats={unitStats} />
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-                                            {/* คอลัมน์ซ้าย (บนมือถือจะแสดงก่อน): สถิติหน่วยงาน + เจาะลึก 5 อันดับแรก */}
                                             <div className="lg:col-span-5 flex flex-col gap-8">
                                                 <RankingSection type="table" rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} />
                                                 <RankingSection type="deepdive" rankingNestedStats={rankingNestedStats} />
                                             </div>
             
-                                            {/* คอลัมน์ขวา (บนมือถือจะแสดงด้านล่างต่อจากสถิติ): แผนที่ + กราฟเปรียบเทียบ */}
                                             <div className="lg:col-span-7 flex flex-col gap-8">
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
                                                     <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
@@ -1583,7 +1549,7 @@ const handleCsvExport = useCallback((filters) => {
 
                                 {activeTab === 'database' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
-                                        <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isSuperAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
+                                        <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isTopAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
                                     </div>
                                 )}
 
@@ -1602,7 +1568,6 @@ const handleCsvExport = useCallback((filters) => {
                             </>
                         )}
                     </Suspense>
-                    {/* ซ่อน Footer เมื่ออยู่หน้าปฏิทิน */}
                     {activeTab !== 'calendar' && (
                         <footer className="mt-12 pb-4 pt-6 border-t border-slate-200/60 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left shrink-0">
                             <div>
@@ -1623,11 +1588,11 @@ const handleCsvExport = useCallback((filters) => {
 
             {(() => {
                 const checkMobileTabVisibility = (tabName) => {
-    if (!user) return tabsConfig?.[`public_${tabName}`];
-    // ใช้ isSuperAdmin แทน เพราะตัวแปรนี้รวม Developer, superadmin และ MagaAdmin ไว้แล้ว
-    if (isSuperAdmin) return tabsConfig?.[`sa_${tabName}`];
-    return true; 
-};
+                    if (!user) return tabsConfig?.[`public_${tabName}`];
+                    if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`];
+                    if (['user'].includes(user.role)) return tabsConfig?.[`public_${tabName}`];
+                    return true; 
+                };
 
                 return (
                     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-[4000] px-2 py-2 flex justify-around items-center safe-area-pb">

@@ -71,7 +71,6 @@ const MainDataTable = ({
                         {data.length > 0 ? (
                             data.map((item) => (
                                 <tr key={item._id} className="hover:bg-indigo-50/30 transition-colors group">
-                                    {/* วันที่ */}
                                     <td className="px-6 py-4 text-gray-500 align-middle">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4 text-gray-400" />
@@ -79,7 +78,6 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* สถานที่ */}
                                     <td className="px-6 py-4 align-middle">
                                         <div className="flex items-start gap-3">
                                             <div className="mt-1 min-w-[16px]">
@@ -94,7 +92,6 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* รูปภาพ */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         {item.imageUrl ? (
                                             <div className="relative w-12 h-12 mx-auto">
@@ -112,7 +109,6 @@ const MainDataTable = ({
                                         )}
                                     </td>
 
-                                    {/* วัคซีน */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
                                             <Syringe className="w-3 h-3 mb-1 opacity-50" />
@@ -120,7 +116,6 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* ทำหมัน */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-700">
                                             <Scissors className="w-3 h-3 mb-1 opacity-50" />
@@ -142,7 +137,6 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* รักษา */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700">
                                             <Stethoscope className="w-3 h-3 mb-1 opacity-50" />
@@ -150,7 +144,6 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* ผู้บันทึก */}
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="flex flex-col items-center">
                                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium border border-gray-200">
@@ -165,7 +158,6 @@ const MainDataTable = ({
                                         </div>
                                     </td>
 
-                                    {/* Action Buttons */}
                                     {canEdit && (
                                         <td className="px-6 py-4 align-middle text-center">
                                             <div className="flex justify-center items-center gap-1">
@@ -189,7 +181,6 @@ const MainDataTable = ({
                                 </tr>
                             ))
                         ) : (
-                            /* Empty State */
                             <tr>
                                 <td colSpan={canEdit ? 10 : 9} className="px-6 py-12 text-center">
                                     <div className="flex flex-col items-center justify-center text-gray-400">
@@ -219,7 +210,6 @@ const MainDataTable = ({
                 </table>
             </div>
             
-            {/* Footer Summary */}
             {data.length > 0 && (
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
                      <span>แสดงข้อมูลล่าสุด {Math.min(data.length, 50)} รายการ</span>
