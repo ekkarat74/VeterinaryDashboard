@@ -322,22 +322,24 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    // ✨ จัดการเรื่องระบบการเห็น Tabs (Guest, User, Executive, Superadmin เห็นเฉพาะ Tab ที่ระบุ)
-    useEffect(() => {
-        const checkTabVisibility = (tabName) => {
-            if (!user) return tabsConfig?.[`public_${tabName}`] ?? true;
-            if (['user'].includes(user.role)) return tabsConfig?.[`public_${tabName}`] ?? true;
-            if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`] ?? true;
-            return true;
-        };
+    // ค้นหา useEffect นี้แล้วแทนที่ด้วย:
+useEffect(() => {
+    const checkTabVisibility = (tabName) => {
+        if (!user) return tabsConfig?.[`public_${tabName}`] ?? true;
+        
+        // ลบบรรทัด 'user' ออกไป เพื่อให้ user ได้สิทธิ์ return true ด้านล่างสุด
+        if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`] ?? true;
+        
+        return true; // ตอนนี้ Admin, Developer, MagaAdmin และ "User" จะมองเห็นทุกแท็บ
+    };
 
-        if (!checkTabVisibility(activeTab)) {
-            if (checkTabVisibility('overview')) setActiveTab('overview');
-            else if (checkTabVisibility('outbreak')) setActiveTab('outbreak');
-            else if (checkTabVisibility('database')) setActiveTab('database');
-            else if (checkTabVisibility('calendar')) setActiveTab('calendar');
-        }
-    }, [user, tabsConfig, activeTab, setActiveTab]);
+    if (!checkTabVisibility(activeTab)) {
+        if (checkTabVisibility('overview')) setActiveTab('overview');
+        else if (checkTabVisibility('outbreak')) setActiveTab('outbreak');
+        else if (checkTabVisibility('database')) setActiveTab('database');
+        else if (checkTabVisibility('calendar')) setActiveTab('calendar');
+    }
+}, [user, tabsConfig, activeTab, setActiveTab]);
 
     const fetchData = useCallback(async () => {
         try {
@@ -1590,7 +1592,8 @@ export default function VeterinaryDashboard() {
                 const checkMobileTabVisibility = (tabName) => {
                     if (!user) return tabsConfig?.[`public_${tabName}`];
                     if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`];
-                    if (['user'].includes(user.role)) return tabsConfig?.[`public_${tabName}`];
+                    
+                    // ลบบรรทัด 'user' ออก
                     return true; 
                 };
 

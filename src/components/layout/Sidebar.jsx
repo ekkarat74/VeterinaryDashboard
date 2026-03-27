@@ -73,8 +73,8 @@ const Sidebar = ({
 
     const checkTabVisibility = (tabName) => {
         if (!user) return tabsConfig?.[`public_${tabName}`] ?? false; 
-        if (['user'].includes(user.role)) return tabsConfig?.[`public_${tabName}`] ?? false; 
         if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`] ?? false; 
+        
         return true; 
     };
 
