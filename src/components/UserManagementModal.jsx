@@ -48,7 +48,6 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, curre
                     <h3 className="text-lg font-bold tracking-wide">{user.username}</h3>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mt-1 rounded-full bg-slate-800/50 border border-slate-700">
                         <UserCog className="w-3.5 h-3.5 text-slate-300" />
-                        {/* ✅ เปลี่ยนให้แสดงคำว่า ผู้พัฒนาระบบ */}
                         <span className="text-xs text-slate-300 uppercase tracking-wider font-medium">
                             {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
                         </span>
@@ -91,7 +90,6 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, curre
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        {/* ✅ ล็อค Dropdown เฉพาะถ้าผู้ใช้เป็น Developer และคนแก้ 'ไม่ใช่' Developer */}
                                         {(user.role === 'Developer' && currentUserRole !== 'Developer') ? (
                                             <div className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-semibold text-center cursor-not-allowed">
                                                 ผู้พัฒนาระบบ (ไม่สามารถแก้ไขได้)
@@ -101,11 +99,12 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, curre
                                                 <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
                                                     value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
                                                     
-                                                    {/* ✅ เพิ่มตัวเลือก Developer เฉพาะถ้าคนกำลังแก้คือ Developer */}
                                                     {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
                                                     
                                                     <option value="MagaAdmin">MagaAdmin</option>
                                                     <option value="superadmin">SuperAdmin</option>
+                                                    {/* ✨ เพิ่ม Executive */}
+                                                    <option value="executive">Executive</option>
                                                     <option value="admin">Admin</option>
                                                     <option value="user">User</option>
                                                 </select>
@@ -286,7 +285,6 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
         }
     };
 
-    // ✅ Bug Fix: กรองข้อมูลผู้ใช้ และนำตัวแปรนี้ไปใช้ในตาราง (เดิมไม่ได้ถูกเรียกใช้)
     const filteredUsers = userList.filter(u => {
         return u.username?.toLowerCase().includes(searchTerm?.toLowerCase() || '');
     });
@@ -294,9 +292,11 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
     // Helper: Badge Style
     const getRoleBadgeStyle = (r) => {
         switch(r) {
-            case 'Developer': return 'bg-sky-100 text-sky-800 border-sky-300'; // ✅ เพิ่มสีสำหรับผู้พัฒนาระบบ
+            case 'Developer': return 'bg-sky-100 text-sky-800 border-sky-300'; 
             case 'MagaAdmin': return 'bg-rose-100 text-rose-700 border-rose-200';
             case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
+            // ✨ เพิ่มสีสำหรับ Executive (ใช้สีส้ม/เหลืองทอง)
+            case 'executive': return 'bg-amber-100 text-amber-800 border-amber-300';
             case 'admin': return 'bg-blue-100 text-blue-700 border-blue-200';
             default: return 'bg-slate-100 text-slate-600 border-slate-200';
         }
@@ -358,11 +358,12 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                         <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl bg-slate-50 appearance-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium text-slate-700 transition-all cursor-pointer" 
                                             value={role} onChange={e=>setRole(e.target.value)}>
                                             
-                                            {/* ✅ เพิ่มตัวเลือก Developer เข้าไปในเมนูสร้างไอดี เฉพาะเมื่อแอดมินคือ Developer */}
                                             {currentUserRole === 'Developer' && <option value="Developer">Developer (ผู้พัฒนาระบบ)</option>}
                                             
                                             <option value="MagaAdmin">MagaAdmin (สูงสุด + จัดการแท็บ)</option>
                                             <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
+                                            {/* ✨ เพิ่มตัวเลือก Executive */}
+                                            <option value="executive">Executive (ดูข้อมูลระดับสูง)</option>
                                             <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
                                             <option value="user">User (ดูได้อย่างเดียว)</option>
                                         </select>
@@ -378,9 +379,11 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 space-y-2 mt-auto">
                             <p className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5"/> คำแนะนำระดับสิทธิ์:</p>
                             <ul className="list-disc pl-5 space-y-1.5 text-blue-700/80">
-                                <li><b>SuperAdmin:</b> จัดการ Users และลบข้อมูลทั้งหมดได้</li>
+                                <li><b>SuperAdmin:</b> จัดการระบบและลบข้อมูลทั้งหมดได้</li>
+                                {/* ✨ อธิบายเพิ่มเติม */}
+                                <li><b>Executive:</b> ดูข้อมูลเทียบเท่า SuperAdmin แต่ไม่มีสิทธิ์แก้ไข</li>
                                 <li><b>Admin:</b> เพิ่ม/แก้ไข/ลบ ข้อมูลทั่วไปได้</li>
-                                <li><b>User:</b> ดู Dashboard ได้อย่างเดียว</li>
+                                <li><b>User:</b> ดูและเพิ่มข้อมูลได้ แต่ลบ/แก้ไขไม่ได้</li>
                             </ul>
                         </div>
                     </div>
@@ -451,7 +454,6 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                                 <td className="p-3 font-semibold text-slate-700">{u.username}</td>
                                                 <td className="p-3 text-center">
                                                     <div className="relative inline-block w-full">
-                                                    {/* ✅ ล็อค Dropdown เฉพาะถ้าผู้ใช้เป็น Developer และคนแก้ 'ไม่ใช่' Developer */}
                                                     {(u.role === 'Developer' && currentUserRole !== 'Developer') ? (
                                                         <div className={`text-xs font-bold px-3 py-1.5 rounded-lg border text-center w-full ${getRoleBadgeStyle(u.role)}`}>
                                                             ผู้พัฒนาระบบ
@@ -463,17 +465,18 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                                                 value={u.role}
                                                                 onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
                                                             >
-                                                                {/* ✅ แสดงตัวเลือก Developer ให้เปลี่ยนได้ ถ้าคนที่ล็อกอินคือ Developer */}
                                                                 {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
                                                                 <option value="MagaAdmin">MagaAdmin</option>
                                                                 <option value="superadmin">SuperAdmin</option>
+                                                                {/* ✨ เพิ่ม Executive ลงในตาราง */}
+                                                                <option value="executive">Executive</option>
                                                                 <option value="admin">Admin</option>
                                                                 <option value="user">User</option>
                                                             </select>
                                                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50 pointer-events-none"/>
                                                         </>
                                                     )}
-                                                </div>
+                                                    </div>
                                                 </td>
                                                 <td className="p-3">
                                                     <div className="flex justify-end gap-1.5">
