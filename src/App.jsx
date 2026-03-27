@@ -322,15 +322,13 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    // ค้นหา useEffect นี้แล้วแทนที่ด้วย:
 useEffect(() => {
     const checkTabVisibility = (tabName) => {
         if (!user) return tabsConfig?.[`public_${tabName}`] ?? true;
         
-        // ลบบรรทัด 'user' ออกไป เพื่อให้ user ได้สิทธิ์ return true ด้านล่างสุด
-        if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`] ?? true;
+        if (user.role === 'executive') return tabsConfig?.[`sa_${tabName}`] ?? true;
         
-        return true; // ตอนนี้ Admin, Developer, MagaAdmin และ "User" จะมองเห็นทุกแท็บ
+        return true; 
     };
 
     if (!checkTabVisibility(activeTab)) {
@@ -1591,9 +1589,8 @@ useEffect(() => {
             {(() => {
                 const checkMobileTabVisibility = (tabName) => {
                     if (!user) return tabsConfig?.[`public_${tabName}`];
-                    if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`];
+                    if (user.role === 'executive') return tabsConfig?.[`sa_${tabName}`];
                     
-                    // ลบบรรทัด 'user' ออก
                     return true; 
                 };
 

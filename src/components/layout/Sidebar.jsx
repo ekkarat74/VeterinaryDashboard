@@ -181,7 +181,7 @@ const Sidebar = ({
                                                     </div>
                                                     <div className="h-px bg-slate-200"></div>
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider flex items-center gap-1"><Unlock className="w-3 h-3"/> เปิด-ปิดแท็บ (Guest / User)</p>
+                                                        <p className="text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-wider flex items-center gap-1"><Unlock className="w-3 h-3"/> เปิด-ปิดแท็บ (Guest)</p>
                                                         <div className="space-y-2.5">
                                                             {[
                                                                 { id: 'public_overview', label: 'ภาพรวม' },

@@ -102,8 +102,6 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, curre
                                                     {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
                                                     
                                                     <option value="MagaAdmin">MagaAdmin</option>
-                                                    <option value="superadmin">SuperAdmin</option>
-                                                    {/* ✨ เพิ่ม Executive */}
                                                     <option value="executive">Executive</option>
                                                     <option value="admin">Admin</option>
                                                     <option value="user">User</option>
@@ -294,8 +292,6 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
         switch(r) {
             case 'Developer': return 'bg-sky-100 text-sky-800 border-sky-300'; 
             case 'MagaAdmin': return 'bg-rose-100 text-rose-700 border-rose-200';
-            case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
-            // ✨ เพิ่มสีสำหรับ Executive (ใช้สีส้ม/เหลืองทอง)
             case 'executive': return 'bg-amber-100 text-amber-800 border-amber-300';
             case 'admin': return 'bg-blue-100 text-blue-700 border-blue-200';
             default: return 'bg-slate-100 text-slate-600 border-slate-200';
@@ -355,17 +351,16 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl bg-slate-50 appearance-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium text-slate-700 transition-all cursor-pointer" 
-                                            value={role} onChange={e=>setRole(e.target.value)}>
-                                            
-                                            {currentUserRole === 'Developer' && <option value="Developer">Developer (ผู้พัฒนาระบบ)</option>}
-                                            
-                                            <option value="MagaAdmin">MagaAdmin (สูงสุด + จัดการแท็บ)</option>
-                                            <option value="superadmin">SuperAdmin (สิทธิ์สูงสุด)</option>
-                                            {/* ✨ เพิ่มตัวเลือก Executive */}
-                                            <option value="executive">Executive (ดูข้อมูลระดับสูง)</option>
-                                            <option value="admin">Admin (แก้ไขข้อมูลได้)</option>
-                                            <option value="user">User (ดูได้อย่างเดียว)</option>
+                                        {/* แก้ไข formData ตรงนี้ออกเป็น value={role} และ onChange */}
+                                        <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+                                                value={role} onChange={e => setRole(e.target.value)}>
+                                                
+                                                {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
+                                                
+                                                <option value="MagaAdmin">MagaAdmin</option>
+                                                <option value="executive">Executive</option>
+                                                <option value="admin">Admin</option>
+                                                <option value="user">User</option>
                                         </select>
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
                                     </div>
@@ -379,9 +374,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 space-y-2 mt-auto">
                             <p className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5"/> คำแนะนำระดับสิทธิ์:</p>
                             <ul className="list-disc pl-5 space-y-1.5 text-blue-700/80">
-                                <li><b>SuperAdmin:</b> จัดการระบบและลบข้อมูลทั้งหมดได้</li>
-                                {/* ✨ อธิบายเพิ่มเติม */}
-                                <li><b>Executive:</b> ดูข้อมูลเทียบเท่า SuperAdmin แต่ไม่มีสิทธิ์แก้ไข</li>
+                                <li><b>Executive:</b> ดูข้อมูลระดับผู้บริหาร แต่ไม่มีสิทธิ์แก้ไข</li>
                                 <li><b>Admin:</b> เพิ่ม/แก้ไข/ลบ ข้อมูลทั่วไปได้</li>
                                 <li><b>User:</b> ดูและเพิ่มข้อมูลได้ แต่ลบ/แก้ไขไม่ได้</li>
                             </ul>
@@ -467,8 +460,6 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                                             >
                                                                 {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
                                                                 <option value="MagaAdmin">MagaAdmin</option>
-                                                                <option value="superadmin">SuperAdmin</option>
-                                                                {/* ✨ เพิ่ม Executive ลงในตาราง */}
                                                                 <option value="executive">Executive</option>
                                                                 <option value="admin">Admin</option>
                                                                 <option value="user">User</option>
