@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Edit, Plus, X, FileText, ImageIcon, Upload, Trash2, 
-  Calculator, Syringe, Scissors, Database, Stethoscope, 
-  Activity, Save, MapPin, Edit2, Check
+  Edit, Plus, X, FileText, Trash2, 
+  Syringe, Scissors, Database, Stethoscope, 
+  Activity, Save, MapPin, Edit2, Check, Settings2
 } from 'lucide-react';
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
 
-// 1. ย้าย Default Values ออกมาไว้นอก Component ป้องกัน Re-render
 const defaultFormData = {
   date: new Date().toISOString().split('T')[0],
   location: '',
@@ -26,118 +25,98 @@ const defaultBreakdown = {
 };
 
 const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
-
   const [formData, setFormData] = useState(defaultFormData);
   const [breakdown, setBreakdown] = useState(defaultBreakdown);
   const [coordInput, setCoordInput] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
-
-  // State สำหรับจัดการ Custom Units
+  // States สำหรับจัดการ Custom Units จาก DB
   const [customUnitsObj, setCustomUnitsObj] = useState([]);
-  const [customUnits, setCustomUnits] = useState([]);
   const [isManagingUnits, setIsManagingUnits] = useState(false); 
   const [editingUnitId, setEditingUnitId] = useState(null);
   const [editingUnitName, setEditingUnitName] = useState("");
 
-  // ดึงข้อมูลจาก Database แทน LocalStorage
-  useEffect(() => {
-    const fetchCustomUnits = async () => {
-      try {
-        const res = await fetch('https://veterinarydashboard-hwho.onrender.com/api/custom-units');
-        if (res.ok) {
-          const data = await res.json();
-          setCustomUnitsObj(data);
-          setCustomUnits(data.map(u => u.name));
-        }
-      } catch (error) {
-        console.error("Fetch custom units error", error);
-      }
-    };
-    if (isOpen) {
-      fetchCustomUnits();
-    }
-  }, [isOpen]);
+  const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
+  const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
 
+  // 1. รวมหน่วยงาน (Hybrid Logic)
   const allUnitOptions = useMemo(() => {
     const baseUnits = UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ');
-    // รวมหน่วยพื้นฐาน + หน่วยที่พิมพ์เอง + ปิดท้ายด้วย 'หน่วยอื่น ๆ' ให้ไม่ซ้ำกัน
-    return [...new Set([...baseUnits, ...customUnits, 'หน่วยอื่น ๆ'])];
-  }, [customUnits]);
+    const dbUnits = customUnitsObj.map(u => u.name);
+    return [...new Set([...baseUnits, ...dbUnits]), 'หน่วยอื่น ๆ'];
+  }, [customUnitsObj]);
 
-  // 2. ตั้งค่าเริ่มต้นเมื่อเปิด Modal
+  // 2. ดึงข้อมูลหน่วยงานจาก DB เมื่อเปิด Modal
+  const fetchCustomUnits = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/custom-units`);
+      if (res.ok) {
+        const data = await res.json();
+        setCustomUnitsObj(data);
+      }
+    } catch (error) {
+      console.error("Fetch units error", error);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
+      fetchCustomUnits();
       if (initialData) {
-        const isStandardUnit = initialData.unit ? UNIT_TYPES.includes(initialData.unit) : false;
-
+        // Setup data สำหรับโหมดแก้ไข
         setFormData({
-          date: initialData.date,
-          location: initialData.location,
-          district: initialData.district ? initialData.district.trim() : '',
-          subdistrict: initialData.subdistrict ? initialData.subdistrict.trim() : '', 
-          unit: isStandardUnit ? initialData.unit : (allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ'),
-          otherUnit: (!isStandardUnit && !allUnitOptions.includes(initialData.unit)) ? (initialData.unit || '') : '', 
-          lat: initialData.lat,
-          long: initialData.long
+          ...initialData,
+          unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
+          otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
         });
-
-        if (initialData.lat && initialData.long) {
-          setCoordInput(`${initialData.lat}, ${initialData.long}`);
-        } else {
-          setCoordInput("");
-        }
-
-        if (initialData.details) {
-          setBreakdown({
-            dog: { ...defaultBreakdown.dog, ...(initialData.details.dog || {}) },
-            cat: { ...defaultBreakdown.cat, ...(initialData.details.cat || {}) },
-            other: { ...defaultBreakdown.other, ...(initialData.details.other || {}) }
-          });
-        } else {
-          setBreakdown(defaultBreakdown);
-        }
-
-        if (initialData.imageUrl) {
-          setImagePreview(initialData.imageUrl);
-        } else {
-          setImagePreview(null);
-          setImageFile(null);
-        }
+        setBreakdown(initialData.details || defaultBreakdown);
+        setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
+        setImagePreview(initialData.imageUrl || null);
       } else {
-        const lastSavedUnit = localStorage.getItem('lastSavedUnit');
-        const isStandardOrSavedUnit = lastSavedUnit ? allUnitOptions.includes(lastSavedUnit) : false;
-
-        setFormData({
-          ...defaultFormData,
-          unit: lastSavedUnit ? (isStandardOrSavedUnit ? lastSavedUnit : 'หน่วยอื่น ๆ') : defaultFormData.unit,
-          otherUnit: lastSavedUnit && !isStandardOrSavedUnit ? lastSavedUnit : ''
-        });
-        
+        setFormData(defaultFormData);
         setBreakdown(defaultBreakdown);
         setCoordInput("");
-        setImageFile(null);
         setImagePreview(null);
       }
     }
-  }, [isOpen, initialData, allUnitOptions]);
+  }, [isOpen, initialData]);
 
-  // 3. ป้องกัน Memory Leak จากการสร้าง Object URL
-  useEffect(() => {
-    return () => {
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
+  // ฟังก์ชันจัดการหน่วยงานใน DB (Update/Delete)
+  const handleDeleteUnit = async (id, name) => {
+    if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
+    try {
+      const res = await fetch(`${BASE_URL}/api/custom-units/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getUserToken()}` }
+      });
+      if (res.ok) {
+        onToast('success', 'ลบหน่วยงานสำเร็จ');
+        fetchCustomUnits();
       }
-    };
-  }, [imagePreview]);
+    } catch (err) { onToast('error', 'ลบไม่สำเร็จ'); }
+  };
 
-  // คำนวณยอดรวมอัตโนมัติ (Auto-calculation)
+  const handleUpdateUnitName = async (id) => {
+    if (!editingUnitName.trim()) return;
+    try {
+      const res = await fetch(`${BASE_URL}/api/custom-units/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getUserToken()}` },
+        body: JSON.stringify({ name: editingUnitName })
+      });
+      if (res.ok) {
+        onToast('success', 'แก้ไขสำเร็จ');
+        setEditingUnitId(null);
+        fetchCustomUnits();
+      }
+    } catch (err) { onToast('error', 'แก้ไขไม่สำเร็จ'); }
+  };
+
+  // คำนวณยอดรวมอัตโนมัติ
   const totals = useMemo(() => {
     const parse = (val) => parseInt(val) || 0;
     const { dog, cat, other } = breakdown;
-
     return {
       vaccine: parse(dog.vaccine) + parse(cat.vaccine) + parse(other.vaccine),
       sterilize: parse(dog.maleSterilize) + parse(dog.femaleSterilize) + parse(cat.maleSterilize) + parse(cat.femaleSterilize),
@@ -147,595 +126,198 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     };
   }, [breakdown]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-    }
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const finalUnit = formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit;
 
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
+    const payload = {
+      ...formData,
+      unit: finalUnit,
+      stats: totals,
+      details: breakdown,
+      lat: parseFloat(formData.lat) || 0,
+      long: parseFloat(formData.long) || 0,
+      imageUrl: imagePreview // ในระบบจริงควรแปลงเป็น Base64 หรือ Upload ขึ้น Cloud
+    };
 
-  const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
-
-  const handleDeleteCustomUnit = async (id, name) => {
-    if(!window.confirm(`ยืนยันลบหน่วย: ${name} ?`)) return;
-    try {
-      const res = await fetch(`https://veterinarydashboard-hwho.onrender.com/api/custom-units/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${getUserToken()}` }
-      });
-      if(res.ok) {
-        setCustomUnitsObj(prev => prev.filter(u => u._id !== id));
-        setCustomUnits(prev => prev.filter(u => u !== name));
-        if(formData.unit === name) setFormData({...formData, unit: UNIT_TYPES[0]});
-        if(onToast) onToast('success', 'ลบหน่วยสำเร็จ');
-      }
-    } catch(err) { console.error(err); }
-  };
-
-  const handleUpdateCustomUnit = async (id) => {
-    if(!editingUnitName.trim()) return;
-    try {
-      const res = await fetch(`https://veterinarydashboard-hwho.onrender.com/api/custom-units/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getUserToken()}` },
-        body: JSON.stringify({ name: editingUnitName })
-      });
-      if(res.ok) {
-        const updated = await res.json();
-        setCustomUnitsObj(prev => prev.map(u => u._id === id ? updated : u));
-        setCustomUnits(prev => prev.map(u => u === customUnitsObj.find(old => old._id === id).name ? updated.name : u));
-        setEditingUnitId(null);
-        if(formData.unit === customUnitsObj.find(old => old._id === id).name) setFormData({...formData, unit: updated.name});
-        if(onToast) onToast('success', 'แก้ไขหน่วยสำเร็จ');
-      }
-    } catch(err) { console.error(err); }
+    if (initialData) onUpdate(initialData._id, payload);
+    else onSave(payload);
+    onClose();
   };
 
   if (!isOpen) return null;
 
-  const handleBreakdownChange = (type, field, value) => {
-    setBreakdown(prev => ({
-      ...prev,
-      [type]: { ...prev[type], [field]: value }
-    }));
-  };
-
-  // 4. บันทึกข้อมูล
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    let finalImageUrl = initialData?.imageUrl || ""; 
-
-    if (imageFile) {
-      try {
-        finalImageUrl = await convertToBase64(imageFile);
-      } catch (error) {
-        console.error("Error converting image:", error);
-        if(onToast) onToast('error', "ไม่สามารถประมวลผลรูปภาพได้");
-        return;
-      }
-    } else if (imagePreview === null) {
-      finalImageUrl = "";
-    }
-
-    // แปลงค่า string จาก input ให้เป็นตัวเลข (Integer) ก่อนส่ง
-    const parseBreakdown = (animalData) => {
-      return Object.keys(animalData).reduce((acc, key) => {
-        acc[key] = parseInt(animalData[key], 10) || 0; 
-        return acc;
-      }, {});
-    };
-
-    const parsedDetails = {
-      dog: parseBreakdown(breakdown.dog),
-      cat: parseBreakdown(breakdown.cat),
-      other: parseBreakdown(breakdown.other)
-    };
-
-    const finalUnit = formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim() !== '' 
-        ? formData.otherUnit.trim() 
-        : formData.unit;
-
-    const dataPayload = {
-      ...formData,
-      unit: finalUnit,
-      lat: formData.lat ? parseFloat(formData.lat) : 0,
-      long: formData.long ? parseFloat(formData.long) : 0,
-      stats: { ...totals },
-      details: parsedDetails, 
-      imageUrl: finalImageUrl 
-    };
-
-    localStorage.setItem('lastSavedUnit', finalUnit);
-    
-    // บันทึกหน่วยใหม่ลง Database 
-    if (!UNIT_TYPES.includes(finalUnit)) {
-      const existingUnit = customUnitsObj.find(u => u.name === finalUnit);
-      if (!existingUnit) {
-        fetch('https://veterinarydashboard-hwho.onrender.com/api/custom-units', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getUserToken()}` },
-          body: JSON.stringify({ name: finalUnit })
-        })
-        .then(res => res.json())
-        .then(newU => {
-          if(newU._id) {
-            setCustomUnitsObj(prev => [...prev, newU]);
-            setCustomUnits(prev => [...prev, newU.name]);
-          }
-        }).catch(console.error);
-      }
-    }
-
-    if (initialData) {
-      onUpdate(initialData._id, dataPayload);
-    } else {
-      onSave(dataPayload);
-    }
-    onClose();
-  };
-
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  // Common input style
-  const inputClass = "w-full px-3 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400";
-  const labelClass = "block text-xs font-semibold text-slate-600 mb-1.5";
+  const inputClass = "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all";
+  const labelClass = "block text-xs font-bold text-slate-600 mb-1.5";
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6">
-      <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200">
-
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-0 sm:p-6">
+      <div className="bg-white w-full max-w-5xl flex flex-col h-full sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-2xl shadow-2xl overflow-hidden">
+        
         {/* Header */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 mt-safe sm:mt-0 flex justify-between items-center shrink-0 border-b border-slate-100 bg-white z-10">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className={`p-2 sm:p-3 rounded-xl ${initialData ? 'bg-amber-100/50 text-amber-600' : 'bg-blue-100/50 text-blue-600'}`}>
-              {initialData ? <Edit className="w-5 h-5 sm:w-6 sm:h-6" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6" />}
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-xl ${initialData ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+              {initialData ? <Edit className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
             </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-800">
-                {initialData ? 'แก้ไขข้อมูลการปฏิบัติงาน' : 'บันทึกผลการปฏิบัติงานใหม่'}
-              </h3>
-              <p className="text-slate-500 text-xs sm:text-sm mt-0.5 hidden sm:block">
-                {initialData ? 'ปรับปรุงข้อมูลการลงพื้นที่ในระบบ' : 'กรอกข้อมูลพื้นฐานและรายละเอียดเชิงปริมาณให้ครบถ้วน'}
-              </p>
-            </div>
+            <h3 className="text-xl font-bold text-slate-800">
+              {initialData ? 'แก้ไขข้อมูลปฏิบัติงาน' : 'บันทึกผลปฏิบัติงานใหม่'}
+            </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 sm:p-2.5 rounded-full transition-all">
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
 
-        {/* Form Content */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden bg-slate-50/30">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8 custom-scrollbar pb-24 sm:pb-6">
-
-            {/* SECTION 1: General Info */}
-            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
-                ข้อมูลทั่วไป (General Information)
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col bg-slate-50/30">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+            
+            {/* ส่วนข้อมูลทั่วไป */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span> ข้อมูลทั่วไป
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                 <div className="md:col-span-3">
-                  <label className={labelClass}>วันที่เริ่มกิจกรรม</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className={inputClass} 
-                    value={formData.date} 
-                    onChange={e => setFormData({...formData, date: e.target.value})} 
-                  />
+                  <label className={labelClass}>วันที่</label>
+                  <input type="date" required className={inputClass} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                 </div>
-                
-                <div className="md:col-span-3">
+
+                <div className="md:col-span-4">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-600">หน่วยกิจกรรม</label>
-                    
-                    {/* เอาเงื่อนไข customUnitsObj.length > 0 ออก เพื่อให้ปุ่มแสดงตลอดเวลา */}
-                    <button 
-                      type="button" 
-                      onClick={() => setIsManagingUnits(!isManagingUnits)}
-                      className="text-[10px] text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-md transition-colors"
-                    >
-                      {isManagingUnits ? 'ปิดการจัดการ' : '⚙️ จัดการหน่วย'}
+                    <label className="text-xs font-bold text-slate-600">หน่วยกิจกรรม</label>
+                    <button type="button" onClick={() => setIsManagingUnits(!isManagingUnits)} className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                      <Settings2 className="w-3 h-3" /> {isManagingUnits ? 'เสร็จสิ้น' : 'จัดการหน่วย'}
                     </button>
                   </div>
 
-                  {/* ส่วนที่สลับการแสดงผลระหว่าง "โหมดจัดการ" กับ "โหมดเลือกปกติ" */}
                   {isManagingUnits ? (
-                    <div className="border border-slate-200 rounded-xl p-2 bg-slate-50 max-h-40 overflow-y-auto custom-scrollbar">
-                      {customUnitsObj.length > 0 ? (
-                        customUnitsObj.map(u => (
-                          <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1.5 rounded-lg border border-slate-100 shadow-sm">
+                    <div className="border border-slate-200 rounded-xl p-2 bg-slate-50 max-h-32 overflow-y-auto custom-scrollbar">
+                      {customUnitsObj.map(u => (
+                        <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1 rounded-lg border border-slate-100">
+                          {editingUnitId === u._id ? (
+                            <input autoFocus className="flex-1 text-xs outline-none" value={editingUnitName} onChange={e => setEditingUnitName(e.target.value)} />
+                          ) : (
+                            <span className="text-xs text-slate-700 truncate">{u.name}</span>
+                          )}
+                          <div className="flex gap-1">
                             {editingUnitId === u._id ? (
-                              <input 
-                                type="text" 
-                                className="flex-1 text-sm border-b border-indigo-300 px-1 py-0.5 outline-none mr-2 bg-indigo-50/30"
-                                value={editingUnitName}
-                                onChange={e => setEditingUnitName(e.target.value)}
-                              />
+                              <button type="button" onClick={() => handleUpdateUnitName(u._id)} className="text-emerald-600 p-1"><Check className="w-3.5 h-3.5" /></button>
                             ) : (
-                              <span className="text-sm text-slate-700 truncate pr-2">{u.name}</span>
+                              <button type="button" onClick={() => {setEditingUnitId(u._id); setEditingUnitName(u.name);}} className="text-amber-500 p-1"><Edit2 className="w-3.5 h-3.5" /></button>
                             )}
-                            
-                            <div className="flex gap-1 shrink-0">
-                              {editingUnitId === u._id ? (
-                                <button type="button" onClick={() => handleUpdateCustomUnit(u._id)} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md"><Check className="w-3.5 h-3.5"/></button>
-                              ) : (
-                                <button type="button" onClick={() => { setEditingUnitId(u._id); setEditingUnitName(u.name); }} className="text-amber-500 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-md"><Edit2 className="w-3.5 h-3.5"/></button>
-                              )}
-                              <button type="button" onClick={() => handleDeleteCustomUnit(u._id, u.name)} className="text-rose-500 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-md"><Trash2 className="w-3.5 h-3.5"/></button>
-                            </div>
+                            <button type="button" onClick={() => handleDeleteUnit(u._id, u.name)} className="text-rose-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center text-xs text-slate-400 py-3">
-                          ยังไม่มีหน่วยที่เพิ่มเอง
                         </div>
-                      )}
+                      ))}
                     </div>
                   ) : (
-                    <>
-                      {/* Dropdown เลือกหน่วยปกติ */}
-                      <select 
-                        className={inputClass}
-                        value={formData.unit} 
-                        onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}
-                      >
-                        {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                      
-                      {/* กล่องพิมพ์ชื่อหน่วยใหม่ เมื่อเลือก "หน่วยอื่น ๆ" */}
-                      {formData.unit === 'หน่วยอื่น ๆ' && (
-                        <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                          <input 
-                            required 
-                            type="text" 
-                            placeholder="โปรดระบุชื่อหน่วยใหม่..." 
-                            className="w-full px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-blue-800 placeholder:text-blue-400 transition-colors"
-                            value={formData.otherUnit} 
-                            onChange={e => setFormData({...formData, otherUnit: e.target.value})} 
-                          />
-                        </div>
-                      )}
-                    </>
+                    <select className={inputClass} value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}>
+                      {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  )}
+
+                  {formData.unit === 'หน่วยอื่น ๆ' && !isManagingUnits && (
+                    <input type="text" required placeholder="ระบุหน่วยงานใหม่..." className={`${inputClass} mt-2 bg-blue-50`} value={formData.otherUnit} onChange={e => setFormData({...formData, otherUnit: e.target.value})} />
                   )}
                 </div>
 
-                <div className="md:col-span-6">
-                  <label className={labelClass}>สถานที่ (Location)</label>
-                  <input 
-                    required 
-                    type="text" 
-                    placeholder="ระบุจุดสังเกต/สถานที่ตั้ง" 
-                    className={inputClass}
-                    value={formData.location} 
-                    onChange={e => setFormData({...formData, location: e.target.value})} 
-                  />
+                <div className="md:col-span-5">
+                  <label className={labelClass}>สถานที่</label>
+                  <input type="text" required placeholder="ระบุสถานที่/จุดบริการ" className={inputClass} value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
                 </div>
 
-                <div className="md:col-span-3 relative">
-                  <label className={labelClass}>เขต (District)</label>
-                  <input 
-                    required 
-                    type="text"
-                    placeholder="พิมพ์ค้นหาเขต..."
-                    className={inputClass} 
-                    value={formData.district} 
-                    onChange={e => {
-                      setFormData({...formData, district: e.target.value, subdistrict: ''});
-                      setShowDistrictDropdown(true);
-                    }}
-                    onFocus={() => setShowDistrictDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
-                  />
-                  
-                  {showDistrictDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar overflow-hidden">
-                      {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).length > 0 ? (
-                        BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).map(d => (
-                          <div 
-                            key={d} 
-                            className="px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
-                            onClick={() => {
-                              setFormData({...formData, district: d, subdistrict: ''});
-                              setShowDistrictDropdown(false);
-                            }}
-                          >
-                            {d}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-4 py-3 text-sm text-slate-400 text-center bg-slate-50">
-                          ไม่พบชื่อเขตที่ค้นหา
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="md:col-span-3">
-                  <label className={labelClass}>แขวง (Sub-district)</label>
-                  <select 
-                    required 
-                    className={inputClass} 
-                    value={formData.subdistrict} 
-                    onChange={e => setFormData({...formData, subdistrict: e.target.value})} 
-                    disabled={!formData.district}
-                  >
-                    <option value="">-- เลือกแขวง --</option>
-                    {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
+                <div className="md:col-span-4">
+                  <label className={labelClass}>เขต</label>
+                  <select className={inputClass} value={formData.district} onChange={e => setFormData({...formData, district: e.target.value, subdistrict: ''})}>
+                    {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
 
-                <div className="md:col-span-6">
-                  <label className={labelClass}>พิกัดภูมิศาสตร์ (Latitude, Longitude)</label>
+                <div className="md:col-span-4">
+                  <label className={labelClass}>แขวง</label>
+                  <select className={inputClass} value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})}>
+                    <option value="">-- เลือกแขวง --</option>
+                    {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <div className="md:col-span-4">
+                  <label className={labelClass}>พิกัด (Lat, Long)</label>
                   <div className="relative">
-                    <input 
-                      type="text" 
-                      placeholder="เช่น 13.6096, 100.4655" 
-                      className={`${inputClass} pl-10 font-mono`}
-                      value={coordInput} 
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setCoordInput(value);
-                        if (value.includes(',')) {
-                          const parts = value.split(',');
-                          setFormData({ ...formData, lat: parts[0].trim(), long: parts[1].trim() });
-                        } else {
-                          setFormData({ ...formData, lat: value.trim(), long: '' });
-                        }
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="text" placeholder="13.xxx, 100.xxx" className={`${inputClass} pl-10`} value={coordInput} 
+                      onChange={e => {
+                        setCoordInput(e.target.value);
+                        const parts = e.target.value.split(',');
+                        if(parts.length === 2) setFormData({...formData, lat: parts[0].trim(), long: parts[1].trim()});
                       }} 
                     />
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* SECTION 2: Quantitative Data */}
-            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span>
-                ข้อมูลเชิงปริมาณ (Quantitative Data)
+            {/* ส่วนข้อมูลเชิงปริมาณ */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span> ข้อมูลจำนวนสัตว์
               </h4>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-
-                {/* 1. ฉีดวัคซีน */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
-                    <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg"><Syringe className="w-4 h-4" /></div>
-                    ฉีดวัคซีน (Vaccine)
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* ฉีดวัคซีน */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 flex items-center gap-2">
+                    <Syringe className="w-4 h-4" /> ฉีดวัคซีน
                   </div>
                   <div className="p-4 grid grid-cols-3 gap-3">
-                    {['dog', 'cat', 'other'].map((type) => (
-                      <div key={type}>
-                        <label className="text-xs text-slate-500 font-medium block mb-1.5">
-                          {type === 'dog' ? 'สุนัข' : type === 'cat' ? 'แมว' : 'อื่นๆ'}
-                        </label>
-                        <input 
-                          type="number" 
-                          min="0" 
-                          placeholder="0" 
-                          className={inputClass + " text-center font-medium"}
-                          value={breakdown[type].vaccine} 
-                          onChange={(e) => handleBreakdownChange(type, 'vaccine', e.target.value)} 
-                        />
+                    {['dog', 'cat', 'other'].map(t => (
+                      <div key={t}>
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
+                        <input type="number" min="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].vaccine} 
+                          onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], vaccine: e.target.value}})} />
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* 3. ทำหมัน */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm lg:row-span-2">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
-                    <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg"><Scissors className="w-4 h-4" /></div>
-                    ทำหมัน (Sterilization)
+                {/* ทำหมัน */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-orange-50/50 px-4 py-2 border-b border-slate-200 font-bold text-orange-700 flex items-center gap-2">
+                    <Scissors className="w-4 h-4" /> ผ่าตัดทำหมัน
                   </div>
-                  <div className="p-4 sm:p-5 space-y-6">
-                    {['dog', 'cat'].map((type) => (
-                      <div key={type} className="space-y-3">
-                        <div className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2">
-                          {type === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs text-slate-500 font-medium block mb-1.5">เพศผู้</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              placeholder="0" 
-                              className={inputClass + " text-center font-medium"}
-                              value={breakdown[type].maleSterilize} 
-                              onChange={(e) => handleBreakdownChange(type, 'maleSterilize', e.target.value)} 
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-slate-500 font-medium block mb-1.5">เพศเมีย</label>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              placeholder="0" 
-                              className={inputClass + " text-center font-medium"}
-                              value={breakdown[type].femaleSterilize} 
-                              onChange={(e) => handleBreakdownChange(type, 'femaleSterilize', e.target.value)} 
-                            />
-                          </div>
+                  <div className="p-4 grid grid-cols-2 gap-4">
+                    {['dog', 'cat'].map(t => (
+                      <div key={t} className="space-y-2">
+                        <label className="text-[10px] text-slate-500 uppercase font-bold block">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
+                        <div className="flex gap-2">
+                          <input type="number" placeholder="ผู้" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].maleSterilize} 
+                            onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], maleSterilize: e.target.value}})} />
+                          <input type="number" placeholder="เมีย" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].femaleSterilize} 
+                            onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], femaleSterilize: e.target.value}})} />
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* 4. ฝังไมโครชิป */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
-                    <div className="p-1.5 bg-purple-100 text-purple-600 rounded-lg"><Database className="w-4 h-4" /></div>
-                    ฝังไมโครชิป (Microchip)
-                  </div>
-                  <div className="p-4 grid grid-cols-2 gap-3">
-                    {['dog', 'cat'].map((type) => (
-                      <div key={type}>
-                        <label className="text-xs text-slate-500 font-medium block mb-1.5">
-                          {type === 'dog' ? 'สุนัข' : 'แมว'}
-                        </label>
-                        <input 
-                          type="number" 
-                          min="0" 
-                          placeholder="0" 
-                          className={inputClass + " text-center font-medium"}
-                          value={breakdown[type].microchip} 
-                          onChange={(e) => handleBreakdownChange(type, 'microchip', e.target.value)} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 5. ขึ้นทะเบียน */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
-                    <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg"><FileText className="w-4 h-4" /></div>
-                    ขึ้นทะเบียน (Register)
-                  </div>
-                  <div className="p-4 grid grid-cols-2 gap-3">
-                    {['dog', 'cat'].map((type) => (
-                      <div key={type}>
-                        <label className="text-xs text-slate-500 font-medium block mb-1.5">
-                          {type === 'dog' ? 'สุนัข' : 'แมว'}
-                        </label>
-                        <input 
-                          type="number" 
-                          min="0" 
-                          placeholder="0" 
-                          className={inputClass + " text-center font-medium"}
-                          value={breakdown[type].register} 
-                          onChange={(e) => handleBreakdownChange(type, 'register', e.target.value)} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. รักษาสัตว์ */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 font-semibold text-slate-700 flex items-center gap-2">
-                    <div className="p-1.5 bg-rose-100 text-rose-600 rounded-lg"><Stethoscope className="w-4 h-4" /></div>
-                    รักษาสัตว์ (Medical)
-                  </div>
-                  <div className="p-4 grid grid-cols-3 gap-3">
-                    {['dog', 'cat', 'other'].map((type) => (
-                      <div key={type}>
-                        <label className="text-xs text-slate-500 font-medium block mb-1.5">
-                          {type === 'dog' ? 'สุนัข' : type === 'cat' ? 'แมว' : 'อื่นๆ'}
-                        </label>
-                        <input 
-                          type="number" 
-                          min="0" 
-                          placeholder="0" 
-                          className={inputClass + " text-center font-medium"}
-                          value={breakdown[type].medical} 
-                          onChange={(e) => handleBreakdownChange(type, 'medical', e.target.value)} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
-            </div>
 
-            {/* Summary Block */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 sm:p-5 shadow-sm">
-              <div className="font-bold text-blue-800 flex items-center gap-2 mb-4">
-                <Activity className="w-5 h-5 text-blue-600" /> สรุปยอดรวมอัตโนมัติ
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {[
-                  { label: 'วัคซีน', value: totals.vaccine, color: 'text-blue-600' },
-                  { label: 'รักษาสัตว์', value: totals.medical, color: 'text-rose-600' },
-                  { label: 'ทำหมัน', value: totals.sterilize, color: 'text-orange-600' },
-                  { label: 'ไมโครชิป', value: totals.microchip, color: 'text-purple-600' },
-                  { label: 'ขึ้นทะเบียน', value: totals.register, color: 'text-emerald-600' },
-                ].map((item, idx) => (
-                  <div key={idx} className="bg-white rounded-xl p-3 border border-white/50 shadow-sm text-center">
-                    <div className={`text-xl sm:text-2xl font-bold ${item.color}`}>{item.value}</div>
-                    <div className="text-xs text-slate-500 font-medium mt-1">{item.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm mt-6">
-              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-teal-500 rounded-full"></span>
-                รูปภาพประกอบ (Image Attachment)
-              </h4>
-
-              <div className="md:col-span-12">
-                {!imagePreview ? (
-                  <div className="border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors relative group h-36 flex flex-col items-center justify-center cursor-pointer">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleImageChange} 
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="bg-white p-3 rounded-full shadow-sm border border-slate-100 mb-3 group-hover:text-blue-500 transition-colors text-slate-400">
-                      <Upload className="w-5 h-5" />
-                    </div>
-                    <p className="text-sm text-slate-500 font-medium">คลิกเพื่ออัปโหลดรูปภาพประกอบ</p>
-                  </div>
-                ) : (
-                  <div className="relative w-full sm:w-80 h-48 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 group">
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover"/>
-                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button 
-                        type="button" 
-                        onClick={handleRemoveImage} 
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg flex items-center gap-2 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" /> ลบรูปภาพ
-                      </button>
-                    </div>
-                  </div>
-                )}
+              {/* สรุปยอดรวม (Live) */}
+              <div className="mt-6 bg-slate-900 rounded-2xl p-5 text-white flex flex-wrap justify-around gap-4">
+                <div className="text-center"><div className="text-2xl font-bold">{totals.vaccine}</div><div className="text-[10px] text-slate-400 uppercase">วัคซีน</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div><div className="text-[10px] text-slate-400 uppercase">ทำหมัน</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-emerald-400">{totals.register}</div><div className="text-[10px] text-slate-400 uppercase">จดทะเบียน</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-purple-400">{totals.microchip}</div><div className="text-[10px] text-slate-400 uppercase">ไมโครชิป</div></div>
               </div>
             </div>
           </div>
 
-          {/* Action Button */}
-          <div className="bg-white border-t border-slate-100 p-4 sm:p-5 pb-8 sm:pb-5 shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)] flex justify-end gap-3">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors text-sm sm:text-base"
-            >
-              ยกเลิก
-            </button>
-            <button 
-              type="submit" 
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm sm:text-base"
-            >
-              <Save className="w-4 h-4 sm:w-5 sm:h-5" />
-              {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
+          {/* Footer Buttons */}
+          <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">ยกเลิก</button>
+            <button type="submit" className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all">
+              <Save className="w-5 h-5" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}
             </button>
           </div>
         </form>
