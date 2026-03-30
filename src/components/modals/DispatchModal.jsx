@@ -100,10 +100,13 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     date: new Date().toISOString().split('T')[0],
     locationName: '', district: '', mapLink: '',
     locationNameB: '', districtB: '', mapLinkB: '',
-    departureTime: '07:30', closingTime: '12:00', note: ''
+    departureTime: '07:30', closingTime: '12:00', note: '',
+    controllerName: '',  // ✨ เพิ่มสำหรับชื่อผู้ควบคุม
+    controllerPhone: ''  // ✨ เพิ่มสำหรับเบอร์โทรผู้ควบคุม
   });
 
   const [staff, setStaff] = useState({
+    controllers: [''], // ✨ เพิ่มผู้ควบคุมออกหน่วย
     vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], 
     vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
   });
@@ -115,28 +118,33 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       setCustomUnitName(initialData.customUnitName || '');
       setUnitLetter(initialData.unitLetter || ''); 
       setUnitColor(initialData.unitColor || 'bg-blue-500'); 
+      
       setGeneralInfo({
-        date: initialData.date.split('T')[0], 
-        locationName: initialData.location,
+        date: initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0], 
+        locationName: initialData.location || '',
         district: initialData.district || '',
         mapLink: initialData.mapLink || '',
         locationNameB: '', districtB: '', mapLinkB: '',
         departureTime: initialData.time || '07:30',
         closingTime: initialData.closingTime || '12:00',
-        note: initialData.note || ''
+        note: initialData.note || '',
+        controllerName: initialData.controllerName || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[0] : ''),
+        controllerPhone: initialData.controllerPhone || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[1] : '')
       });
+
       if (initialData.staff) {
         setStaff({ 
-          vets: initialData.staff.vets || ['', ''], 
-          registration: initialData.staff.registration || [''], 
-          prep_catch: initialData.staff.prep_catch || [''], 
-          prep_shave: initialData.staff.prep_shave || [''], 
-          prep_lift: initialData.staff.prep_lift || [''], 
-          vaccine_staff: initialData.staff.vaccine_staff || [''], 
-          tattoo: initialData.staff.tattoo || [''], 
-          surgery_assist: initialData.staff.surgery_assist || [''], 
-          drivers: initialData.staff.drivers || [''], 
-          assistants: initialData.staff.assistants || [''] 
+          controllers: initialData.staff.controllers?.length ? initialData.staff.controllers : [''], // ✨ เพิ่มบรรทัดนี้
+          vets: initialData.staff.vets?.length ? initialData.staff.vets : ['', ''], 
+          registration: initialData.staff.registration?.length ? initialData.staff.registration : [''], 
+          prep_catch: initialData.staff.prep_catch?.length ? initialData.staff.prep_catch : [''], 
+          prep_shave: initialData.staff.prep_shave?.length ? initialData.staff.prep_shave : [''], 
+          prep_lift: initialData.staff.prep_lift?.length ? initialData.staff.prep_lift : [''], 
+          vaccine_staff: initialData.staff.vaccine_staff?.length ? initialData.staff.vaccine_staff : [''], 
+          tattoo: initialData.staff.tattoo?.length ? initialData.staff.tattoo : [''], 
+          surgery_assist: initialData.staff.surgery_assist?.length ? initialData.staff.surgery_assist : [''], 
+          drivers: initialData.staff.drivers?.length ? initialData.staff.drivers : [''], 
+          assistants: initialData.staff.assistants?.length ? initialData.staff.assistants : [''] 
         });
       }
     } else if (isOpen && !initialData) {
@@ -154,7 +162,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         locationNameB: '', districtB: '', mapLinkB: '',
         departureTime: '07:30', closingTime: '12:00', note: ''
       });
-      setStaff({ vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
+      setStaff({ controllers: [''], vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
     }
   }, [isOpen, initialData]);
 
@@ -210,7 +218,9 @@ bankok เขต: ${generalInfo.district || '-'}
     }
     
     let staffDetails = "";
-    const commonStaff = `👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
+    const controllerDisplay = [generalInfo.controllerName, generalInfo.controllerPhone].filter(Boolean).join(' โทร. ') || '-';
+    
+    const commonStaff = `👮‍♂️ ผู้ควบคุมออกหน่วย: ${controllerDisplay}\n👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
 
     if (unitType === 'sterilization'|| unitType === 'spay_neuter') {
       staffDetails = `${commonStaff}
@@ -610,6 +620,35 @@ ${staffDetails}
                     value={generalInfo.note} 
                     onChange={e => setGeneralInfo({ ...generalInfo, note: e.target.value })}
                   />
+                </div>
+
+                {/* ✨ เพิ่มส่วนผู้ควบคุมออกหน่วย (แยกช่อง) ไว้ใต้หมายเหตุ */}
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                  <h5 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-indigo-500" /> ผู้ควบคุมออกหน่วย
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">ชื่อ-นามสกุล</label>
+                      <input 
+                        type="text" 
+                        placeholder="ระบุชื่อผู้ควบคุม..." 
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                        value={generalInfo.controllerName} 
+                        onChange={e => setGeneralInfo({ ...generalInfo, controllerName: e.target.value })} 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">เบอร์ติดต่อ</label>
+                      <input 
+                        type="text" 
+                        placeholder="08X-XXX-XXXX" 
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                        value={generalInfo.controllerPhone} 
+                        onChange={e => setGeneralInfo({ ...generalInfo, controllerPhone: e.target.value })} 
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

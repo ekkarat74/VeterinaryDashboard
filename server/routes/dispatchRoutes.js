@@ -21,7 +21,12 @@ const dispatchPlanSchema = new mongoose.Schema({
     staff: { type: Object, default: {} }, // เก็บรายชื่อเจ้าหน้าที่ทั้งหมด
     team: String,        // ชื่อทีม (เช่น ทีม 1, หรือรายชื่อสัตวแพทย์)
     createdBy: String,
-    isVisibleToPublic: { type: Boolean, default: true }
+    isVisibleToPublic: { type: Boolean, default: true },
+    
+    // ✨ เพิ่ม 2 บรรทัดนี้เข้าไปครับ เพื่อให้ Database ยอมรับข้อมูลเบอร์โทร
+    controllerName: { type: String, default: '' },
+    controllerPhone: { type: String, default: '' }
+
 }, { timestamps: true });
 
 const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);
