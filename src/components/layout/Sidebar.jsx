@@ -43,16 +43,14 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
 };
 
 const Sidebar = ({ 
-    user, isSuperAdmin, canEdit, canAdd, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen, isDevOrSuper,
+    user, canAdd, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen, isDevOrSuper,
     onLogin, onLogout, onChangePassword, onOpenLog, onOpenUserMgmt,
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
-    onOpenMeetingList, onOpenCalendar, onOpenMeetingCalendar,
-    onOpenMeetingModal, onOpenAddOutbreak, onOpenAddData,
+    onOpenMeetingList, onOpenMeetingCalendar,
+    onOpenAddOutbreak, onOpenAddData,
     onNotifyUpdate, onOpenCustomUnits, onClearData, 
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
-    onOpenAnimalCategory = () => alert("กำลังพัฒนาระบบจัดการหมวดหมู่สัตว์..."),
-    onOpenRolePermissions = () => alert("กำลังพัฒนาระบบจัดการสิทธิ์เชิงลึก..."),
-    isMagaAdmin, tabsConfig, toggleTab, activeTab, setActiveTab, 
+    tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen 
 }) => {
     
@@ -215,9 +213,6 @@ const Sidebar = ({
                                                     <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><PaintBucket className="w-4 h-4 shrink-0 text-slate-400"/> รูปแบบหน้าจอ</button>
                                                     <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Users className="w-4 h-4 shrink-0 text-slate-400"/> บัญชีผู้ใช้</button>
                                                     <button onClick={() => handleAction(onOpenCustomUnits)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Building2 className="w-4 h-4 shrink-0 text-slate-400"/> รายชื่อหน่วยงาน</button>
-                                                    <button onClick={() => handleAction(onOpenAnimalCategory)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><PawPrint className="w-4 h-4 shrink-0 text-slate-400"/> หมวดหมู่สัตว์</button>
-                                                    
-                                                    <button onClick={() => handleAction(onOpenRolePermissions)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors mt-1"><ShieldCheck className="w-4 h-4 shrink-0 text-slate-400"/> สิทธิ์เชิงลึก</button>
                                                     
                                                     {isSystemDeveloper && (
                                                         <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-3 rounded-xl text-sm font-medium text-sky-700 bg-sky-50 hover:bg-sky-100 flex items-center gap-3 transition-all border border-sky-200">

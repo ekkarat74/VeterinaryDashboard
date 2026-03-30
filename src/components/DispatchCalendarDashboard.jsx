@@ -180,6 +180,11 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                                                 <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg font-bold ${styles.bg} ${styles.text}`}>
                                                                     {evt.title || (evt.type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย')}
                                                                 </span>
+                                                                {evt.isVisibleToPublic === false && !canEdit && (
+                                                                    <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                                                        (ซ่อนจากประชาชน)
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
 

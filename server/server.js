@@ -165,14 +165,6 @@ const customUnitSchema = new mongoose.Schema({
 }, { timestamps: true });
 const CustomUnit = mongoose.model('CustomUnit', customUnitSchema);
 
-// 9. Animal Category Schema
-const animalCategorySchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  createdBy: String
-}, { timestamps: true });
-const AnimalCategory = mongoose.model('AnimalCategory', animalCategorySchema);
-
-
 // --- HELPER FUNCTIONS ---
 const createLog = async (req, action, details, metadata = null) => {
     try {
@@ -780,79 +772,6 @@ app.delete('/api/custom-units/:id', authenticateToken, authorizeRole(['Developer
         res.json({ message: "ลบสำเร็จ" });
     } catch (err) {
         res.status(500).json({ message: err.message });
-    }
-});
-
-// =======================
-// K. ANIMAL CATEGORIES
-// =======================
-app.get('/api/animal-categories', async (req, res) => {
-    try {
-        const categories = await AnimalCategory.find().sort({ createdAt: 1 }).lean();
-        res.json(categories);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-app.post('/api/animal-categories', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
-    try {
-        const { name } = req.body;
-        const existing = await AnimalCategory.findOne({ name });
-        if (existing) return res.status(400).json({ message: "มีหมวดหมู่นี้อยู่แล้ว" });
-
-        const newCategory = new AnimalCategory({ name, createdBy: req.user.username });
-        const savedCategory = await newCategory.save();
-        
-        await createLog(req, 'CREATE_ANIMAL_CATEGORY', `เพิ่มหมวดหมู่สัตว์: ${name}`);
-        io.emit('server_data_update', { type: 'ANIMAL_CATEGORY_ADDED', data: savedCategory });
-        
-        res.status(201).json(savedCategory);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
-
-app.delete('/api/animal-categories/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
-    try {
-        const deletedCategory = await AnimalCategory.findByIdAndDelete(req.params.id);
-        if (!deletedCategory) return res.status(404).json({ message: "ไม่พบข้อมูล" });
-
-        await createLog(req, 'DELETE_ANIMAL_CATEGORY', `ลบหมวดหมู่สัตว์: ${deletedCategory.name}`);
-        io.emit('server_data_update', { type: 'ANIMAL_CATEGORY_DELETED', id: req.params.id });
-        
-        res.json({ message: "ลบสำเร็จ" });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-// =======================
-// M. ROLE PERMISSIONS SETTINGS
-// =======================
-app.get('/api/settings/permissions', authenticateToken, async (req, res) => {
-    try {
-        let setting = await SystemSetting.findOne({ key: 'rolePermissionsConfig' });
-        if (!setting) return res.json({ strictHierarchy: true, allowSuperAdminToClearData: false });
-        res.json(setting.value);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-app.put('/api/settings/permissions', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
-    try {
-        const { rolePermissionsConfig } = req.body;
-        const updatedSetting = await SystemSetting.findOneAndUpdate(
-            { key: 'rolePermissionsConfig' }, { value: rolePermissionsConfig }, { upsert: true, new: true }
-        );
-
-        await createLog(req, 'UPDATE_ROLE_PERMISSIONS', `ปรับปรุงกฎและสิทธิ์การเข้าถึงเชิงลึก`);
-        io.emit('server_data_update', { type: 'ROLE_PERMISSIONS_UPDATED', data: rolePermissionsConfig });
-
-        res.json({ message: "อัปเดตสิทธิ์สำเร็จ", data: rolePermissionsConfig });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
     }
 });
 

@@ -34,8 +34,6 @@ const UnitComparisonChart = React.lazy(() => import('./components/dashboard/Unit
 import ClearDataModal from './components/modals/ClearDataModal';
 import DispatchCalendarDashboard from './components/DispatchCalendarDashboard';
 const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal'));
-const AnimalCategoryModal = lazy(() => import('./components/modals/AnimalCategoryModal'));
-const RolePermissionsModal = lazy(() => import('./components/modals/RolePermissionsModal'));
 
 // --- MAIN DASHBOARD COMPONENT ---
 export default function VeterinaryDashboard() {
@@ -71,9 +69,6 @@ export default function VeterinaryDashboard() {
     } = useDashboardState();
 
     const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
-    const [isAnimalCategoryModalOpen, setIsAnimalCategoryModalOpen] = useState(false);
-    const [isRolePermissionsModalOpen, setIsRolePermissionsModalOpen] = useState(false);
-
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
     // ✨ จัดการสิทธิ์การแสดงผลใหม่
@@ -86,6 +81,9 @@ export default function VeterinaryDashboard() {
     
     // ✨ User สามารถเพิ่มข้อมูลได้ด้วย
     const canAdd = user && ['Developer', 'MagaAdmin', 'admin', 'user'].includes(user.role) && !isReadOnlyMode;
+
+    // ✨ สิทธิ์การมองเห็นหน่วยที่ถูกซ่อน (Executive มองเห็นได้ แต่แก้ไม่ได้ถ้าไม่มี canEdit)
+    const canViewHiddenDispatches = user && ['Developer', 'MagaAdmin', 'admin', 'executive'].includes(user.role);
 
     const handleNotifySystemUpdate = async () => {
         if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
@@ -112,14 +110,15 @@ export default function VeterinaryDashboard() {
     const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
     const dispatchEventsOnly = useMemo(() => {
-        const filteredEvents = canEdit 
+        // เปลี่ยนจาก canEdit เป็น canViewHiddenDispatches แทน
+        const filteredEvents = canViewHiddenDispatches 
             ? dispatchEvents 
             : dispatchEvents.filter(d => d.isVisibleToPublic !== false);
 
         return filteredEvents.map(d => ({
             ...d, type: 'dispatch', originalData: d
         }));
-    }, [dispatchEvents, canEdit]);
+    }, [dispatchEvents, canViewHiddenDispatches]); // อย่าลืมเปลี่ยน dependency array ด้วย
 
     const handleToggleDispatchVisibility = async (id, currentStatus) => {
         try {
@@ -861,10 +860,6 @@ useEffect(() => {
 
     const openCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(true), []);
     const closeCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(false), []);
-    const openAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(true), []);
-    const closeAnimalCategoryModal = useCallback(() => setIsAnimalCategoryModalOpen(false), []);
-    const openRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(true), []);
-    const closeRolePermissionsModal = useCallback(() => setIsRolePermissionsModalOpen(false), []);
 
     const availableYears = useMemo(() => {
         if (!Array.isArray(reportData)) return [];
@@ -1249,24 +1244,18 @@ useEffect(() => {
         const animalChartData = [
             {
                 name: 'สัตว์มีเจ้าของ',
-                dogMale: animalStats.owned.dogMale,
-                dogFemale: animalStats.owned.dogFemale,
-                catMale: animalStats.owned.catMale,
-                catFemale: animalStats.owned.catFemale
+                dogMale: animalStats.owned.dogMale, dogFemale: animalStats.owned.dogFemale,
+                catMale: animalStats.owned.catMale, catFemale: animalStats.owned.catFemale
             },
             {
                 name: 'ไม่มีเจ้าของ',
-                dogMale: animalStats.unowned.dogMale,
-                dogFemale: animalStats.unowned.dogFemale,
-                catMale: animalStats.unowned.catMale,
-                catFemale: animalStats.unowned.catFemale
+                dogMale: animalStats.unowned.dogMale, dogFemale: animalStats.unowned.dogFemale,
+                catMale: animalStats.unowned.catMale, catFemale: animalStats.unowned.catFemale
             },
             {
                 name: 'ผู้ให้อาหาร',
-                dogMale: animalStats.feeder.dogMale,
-                dogFemale: animalStats.feeder.dogFemale,
-                catMale: animalStats.feeder.catMale,
-                catFemale: animalStats.feeder.catFemale
+                dogMale: animalStats.feeder.dogMale, dogFemale: animalStats.feeder.dogFemale,
+                catMale: animalStats.feeder.catMale, catFemale: animalStats.feeder.catFemale
             }
         ];
 
@@ -1311,8 +1300,6 @@ useEffect(() => {
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
                 <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-                <AnimalCategoryModal isOpen={isAnimalCategoryModalOpen} onClose={closeAnimalCategoryModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-                <RolePermissionsModal isOpen={isRolePermissionsModalOpen} onClose={closeRolePermissionsModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} userRole={user?.role} />
             </Suspense>
             <CsvActionModal isOpen={isCsvModalOpen} onClose={closeCsvModal} onFileChange={handleCsvFileChange} onExport={handleCsvExport}availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears}thaiMonths={THAI_MONTHS}units={UNIT_TYPES}districts={BANGKOK_DISTRICTS}csvMode={csvMode}/>
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={closeBackupModal} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
@@ -1323,15 +1310,7 @@ useEffect(() => {
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={closeChangePasswordModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={closeLogModal} token={user?.token} apiBaseUrl={BASE_URL} />
             <DispatchModal isOpen={isDispatchModalOpen} onClose={closeDispatchModal} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
-            <DispatchCalendarDashboard 
-                isOpen={isCalendarOpen} 
-                onClose={closeCalendar} 
-                events={dispatchEventsOnly} 
-                onOpenForm={openDispatchForm} 
-                onEventClick={openDispatchEvent} 
-                canEdit={canEdit}
-                onToggleVisibility={handleToggleDispatchVisibility}
-            />
+            <DispatchCalendarDashboard isOpen={isCalendarOpen} onClose={closeCalendar} events={dispatchEventsOnly} onOpenForm={openDispatchForm} onEventClick={openDispatchEvent} canEdit={canEdit}onToggleVisibility={handleToggleDispatchVisibility}/>
             <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={closeMeetingCalendar} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
             <MeetingModal isOpen={isMeetingModalOpen} onClose={closeMeetingModal} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
             <MeetingListModal isOpen={isMeetingListOpen} onClose={closeMeetingList} meetings={meetings} onEdit={editMeetingFromList} />
@@ -1346,8 +1325,6 @@ useEffect(() => {
                 onLogin={openLoginModal} onLogout={handleLogout} onChangePassword={openChangePasswordModal}
                 onOpenLog={openLogModal} onOpenUserMgmt={openUserMgmtModal} onOpenBackup={openBackupModal}
                 onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData} onClearData={handleClearAllData} onOpenCustomUnits={openCustomUnitModal}
-                onOpenAnimalCategory={openAnimalCategoryModal}
-                onOpenRolePermissions={openRolePermissionsModal}
                 onOpenMeetingList={openMeetingListModal} onOpenCalendar={openCalendarModal} onOpenMeetingCalendar={openMeetingCalendarModal}
                 onOpenMeetingModal={openMeetingModalDialog} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
                 isMagaAdmin={isMagaAdmin}
@@ -1554,17 +1531,17 @@ useEffect(() => {
                                 )}
 
                                 {activeTab === 'calendar' && (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-240px)] min-h-[600px] flex flex-col w-full">
-        <DispatchCalendarDashboard 
-            isInline={true} 
-            events={dispatchEventsOnly} 
-            onOpenForm={openDispatchForm} 
-            onEventClick={openDispatchEvent} 
-            canEdit={canEdit}
-            onToggleVisibility={handleToggleDispatchVisibility}
-        />
-    </div>
-)}
+                                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[calc(100vh-240px)] min-h-[600px] flex flex-col w-full">
+                                        <DispatchCalendarDashboard 
+                                            isInline={true} 
+                                            events={dispatchEventsOnly} 
+                                            onOpenForm={openDispatchForm} 
+                                            onEventClick={openDispatchEvent} 
+                                            canEdit={canEdit}
+                                            onToggleVisibility={handleToggleDispatchVisibility}
+                                        />
+                                    </div>
+                                )}
                             </>
                         )}
                     </Suspense>
