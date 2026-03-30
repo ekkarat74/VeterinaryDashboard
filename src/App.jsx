@@ -50,7 +50,7 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
         return () => clearInterval(timer);
     }, [activeAnnouncements.length]);
 
-    // รีเซ็ต Index เมื่อจำนวนข้อความเปลี่ยน (เช่น ตอนลบข้อความ)
+    // รีเซ็ต Index เมื่อจำนวนข้อความเปลี่ยน
     useEffect(() => {
         if (currentIndex >= activeAnnouncements.length) {
             setCurrentIndex(0);
@@ -73,9 +73,9 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
             <div className="flex-1 relative h-full flex items-center overflow-hidden">
                 {currentItem && (
                     <div 
-                        // ใช้ key เพื่อบังคับให้ React re-render และเล่น Animation ใหม่ทุกครั้งที่เปลี่ยนข้อความ
                         key={currentItem.id + '-' + safeIndex} 
-                        className={`flex items-center gap-2 absolute w-full ${activeAnnouncements.length > 1 ? 'animate-ticker' : ''}`}
+                        // 👇 แก้ไขตรงนี้: เปลี่ยนเป็น animate-slide-left
+                        className={`flex items-center gap-2 absolute w-full ${activeAnnouncements.length > 1 ? 'animate-slide-left' : ''}`}
                     >
                         <span className="shrink-0">{currentItem.icon}</span>
                         <span className="truncate">{currentItem.text}</span>
@@ -1455,16 +1455,15 @@ export default function VeterinaryDashboard() {
                 @keyframes pulse-ring { 0% { transform: scale(0.33); } 80%, 100% { opacity: 0; } }
                 .danger-pulse::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 100%; border-radius: 50%; background-color: #ef4444; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
                 
-                /* ลบโค้ด @keyframes marquee เดิมออก แล้วใส่ส่วนนี้เข้าไปแทน */
-@keyframes ticker {
-    0% { transform: translateY(100%); opacity: 0; }
-    10% { transform: translateY(0); opacity: 1; }
-    90% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-100%); opacity: 0; }
-}
-.animate-ticker {
-    animation: ticker 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+                @keyframes slideLeft {
+                    0% { transform: translateX(100%); opacity: 0; }
+                    10% { transform: translateX(0); opacity: 1; }
+                    90% { transform: translateX(0); opacity: 1; }
+                    100% { transform: translateX(-100%); opacity: 0; }
+                }
+                .animate-slide-left {
+                    animation: slideLeft 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                }
             `}</style>
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
