@@ -39,23 +39,50 @@ const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal')
 // --- คอมโพเนนต์แถบเลื่อนด้านบน (Announcement Bar) ---
 const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    // เปลี่ยนข้อความอัตโนมัติทุกๆ 4 วินาที
+    useEffect(() => {
+        if (activeAnnouncements.length <= 1) return;
+        const timer = setInterval(() => {
+            setCurrentIndex((prevIndex) => (prevIndex + 1) % activeAnnouncements.length);
+        }, 4000);
+        return () => clearInterval(timer);
+    }, [activeAnnouncements.length]);
+
+    // รีเซ็ต Index เมื่อจำนวนข้อความเปลี่ยน (เช่น ตอนลบข้อความ)
+    useEffect(() => {
+        if (currentIndex >= activeAnnouncements.length) {
+            setCurrentIndex(0);
+        }
+    }, [activeAnnouncements.length, currentIndex]);
+
     if (activeAnnouncements.length === 0 && !canEdit) return null;
 
+    // เลือกข้อความปัจจุบันที่จะแสดง
+    const safeIndex = currentIndex >= activeAnnouncements.length ? 0 : currentIndex;
+    const currentItem = activeAnnouncements[safeIndex];
+
     return (
-        <div className="bg-[#2D1B6B] text-white flex items-center px-4 py-2 text-sm relative z-40 shadow-md shrink-0 w-full">
+        <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-sm relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
             <div className="bg-[#6B4BFA] text-white px-3 py-1 rounded-full font-bold text-xs mr-3 shrink-0 z-10 flex items-center gap-2 shadow-sm">
                 <Megaphone className="w-3 h-3" /> PREVIEW
             </div>
-            <div className="flex-1 overflow-hidden relative">
-                <div className="animate-marquee whitespace-nowrap flex gap-10">
-                    {activeAnnouncements.map((item, idx) => (
-                        <span key={idx} className="flex items-center gap-2">
-                            <span>{item.icon}</span>
-                            <span>{item.text}</span>
-                        </span>
-                    ))}
-                </div>
+            
+            {/* พื้นที่แสดงข้อความ */}
+            <div className="flex-1 relative h-full flex items-center overflow-hidden">
+                {currentItem && (
+                    <div 
+                        // ใช้ key เพื่อบังคับให้ React re-render และเล่น Animation ใหม่ทุกครั้งที่เปลี่ยนข้อความ
+                        key={currentItem.id + '-' + safeIndex} 
+                        className={`flex items-center gap-2 absolute w-full ${activeAnnouncements.length > 1 ? 'animate-ticker' : ''}`}
+                    >
+                        <span className="shrink-0">{currentItem.icon}</span>
+                        <span className="truncate">{currentItem.text}</span>
+                    </div>
+                )}
             </div>
+
             {canEdit && (
                 <button onClick={onEditClick} className="ml-3 p-1.5 hover:bg-white/20 rounded-lg transition-colors shrink-0 text-white/80 hover:text-white" title="แก้ไขข้อความแถบเลื่อน">
                     <Edit3 className="w-4 h-4" />
@@ -1428,18 +1455,16 @@ export default function VeterinaryDashboard() {
                 @keyframes pulse-ring { 0% { transform: scale(0.33); } 80%, 100% { opacity: 0; } }
                 .danger-pulse::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 100%; border-radius: 50%; background-color: #ef4444; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
                 
-                /* Animation สำหรับตัวอักษรวิ่ง แถบ Announcement */
-                @keyframes marquee {
-                    0% { transform: translateX(100%); }
-                    100% { transform: translateX(-100%); }
-                }
-                .animate-marquee {
-                    display: inline-block;
-                    animation: marquee 25s linear infinite;
-                }
-                .animate-marquee:hover {
-                    animation-play-state: paused;
-                }
+                /* ลบโค้ด @keyframes marquee เดิมออก แล้วใส่ส่วนนี้เข้าไปแทน */
+@keyframes ticker {
+    0% { transform: translateY(100%); opacity: 0; }
+    10% { transform: translateY(0); opacity: 1; }
+    90% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-100%); opacity: 0; }
+}
+.animate-ticker {
+    animation: ticker 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
             `}</style>
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
