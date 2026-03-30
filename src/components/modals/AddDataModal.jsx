@@ -49,39 +49,46 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   // 2. ดึงข้อมูลหน่วยงานจาก DB เมื่อเปิด Modal
   const fetchCustomUnits = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/custom-units`);
-      if (res.ok) {
-        const data = await res.json();
-        setCustomUnitsObj(data);
-      }
-    } catch (error) {
-      console.error("Fetch units error", error);
+  try {
+    const res = await fetch(`${BASE_URL}/api/custom-units`);
+    if (res.ok) {
+      const data = await res.json();
+      // ป้องกัน Error โดยเช็คว่าเป็น Array ก่อนเซ็ตค่า
+      setCustomUnitsObj(Array.isArray(data) ? data : []); 
     }
-  };
+  } catch (error) {
+    console.error("Fetch units error", error);
+  }
+};
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCustomUnits();
-      if (initialData) {
-        // Setup data สำหรับโหมดแก้ไข
-        setFormData({
-          ...initialData,
-          unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
-          otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
-        });
-        setBreakdown(initialData.details || defaultBreakdown);
-        setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
-        setImagePreview(initialData.imageUrl || null);
-      } else {
-        setFormData(defaultFormData);
-        setBreakdown(defaultBreakdown);
-        setCoordInput("");
-        setImagePreview(null);
-      }
-    }
-  }, [isOpen, initialData]);
+// แก้ไข useEffect ตัวเดิม
+useEffect(() => {
+  if (isOpen) {
+    // แยกการ fetch ไว้เพื่อไม่ให้ไปผูกกับ allUnitOptions โดยตรงจนเกินไป
+    fetchCustomUnits();
+  } else {
+    // รีเซ็ตตอนปิด
+    setFormData(defaultFormData);
+    setBreakdown(defaultBreakdown);
+    setCoordInput("");
+    setImagePreview(null);
+  }
+}, [isOpen]);
 
+// เพิ่ม useEffect อีกตัวสำหรับเซ็ต initialData โดยเฉพาะ
+useEffect(() => {
+  if (isOpen && initialData) {
+    setFormData({
+      ...initialData,
+      // เช็คจาก allUnitOptions ล่าสุด (ซึ่งจะอัปเดตใหม่หลัง fetch เสร็จ)
+      unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
+      otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
+    });
+    setBreakdown(initialData.details || defaultBreakdown);
+    setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
+    setImagePreview(initialData.imageUrl || null);
+  }
+}, [isOpen, initialData, allUnitOptions]); // <- เพิ่ม allUnitOptions
   // ฟังก์ชันจัดการหน่วยงานใน DB (Update/Delete)
   const handleDeleteUnit = async (id, name) => {
     if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
@@ -248,11 +255,21 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input type="text" placeholder="13.xxx, 100.xxx" className={`${inputClass} pl-10`} value={coordInput} 
-                      onChange={e => {
-                        setCoordInput(e.target.value);
-                        const parts = e.target.value.split(',');
-                        if(parts.length === 2) setFormData({...formData, lat: parts[0].trim(), long: parts[1].trim()});
-                      }} 
+onChange={e => {
+  const val = e.target.value;
+  setCoordInput(val);
+  
+  // เพิ่มการเช็คค่าว่าง
+  if (!val.trim()) {
+    setFormData({...formData, lat: '', long: ''});
+    return;
+  }
+
+  const parts = val.split(',');
+  if(parts.length >= 2) {
+    setFormData({...formData, lat: parts[0].trim(), long: parts[1].trim()});
+  }
+}}
                     />
                   </div>
                 </div>

@@ -112,28 +112,28 @@ const MainDataTable = ({
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
                                             <Syringe className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats.vaccine)}</span>
+                                            <span className="font-bold text-sm">{formatNumber(item.stats?.vaccine)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-700">
                                             <Scissors className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats.sterilize)}</span>
+                                            <span className="font-bold text-sm">{formatNumber(item.stats?.sterilize)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
                                             <FileText className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats.register)}</span>
+                                            <span className="font-bold text-sm">{formatNumber(item.stats?.register)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-700">
                                             <QrCode className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats.microchip)}</span>
+                                            <span className="font-bold text-sm">{formatNumber(item.stats?.microchip)}</span>
                                         </div>
                                     </td>
 
