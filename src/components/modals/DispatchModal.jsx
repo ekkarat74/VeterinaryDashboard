@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Activity, X, Bell, MapPin, Link as LinkIcon, Users, 
-  Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown 
+  Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown, Copy
 } from 'lucide-react';
 
 // ตรวจสอบ Path ของ constants ให้ถูกต้อง
@@ -101,8 +101,9 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     locationName: '', district: '', mapLink: '',
     locationNameB: '', districtB: '', mapLinkB: '',
     departureTime: '07:30', closingTime: '12:00', note: '',
-    controllerName: '',  // ✨ เพิ่มสำหรับชื่อผู้ควบคุม
-    controllerPhone: ''  // ✨ เพิ่มสำหรับเบอร์โทรผู้ควบคุม
+    controllerName: '', 
+    controllerPhone: '',
+    status: 'auto' // ค่าเริ่มต้นให้คำนวณอัตโนมัติ
   });
 
   const [staff, setStaff] = useState({
@@ -111,8 +112,11 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
   });
 
+  const [isCopyMode, setIsCopyMode] = useState(false);
+
   useEffect(() => {
     if (isOpen && initialData) {
+      setIsCopyMode(false);
       setIsSplitTeam(false);
       setUnitType(initialData.unitType || 'sterilization');
       setCustomUnitName(initialData.customUnitName || '');
@@ -129,7 +133,8 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         closingTime: initialData.closingTime || '12:00',
         note: initialData.note || '',
         controllerName: initialData.controllerName || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[0] : ''),
-        controllerPhone: initialData.controllerPhone || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[1] : '')
+        controllerPhone: initialData.controllerPhone || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[1] : ''),
+        status: initialData.status || 'auto'
       });
 
       if (initialData.staff) {
@@ -160,7 +165,8 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         date: formatDateLocal(tomorrow), 
         locationName: '', district: '', mapLink: '',
         locationNameB: '', districtB: '', mapLinkB: '',
-        departureTime: '07:30', closingTime: '12:00', note: ''
+        departureTime: '07:30', closingTime: '12:00', note: '',
+        status: 'auto'
       });
       setStaff({ controllers: [''], vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
     }
@@ -265,6 +271,8 @@ ${staffDetails}
   };
 
   const handleSaveLocal = () => {
+    const isCreatingNew = !initialData || isCopyMode;
+
     const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
     const displayTitle = unitType === 'other' && customUnitName.trim() !== ''
       ? customUnitName
@@ -272,8 +280,9 @@ ${staffDetails}
 
     if (isSplitTeam) {
       const payloadA = {
-        _id: undefined,
+        _id: isCreatingNew ? undefined : initialData?._id, // ✨ ปรับตรงนี้
         ...generalInfo,
+        status: isCreatingNew ? 'auto' : generalInfo.status, // ✨ ถ้ารายการใหม่ให้กลับเป็น auto
         unitType, customUnitName,
         unitLetter: 'A', unitColor, staff: staff, 
         title: `${displayTitle} A`.trim(),
@@ -284,8 +293,9 @@ ${staffDetails}
         team: staff.vets.filter(v => v).join(', ')
       };
       const payloadB = {
-        _id: undefined,
+        _id: undefined, // ทีม B จะถูกสร้างใหม่เสมอเวลาแยกทีม
         ...generalInfo,
+        status: isCreatingNew ? 'auto' : generalInfo.status,
         unitType, customUnitName,
         unitLetter: 'B', unitColor, staff: staff, 
         title: `${displayTitle} B`.trim(),
@@ -302,8 +312,9 @@ ${staffDetails}
       }
     } else {
       const payload = {
-        _id: initialData?._id,
+        _id: isCreatingNew ? undefined : initialData?._id, // ✨ ปรับตรงนี้
         ...generalInfo,
+        status: isCreatingNew ? 'auto' : generalInfo.status, // ✨ ปรับตรงนี้
         unitType, customUnitName, unitLetter, unitColor, staff: staff, 
         title: `${displayTitle} ${unitLetter}`.trim(),
         location: generalInfo.locationName,
@@ -329,12 +340,14 @@ ${staffDetails}
         <div className="px-4 sm:px-6 py-4 sm:py-5 mt-safe sm:mt-0 bg-white border-b border-slate-100 flex justify-between items-center shrink-0 z-10">
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
-              <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">
-                <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className={`p-2 rounded-lg ${isCopyMode ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                {isCopyMode ? <Copy className="w-5 h-5 sm:w-6 sm:h-6" /> : <Bell className="w-5 h-5 sm:w-6 sm:h-6" />}
               </div>
-              บันทึกและแจ้งเตือนออกหน่วย
+              {isCopyMode ? 'คัดลอกแผนออกหน่วย (สร้างใหม่)' : 'บันทึกและแจ้งเตือนออกหน่วย'}
             </h3>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1 ml-11 hidden sm:block">จัดการข้อมูลการออกหน่วยและส่งเข้า Line กลุ่ม</p>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1 ml-11 hidden sm:block">
+               {isCopyMode ? 'กรุณาแก้ไขวันที่ สถานที่ หรือข้อมูลอื่นๆ แล้วกดบันทึกข้อมูล' : 'จัดการข้อมูลการออกหน่วยและส่งเข้า Line กลุ่ม'}
+            </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 sm:p-2.5 rounded-full transition-all">
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -479,6 +492,33 @@ ${staffDetails}
                           onChange={e => setGeneralInfo({ ...generalInfo, closingTime: e.target.value })} 
                         />
                       </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Status Box ✨ */}
+                <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm">
+                  <h5 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-slate-500" /> สถานะการออกหน่วย
+                  </h5>
+                  <div className="relative">
+                    <select
+                      value={generalInfo.status}
+                      onChange={(e) => setGeneralInfo({ ...generalInfo, status: e.target.value })}
+                      className={`w-full pl-3 pr-8 py-2.5 border rounded-xl text-sm font-bold focus:ring-2 focus:outline-none appearance-none transition-colors cursor-pointer
+                        ${generalInfo.status === 'cancelled' ? 'bg-rose-50 border-rose-200 text-rose-700 focus:ring-rose-500' : 
+                          generalInfo.status === 'postponed' ? 'bg-orange-50 border-orange-200 text-orange-700 focus:ring-orange-500' :
+                          generalInfo.status === 'completed' ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-500' :
+                          'bg-slate-50 border-slate-200 text-slate-700 focus:ring-indigo-500 focus:bg-white'
+                        }`}
+                    >
+                      <option value="auto">⏱️ คำนวณอัตโนมัติ (ตามเวลา)</option>
+                      <option value="completed">✅ เสร็จสิ้นแล้ว (Manual)</option>
+                      <option value="postponed">⚠️ เลื่อนการออกหน่วย</option>
+                      <option value="cancelled">❌ ยกเลิกการออกหน่วย</option>
+                    </select>
+                    <div className={`absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none 
+                        ${generalInfo.status === 'auto' ? 'text-slate-500' : 'text-current opacity-60'}`}>
+                      <ChevronDown className="w-4 h-4" />
                     </div>
                   </div>
                 </div>
@@ -698,14 +738,27 @@ ${staffDetails}
         {/* 🔴 3. ปรับปุ่ม Footer ให้รองรับ Safe Area บนมือถือ และจัดให้อยู่ตำแหน่งล่างสุดสวยงาม */}
         <div className="bg-white border-t border-slate-100 p-4 sm:p-5 pb-8 sm:pb-5 flex items-center justify-between shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)]">
           
-          {/* ซ้าย: ปุ่มลบ (ถ้ามี) */}
-          <div className="flex-1">
-            {initialData && onDelete && (
+          {/* ซ้าย: ปุ่มลบ และ ปุ่มคัดลอก */}
+          <div className="flex-1 flex gap-3">
+            {initialData && onDelete && !isCopyMode && (
               <button 
                 onClick={() => onDelete(initialData._id)} 
                 className="text-slate-400 hover:text-red-500 text-sm font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">ลบรายการ</span>
+              </button>
+            )}
+            
+            {/* ✨ ปุ่มคัดลอก จะแสดงเมื่อมีการกดดูรายละเอียดงานเดิม และยังไม่ได้เข้าสู่โหมดคัดลอก */}
+            {initialData && !isCopyMode && (
+              <button 
+                onClick={() => {
+                  setIsCopyMode(true);
+                  if (onToast) onToast('info', 'อยู่ในโหมดคัดลอก กรุณาเปลี่ยนวันที่ก่อนบันทึก');
+                }} 
+                className="text-slate-400 hover:text-amber-500 text-sm font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <Copy className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">คัดลอกงานนี้</span>
               </button>
             )}
           </div>

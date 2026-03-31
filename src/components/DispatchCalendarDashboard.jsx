@@ -22,13 +22,25 @@ const StatCard = ({ label, value, colorClass, bgClass, icon: Icon }) => (
 // ==========================================
 // 2. Helpers 
 // ==========================================
-const getDispatchStatus = (dateStr, timeStr, closeTimeStr) => {
-    if (!dateStr || !timeStr) return null;
-    const closeTime = closeTimeStr || '16:00'; 
+const getDispatchStatus = (evt) => {
+    if (!evt || !evt.date || !evt.time) return null;
 
+    // 1. ตรวจสอบสถานะ Manual Override ก่อน
+    if (evt.status === 'cancelled') {
+        return { text: 'ยกเลิก', badge: 'bg-rose-100 text-rose-700 border-rose-200' };
+    }
+    if (evt.status === 'postponed') {
+        return { text: 'เลื่อน', badge: 'bg-orange-100 text-orange-700 border-orange-200' };
+    }
+    if (evt.status === 'completed') {
+        return { text: 'เสร็จสิ้น (Manual)', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    }
+
+    // 2. ถ้าเป็น 'auto' หรือไม่มีสถานะ ให้คำนวณจากเวลา
+    const closeTime = evt.closingTime || '16:00'; 
     const now = new Date();
-    const start = new Date(`${dateStr}T${timeStr}:00`);
-    const end = new Date(`${dateStr}T${closeTime}:00`);
+    const start = new Date(`${evt.date}T${evt.time}:00`);
+    const end = new Date(`${evt.date}T${closeTime}:00`);
     
     const thirtyMins = 30 * 60 * 1000; 
 

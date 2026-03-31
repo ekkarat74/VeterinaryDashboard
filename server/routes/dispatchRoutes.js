@@ -22,8 +22,6 @@ const dispatchPlanSchema = new mongoose.Schema({
     team: String,        // ชื่อทีม (เช่น ทีม 1, หรือรายชื่อสัตวแพทย์)
     createdBy: String,
     isVisibleToPublic: { type: Boolean, default: true },
-    
-    // ✨ เพิ่ม 2 บรรทัดนี้เข้าไปครับ เพื่อให้ Database ยอมรับข้อมูลเบอร์โทร
     controllerName: { type: String, default: '' },
     controllerPhone: { type: String, default: '' }
 

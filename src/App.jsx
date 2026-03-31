@@ -41,16 +41,16 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    // เปลี่ยนข้อความอัตโนมัติทุกๆ 4 วินาที
+    // 👇 แก้ไขตรงนี้: เปลี่ยนข้อความอัตโนมัติทุกๆ 8 วินาที (จากเดิม 4 วินาที)
     useEffect(() => {
         if (activeAnnouncements.length <= 1) return;
         const timer = setInterval(() => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % activeAnnouncements.length);
-        }, 4000);
+        }, 8000); // <--- เปลี่ยนตรงนี้เป็น 8000
         return () => clearInterval(timer);
     }, [activeAnnouncements.length]);
 
-    // รีเซ็ต Index เมื่อจำนวนข้อความเปลี่ยน
+    // รีเซ็ต Index เมื่อจำนวนข้อความเปลี่ยน (เช่น ตอนลบข้อความ)
     useEffect(() => {
         if (currentIndex >= activeAnnouncements.length) {
             setCurrentIndex(0);
@@ -73,8 +73,8 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
             <div className="flex-1 relative h-full flex items-center overflow-hidden">
                 {currentItem && (
                     <div 
+                        // ใช้ key เพื่อบังคับให้ React re-render และเล่น Animation ใหม่ทุกครั้งที่เปลี่ยนข้อความ
                         key={currentItem.id + '-' + safeIndex} 
-                        // 👇 แก้ไขตรงนี้: เปลี่ยนเป็น animate-slide-left
                         className={`flex items-center gap-2 absolute w-full ${activeAnnouncements.length > 1 ? 'animate-slide-left' : ''}`}
                     >
                         <span className="shrink-0">{currentItem.icon}</span>
@@ -1462,7 +1462,7 @@ export default function VeterinaryDashboard() {
                     100% { transform: translateX(-100%); opacity: 0; }
                 }
                 .animate-slide-left {
-                    animation: slideLeft 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                    animation: slideLeft 8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                 }
             `}</style>
 
