@@ -23,8 +23,8 @@ const dispatchPlanSchema = new mongoose.Schema({
     createdBy: String,
     isVisibleToPublic: { type: Boolean, default: true },
     controllerName: { type: String, default: '' },
-    controllerPhone: { type: String, default: '' }
-
+    controllerPhone: { type: String, default: '' },
+    status: { type: String, default: 'auto' }
 }, { timestamps: true });
 
 const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);

@@ -358,6 +358,16 @@ ${staffDetails}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/30 custom-scrollbar pb-24 sm:pb-6">
           <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
             
+            {isCopyMode && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl flex items-start gap-3 shadow-sm">
+                 <Copy className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                 <div className="text-sm">
+                   <p className="font-bold">โหมดคัดลอกแผนงาน</p>
+                   <p className="mt-0.5">คุณกำลังสร้างแผนออกหน่วยใหม่โดยใช้ข้อมูลจากเคสนี้เป็นตั้งต้น <span className="font-bold underline">อย่าลืมแก้ไขวันที่ และสถานที่</span> ก่อนกดบันทึกข้อมูล</p>
+                 </div>
+              </div>
+            )}
+            
             {/* Section 1: ข้อมูลหลัก */}
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
