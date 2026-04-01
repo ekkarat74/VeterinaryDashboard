@@ -31,6 +31,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+
   // States สำหรับจัดการ Custom Units จาก DB
   const [customUnitsObj, setCustomUnitsObj] = useState([]);
   const [isManagingUnits, setIsManagingUnits] = useState(false); 
@@ -237,9 +239,44 @@ useEffect(() => {
 
                 <div className="md:col-span-4">
                   <label className={labelClass}>เขต</label>
-                  <select className={inputClass} value={formData.district} onChange={e => setFormData({...formData, district: e.target.value, subdistrict: ''})}>
-                    {BANGKOK_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      className={inputClass} 
+                      placeholder="พิมพ์เพื่อค้นหาเขต..."
+                      value={formData.district} 
+                      onChange={e => {
+                        setFormData({...formData, district: e.target.value, subdistrict: ''});
+                        setShowDistrictDropdown(true);
+                      }}
+                      onFocus={() => setShowDistrictDropdown(true)}
+                      onBlur={() => setShowDistrictDropdown(false)}
+                    />
+                    
+                    {/* Dropdown แสดงรายการเขตที่กรองแล้ว */}
+                    {showDistrictDropdown && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                        {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).length > 0 ? (
+                          BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).map(d => (
+                            <div 
+                              key={d} 
+                              className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                              onMouseDown={(e) => {
+                                // ใช้ onMouseDown + preventDefault เพื่อให้กดเลือกได้ก่อน onBlur ของ input จะทำงานและปิด dropdown
+                                e.preventDefault(); 
+                                setFormData({...formData, district: d, subdistrict: ''});
+                                setShowDistrictDropdown(false);
+                              }}
+                            >
+                              {d}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="md:col-span-4">
