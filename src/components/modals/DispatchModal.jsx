@@ -59,11 +59,7 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
 const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
 
   const formatDateLocal = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   };
 
   const UNIT_OPTIONS = [
@@ -216,11 +212,9 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     let locationText = '';
     if (isSplitTeam) {
       locationText = `📍 ทีม A: ${generalInfo.locationName} (เขต ${generalInfo.district || '-'})
-📍 ทีม B: ${generalInfo.locationNameB} (เขต ${generalInfo.districtB || '-'})`;
-    } else {
-      locationText = `📍 สถานที่: ${generalInfo.locationName}
-bankok เขต: ${generalInfo.district || '-'}
-🗺️ แผนที่: ${generalInfo.mapLink || '-'}`;
+      🗺️ แผนที่ A: ${generalInfo.mapLink || '-'}
+      📍 ทีม B: ${generalInfo.locationNameB} (เขต ${generalInfo.districtB || '-'})
+      🗺️ แผนที่ B: ${generalInfo.mapLinkB || '-'}`;
     }
     
     let staffDetails = "";

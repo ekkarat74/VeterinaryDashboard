@@ -383,7 +383,7 @@ const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], o
                                     ) : (
                                         selectedDateEvents.map((evt, idx) => {
                                             const styles = getEventStyles(evt); 
-                                            const status = typeof getDispatchStatus === 'function' ? getDispatchStatus(evt.date, evt.time, evt.closingTime) : null; 
+                                            const status = typeof getDispatchStatus === 'function' ? getDispatchStatus(evt) : null;
 
                                             // ✨ ดึงเบอร์โทร (รองรับฟอร์แมตเก่าและฟอร์แมตใหม่)
                                             let phoneNum = evt.controllerPhone;

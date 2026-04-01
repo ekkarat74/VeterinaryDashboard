@@ -62,7 +62,8 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
     // PUT: แก้ไขแผนออกหน่วย
     router.put('/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
         try {
-            const updatedPlan = await DispatchPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+            const { _id, createdBy, ...updateData } = req.body; // ดึง _id และ createdBy ออก ป้องกันการโดนแก้
+            const updatedPlan = await DispatchPlan.findByIdAndUpdate(req.params.id, updateData, { new: true });
             if (!updatedPlan) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
             await createLog(req, 'UPDATE_DISPATCH', `แก้ไขแผนออกหน่วย: ${updatedPlan.location}`);
