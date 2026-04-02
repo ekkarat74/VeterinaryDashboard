@@ -51,7 +51,8 @@ const Sidebar = ({
     onNotifyUpdate, onOpenCustomUnits, onClearData, 
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
     tabsConfig, toggleTab, activeTab, setActiveTab, 
-    isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen 
+    isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
+    onOpenCalendar 
 }) => {
     
     const isCollapsed = isSidebarCollapsed && !isMobileMenuOpen;
@@ -135,7 +136,7 @@ const Sidebar = ({
                     {checkTabVisibility('overview') && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
                     {checkTabVisibility('outbreak') && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
                     {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
-                    {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={activeTab === 'calendar'} onClick={() => handleAction(() => setActiveTab('calendar'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={false} onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} isCollapsed={isCollapsed} activeColor="indigo" />}
                     
                     {user && !['superadmin', 'executive', 'user'].includes(user.role) && (
                     <>
