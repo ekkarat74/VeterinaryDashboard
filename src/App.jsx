@@ -8,7 +8,6 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<VeterinaryDashboard />} />
-        {/* ✨ เพิ่มบรรทัดนี้เพื่อให้เปิดลิงก์ใหม่ได้ */}
         <Route path="/DispatchCalendarDashboard" element={<DispatchCalendarDashboard />} />
       </Routes>
     </BrowserRouter>

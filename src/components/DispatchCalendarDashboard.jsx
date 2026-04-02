@@ -235,16 +235,14 @@ const DispatchCalendarDashboard = () => {
 
     return (
         <div className="w-full h-screen flex flex-col bg-slate-50 overflow-hidden font-sans">
-            
-            {/* Header (Top Bar) - Full Width */}
-            <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-200 shadow-sm z-20 shrink-0 w-full">
+            <div className="bg-white px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4 border-b border-slate-200 shadow-sm z-20 shrink-0 w-full">
                 <div className="flex items-center gap-4">
                     <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 shadow-sm border border-indigo-100">
                         <Calendar className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">ตารางแผนงานออกหน่วย</h3>
-                        <p className="text-sm text-slate-500 font-medium mt-1">Dispatch Dashboard & Planning</p>
+                        <h3 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">ตารางแผนงานออกหน่วย</h3>
+                        <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">Dispatch Dashboard & Planning</p>
                     </div>
                 </div>
 
@@ -274,11 +272,11 @@ const DispatchCalendarDashboard = () => {
                 </div>
             </div>
 
-            {/* Content Body - Split 2 Columns */}
-            <div className="flex flex-col lg:flex-row flex-1 overflow-hidden w-full">
+            {/* ✨ 2. แก้ไข Content Body ให้เลื่อนบนมือถือได้ (เปลี่ยน overflow-hidden เป็น overflow-y-auto lg:overflow-hidden) */}
+            <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden w-full">
                 
-                {/* Left Sidebar (Calendar & Stats) - Fixed Width */}
-                <div className="w-full lg:w-[420px] xl:w-[450px] p-6 flex flex-col h-full overflow-y-auto border-r border-slate-200/80 bg-slate-50 shrink-0 custom-scrollbar">
+                {/* ✨ 3. แก้ไข Left Sidebar (ปฏิทิน) ให้ความสูงปรับตามเนื้อหาบนจอมือถือ */}
+                <div className="w-full lg:w-[420px] xl:w-[450px] p-4 sm:p-6 flex flex-col lg:h-full lg:overflow-y-auto border-b lg:border-b-0 lg:border-r border-slate-200/80 bg-slate-50 shrink-0 custom-scrollbar">
                     
                     <div className="grid grid-cols-2 gap-4 mb-6">
                         <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-indigo-600" bgClass="bg-indigo-100/50" icon={CheckCircle} />
@@ -287,7 +285,7 @@ const DispatchCalendarDashboard = () => {
                         <StatCard label="เผยแพร่" value={publicEventsCount} colorClass="text-emerald-500" bgClass="bg-emerald-100/50" icon={Users} />
                     </div>
 
-                    <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-slate-200">
+                    <div className="bg-white rounded-[1.5rem] p-4 sm:p-6 shadow-sm border border-slate-200">
                         <div className="flex justify-between items-center mb-5">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight">
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
@@ -347,8 +345,8 @@ const DispatchCalendarDashboard = () => {
                 </div>
 
                 {/* Right Panel (Event List) - Flexible Width */}
-                <div className="flex-1 flex flex-col h-full overflow-hidden p-6 lg:p-8 bg-white min-w-0">
-                    <div className="flex flex-col gap-6 overflow-y-auto h-full pr-2 custom-scrollbar">
+                <div className="flex-1 flex flex-col lg:h-full lg:overflow-hidden p-4 sm:p-6 lg:p-8 bg-white min-w-0">
+                    <div className="flex flex-col gap-4 sm:gap-6 lg:overflow-y-auto lg:h-full lg:pr-2 custom-scrollbar">
                         
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
