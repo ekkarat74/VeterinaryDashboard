@@ -1441,8 +1441,7 @@ export default function VeterinaryDashboard() {
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700;800&display=swap');
-                body { font-family: 'Sarabun', sans-serif; }
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }

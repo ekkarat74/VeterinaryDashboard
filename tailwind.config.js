@@ -5,7 +5,12 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      // เพิ่มบล็อก fontFamily ตรงนี้
+      fontFamily: {
+        sans: ['"Sao Chingcha"', 'sans-serif'], 
+      },
+    },
   },
   plugins: [],
 }
