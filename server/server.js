@@ -684,6 +684,12 @@ const dispatchRoutes = require('./routes/dispatchRoutes');
 app.use('/api/dispatches', dispatchRoutes(io, authenticateToken, authorizeRole, createLog));
 
 // =======================
+// K. CONTROLLERS
+// =======================
+const controllerRoutes = require('./routes/controllerRoutes'); // ⚠️ เช็คชื่อโฟลเดอร์และไฟล์ของคุณให้ตรงด้วยนะครับ
+app.use('/api/controllers', controllerRoutes(io, authenticateToken, authorizeRole));
+
+// =======================
 // H. SYSTEM SETTINGS
 // =======================
 app.get('/api/settings/tabs', async (req, res) => {
