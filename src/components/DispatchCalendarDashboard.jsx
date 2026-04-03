@@ -183,6 +183,8 @@ const DispatchCalendarDashboard = () => {
 
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
+    const [expandedEventId, setExpandedEventId] = useState(null);
+
     const [isAddControllerOpen, setIsAddControllerOpen] = useState(false);
     const [controllerNameInput, setControllerNameInput] = useState('');
     const [controllerPhoneInput, setControllerPhoneInput] = useState('');
@@ -666,10 +668,15 @@ const DispatchCalendarDashboard = () => {
                                 selectedDateEvents.map((evt, idx) => {
                                     const styles = getEventStyles(evt); 
                                     const status = getDispatchStatus(evt);
+                                    
+                                    // แก้ไข: เพิ่มการประกาศตัวแปรที่นี่
                                     let phoneNum = evt.controllerPhone;
-                                    if (!phoneNum && evt.staff?.controllers?.[0]) {
+                                    let controllerName = evt.controllerName; 
+
+                                    if (evt.staff?.controllers?.[0]) {
                                         const splitData = evt.staff.controllers[0].split('โทร.');
-                                        if (splitData.length > 1) phoneNum = splitData[1].trim();
+                                        if (!controllerName) controllerName = splitData[0].trim();
+                                        if (!phoneNum && splitData.length > 1) phoneNum = splitData[1].trim();
                                     }
 
                                     return (
@@ -692,10 +699,28 @@ const DispatchCalendarDashboard = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="font-bold text-slate-800 text-lg leading-snug mb-4">
+                                            <div className="font-bold text-slate-800 text-lg leading-snug mb-2">
                                                 {evt.location}
                                             </div>
 
+                                            {/* ---> ส่วนที่เพิ่มใหม่: เขต และ ผู้ควบคุม <--- */}
+                                            {(evt.district || controllerName) && (
+                                                <div className="flex flex-col gap-1.5 mb-4 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                                                    {evt.district && (
+                                                        <div className="text-xs text-slate-600 flex items-center gap-2 font-medium">
+                                                            <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                                                            <span><span className="font-bold text-slate-700">เขต:</span> {evt.district}</span>
+                                                        </div>
+                                                    )}
+                                                    {controllerName && (
+                                                        <div className="text-xs text-slate-600 flex items-center gap-2 font-medium">
+                                                            <Users className="w-3.5 h-3.5 text-indigo-400" />
+                                                            <span><span className="font-bold text-slate-700">ผู้ควบคุม:</span> {controllerName}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            
                                             {(evt.mapLink || phoneNum) && (
                                                 <div className="flex flex-wrap items-center gap-3 mb-6">
                                                     {evt.mapLink && (
@@ -713,17 +738,34 @@ const DispatchCalendarDashboard = () => {
                                                 </div>
                                             )}
                                             
-                                            <div className="flex items-center justify-between pt-5 border-t border-slate-100">
-                                                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
-                                                    <Users className="w-4 h-4 text-indigo-400" />
-                                                    <span>{evt.team || 'ไม่ได้ระบุทีม'}</span>
-                                                </div>
-                                                {status && (
-                                                    <span className={`inline-flex items-center text-[11px] px-2 py-1 rounded-lg font-bold border ${status.badge}`}>
-                                                        {status.text}
-                                                    </span>
-                                                )}
-                                            </div>
+                                            {/* ส่วนท้ายของการ์ด */}
+<div className="flex items-center justify-between pt-5 border-t border-slate-100">
+    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
+        <Users className="w-4 h-4 text-indigo-400" />
+        <span>{evt.team || 'ไม่ได้ระบุทีม'}</span>
+    </div>
+    
+    {/* ---> แก้ไข: เพิ่ม div คลุมสถานะและปุ่มดูข้อมูล <--- */}
+    <div className="flex items-center gap-2">
+        {status && (
+            <span className={`inline-flex items-center text-[11px] px-2 py-1 rounded-lg font-bold border ${status.badge}`}>
+                {status.text}
+            </span>
+        )}
+        
+        {/* เพิ่มปุ่มดูข้อมูล */}
+        <button 
+            onClick={(e) => {
+                e.stopPropagation(); // ป้องกันไม่ให้ event ซ้อนทับกับการกดทั้งการ์ด
+                openDispatchEvent(evt);
+            }}
+            className="inline-flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100 transition-colors shadow-sm"
+        >
+            ดูข้อมูล
+            <ChevronRight className="w-3 h-3" />
+        </button>
+    </div>
+</div>
                                         </div>
                                     );
                                 })
