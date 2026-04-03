@@ -165,6 +165,14 @@ const customUnitSchema = new mongoose.Schema({
 }, { timestamps: true });
 const CustomUnit = mongoose.model('CustomUnit', customUnitSchema);
 
+// 9. Controller Schema
+const controllerSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  phone: { type: String, default: '' },
+  createdBy: String
+}, { timestamps: true });
+const Controller = mongoose.model('Controller', controllerSchema);
+
 // --- HELPER FUNCTIONS ---
 const createLog = async (req, action, details, metadata = null) => {
     try {
@@ -686,8 +694,43 @@ app.use('/api/dispatches', dispatchRoutes(io, authenticateToken, authorizeRole, 
 // =======================
 // K. CONTROLLERS
 // =======================
-const controllerRoutes = require('./routes/controllerRoutes'); // ⚠️ เช็คชื่อโฟลเดอร์และไฟล์ของคุณให้ตรงด้วยนะครับ
-app.use('/api/controllers', controllerRoutes(io, authenticateToken, authorizeRole));
+
+app.get('/api/controllers', async (req, res) => {
+    try {
+        const list = await Controller.find().sort({ name: 1 });
+        res.json(list);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.post('/api/controllers', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        const newEntry = new Controller({ ...req.body, createdBy: req.user.username });
+        await newEntry.save();
+        res.status(201).json(newEntry);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.put('/api/controllers/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        const updated = await Controller.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updated);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.delete('/api/controllers/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        await Controller.findByIdAndDelete(req.params.id);
+        res.json({ message: "ลบข้อมูลสำเร็จ" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 // =======================
 // H. SYSTEM SETTINGS
