@@ -58,6 +58,8 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
 // --- Main Component: DispatchModal ---
 const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
 
+  const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
+
   const formatDateLocal = (date) => {
     return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   };
