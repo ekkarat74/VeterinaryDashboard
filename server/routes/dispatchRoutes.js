@@ -89,4 +89,5 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
     });
 
     return router;
+    
 };

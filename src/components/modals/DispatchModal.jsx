@@ -110,6 +110,18 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
 
   const [isCopyMode, setIsCopyMode] = useState(false);
 
+  const [savedControllers, setSavedControllers] = useState([]);
+
+  useEffect(() => {
+    if (isOpen) {
+        // เปลี่ยนจาก localStorage มาเป็น fetch
+        fetch(`${BASE_URL}/api/controllers`)
+            .then(res => res.json())
+            .then(data => setSavedControllers(data))
+            .catch(err => console.error(err));
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen && initialData) {
       setIsCopyMode(false);
@@ -672,15 +684,31 @@ ${staffDetails}
                     <UserPlus className="w-4 h-4 text-indigo-500" /> ผู้ควบคุมออกหน่วย
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1.5">ชื่อ-นามสกุล</label>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">ชื่อ-นามสกุล (เลือกหรือพิมพ์ใหม่)</label>
                       <input 
+                        list="controllers-list"
                         type="text" 
-                        placeholder="ระบุชื่อผู้ควบคุม..." 
+                        placeholder="ระบุหรือเลือกชื่อผู้ควบคุม..." 
                         className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
                         value={generalInfo.controllerName} 
-                        onChange={e => setGeneralInfo({ ...generalInfo, controllerName: e.target.value })} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          const selected = savedControllers.find(c => c.name === val);
+                          setGeneralInfo({ 
+                            ...generalInfo, 
+                            controllerName: val,
+                            // หากเลือกจากลิสต์จะดึงเบอร์โทรมาใส่อัตโนมัติ หากพิมพ์เองจะไม่ทับเบอร์เดิม
+                            controllerPhone: selected ? selected.phone : generalInfo.controllerPhone 
+                          });
+                        }} 
                       />
+                      <datalist id="controllers-list">
+                        {savedControllers.map((c, idx) => (
+                          <option key={idx} value={c.name} />
+                        ))}
+                      </datalist>
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-500 mb-1.5">เบอร์ติดต่อ</label>
