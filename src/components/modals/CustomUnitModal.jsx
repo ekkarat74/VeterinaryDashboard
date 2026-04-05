@@ -156,7 +156,6 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
                                     ) : (
                                         <>
                                             <span className="text-sm font-medium text-slate-700 truncate pl-2">{unit.name}</span>
-                                            {/* เปลี่ยนคลาสตรงนี้ เพื่อให้แสดงผลบนมือถือตลอดเวลา แต่ซ่อนและใช้ Hover บนเดสก์ท็อป */}
                                             <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                                 <button 
                                                     onClick={() => { setEditingId(unit._id); setEditName(unit.name); }} 

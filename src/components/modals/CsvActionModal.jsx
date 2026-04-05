@@ -12,7 +12,6 @@ const CsvActionModal = ({
     districts = [], 
     csvMode 
 }) => {
-    // --- State สำหรับเก็บค่าตัวเลือกการกรอง ---
     const [exportYear, setExportYear] = useState('ทั้งหมด');
     const [exportMonth, setExportMonth] = useState('ทั้งหมด');
     const [exportUnit, setExportUnit] = useState('ทั้งหมด');
@@ -20,7 +19,6 @@ const CsvActionModal = ({
 
     if (!isOpen) return null;
 
-    // ฟังก์ชันรวบรวมค่า Filter แล้วส่งกลับไปที่หน้าหลัก
     const handleExportClick = () => {
         onExport({ 
             year: exportYear, 
@@ -35,7 +33,7 @@ const CsvActionModal = ({
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative animate-in zoom-in-95 duration-200 border border-slate-100 flex flex-col max-h-[90vh]">
                 
-                {/* --- ส่วน Header --- */}
+                {/* --- Header --- */}
                 <div className="bg-slate-50 p-6 border-b border-slate-100 text-center relative shrink-0">
                     <button 
                         onClick={onClose} 
@@ -52,7 +50,7 @@ const CsvActionModal = ({
                     <p className="text-sm text-slate-500 mt-1">นำเข้าหรือส่งออกข้อมูลเพื่อใช้งานในระบบ</p>
                 </div>
                 
-                {/* --- ส่วน Content Actions --- */}
+                {/* --- Content Actions --- */}
                 <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
                     
                     {/* ปุ่ม Import (Dropzone) */}
@@ -76,14 +74,12 @@ const CsvActionModal = ({
                         </div>
                     </div>
                     
-                    {/* เส้นคั่น */}
                     <div className="relative flex items-center">
                         <div className="flex-grow border-t border-slate-200"></div>
                         <span className="flex-shrink-0 mx-4 text-xs font-medium text-slate-400 uppercase tracking-wider">หรือ</span>
                         <div className="flex-grow border-t border-slate-200"></div>
                     </div>
                     
-                    {/* --- ส่วนที่เพิ่มใหม่: ตัวเลือกการ Export (Filters) --- */}
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                         <div className="flex items-center gap-2 text-slate-700 font-bold text-sm mb-1">
                             <Filter className="w-4 h-4 text-emerald-500" />
@@ -114,7 +110,6 @@ const CsvActionModal = ({
                                 </select>
                             </div>
                             
-                            {/* แสดงตัวเลือก "หน่วยงาน" เฉพาะโหมด Report (ไม่ใช่โหมด outbreak) */}
                             {csvMode !== 'outbreak' && (
                                 <div className="col-span-2">
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
@@ -157,7 +152,6 @@ const CsvActionModal = ({
                             </div>
                         </button>
                     </div>
-
                 </div>
             </div>
         </div>

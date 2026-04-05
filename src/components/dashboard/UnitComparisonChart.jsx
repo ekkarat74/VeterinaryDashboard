@@ -35,11 +35,7 @@ export default function UnitComparisonChart({ unitStats }) {
         
         <div className="flex-1 w-full relative min-h-[400px]">
           <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1} debounce={50}>
-            <BarChart 
-  data={unitStats} 
-  layout="vertical" 
-  margin={{top: 5, right: 130, left: 20, bottom: 5}}
->
+            <BarChart data={unitStats} layout="vertical" margin={{top: 5, right: 130, left: 20, bottom: 5}}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
               <XAxis type="number" hide />
               <YAxis 
@@ -81,34 +77,30 @@ export default function UnitComparisonChart({ unitStats }) {
                 activeBar={{ fill: '#818cf8' }}
               >
                 <LabelList 
-  dataKey="total" 
-  position="right" 
-  content={(props) => {
-    const { x, y, width, value, index } = props;
-    const count = unitStats[index]?.count || 0;
-    const displayValue = value || 0; 
+                  dataKey="total" 
+                  position="right" 
+                  content={(props) => {
+                    const { x, y, width, value, index } = props;
+                    const count = unitStats[index]?.count || 0;
+                    const displayValue = value || 0; 
 
-    return (
-      <g>
-        <text 
-          x={x + width + 10} 
-          y={y + 18} 
-          className="font-mono"
-        >
-          {/* ตัวเลขยอดบริการ */}
-          <tspan fill="#334155" fontSize="14" fontWeight="bold">
-            {displayValue.toLocaleString()}
-          </tspan>
+                    return (
+                      <g>
+                        <text x={x + width + 10} y={y + 18} className="font-mono">
+                          {/* ตัวเลขยอดบริการ */}
+                          <tspan fill="#334155" fontSize="14" fontWeight="bold">
+                            {displayValue.toLocaleString()}
+                          </tspan>
           
-          {/* จำนวนครั้งที่ออกหน่วย (ใช้ dx="8" เพื่อเว้นวรรคจากตัวเลขด้านหน้า) */}
-          <tspan fill="#6366f1" fontSize="12" fontWeight="600" dx="8">
-            | {count} ครั้ง
-          </tspan>
-        </text>
-      </g>
-    );
-  }}
-/>
+                          {/* จำนวนครั้งที่ออกหน่วย (ใช้ dx="8" เพื่อเว้นวรรคจากตัวเลขด้านหน้า) */}
+                          <tspan fill="#6366f1" fontSize="12" fontWeight="600" dx="8">
+                            | {count} ครั้ง
+                          </tspan>
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

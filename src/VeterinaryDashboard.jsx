@@ -58,7 +58,6 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
 
     if (activeAnnouncements.length === 0 && !canEdit) return null;
 
-    // เลือกข้อความปัจจุบันที่จะแสดง
     const safeIndex = currentIndex >= activeAnnouncements.length ? 0 : currentIndex;
     const currentItem = activeAnnouncements[safeIndex];
 
@@ -72,7 +71,6 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
             <div className="flex-1 relative h-full flex items-center overflow-hidden">
                 {currentItem && (
                     <div 
-                        // ใช้ key เพื่อบังคับให้ React re-render และเล่น Animation ใหม่ทุกครั้งที่เปลี่ยนข้อความ
                         key={currentItem.id + '-' + safeIndex} 
                         className={`flex items-center gap-2 absolute w-full ${activeAnnouncements.length > 1 ? 'animate-slide-left' : ''}`}
                     >

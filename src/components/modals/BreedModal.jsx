@@ -31,7 +31,6 @@ const BreedModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
               fetchItems();
               onToast('success', 'เพิ่มสายพันธุ์สำเร็จ');
           } else {
-              // ✨ [ส่วนที่แก้ไข] ป้องกันแอปพังจากการแปลงหน้า 404 HTML เป็น JSON
               const contentType = res.headers.get("content-type");
               if (contentType && contentType.indexOf("application/json") !== -1) {
                   const data = await res.json();

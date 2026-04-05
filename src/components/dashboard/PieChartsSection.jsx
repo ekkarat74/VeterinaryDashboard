@@ -9,7 +9,6 @@ export default function PieChartsSection({
     unitByWorkTypePieData = [], 
     outbreakPieData = [] 
 }) {
-    // ฟังก์ชันช่วยจัดการ Tooltip ป้องกันบัค undefined / null พัง
     const safeFormatTooltip = (value, name, unit) => {
         const safeValue = value ?? 0;
         return [`${safeValue.toLocaleString()} ${unit}`, name || 'ไม่ระบุ'];

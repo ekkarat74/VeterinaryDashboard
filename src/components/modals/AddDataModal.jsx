@@ -33,7 +33,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
 
-  // States สำหรับจัดการ Custom Units จาก DB
   const [customUnitsObj, setCustomUnitsObj] = useState([]);
   const [isManagingUnits, setIsManagingUnits] = useState(false); 
   const [editingUnitId, setEditingUnitId] = useState(null);
@@ -42,47 +41,39 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
   const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
 
-  // 1. รวมหน่วยงาน (Hybrid Logic)
   const allUnitOptions = useMemo(() => {
     const baseUnits = UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ');
     const dbUnits = customUnitsObj.map(u => u.name);
     return [...new Set([...baseUnits, ...dbUnits]), 'หน่วยอื่น ๆ'];
   }, [customUnitsObj]);
 
-  // 2. ดึงข้อมูลหน่วยงานจาก DB เมื่อเปิด Modal
   const fetchCustomUnits = async () => {
-  try {
-    const res = await fetch(`${BASE_URL}/api/custom-units`);
-    if (res.ok) {
-      const data = await res.json();
-      // ป้องกัน Error โดยเช็คว่าเป็น Array ก่อนเซ็ตค่า
-      setCustomUnitsObj(Array.isArray(data) ? data : []); 
+    try {
+      const res = await fetch(`${BASE_URL}/api/custom-units`);
+      if (res.ok) {
+        const data = await res.json();
+        setCustomUnitsObj(Array.isArray(data) ? data : []); 
+      }
+    } catch (error) {
+      console.error("Fetch units error", error);
     }
-  } catch (error) {
-    console.error("Fetch units error", error);
-  }
-};
+  };
 
-// แก้ไข useEffect ตัวเดิม
-useEffect(() => {
-  if (isOpen) {
-    // แยกการ fetch ไว้เพื่อไม่ให้ไปผูกกับ allUnitOptions โดยตรงจนเกินไป
-    fetchCustomUnits();
-  } else {
-    // รีเซ็ตตอนปิด
-    setFormData(defaultFormData);
-    setBreakdown(defaultBreakdown);
-    setCoordInput("");
-    setImagePreview(null);
-  }
-}, [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      fetchCustomUnits();
+    } else {
+      setFormData(defaultFormData);
+      setBreakdown(defaultBreakdown);
+      setCoordInput("");
+      setImagePreview(null);
+    }
+  }, [isOpen]);
 
-// เพิ่ม useEffect อีกตัวสำหรับเซ็ต initialData โดยเฉพาะ
 useEffect(() => {
   if (isOpen && initialData) {
     setFormData({
       ...initialData,
-      // เช็คจาก allUnitOptions ล่าสุด (ซึ่งจะอัปเดตใหม่หลัง fetch เสร็จ)
       unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
       otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
     });
@@ -90,8 +81,7 @@ useEffect(() => {
     setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
     setImagePreview(initialData.imageUrl || null);
   }
-}, [isOpen, initialData, allUnitOptions]); // <- เพิ่ม allUnitOptions
-  // ฟังก์ชันจัดการหน่วยงานใน DB (Update/Delete)
+}, [isOpen, initialData, allUnitOptions]);
   const handleDeleteUnit = async (id, name) => {
     if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
     try {
@@ -122,7 +112,6 @@ useEffect(() => {
     } catch (err) { onToast('error', 'แก้ไขไม่สำเร็จ'); }
   };
 
-  // คำนวณยอดรวมอัตโนมัติ
   const totals = useMemo(() => {
     const parse = (val) => parseInt(val) || 0;
     const { dog, cat, other } = breakdown;
@@ -146,7 +135,7 @@ useEffect(() => {
       details: breakdown,
       lat: parseFloat(formData.lat) || 0,
       long: parseFloat(formData.long) || 0,
-      imageUrl: imagePreview // ในระบบจริงควรแปลงเป็น Base64 หรือ Upload ขึ้น Cloud
+      imageUrl: imagePreview
     };
 
     if (initialData) onUpdate(initialData._id, payload);
@@ -180,8 +169,6 @@ useEffect(() => {
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col bg-slate-50/30">
           <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-            
-            {/* ส่วนข้อมูลทั่วไป */}
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
               <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span> ข้อมูลทั่วไป
@@ -240,11 +227,7 @@ useEffect(() => {
                 <div className="md:col-span-4">
                   <label className={labelClass}>เขต</label>
                   <div className="relative">
-                    <input 
-                      type="text" 
-                      className={inputClass} 
-                      placeholder="พิมพ์เพื่อค้นหาเขต..."
-                      value={formData.district} 
+                    <input type="text" className={inputClass} placeholder="พิมพ์เพื่อค้นหาเขต..."value={formData.district} 
                       onChange={e => {
                         setFormData({...formData, district: e.target.value, subdistrict: ''});
                         setShowDistrictDropdown(true);
@@ -253,7 +236,6 @@ useEffect(() => {
                       onBlur={() => setShowDistrictDropdown(false)}
                     />
                     
-                    {/* Dropdown แสดงรายการเขตที่กรองแล้ว */}
                     {showDistrictDropdown && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
                         {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).length > 0 ? (
@@ -262,7 +244,6 @@ useEffect(() => {
                               key={d} 
                               className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
                               onMouseDown={(e) => {
-                                // ใช้ onMouseDown + preventDefault เพื่อให้กดเลือกได้ก่อน onBlur ของ input จะทำงานและปิด dropdown
                                 e.preventDefault(); 
                                 setFormData({...formData, district: d, subdistrict: ''});
                                 setShowDistrictDropdown(false);
@@ -292,21 +273,20 @@ useEffect(() => {
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input type="text" placeholder="13.xxx, 100.xxx" className={`${inputClass} pl-10`} value={coordInput} 
-onChange={e => {
-  const val = e.target.value;
-  setCoordInput(val);
+                      onChange={e => {
+                      const val = e.target.value;
+                      setCoordInput(val);
   
-  // เพิ่มการเช็คค่าว่าง
-  if (!val.trim()) {
-    setFormData({...formData, lat: '', long: ''});
-    return;
-  }
+                      if (!val.trim()) {
+                        setFormData({...formData, lat: '', long: ''});
+                        return;
+                      }
 
-  const parts = val.split(',');
-  if(parts.length >= 2) {
-    setFormData({...formData, lat: parts[0].trim(), long: parts[1].trim()});
-  }
-}}
+                      const parts = val.split(',');
+                        if(parts.length >= 2) {
+                          setFormData({...formData, lat: parts[0].trim(), long: parts[1].trim()});
+                        }
+                      }}
                     />
                   </div>
                 </div>

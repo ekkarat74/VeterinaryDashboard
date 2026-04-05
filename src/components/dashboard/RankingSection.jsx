@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const RankingSection = ({
-  type = "all", // "all", "table", หรือ "deepdive"
+  type = "all",
   rankingYear,
   setRankingYear,
   rankingMonth,
@@ -40,22 +40,18 @@ const RankingSection = ({
   };
 
   const ServiceStat = ({ icon: Icon, color, label, value, isHighest }) => (
-    // 1. เพิ่ม h-full เพื่อให้ทุกกล่องมีความสูงเท่ากันตาม Grid
     <div className={`flex flex-col items-center p-2 rounded-lg border transition-colors relative h-full ${
       isHighest ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-slate-50 border-slate-100'
     }`}>
       {isHighest && (
         <Star className="absolute -top-1.5 -right-1.5 w-4 h-4 text-yellow-500 fill-yellow-400 drop-shadow-sm" />
       )}
-      {/* 2. เพิ่ม shrink-0 ป้องกันไอคอนเบี้ยว */}
       <div className={`p-1.5 rounded-full mb-1 shrink-0 ${color}`}>
         <Icon className="w-3.5 h-3.5" />
       </div>
-      {/* 3. จัดข้อความให้อยู่ตรงกลาง และเว้นระยะด้านล่างเล็กน้อย */}
       <span className="text-[10px] text-slate-500 font-medium text-center leading-tight mb-1">
         {label}
       </span>
-      {/* 4. เพิ่ม mt-auto ตรงนี้ คือหัวใจสำคัญที่จะดันตัวเลขให้อยู่ติดขอบล่างสุดและตรงกันทุกช่อง */}
       <span className={`text-sm font-bold mt-auto ${isHighest ? 'text-indigo-700' : 'text-slate-700'}`}>
         {value.toLocaleString()}
       </span>
@@ -220,7 +216,6 @@ const RankingSection = ({
             </div>
           </div>
           
-          {/* ใช้ flex-col และ overflow-y-auto เพื่อให้เลื่อนแนวตั้งได้ โดยไม่ทะลุกรอบ */}
           <div className="p-4 flex-1 bg-slate-50/50 flex flex-col overflow-y-auto custom-scrollbar gap-4 relative z-0">
             {rankingNestedStats && rankingNestedStats.length > 0 ? (
               rankingNestedStats.map((unit, index) => (

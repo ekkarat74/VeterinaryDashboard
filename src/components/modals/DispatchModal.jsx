@@ -4,10 +4,8 @@ import {
   Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown, Copy, Edit3 
 } from 'lucide-react';
 
-// ตรวจสอบ Path ของ constants ให้ถูกต้อง
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
 
-// --- Sub-Component: StaffInputGroup ---
 const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon }) => (
   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
     <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
@@ -335,7 +333,6 @@ ${staffDetails}
 
   const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
 
-  // 👉 ถอด Wrapper (fixed) ออก และตั้งค่าเป็น Inline Slide-down 👈
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-5xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200">
@@ -358,7 +355,6 @@ ${staffDetails}
           </button>
         </div>
 
-        {/* Content (ใช้ overflow-y-auto เพื่อให้ Scroll เนื้อหาด้านในได้) */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar pb-24 sm:pb-6">
           <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
           

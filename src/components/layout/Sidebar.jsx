@@ -46,10 +46,8 @@ const Sidebar = ({
     user, canAdd, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen, isDevOrSuper,
     onLogin, onLogout, onChangePassword, onOpenLog, onOpenUserMgmt,
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
-    onOpenMeetingList, onOpenMeetingCalendar,
-    onOpenAddOutbreak, onOpenAddData,
-    onNotifyUpdate, onOpenCustomUnits, onClearData, 
-    onOpenBreedMgmt, onOpenColorMgmt,
+    onOpenMeetingList, onOpenMeetingCalendar, onOpenAddOutbreak, onOpenAddData,
+    onNotifyUpdate, onOpenCustomUnits, onClearData, onOpenBreedMgmt, onOpenColorMgmt,
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
     tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
@@ -94,7 +92,6 @@ const Sidebar = ({
                 ${isMobileMenuOpen ? 'translate-x-0 w-[280px] shadow-2xl' : '-translate-x-full w-[280px] md:translate-x-0'} 
                 ${isCollapsed ? 'md:w-[88px]' : 'md:w-[280px]'}
             `}>
-                
                 <div className={`h-[80px] flex items-center px-5 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
                     <div className={`flex items-center gap-3.5 overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'flex'}`}>
                         <div className="relative">

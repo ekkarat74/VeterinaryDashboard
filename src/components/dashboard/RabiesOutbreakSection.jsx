@@ -1,9 +1,12 @@
 import React from 'react';
-import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, EyeOff, Edit, Trash2, TrendingUp, Search } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, 
+    EyeOff, Edit, Trash2, TrendingUp, Search 
+} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+    ResponsiveContainer, Cell, Legend 
+} from 'recharts';
 import OutbreakMap from '../modals/OutbreakMap';
 
-// ✨ ย้าย Default Arrays ออกมานอก Component ป้องกัน Error
 const BAR_COLORS = ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
 
 const CustomTooltip = ({ active, payload, label }) => {

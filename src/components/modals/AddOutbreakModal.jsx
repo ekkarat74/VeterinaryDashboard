@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map } from 'lucide-react';
 import { BANGKOK_DISTRICTS } from '../../constants/locations';
 
-// ✨ ย้าย Default State ออกมานอก Component เพื่อป้องกัน Error: Cannot access before initialization
 const DEFAULT_STATS = {
   owned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
   unowned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
@@ -231,52 +230,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
               </div>
             </div>
 
-            {/* Section 2: สถิติสัตว์ */}
-            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-              <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2 text-sm sm:text-base">
-                <Activity className="w-4 h-4 text-red-500" /> จำนวนสัตว์ที่สัมผัส/อยู่ในกลุ่มเสี่ยง
-              </h4>
-
-              <div className="space-y-3">
-                {CATEGORIES.map(category => (
-                  <div key={category.key} className={`p-3 sm:p-4 rounded-xl border ${category.color}`}>
-                    <div className="font-bold text-sm mb-3">{category.label}</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      {/* สุนัข */}
-                      <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
-                        <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐶 สุนัข</div>
-                        <div className="flex-1 flex gap-2">
-                          <div className="flex-1 text-center">
-                            <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
-                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].dog.male || ''} onChange={e => handleStatChange(category.key, 'dog', 'male', e.target.value)} />
-                          </div>
-                          <div className="flex-1 text-center">
-                            <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
-                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].dog.female || ''} onChange={e => handleStatChange(category.key, 'dog', 'female', e.target.value)} />
-                          </div>
-                        </div>
-                      </div>
-                      {/* แมว */}
-                      <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
-                        <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐱 แมว</div>
-                        <div className="flex-1 flex gap-2">
-                          <div className="flex-1 text-center">
-                            <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
-                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].cat.male || ''} onChange={e => handleStatChange(category.key, 'cat', 'male', e.target.value)} />
-                          </div>
-                          <div className="flex-1 text-center">
-                            <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
-                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].cat.female || ''} onChange={e => handleStatChange(category.key, 'cat', 'female', e.target.value)} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section 3: ข้อมูลเชิงลึก */}
+            {/* Section 2: ข้อมูลเชิงลึก */}
             <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
               <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2 text-sm sm:text-base">
                 <Activity className="w-4 h-4 text-red-500" /> ข้อมูลเชิงลึกสัตว์ที่พบเชื้อ
@@ -349,6 +303,50 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
               </div>
             </div>
 
+            {/* Section 3: สถิติสัตว์ */}
+            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2 text-sm sm:text-base">
+                <Activity className="w-4 h-4 text-red-500" /> จำนวนสัตว์ที่สัมผัส/อยู่ในกลุ่มเสี่ยง
+              </h4>
+
+              <div className="space-y-3">
+                {CATEGORIES.map(category => (
+                  <div key={category.key} className={`p-3 sm:p-4 rounded-xl border ${category.color}`}>
+                    <div className="font-bold text-sm mb-3">{category.label}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      {/* สุนัข */}
+                      <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
+                        <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐶 สุนัข</div>
+                        <div className="flex-1 flex gap-2">
+                          <div className="flex-1 text-center">
+                            <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].dog.male || ''} onChange={e => handleStatChange(category.key, 'dog', 'male', e.target.value)} />
+                          </div>
+                          <div className="flex-1 text-center">
+                            <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].dog.female || ''} onChange={e => handleStatChange(category.key, 'dog', 'female', e.target.value)} />
+                          </div>
+                        </div>
+                      </div>
+                      {/* แมว */}
+                      <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
+                        <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐱 แมว</div>
+                        <div className="flex-1 flex gap-2">
+                          <div className="flex-1 text-center">
+                            <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].cat.male || ''} onChange={e => handleStatChange(category.key, 'cat', 'male', e.target.value)} />
+                          </div>
+                          <div className="flex-1 text-center">
+                            <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].cat.female || ''} onChange={e => handleStatChange(category.key, 'cat', 'female', e.target.value)} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </form>
         </div>
 

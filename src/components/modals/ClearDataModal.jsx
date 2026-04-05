@@ -7,7 +7,6 @@ export default function ClearDataModal({ isOpen, onClose, onConfirm, availableYe
     const [selectedMonth, setSelectedMonth] = useState('ทั้งหมด');
     const [selectedUnit, setSelectedUnit] = useState('ทั้งหมด');
 
-    // รีเซ็ตค่าเมื่อเปิด Modal ใหม่
     useEffect(() => {
         if (isOpen) {
             setPassword('');

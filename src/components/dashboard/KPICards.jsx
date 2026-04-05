@@ -5,10 +5,8 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-// --- Helper Function: คำนวณเปอร์เซ็นต์แบบปลอดภัย ---
 const getPercentage = (part, total) => (total > 0 ? (part / total) * 100 : 0);
 
-// --- 1. Sub-Component: การ์ด KPI (สำหรับยอดรวม) ---
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, dogCount = 0, catCount = 0 }) => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow duration-300 cursor-default group relative overflow-hidden h-full">
         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 ${colorClass}`}></div>
@@ -31,7 +29,6 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
             </div>
         </div>
 
-        {/* Improved Dog/Cat Stats with Micro Bar */}
         {(dogCount > 0 || catCount > 0) && (
             <div className="pt-3 border-t border-slate-100 mt-auto relative z-10">
                 <div className="flex justify-between items-center mb-1.5">
@@ -44,7 +41,7 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
                         <Cat className="w-3 h-3 text-blue-500" />
                     </div>
                 </div>
-                {/* Ratio Bar */}
+                
                 <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden flex">
                     <div 
                         style={{ width: `${getPercentage(dogCount, (dogCount + catCount))}%` }} 
@@ -60,7 +57,6 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
     </div>
 );
 
-// --- 2. Sub-Component: การ์ด Unit (สำหรับแยกหน่วยงาน) ---
 const UnitCard = ({ unit, index, maxVal }) => {
     const percentage = maxVal > 0 ? (unit.count / maxVal) * 100 : 0;
     
@@ -132,7 +128,6 @@ const UnitCard = ({ unit, index, maxVal }) => {
     );
 };
 
-// --- 3. Main Component: ส่วนแสดงผลทั้งหมด ---
 const KPISection = ({ totals = {}, unitStats = [] }) => {
     const maxUnitCount = unitStats.length > 0 ? Math.max(...unitStats.map(u => u.count), 1) : 1;
 

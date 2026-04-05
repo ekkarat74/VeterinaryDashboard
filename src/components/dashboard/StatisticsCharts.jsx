@@ -5,7 +5,6 @@ import {
 } from 'recharts';
 import { Calendar, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// ประกาศอาร์เรย์เดือนไว้ด้านนอก Component เพื่อไม่ต้องสร้างใหม่ทุกครั้งที่เรนเดอร์
 const THAI_MONTHS = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", 
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
@@ -41,13 +40,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const StatisticsCharts = ({ 
-  trendData, unitStats, dispatchStats,
-  trendOffset, setTrendOffset,
-  freqDailyOffset, setFreqDailyOffset,
-  freqMonthlyOffset, setFreqMonthlyOffset,
-  chartBaseYear, setChartBaseYear,
-  chartBaseMonth, setChartBaseMonth,
-  availableYears
+  trendData, unitStats, dispatchStats, trendOffset, setTrendOffset,
+  freqDailyOffset, setFreqDailyOffset, freqMonthlyOffset, setFreqMonthlyOffset,
+  chartBaseYear, setChartBaseYear, chartBaseMonth, setChartBaseMonth, availableYears
 }) => {
   const [freqFilter, setFreqFilter] = useState('monthly'); 
   const currentFreqData = freqFilter === 'monthly' ? (dispatchStats?.monthly || []) : (dispatchStats?.daily || []);
@@ -82,7 +77,6 @@ const StatisticsCharts = ({
     );
   }
 
-  // Component ย่อยสำหรับแสดง Dropdown เดือนและปี
   const FilterSelectors = () => (
     <div className="flex gap-2">
       <select 
@@ -235,13 +229,10 @@ const StatisticsCharts = ({
               />
               <Legend iconType="rect" wrapperStyle={{ paddingTop: '20px', fontSize: '11px' }} />
               
-              {/* แก้ไข: เอา radius ออกจากแท่งฐาน เพื่อไม่ให้เกิดรอยแหว่งตอนซ้อนทับกัน */}
               <Bar dataKey="sterilization" fill="#60a5fa" name="สัตวแพทย์" stackId="a" />
               <Bar dataKey="vaccine_microchip" fill="#34d399" name="วัคซีน + ไมโครชิป" stackId="a" />
               <Bar dataKey="governor" fill="#fb923c" name="ผู้ว่าฯ" stackId="a" />
               <Bar dataKey="cat_cage" fill="#a78bfa" name="กรงแมว" stackId="a" />
-              
-              {/* ใส่ radius ไว้แค่แท่งบนสุดแท่งเดียว */}
               <Bar dataKey="other" fill="#cbd5e1" name="อื่นๆ" radius={[3,3,0,0]} stackId="a" />
             </BarChart>
           </ResponsiveContainer>

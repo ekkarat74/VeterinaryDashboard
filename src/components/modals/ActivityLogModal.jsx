@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Database, X, FileText, Search, RefreshCw, Terminal, Clock, User, Info, Activity } from 'lucide-react';
+import { Database, X, FileText, Search, RefreshCw, Terminal, Clock, 
+    User, Info, Activity 
+} from 'lucide-react';
 
-// 1. LogDetailModal (ดีไซน์เป็นแบบ Code Editor style)
 const LogDetailModal = ({ isOpen, onClose, data }) => {
     if (!isOpen || !data) return null;
     return (
@@ -22,7 +23,6 @@ const LogDetailModal = ({ isOpen, onClose, data }) => {
                     </button>
                 </div>
                 
-                {/* JSON Viewer คล้าย Code Editor */}
                 <div className="p-0 overflow-auto bg-[#1e1e1e] custom-scrollbar">
                     <pre className="text-[13px] font-mono text-emerald-400 p-6 leading-relaxed">
                         {JSON.stringify(data, null, 2)}
@@ -39,7 +39,6 @@ const LogDetailModal = ({ isOpen, onClose, data }) => {
     );
 };
 
-// 2. ActivityLogModal (Component หลัก)
 const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     const [logs, setLogs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +48,7 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
     useEffect(() => {
         if (isOpen) {
             fetchLogs();
-            setSearchTerm(''); // Reset search เมื่อเปิดใหม่
+            setSearchTerm('');
         }
     }, [isOpen]);
 
@@ -70,7 +69,6 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
         }
     };
 
-    // ค้นหาข้อมูลฝั่ง Client
     const filteredLogs = useMemo(() => {
         if (!searchTerm) return logs;
         const lowerSearch = searchTerm.toLowerCase();
