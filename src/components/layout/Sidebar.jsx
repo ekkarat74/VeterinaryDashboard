@@ -4,7 +4,7 @@ import {
     Database, Download, Zap, List, CalendarDays, AlertTriangle, 
     Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X,
     RefreshCw, Building2, Trash2, Sparkles, PaintBucket, Bell,
-    PawPrint, ShieldCheck
+    PawPrint, ShieldCheck, Dog, Palette
 } from 'lucide-react';
 
 const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColor = 'indigo' }) => {
@@ -49,6 +49,7 @@ const Sidebar = ({
     onOpenMeetingList, onOpenMeetingCalendar,
     onOpenAddOutbreak, onOpenAddData,
     onNotifyUpdate, onOpenCustomUnits, onClearData, 
+    onOpenBreedMgmt, onOpenColorMgmt,
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
     tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
@@ -214,6 +215,10 @@ const Sidebar = ({
                                                     <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><PaintBucket className="w-4 h-4 shrink-0 text-slate-400"/> รูปแบบหน้าจอ</button>
                                                     <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Users className="w-4 h-4 shrink-0 text-slate-400"/> บัญชีผู้ใช้</button>
                                                     <button onClick={() => handleAction(onOpenCustomUnits)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Building2 className="w-4 h-4 shrink-0 text-slate-400"/> รายชื่อหน่วยงาน</button>
+                                                    
+                                                    {/* ✨ ปุ่มจัดการสายพันธุ์และสี */}
+                                                    <button onClick={() => handleAction(onOpenBreedMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Dog className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสายพันธุ์</button>
+                                                    <button onClick={() => handleAction(onOpenColorMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Palette className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสีสัตว์</button>
                                                     
                                                     {isSystemDeveloper && (
                                                         <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-3 rounded-xl text-sm font-medium text-sky-700 bg-sky-50 hover:bg-sky-100 flex items-center gap-3 transition-all border border-sky-200">

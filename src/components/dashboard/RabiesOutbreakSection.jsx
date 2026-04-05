@@ -74,7 +74,7 @@ const RabiesOutbreakSection = ({
                         >
                             <option value="ทั้งหมด">ข้อมูลสะสมทั้งหมด ({outbreakData.length})</option>
                             {years.map(y => (
-                                <option key={y} value={y}>ปี พ.ศ. {y}</option>
+                                <option key={y} value={y}>ปี พ.ศ. {parseInt(y) + 543}</option>
                             ))}
                         </select>
                     </div>
@@ -113,7 +113,7 @@ const RabiesOutbreakSection = ({
                                     <Skull className="w-6 h-6 text-white" />
                                 </div>
                                 <span className="text-rose-100 text-xs font-bold bg-black/10 px-2 py-1 rounded-lg">
-                                    {filterYear === 'ทั้งหมด' ? 'ยอดสะสม' : `ปี ${filterYear}`}
+                                    {filterYear === 'ทั้งหมด' ? 'ยอดสะสม' : `ปี ${parseInt(filterYear) + 543}`}
                                 </span>
                             </div>
                             <div className="space-y-1">
@@ -134,7 +134,6 @@ const RabiesOutbreakSection = ({
                                 <MapPin className="w-4 h-4 group-hover:text-rose-500 transition-colors" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Top Zone</span>
                             </div>
-                            {/* แก้ไข: เพิ่ม Optional Chaining (?.) ป้องกันแอปแครชตอนข้อมูลยังไม่มา */}
                             <p className="text-lg font-bold text-slate-800 truncate" title={stats?.topDistricts?.[0]?.name}>
                                 {stats?.topDistricts?.length > 0 ? stats.topDistricts[0].name : '-'}
                             </p>
@@ -146,7 +145,6 @@ const RabiesOutbreakSection = ({
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Update</span>
                             </div>
                             <p className="text-lg font-bold text-slate-800">
-                                {/* แก้ไข: ดึงเวลาด้วย getTime() ให้ใช้กับ Math.max ได้ถูกต้อง พร้อมกรองค่า Invalid Date ทิ้ง */}
                                 {filteredOutbreaks?.length > 0 
                                     ? (() => {
                                         const validDates = filteredOutbreaks
@@ -175,10 +173,8 @@ const RabiesOutbreakSection = ({
                             {filteredOutbreaks.slice(0, 5).map((item, idx) => {
                                 const isHidden = hiddenIds.includes(item._id);
 
-                                // 1. ฟังก์ชันช่วยแปลงค่าให้เป็นตัวเลขเสมอ (ป้องกันปัญหาข้อมูลเป็น String, null หรือ undefined)
                                 const getNum = (val) => parseInt(val, 10) || 0;
 
-                                // 2. คำนวณยอดรวม (รองรับทั้งแบบแยกกลุ่ม owned, unowned, feeder และแบบโครงสร้างปกติ)
                                 let dogCount = 0;
                                 let catCount = 0;
 
@@ -191,7 +187,6 @@ const RabiesOutbreakSection = ({
                                     });
                                 }
 
-                                // รวมกับข้อมูลรูปแบบอื่นๆ หรือโครงสร้างแบบเก่า
                                 dogCount += getNum(item.stats?.dog?.male) + getNum(item.stats?.dog?.female) + 
                                     getNum(item.dog?.male) + getNum(item.dog?.female) + 
                                     getNum(item.dogMale) + getNum(item.dogFemale) +
@@ -201,9 +196,6 @@ const RabiesOutbreakSection = ({
                                     getNum(item.cat?.male) + getNum(item.cat?.female) + 
                                     getNum(item.catMale) + getNum(item.catFemale) +
                                     getNum(item.stats?.cats) + getNum(item.cats);
-
-                                // +++ หากยังไม่ได้ค่า แนะนำให้เอาคอมเมนต์บรรทัดล่างออกเพื่อเช็คโครงสร้าง Object จริงใน Console (F12) +++
-                                console.log("Outbreak Item:", item);
 
                                 return (
                                     <div key={idx} className={`relative p-3 rounded-2xl transition-all duration-300 border ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-100 hover:shadow-md hover:shadow-rose-100/50'}`}>
@@ -229,6 +221,17 @@ const RabiesOutbreakSection = ({
                                                     </span>
                                                 </div>
                                                 
+                                                {/* ✨ แสดงข้อมูลเชิงลึกถ้ามี */}
+                                                {item.insight && (item.insight.spcc || item.insight.animalType) && (
+                                                    <div className="mt-2 pt-2 border-t border-slate-100 border-dashed text-[11px] text-slate-500 flex flex-col gap-1">
+                                                        <div><span className="font-bold text-slate-600">ศบส:</span> {item.insight.spcc || '-'} | <span className="font-bold text-slate-600">เลขที่ตรวจ:</span> {item.insight.testNo || '-'}</div>
+                                                        <div>
+                                                            {item.insight.animalType} {item.insight.breed ? `(${item.insight.breed})` : ''} {item.insight.color ? `สี${item.insight.color}` : ''} {item.insight.gender ? `เพศ${item.insight.gender}` : ''} {item.insight.age ? `อายุ ${item.insight.age}` : ''}
+                                                        </div>
+                                                        <div><span className="font-bold text-slate-600">ประวัติวัคซีน:</span> {item.insight.vaccineHistory || '-'}</div>
+                                                    </div>
+                                                )}
+
                                                 {/* ส่วนแสดงผลตัวเลข (เรียกใช้ dogCount, catCount) */}
                                                 <div className="flex gap-2 mt-2">
                                                     <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">

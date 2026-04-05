@@ -124,9 +124,34 @@ const outbreakSchema = new mongoose.Schema({
       cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     }
   }
+  insight: {
+    spcc: { type: String, default: "" },           // ศบส
+    testNo: { type: String, default: "" },         // เลขที่ตรวจ
+    animalType: { type: String, default: "" },     // ชนิดสัตว์
+    ownership: { type: String, default: "" },      // มี/ไม่เจ้าของ
+    gender: { type: String, default: "" },         // เพศ
+    breed: { type: String, default: "" },          // สายพันธุ์
+    color: { type: String, default: "" },          // สี
+    age: { type: String, default: "" },            // อายุ
+    vaccineHistory: { type: String, default: "" }  // ประวัติวัคซีน
+  }
 }, { timestamps: true });
 outbreakSchema.index({ date: -1, district: 1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
+
+// 10. Breed Schema (สายพันธุ์)
+const breedSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: String
+}, { timestamps: true });
+const Breed = mongoose.model('Breed', breedSchema);
+
+// 11. Color Schema (สี)
+const colorSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: String
+}, { timestamps: true });
+const Color = mongoose.model('Color', colorSchema);
 
 // 4. System Log Schema
 const logSchema = new mongoose.Schema({
@@ -822,6 +847,62 @@ app.delete('/api/custom-units/:id', authenticateToken, authorizeRole(['Developer
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
+});
+
+// =======================
+// L. BREEDS (สายพันธุ์)
+// =======================
+app.get('/api/breeds', async (req, res) => {
+    try {
+        const breeds = await Breed.find().sort({ createdAt: -1 }).lean();
+        res.json(breeds);
+    } catch (err) { res.status(500).json({ message: err.message }); }
+});
+app.post('/api/breeds', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        const { name } = req.body;
+        const existing = await Breed.findOne({ name });
+        if (existing) return res.status(400).json({ message: "มีสายพันธุ์นี้อยู่แล้ว" });
+        const newBreed = new Breed({ name, createdBy: req.user.username });
+        const savedBreed = await newBreed.save();
+        io.emit('server_data_update', { type: 'BREED_ADDED', data: savedBreed });
+        res.status(201).json(savedBreed);
+    } catch (err) { res.status(400).json({ message: err.message }); }
+});
+app.delete('/api/breeds/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        await Breed.findByIdAndDelete(req.params.id);
+        io.emit('server_data_update', { type: 'BREED_DELETED', id: req.params.id });
+        res.json({ message: "ลบสำเร็จ" });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// =======================
+// M. COLORS (สี)
+// =======================
+app.get('/api/colors', async (req, res) => {
+    try {
+        const colors = await Color.find().sort({ createdAt: -1 }).lean();
+        res.json(colors);
+    } catch (err) { res.status(500).json({ message: err.message }); }
+});
+app.post('/api/colors', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        const { name } = req.body;
+        const existing = await Color.findOne({ name });
+        if (existing) return res.status(400).json({ message: "มีสีนี้อยู่แล้ว" });
+        const newColor = new Color({ name, createdBy: req.user.username });
+        const savedColor = await newColor.save();
+        io.emit('server_data_update', { type: 'COLOR_ADDED', data: savedColor });
+        res.status(201).json(savedColor);
+    } catch (err) { res.status(400).json({ message: err.message }); }
+});
+app.delete('/api/colors/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        await Color.findByIdAndDelete(req.params.id);
+        io.emit('server_data_update', { type: 'COLOR_DELETED', id: req.params.id });
+        res.json({ message: "ลบสำเร็จ" });
+    } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

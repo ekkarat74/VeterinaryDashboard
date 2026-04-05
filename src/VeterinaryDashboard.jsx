@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays,
-    Megaphone, Edit3, Plus, GripVertical, Save // เพิ่มไอคอนใหม่
+    Megaphone, Edit3, Plus, GripVertical, Save
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -36,21 +36,18 @@ import ClearDataModal from './components/modals/ClearDataModal.jsx';
 import DispatchCalendarDashboard from './components/DispatchCalendarDashboard.jsx';
 const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal.jsx'));
 
-// --- คอมโพเนนต์แถบเลื่อนด้านบน (Announcement Bar) ---
 const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    // 👇 แก้ไขตรงนี้: เปลี่ยนข้อความอัตโนมัติทุกๆ 8 วินาที (จากเดิม 4 วินาที)
     useEffect(() => {
         if (activeAnnouncements.length <= 1) return;
         const timer = setInterval(() => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % activeAnnouncements.length);
-        }, 8000); // <--- เปลี่ยนตรงนี้เป็น 8000
+        }, 8000);
         return () => clearInterval(timer);
     }, [activeAnnouncements.length]);
 
-    // รีเซ็ต Index เมื่อจำนวนข้อความเปลี่ยน (เช่น ตอนลบข้อความ)
     useEffect(() => {
         if (currentIndex >= activeAnnouncements.length) {
             setCurrentIndex(0);
@@ -214,6 +211,22 @@ export default function VeterinaryDashboard() {
         chartBaseMonth, setChartBaseMonth,
         toasts, addToast, removeToast
     } = useDashboardState();
+
+    const [breeds, setBreeds] = useState([]);
+    const [colors, setColors] = useState([]);
+
+    useEffect(() => {
+    const fetchBreedsAndColors = async () => {
+      try {
+        const resB = await fetch(`${BASE_URL}/api/breeds`);
+        setBreeds(await resB.json());
+        
+        const resC = await fetch(`${BASE_URL}/api/colors`);
+        setColors(await resC.json());
+      } catch (err) { console.error("Error fetching breeds/colors", err); }
+    };
+    fetchBreedsAndColors();
+  }, [BASE_URL]);
 
     const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
@@ -1468,7 +1481,7 @@ export default function VeterinaryDashboard() {
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <Suspense fallback={<div className="hidden">Loading...</div>}>
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
-                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} />
+                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} breeds={breeds} colors={colors}/>
                 <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             </Suspense>
 

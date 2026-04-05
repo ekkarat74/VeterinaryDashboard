@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map } from 'lucide-react';
 import { BANGKOK_DISTRICTS } from '../../constants/locations';
 
-const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
+const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast, breeds = [], colors = [] }) => {
   const defaultStats = {
     owned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
     unowned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
     feeder: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
+  };
+
+  const defaultInsight = {
+    spcc: '', testNo: '', animalType: '', ownership: '', gender: '', breed: '', color: '', age: '', vaccineHistory: ''
   };
 
   const [formData, setFormData] = useState({
@@ -15,7 +19,8 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     district: BANGKOK_DISTRICTS[0],
     lat: '',
     long: '',
-    stats: defaultStats
+    stats: defaultStats,
+    insight: defaultInsight
   });
 
   const [coordInput, setCoordInput] = useState("");
@@ -43,7 +48,8 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
               dog: { male: initialData.stats?.feeder?.dog?.male || 0, female: initialData.stats?.feeder?.dog?.female || 0 },
               cat: { male: initialData.stats?.feeder?.cat?.male || 0, female: initialData.stats?.feeder?.cat?.female || 0 }
             }
-          }
+          },
+          insight: initialData.insight || defaultInsight
         });
 
         if (initialData.lat && initialData.long) {
@@ -58,7 +64,8 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
           district: BANGKOK_DISTRICTS[0],
           lat: '',
           long: '',
-          stats: defaultStats
+          stats: defaultStats,
+          insight: defaultInsight
         });
         setCoordInput("");
       }
@@ -82,6 +89,13 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     }));
   };
 
+  const handleInsightChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      insight: { ...prev.insight, [field]: value }
+    }));
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
@@ -100,7 +114,6 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     onClose();
   };
 
-  // ข้อมูลหมวดหมู่สำหรับ Render
   const categories = [
     { key: 'owned', label: '🏠 สัตว์มีเจ้าของ', color: 'bg-blue-50 border-blue-100 text-blue-800' },
     { key: 'unowned', label: '🛣️ สัตว์ไม่มีเจ้าของ', color: 'bg-orange-50 border-orange-100 text-orange-800' },
@@ -108,13 +121,10 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
   ];
 
   return (
-    // 1. แก้ z-[3000] เป็น z-[99999] และเปลี่ยน p-4 เป็น p-0 บนมือถือ
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in">
-      
-      {/* 2. เปลี่ยนความสูงเป็น h-[100dvh] บนมือถือ และยกเลิกขอบมน (rounded-none) */}
       <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] overflow-hidden border-0 sm:border border-slate-200">
         
-        {/* Header (Sticky) - เพิ่ม padding รองรับจอมือถือ */}
+        {/* Header (Sticky) */}
         <div className="bg-red-600 px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center text-white shrink-0 mt-safe sm:mt-0 z-10">
           <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
             <Skull className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -305,10 +315,84 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                 ))}
               </div>
             </div>
+
+            {/* Section 3: ข้อมูลเชิงลึก */}
+            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h4 className="font-semibold text-slate-800 flex items-center gap-2 border-b pb-2 text-sm sm:text-base">
+                <Activity className="w-4 h-4 text-red-500" /> ข้อมูลเชิงลึกสัตว์ที่พบเชื้อ
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">ศบส.</label>
+                  <input type="text" className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-slate-50 focus:bg-white" value={formData.insight.spcc} onChange={e => handleInsightChange('spcc', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">เลขที่ตรวจ</label>
+                  <input type="text" className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-slate-50 focus:bg-white" value={formData.insight.testNo} onChange={e => handleInsightChange('testNo', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">อายุ</label>
+                  <input type="text" placeholder="เช่น 2 ปี, 3 เดือน" className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-slate-50 focus:bg-white" value={formData.insight.age} onChange={e => handleInsightChange('age', e.target.value)} />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">ชนิดสัตว์</label>
+                  <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" value={formData.insight.animalType} onChange={e => handleInsightChange('animalType', e.target.value)}>
+                    <option value="">-- เลือกชนิดสัตว์ --</option>
+                    <option value="สุนัข">สุนัข</option>
+                    <option value="แมว">แมว</option>
+                    <option value="อื่นๆ">อื่นๆ</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">มี/ไม่เจ้าของ</label>
+                  <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" value={formData.insight.ownership} onChange={e => handleInsightChange('ownership', e.target.value)}>
+                    <option value="">-- เลือกสถานะ --</option>
+                    <option value="มีเจ้าของ">มีเจ้าของ</option>
+                    <option value="ไม่มีเจ้าของกึ่งจรจัด">ไม่มีเจ้าของกึ่งจรจัด</option>
+                    <option value="ไม่มีเจ้าของ">ไม่มีเจ้าของ</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">เพศ</label>
+                  <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" value={formData.insight.gender} onChange={e => handleInsightChange('gender', e.target.value)}>
+                    <option value="">-- เลือกเพศ --</option>
+                    <option value="ผู้">ผู้</option>
+                    <option value="เมีย">เมีย</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">สายพันธุ์</label>
+                  <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" value={formData.insight.breed} onChange={e => handleInsightChange('breed', e.target.value)}>
+                    <option value="">-- เลือกสายพันธุ์ --</option>
+                    {breeds.map((b, i) => <option key={i} value={b.name}>{b.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">สี</label>
+                  <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" value={formData.insight.color} onChange={e => handleInsightChange('color', e.target.value)}>
+                    <option value="">-- เลือกสี --</option>
+                    {colors.map((c, i) => <option key={i} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">ประวัติวัคซีน</label>
+                  <select className="w-full p-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white" value={formData.insight.vaccineHistory} onChange={e => handleInsightChange('vaccineHistory', e.target.value)}>
+                    <option value="">-- เลือกประวัติวัคซีน --</option>
+                    <option value="ไม่เคยฉีด">ไม่เคยฉีด</option>
+                    <option value="ฉีดมากกว่า 1 ปี">ฉีดมากกว่า 1 ปี</option>
+                    <option value="น้อยกว่า 1 ปี">น้อยกว่า 1 ปี</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
           </form>
         </div>
 
-        {/* Footer (Sticky) - 3. เพิ่ม pb-8 สำหรับมือถือ เพื่อป้องกันปุ่มโดนแถบ Home Indicator ด้านล่างทับ */}
+        {/* Footer (Sticky) */}
         <div className="bg-white border-t border-slate-200 p-4 sm:p-5 pb-8 sm:pb-5 px-4 sm:px-6 flex gap-3 shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)]">
           <button
             type="button"
