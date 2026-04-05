@@ -1,5 +1,5 @@
 // components/modals/OutbreakMap.jsx
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON, LayersControl } from 'react-leaflet';
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +14,28 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [hiddenMapIds, setHiddenMapIds] = useState([]);
+
+    // --- แก้ปัญหาบั๊กพื้นที่สีเทาเมื่อแผนที่โหลดไม่เต็มกรอบ ---
+    useEffect(() => {
+        if (!mapRef.current) return;
+
+        // 1. สั่งให้แผนที่รีเฟรชขนาดเผื่อเกิดกรณี UI แอนิเมชันยังโหลดไม่เสร็จ
+        const timer = setTimeout(() => {
+            if (mapRef.current) mapRef.current.invalidateSize();
+        }, 500);
+
+        // 2. ดักจับเมื่อ Container ของแผนที่มีการเปลี่ยนขนาด (แม่นยำกว่า window resize)
+        const resizeObserver = new ResizeObserver(() => {
+            if (mapRef.current) mapRef.current.invalidateSize();
+        });
+        
+        resizeObserver.observe(mapRef.current.getContainer());
+
+        return () => {
+            clearTimeout(timer);
+            resizeObserver.disconnect();
+        };
+    }, []);
 
     const toggleMapVisibility = (id) => {
         setHiddenMapIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -32,7 +54,7 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                     const { latitude, longitude } = position.coords;
                     mapRef.current.flyTo([latitude, longitude], 14);
                 },
-                (error) => alert("ไม่สามารถดึงตำแหน่งปัจจุบันได้ กรุณาเปิด GPS")
+                (error) => alert("ไม่สามารถดึงตำแหน่งปัจจุบันได้ กรุณาเปิดสิทธิใช้งาน GPS")
             );
         }
     };
@@ -208,7 +230,7 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                     const long = parseFloat(item.long);
                     if (isNaN(lat) || isNaN(long)) return null;
 
-                    // คืนชีพโค้ดคำนวณจำนวนสุนัขและแมว เพื่อแสดงใน Popup
+                    // คำนวณจำนวนสุนัขและแมว เพื่อแสดงใน Popup
                     const getNum = (val) => parseInt(val, 10) || 0;
                     let dogCount = 0;
                     let catCount = 0;
@@ -247,7 +269,6 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                         <h3 className="font-bold text-slate-800 text-base">{item.location}</h3>
                                         <p className="text-xs text-slate-500 mb-3">{item.district}</p>
                                         
-                                        {/* คืนชีพ Popup สถิติสัตว์ */}
                                         <div className="bg-red-50 rounded border border-red-100 p-2 mb-3">
                                             <span className="text-[10px] font-bold text-red-600 block mb-1">สถิติสัตว์เสี่ยงติดเชื้อ</span>
                                             <div className="flex justify-center gap-4 text-xs font-semibold text-slate-700">
