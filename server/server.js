@@ -123,7 +123,7 @@ const outbreakSchema = new mongoose.Schema({
       dog: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } },
       cat: { male: { type: Number, default: 0 }, female: { type: Number, default: 0 } }
     }
-  }
+  },
   insight: {
     spcc: { type: String, default: "" },           // ศบส
     testNo: { type: String, default: "" },         // เลขที่ตรวจ

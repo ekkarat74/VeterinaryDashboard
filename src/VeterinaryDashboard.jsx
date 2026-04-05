@@ -225,10 +225,14 @@ export default function VeterinaryDashboard() {
     const fetchBreedsAndColors = async () => {
       try {
         const resB = await fetch(`${BASE_URL}/api/breeds`);
-        setBreeds(await resB.json());
+        if (resB.ok) {
+           setBreeds(await resB.json());
+        }
         
         const resC = await fetch(`${BASE_URL}/api/colors`);
-        setColors(await resC.json());
+        if (resC.ok) {
+           setColors(await resC.json());
+        }
       } catch (err) { console.error("Error fetching breeds/colors", err); }
     };
     fetchBreedsAndColors();
