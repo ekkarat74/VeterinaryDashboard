@@ -601,6 +601,18 @@ export default function VeterinaryDashboard() {
                 case 'TABS_CONFIG_UPDATED':
                     setTabsConfig(payload.data);
                     break;
+                case 'BREED_ADDED':
+                    setBreeds(prev => [...prev, payload.data]);
+                    break;
+                case 'BREED_DELETED':
+                    setBreeds(prev => prev.filter(b => b._id !== payload.id));
+                    break;
+                case 'COLOR_ADDED':
+                    setColors(prev => [...prev, payload.data]);
+                    break;
+                case 'COLOR_DELETED':
+                    setColors(prev => prev.filter(c => c._id !== payload.id));
+                    break;
                 default: break;
             }
         });
