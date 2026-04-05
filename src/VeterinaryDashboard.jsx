@@ -35,6 +35,8 @@ const UnitComparisonChart = React.lazy(() => import('./components/dashboard/Unit
 import ClearDataModal from './components/modals/ClearDataModal.jsx';
 import DispatchCalendarDashboard from './components/DispatchCalendarDashboard.jsx';
 const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal.jsx'));
+const BreedModal = lazy(() => import('./components/modals/BreedModal.jsx'));
+const ColorModal = lazy(() => import('./components/modals/ColorModal.jsx'));
 
 const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
@@ -233,6 +235,8 @@ export default function VeterinaryDashboard() {
   }, [BASE_URL]);
 
     const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
+    const [isBreedModalOpen, setIsBreedModalOpen] = useState(false);
+    const [isColorModalOpen, setIsColorModalOpen] = useState(false);
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
     // ✨ จัดการสิทธิ์การแสดงผลใหม่
@@ -1034,6 +1038,10 @@ export default function VeterinaryDashboard() {
 
     const openCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(true), []);
     const closeCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(false), []);
+    const openBreedMgmt = useCallback(() => setIsBreedModalOpen(true), []);
+    const closeBreedMgmt = useCallback(() => setIsBreedModalOpen(false), []);
+    const openColorMgmt = useCallback(() => setIsColorModalOpen(true), []);
+    const closeColorMgmt = useCallback(() => setIsColorModalOpen(false), []);
 
     const availableYears = useMemo(() => {
         if (!Array.isArray(reportData)) return [];
@@ -1483,6 +1491,9 @@ export default function VeterinaryDashboard() {
                 <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} breeds={breeds} colors={colors}/>
                 <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+
+                <BreedModal isOpen={isBreedModalOpen} onClose={closeBreedMgmt} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <ColorModal isOpen={isColorModalOpen} onClose={closeColorMgmt} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             </Suspense>
 
             {/* เพิ่ม Announcement Modal เข้ามาในส่วนนี้ */}
@@ -1518,6 +1529,8 @@ export default function VeterinaryDashboard() {
                 onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData} onClearData={handleClearAllData} onOpenCustomUnits={openCustomUnitModal}
                 onOpenMeetingList={openMeetingListModal} onOpenCalendar={openCalendarModal} onOpenMeetingCalendar={openMeetingCalendarModal}
                 onOpenMeetingModal={openMeetingModalDialog} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
+                onOpenBreedMgmt={openBreedMgmt}
+                onOpenColorMgmt={openColorMgmt}
                 isMagaAdmin={isMagaAdmin}
                 tabsConfig={tabsConfig} toggleTab={toggleTab}
                 isMobileMenuOpen={isMobileMenuOpen}
