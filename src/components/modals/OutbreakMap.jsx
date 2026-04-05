@@ -19,12 +19,10 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
     useEffect(() => {
         if (!mapRef.current) return;
 
-        // 1. สั่งให้แผนที่รีเฟรชขนาดเผื่อเกิดกรณี UI แอนิเมชันยังโหลดไม่เสร็จ
         const timer = setTimeout(() => {
             if (mapRef.current) mapRef.current.invalidateSize();
         }, 500);
 
-        // 2. ดักจับเมื่อ Container ของแผนที่มีการเปลี่ยนขนาด (แม่นยำกว่า window resize)
         const resizeObserver = new ResizeObserver(() => {
             if (mapRef.current) mapRef.current.invalidateSize();
         });
@@ -94,17 +92,17 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                 .leaflet-container .leaflet-control-layers { border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 6px; }
             `}</style>
 
-            {/* --- ปุ่ม My Location --- */}
+            {/* --- เปลี่ยน z-[400] เป็น z-[1000] --- */}
             <button 
                 onClick={handleLocateMe}
-                className="absolute bottom-6 right-4 z-[400] w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
+                className="absolute bottom-6 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
                 title="ตำแหน่งปัจจุบันของฉัน"
             >
                 <Navigation className="w-6 h-6" />
             </button>
 
-            {/* --- Control Panel --- */}
-            <div className={`absolute top-4 right-4 z-[400] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
+            {/* --- เปลี่ยน z-[400] เป็น z-[1000] --- */}
+            <div className={`absolute top-4 right-4 z-[1000] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
                 <div 
                     className={`flex items-center justify-between cursor-pointer ${isCollapsed ? 'w-full h-full justify-center' : 'p-4'}`}
                     onClick={() => setIsCollapsed(!isCollapsed)}
@@ -202,7 +200,6 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
             {/* --- MAP --- */}
             <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100" ref={mapRef}>
                 
-                {/* ระบบสลับแผนที่ดาวเทียม / ปกติ */}
                 <LayersControl position="topleft">
                     <BaseLayer checked name="แผนที่ถนน (Street)">
                         <TileLayer 
@@ -230,7 +227,6 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                     const long = parseFloat(item.long);
                     if (isNaN(lat) || isNaN(long)) return null;
 
-                    // คำนวณจำนวนสุนัขและแมว เพื่อแสดงใน Popup
                     const getNum = (val) => parseInt(val, 10) || 0;
                     let dogCount = 0;
                     let catCount = 0;
