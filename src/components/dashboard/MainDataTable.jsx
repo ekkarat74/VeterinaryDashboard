@@ -50,8 +50,8 @@ const MainDataTable = ({
                 )}
             </div>
 
-            {/* Table Section */}
-            <div className={`overflow-x-auto custom-scrollbar ${data.length > 10 ? 'max-h-[700px] overflow-y-auto border-b border-gray-100' : ''}`}>
+            {/* Table Section - นำ max-h-[700px] และ overflow-y-auto ออกเพื่อให้ตารางแสดงยาวจนสุด */}
+            <div className="overflow-x-auto custom-scrollbar border-b border-gray-100 w-full">
                 <table className="min-w-full text-sm text-left relative">
                     <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
                         <tr>
@@ -212,7 +212,7 @@ const MainDataTable = ({
             
             {data.length > 0 && (
                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
-                     <span>แสดงข้อมูลล่าสุด {Math.min(data.length, 50)} รายการ</span>
+                     <span>แสดงข้อมูลทั้งหมด {data.length} รายการ</span>
                 </div>
             )}
         </div>
