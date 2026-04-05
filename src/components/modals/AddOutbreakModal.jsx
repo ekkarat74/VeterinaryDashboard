@@ -2,25 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map } from 'lucide-react';
 import { BANGKOK_DISTRICTS } from '../../constants/locations';
 
+// ✨ ย้าย Default State ออกมานอก Component เพื่อป้องกัน Error: Cannot access before initialization
+const DEFAULT_STATS = {
+  owned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
+  unowned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
+  feeder: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
+};
+
+const DEFAULT_INSIGHT = {
+  spcc: '', testNo: '', animalType: '', ownership: '', gender: '', breed: '', color: '', age: '', vaccineHistory: ''
+};
+
+const CATEGORIES = [
+  { key: 'owned', label: '🏠 สัตว์มีเจ้าของ', color: 'bg-blue-50 border-blue-100 text-blue-800' },
+  { key: 'unowned', label: '🛣️ สัตว์ไม่มีเจ้าของ', color: 'bg-orange-50 border-orange-100 text-orange-800' },
+  { key: 'feeder', label: '🥣 สัตว์มีผู้ให้อาหาร', color: 'bg-emerald-50 border-emerald-100 text-emerald-800' }
+];
+
 const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast, breeds = [], colors = [] }) => {
-  const defaultStats = {
-    owned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
-    unowned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
-    feeder: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
-  };
-
-  const defaultInsight = {
-    spcc: '', testNo: '', animalType: '', ownership: '', gender: '', breed: '', color: '', age: '', vaccineHistory: ''
-  };
-
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     location: '',
     district: BANGKOK_DISTRICTS[0],
     lat: '',
     long: '',
-    stats: defaultStats,
-    insight: defaultInsight
+    stats: DEFAULT_STATS,
+    insight: DEFAULT_INSIGHT
   });
 
   const [coordInput, setCoordInput] = useState("");
@@ -49,7 +56,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
               cat: { male: initialData.stats?.feeder?.cat?.male || 0, female: initialData.stats?.feeder?.cat?.female || 0 }
             }
           },
-          insight: initialData.insight || defaultInsight
+          insight: initialData.insight || DEFAULT_INSIGHT
         });
 
         if (initialData.lat && initialData.long) {
@@ -64,8 +71,8 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
           district: BANGKOK_DISTRICTS[0],
           lat: '',
           long: '',
-          stats: defaultStats,
-          insight: defaultInsight
+          stats: DEFAULT_STATS,
+          insight: DEFAULT_INSIGHT
         });
         setCoordInput("");
       }
@@ -114,31 +121,20 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     onClose();
   };
 
-  const categories = [
-    { key: 'owned', label: '🏠 สัตว์มีเจ้าของ', color: 'bg-blue-50 border-blue-100 text-blue-800' },
-    { key: 'unowned', label: '🛣️ สัตว์ไม่มีเจ้าของ', color: 'bg-orange-50 border-orange-100 text-orange-800' },
-    { key: 'feeder', label: '🥣 สัตว์มีผู้ให้อาหาร', color: 'bg-emerald-50 border-emerald-100 text-emerald-800' }
-  ];
-
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in">
       <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] overflow-hidden border-0 sm:border border-slate-200">
         
-        {/* Header (Sticky) */}
         <div className="bg-red-600 px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center text-white shrink-0 mt-safe sm:mt-0 z-10">
           <h3 className="text-base sm:text-lg font-bold flex items-center gap-2">
             <Skull className="w-5 h-5 sm:w-6 sm:h-6" />
             {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
           </h3>
-          <button
-            onClick={onClose}
-            className="hover:bg-red-700 p-2 rounded-full transition-colors"
-          >
+          <button onClick={onClose} className="hover:bg-red-700 p-2 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body (Scrollable) */}
         <div className="overflow-y-auto p-4 sm:p-6 flex-1 bg-slate-50/50 custom-scrollbar">
           <form id="outbreak-form" onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             
@@ -154,8 +150,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                     <Calendar className="w-3.5 h-3.5" /> วันที่พบเชื้อ
                   </label>
                   <input
-                    required
-                    type="date"
+                    required type="date"
                     className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
                     value={formData.date}
                     onChange={e => setFormData({ ...formData, date: e.target.value })}
@@ -165,9 +160,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                 <div className="relative">
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">เขตพื้นที่ (District)</label>
                   <input
-                    required
-                    type="text"
-                    placeholder="พิมพ์ค้นหาเขต..."
+                    required type="text" placeholder="พิมพ์ค้นหาเขต..."
                     className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
                     value={formData.district}
                     onChange={e => {
@@ -206,9 +199,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">สถานที่พบ (รายละเอียด)</label>
                 <input
-                  required
-                  type="text"
-                  placeholder="ระบุสถานที่ให้ชัดเจน เช่น ซอย, วัด, โรงเรียน"
+                  required type="text" placeholder="ระบุสถานที่ให้ชัดเจน เช่น ซอย, วัด, โรงเรียน"
                   className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all bg-slate-50 focus:bg-white"
                   value={formData.location}
                   onChange={e => setFormData({ ...formData, location: e.target.value })}
@@ -221,8 +212,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
-                    placeholder="เช่น 13.7563, 100.5018"
+                    type="text" placeholder="เช่น 13.7563, 100.5018"
                     className="w-full p-2.5 pl-10 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none font-mono bg-slate-50 focus:bg-white"
                     value={coordInput}
                     onChange={(e) => {
@@ -248,65 +238,35 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
               </h4>
 
               <div className="space-y-3">
-                {categories.map(category => (
+                {CATEGORIES.map(category => (
                   <div key={category.key} className={`p-3 sm:p-4 rounded-xl border ${category.color}`}>
                     <div className="font-bold text-sm mb-3">{category.label}</div>
-                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      {/* โซนสุนัข */}
+                      {/* สุนัข */}
                       <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
                         <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐶 สุนัข</div>
                         <div className="flex-1 flex gap-2">
                           <div className="flex-1 text-center">
                             <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none"
-                              value={formData.stats[category.key].dog.male || ''}
-                              onChange={e => handleStatChange(category.key, 'dog', 'male', e.target.value)}
-                            />
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].dog.male || ''} onChange={e => handleStatChange(category.key, 'dog', 'male', e.target.value)} />
                           </div>
                           <div className="flex-1 text-center">
                             <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none"
-                              value={formData.stats[category.key].dog.female || ''}
-                              onChange={e => handleStatChange(category.key, 'dog', 'female', e.target.value)}
-                            />
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].dog.female || ''} onChange={e => handleStatChange(category.key, 'dog', 'female', e.target.value)} />
                           </div>
                         </div>
                       </div>
-
-                      {/* โซนแมว */}
+                      {/* แมว */}
                       <div className="bg-white/60 p-3 rounded-lg flex items-center gap-2 sm:gap-3">
                         <div className="text-xs sm:text-sm font-bold text-slate-700 w-14 sm:w-16">🐱 แมว</div>
                         <div className="flex-1 flex gap-2">
                           <div className="flex-1 text-center">
                             <label className="text-[10px] text-slate-500 block mb-1">ผู้</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none"
-                              value={formData.stats[category.key].cat.male || ''}
-                              onChange={e => handleStatChange(category.key, 'cat', 'male', e.target.value)}
-                            />
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].cat.male || ''} onChange={e => handleStatChange(category.key, 'cat', 'male', e.target.value)} />
                           </div>
                           <div className="flex-1 text-center">
                             <label className="text-[10px] text-slate-500 block mb-1">เมีย</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none"
-                              value={formData.stats[category.key].cat.female || ''}
-                              onChange={e => handleStatChange(category.key, 'cat', 'female', e.target.value)}
-                            />
+                            <input type="number" min="0" placeholder="0" className="w-full p-1.5 border border-slate-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500 outline-none" value={formData.stats[category.key].cat.female || ''} onChange={e => handleStatChange(category.key, 'cat', 'female', e.target.value)} />
                           </div>
                         </div>
                       </div>
@@ -392,20 +352,11 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
           </form>
         </div>
 
-        {/* Footer (Sticky) */}
         <div className="bg-white border-t border-slate-200 p-4 sm:p-5 pb-8 sm:pb-5 px-4 sm:px-6 flex gap-3 shrink-0 z-10 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.03)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 sm:py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm sm:text-base hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-300"
-          >
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 sm:py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm sm:text-base hover:bg-slate-200 transition-colors focus:ring-2 focus:ring-slate-300">
             ยกเลิก
           </button>
-          <button
-            type="submit"
-            form="outbreak-form"
-            className="flex-1 py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm sm:text-base shadow-md flex items-center justify-center gap-2 transition-all focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-          >
+          <button type="submit" form="outbreak-form" className="flex-1 py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm sm:text-base shadow-md flex items-center justify-center gap-2 transition-all focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
             {initialData ? <><Edit className="w-4 h-4 sm:w-5 sm:h-5" /> บันทึกการแก้ไข</> : <><Siren className="w-4 h-4 sm:w-5 sm:h-5" /> ยืนยันแจ้งเหตุ</>}
           </button>
         </div>

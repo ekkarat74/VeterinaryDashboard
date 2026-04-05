@@ -80,7 +80,6 @@ const Sidebar = ({
 
     return (
         <>
-            {/* Mobile Overlay */}
             {isMobileMenuOpen && (
                 <div 
                     className="md:hidden fixed inset-0 bg-slate-900/50 z-[4999] backdrop-blur-sm transition-opacity"
@@ -96,7 +95,6 @@ const Sidebar = ({
                 ${isCollapsed ? 'md:w-[88px]' : 'md:w-[280px]'}
             `}>
                 
-                {/* 1. Header & Logo */}
                 <div className={`h-[80px] flex items-center px-5 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
                     <div className={`flex items-center gap-3.5 overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'flex'}`}>
                         <div className="relative">
@@ -130,7 +128,6 @@ const Sidebar = ({
 
                 <div className="mx-5 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent shrink-0"></div>
 
-                {/* 2. Menu Items */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-1.5 custom-scrollbar">
                     
                     {renderSectionHeader('แดชบอร์ด')}
@@ -147,7 +144,6 @@ const Sidebar = ({
                         </>
                     )}
 
-                    {/* 3. System Settings (Dev/Super) */}
                     {isDevOrSuper && (
                         <>
                             {renderSectionHeader('การตั้งค่าระบบ')}
@@ -163,10 +159,8 @@ const Sidebar = ({
                                     
                                    <div className={`grid transition-all duration-300 ease-in-out ${isSystemMenuOpen ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'}`}>
                                         <div className="overflow-hidden">
-                                            {/* Sub-menu container with a clean left border indicating hierarchy */}
                                             <div className="pl-11 pr-2 py-1 space-y-6 relative before:absolute before:left-5 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 before:rounded-full">
                                                 
-                                                {/* Tab Management */}
                                                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
                                                     <div>
                                                         <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-indigo-500"/> เปิด-ปิดแท็บ (Executive)</p>
@@ -209,14 +203,12 @@ const Sidebar = ({
                                                     </div>
                                                 </div>
                                                 
-                                                {/* Core System */}
                                                 <div className="space-y-1.5">
                                                     <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">จัดการระบบหลัก</p>
                                                     <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><PaintBucket className="w-4 h-4 shrink-0 text-slate-400"/> รูปแบบหน้าจอ</button>
                                                     <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Users className="w-4 h-4 shrink-0 text-slate-400"/> บัญชีผู้ใช้</button>
                                                     <button onClick={() => handleAction(onOpenCustomUnits)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Building2 className="w-4 h-4 shrink-0 text-slate-400"/> รายชื่อหน่วยงาน</button>
                                                     
-                                                    {/* ✨ ปุ่มจัดการสายพันธุ์และสี */}
                                                     <button onClick={() => handleAction(onOpenBreedMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Dog className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสายพันธุ์</button>
                                                     <button onClick={() => handleAction(onOpenColorMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Palette className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสีสัตว์</button>
                                                     
@@ -228,7 +220,6 @@ const Sidebar = ({
                                                     )}
                                                 </div>
 
-                                                {/* Data & Security */}
                                                 <div className="space-y-1.5 pb-2">
                                                     <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">ความปลอดภัย & ข้อมูล</p>
                                                     <button onClick={() => handleAction(onOpenLog)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><FileText className="w-4 h-4 shrink-0 text-slate-400"/> ประวัติใช้งาน (Log)</button>
@@ -252,7 +243,6 @@ const Sidebar = ({
                     )}
                 </div>
 
-                {/* 4. Action Buttons (Sticky Bottom before Footer) */}
                 {user && canAdd && !['superadmin', 'executive'].includes(user.role) && (
                     <div className={`px-4 pt-2 pb-4 shrink-0 bg-white space-y-2.5 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         <button onClick={() => handleAction(onOpenAddOutbreak)} title="แจ้งโรคระบาด" 
@@ -268,7 +258,6 @@ const Sidebar = ({
                     </div>
                 )}
 
-                {/* 5. Footer / Profile Card (Floating Style) */}
                 <div className={`m-3 shrink-0 ${isCollapsed ? 'mt-0' : 'mt-auto'}`}>
                     <div className={`bg-slate-50 border border-slate-200/60 rounded-2xl ${isCollapsed ? 'p-2' : 'p-3'}`}>
                         {!user ? (

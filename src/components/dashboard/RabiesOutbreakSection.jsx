@@ -3,6 +3,9 @@ import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, EyeOff, E
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import OutbreakMap from '../modals/OutbreakMap';
 
+// ✨ ย้าย Default Arrays ออกมานอก Component ป้องกัน Error
+const BAR_COLORS = ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
+
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
@@ -35,12 +38,9 @@ const RabiesOutbreakSection = ({
     
     if (outbreakData.length === 0) return null;
 
-    const barColors = ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
-
     return (
         <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-8 mb-16 font-sans">
             
-            {/* --- Header Section --- */}
             <div className="relative overflow-hidden bg-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl shadow-slate-200">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                     <Siren className="w-64 h-64 -mr-16 -mt-16 text-rose-500" />
@@ -98,13 +98,10 @@ const RabiesOutbreakSection = ({
                 </div>
             </div>
 
-            {/* --- Main Dashboard Grid --- */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
-                {/* --- Left Column: Stats & List --- */}
                 <div className="lg:col-span-4 flex flex-col gap-6">
                     
-                    {/* Hero Stat Card */}
                     <div className="relative bg-gradient-to-br from-rose-500 via-red-500 to-orange-600 rounded-3xl p-6 text-white shadow-xl shadow-rose-200 overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
                         <div className="relative z-10">
@@ -127,7 +124,6 @@ const RabiesOutbreakSection = ({
                         </div>
                     </div>
 
-                    {/* Quick Stats Row */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all group">
                             <div className="flex items-center gap-2 mb-3 text-slate-400">
@@ -161,7 +157,6 @@ const RabiesOutbreakSection = ({
                         </div>
                     </div>
 
-                    {/* Recent List */}
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col">
                         <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                             <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
@@ -172,9 +167,7 @@ const RabiesOutbreakSection = ({
                         <div className="overflow-y-auto custom-scrollbar p-3 h-64 lg:h-auto space-y-2">
                             {filteredOutbreaks.slice(0, 5).map((item, idx) => {
                                 const isHidden = hiddenIds.includes(item._id);
-
                                 const getNum = (val) => parseInt(val, 10) || 0;
-
                                 let dogCount = 0;
                                 let catCount = 0;
 
@@ -200,12 +193,10 @@ const RabiesOutbreakSection = ({
                                 return (
                                     <div key={idx} className={`relative p-3 rounded-2xl transition-all duration-300 border ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-100 hover:shadow-md hover:shadow-rose-100/50'}`}>
                                         <div className="flex items-start gap-3">
-                                            {/* Rank Circle */}
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs shadow-sm ${isHidden ? 'bg-slate-200 text-slate-500' : 'bg-gradient-to-br from-rose-100 to-rose-50 text-rose-600'}`}>
                                                 {idx + 1}
                                             </div>
 
-                                            {/* Content */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-start">
                                                     <p className={`text-sm font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
@@ -221,7 +212,7 @@ const RabiesOutbreakSection = ({
                                                     </span>
                                                 </div>
                                                 
-                                                {/* ✨ แสดงข้อมูลเชิงลึกถ้ามี */}
+                                                {/* ข้อมูลเชิงลึก */}
                                                 {item.insight && (item.insight.spcc || item.insight.animalType) && (
                                                     <div className="mt-2 pt-2 border-t border-slate-100 border-dashed text-[11px] text-slate-500 flex flex-col gap-1">
                                                         <div><span className="font-bold text-slate-600">ศบส:</span> {item.insight.spcc || '-'} | <span className="font-bold text-slate-600">เลขที่ตรวจ:</span> {item.insight.testNo || '-'}</div>
@@ -232,7 +223,6 @@ const RabiesOutbreakSection = ({
                                                     </div>
                                                 )}
 
-                                                {/* ส่วนแสดงผลตัวเลข (เรียกใช้ dogCount, catCount) */}
                                                 <div className="flex gap-2 mt-2">
                                                     <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md border border-orange-100">
                                                         🐶 {dogCount}
@@ -243,7 +233,6 @@ const RabiesOutbreakSection = ({
                                                 </div>
                                             </div>
 
-                                            {/* Action Buttons */}
                                             <div className="flex flex-col gap-1 shrink-0 ml-1 self-center border-l border-slate-100 pl-2">
                                                 <button onClick={(e) => { e.stopPropagation(); toggleVisibility(item._id); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title={isHidden ? "แสดง" : "ซ่อน"}>
                                                     {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -267,9 +256,7 @@ const RabiesOutbreakSection = ({
                     </div>
                 </div>
 
-                {/* --- Right Column: Charts --- */}
                 <div className="lg:col-span-8 flex flex-col gap-6">
-                    {/* Top 5 Chart */}
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                         <div className="flex justify-between items-center mb-6">
                             <div>
@@ -290,7 +277,7 @@ const RabiesOutbreakSection = ({
                                         <RechartsTooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
                                         <Bar dataKey="count" radius={[0, 8, 8, 0]} background={{ fill: '#f8fafc', radius: [0, 8, 8, 0] }}>
                                             {(stats?.topDistricts || []).map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
+                                                <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
                                             ))}
                                         </Bar>
                                     </BarChart>
@@ -306,7 +293,6 @@ const RabiesOutbreakSection = ({
                         </div>
                     </div>
                     
-                    {/* Trend Chart */}
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex-1 flex flex-col">
                         <div className="flex justify-between items-center mb-2">
                              <div>
@@ -337,7 +323,6 @@ const RabiesOutbreakSection = ({
                     </div>
                 </div>
 
-                {/* --- สถิติจำนวนสัตว์ --- */}
                 <div className="lg:col-span-12 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 mt-2">
                     <div className="flex justify-between items-center mb-6">
                         <div>
