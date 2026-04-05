@@ -179,6 +179,10 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
     );
 };
 
+const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
+const API_URL = `${BASE_URL}/api/reports`;
+const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
 // --- MAIN DASHBOARD COMPONENT ---
 export default function VeterinaryDashboard() {
     const {
@@ -279,10 +283,6 @@ export default function VeterinaryDashboard() {
             addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
         }
     };
-
-    const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
-    const API_URL = `${BASE_URL}/api/reports`;
-    const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
     const dispatchEventsOnly = useMemo(() => {
         const filteredEvents = canViewHiddenDispatches 
