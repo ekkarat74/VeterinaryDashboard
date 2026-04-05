@@ -17,24 +17,31 @@ const BreedModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
     };
 
     const handleAdd = async (e) => {
-        e.preventDefault();
-        if (!newItem.trim()) return;
-        try {
-            const res = await fetch(`${apiBaseUrl}/api/breeds`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ name: newItem.trim() })
-            });
-            if (res.ok) {
-                setNewItem('');
-                fetchItems();
-                onToast('success', 'เพิ่มสายพันธุ์สำเร็จ');
-            } else {
-                const data = await res.json();
-                onToast('error', data.message || 'เพิ่มไม่สำเร็จ');
-            }
-        } catch (err) { onToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ'); }
-    };
+      e.preventDefault();
+      if (!newItem.trim()) return;
+      try {
+          const res = await fetch(`${apiBaseUrl}/api/breeds`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ name: newItem.trim() })
+          });
+          
+          if (res.ok) {
+              setNewItem('');
+              fetchItems();
+              onToast('success', 'เพิ่มสายพันธุ์สำเร็จ');
+          } else {
+              // ✨ [ส่วนที่แก้ไข] ป้องกันแอปพังจากการแปลงหน้า 404 HTML เป็น JSON
+              const contentType = res.headers.get("content-type");
+              if (contentType && contentType.indexOf("application/json") !== -1) {
+                  const data = await res.json();
+                  onToast('error', data.message || 'เพิ่มไม่สำเร็จ');
+              } else {
+                  onToast('error', `เซิร์ฟเวอร์ขัดข้อง (Status: ${res.status})`);
+              }
+          }
+      } catch (err) { onToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ'); }
+  };
 
     const handleDelete = async (id) => {
         if (!window.confirm('⚠️ ยืนยันการลบสายพันธุ์นี้?')) return;
