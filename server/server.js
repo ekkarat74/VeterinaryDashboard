@@ -139,20 +139,6 @@ const outbreakSchema = new mongoose.Schema({
 outbreakSchema.index({ date: -1, district: 1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
 
-// 10. Breed Schema (สายพันธุ์)
-const breedSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  createdBy: String
-}, { timestamps: true });
-const Breed = mongoose.model('Breed', breedSchema);
-
-// 11. Color Schema (สี)
-const colorSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  createdBy: String
-}, { timestamps: true });
-const Color = mongoose.model('Color', colorSchema);
-
 // 4. System Log Schema
 const logSchema = new mongoose.Schema({
     action: { type: String, required: true }, 
@@ -198,6 +184,20 @@ const controllerSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Controller = mongoose.model('Controller', controllerSchema);
 
+// 10. Breed Schema (สายพันธุ์)
+const breedSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: String
+}, { timestamps: true });
+const Breed = mongoose.model('Breed', breedSchema);
+
+// 11. Color Schema (สี)
+const colorSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: String
+}, { timestamps: true });
+const Color = mongoose.model('Color', colorSchema);
+
 // --- HELPER FUNCTIONS ---
 const createLog = async (req, action, details, metadata = null) => {
     try {
@@ -237,7 +237,6 @@ const authorizeRole = (roles) => {
 // =======================
 // A. AUTHENTICATION & LOGS
 // =======================
-
 app.post('/api/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username });
@@ -288,7 +287,7 @@ app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']
 });
 
 // =======================
-// B. USER MANAGEMENT (เฉพาะ Developer, MagaAdmin)
+// B. USER MANAGEMENT
 // =======================
 
 // Create User
@@ -296,7 +295,6 @@ app.post('/api/users', authenticateToken, authorizeRole(['Developer','MagaAdmin'
     try {
         const { username, password, role } = req.body;
         
-        // ✨ ป้องกัน MagaAdmin สร้าง Developer
         if (req.user.role === 'MagaAdmin' && role === 'Developer') {
              return res.status(403).json({ message: "MagaAdmin ไม่สามารถสร้างบัญชีระดับผู้พัฒนาได้" });
         }
@@ -331,7 +329,6 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAd
         const targetUser = await User.findById(req.params.id);
         if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
-        // ✨ ป้องกัน MagaAdmin จัดการบัญชี Developer
         if (req.user.role === 'MagaAdmin' && (targetUser.role === 'Developer' || role === 'Developer')) {
              return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์จัดการหรือแต่งตั้งบัญชีระดับผู้พัฒนาได้" });
         }
@@ -340,14 +337,11 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAd
              return res.status(400).json({ message: "ไม่สามารถระงับบัญชีตัวเองได้" });
         }
         
-        // ✨ [ส่วนที่แก้ไข] ตรวจสอบว่ามีค่าส่งมาหรือไม่ ถ้ามีค่อยอัปเดต (รองรับการอัปเดตแค่ Role จากตาราง)
         if (username !== undefined) targetUser.username = username;
         if (role !== undefined) targetUser.role = role;
         if (status !== undefined) targetUser.status = status;
         
         await targetUser.save();
-
-        // ✨ [ส่วนที่แก้ไข] ปรับให้บันทึก Log โดยดึงค่าจาก targetUser (ป้องกันค่าเป็น undefined)
         await createLog(req, 'UPDATE_USER', `แก้ไขข้อมูลผู้ใช้: ${targetUser.username} (Role: ${targetUser.role}, Status: ${targetUser.status})`);
 
         const updatedUser = await User.findById(req.params.id).select('-password');
@@ -364,7 +358,6 @@ app.put('/api/users/:id/reset-password', authenticateToken, authorizeRole(['Deve
         const targetUser = await User.findById(req.params.id);
         if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
-        // ✨ ป้องกัน MagaAdmin เปลี่ยนรหัสผ่าน Developer
         if (req.user.role === 'MagaAdmin' && targetUser.role === 'Developer') {
              return res.status(403).json({ message: "MagaAdmin ไม่มีสิทธิ์รีเซ็ตรหัสผ่านผู้พัฒนาระบบได้" });
         }
@@ -404,11 +397,9 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
     }
 });
 
-
 // =======================
 // C. REPORTS
 // =======================
-
 app.get('/api/reports', async (req, res) => {
   try {
     const { search, year, month, unit, district, startDate, endDate, page = 1, limit = 50 } = req.query;
@@ -455,7 +446,6 @@ app.get('/api/reports', async (req, res) => {
   }
 });
 
-// ✨ Create Report: อนุญาตให้ user ใช้งานด้วย (แต่แก้ไขไม่ได้)
 app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
     const newReport = new Report({
@@ -473,7 +463,6 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
   }
 });
 
-// ✨ Update Report: (เฉพาะ Developer, MagaAdmin, Admin)
 app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
     const updatedReport = await Report.findByIdAndUpdate(
@@ -491,7 +480,6 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
   }
 });
 
-// ✨ Delete Report
 app.delete('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
     const deletedReport = await Report.findByIdAndDelete(req.params.id);
@@ -527,7 +515,6 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaA
 // =======================
 // D. OUTBREAKS
 // =======================
-
 app.get('/api/outbreaks', async (req, res) => {
   try {
     const { year, limit } = req.query;
@@ -544,7 +531,6 @@ app.get('/api/outbreaks', async (req, res) => {
   }
 });
 
-// ✨ Create Outbreak (user มีสิทธิ์แจ้ง)
 app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
     const newOutbreak = new Outbreak(req.body);
@@ -587,7 +573,6 @@ app.delete('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 
 // =======================
 // E. SYSTEM BACKUP & RESTORE
 // =======================
-
 app.get('/api/system/backup', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
     try {
         const reports = await Report.find().sort({ date: -1 });
@@ -719,7 +704,6 @@ app.use('/api/dispatches', dispatchRoutes(io, authenticateToken, authorizeRole, 
 // =======================
 // K. CONTROLLERS
 // =======================
-
 app.get('/api/controllers', async (req, res) => {
     try {
         const list = await Controller.find().sort({ name: 1 });
