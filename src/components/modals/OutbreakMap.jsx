@@ -1,25 +1,42 @@
 // components/modals/OutbreakMap.jsx
-import React, { useState, useCallback, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON } from 'react-leaflet';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON, LayersControl } from 'react-leaflet';
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { AlertTriangle, Trash2, ChevronDown, ChevronUp, Layers, MapPin, Eye, EyeOff } from 'lucide-react'; // <-- เพิ่ม Eye, EyeOff
+import { AlertTriangle, Trash2, ChevronUp, MapPin, Eye, EyeOff, Navigation } from 'lucide-react';
+
+const { BaseLayer } = LayersControl;
 
 const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
+    const mapRef = useRef(null);
     const centerPosition = [13.7563, 100.5018];
     const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
     const [isCollapsed, setIsCollapsed] = useState(false);
-
     const [hiddenMapIds, setHiddenMapIds] = useState([]);
 
     const toggleMapVisibility = (id) => {
-        setHiddenMapIds(prev => 
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
+        setHiddenMapIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    // --- กรองและเรียงข้อมูลให้แสดงตัวล่าสุดขึ้นก่อน ---
+    const handleFlyTo = (lat, long) => {
+        if (mapRef.current && lat && long) {
+            mapRef.current.flyTo([lat, long], 15, { duration: 1.5 });
+        }
+    };
+
+    const handleLocateMe = () => {
+        if (navigator.geolocation && mapRef.current) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    mapRef.current.flyTo([latitude, longitude], 14);
+                },
+                (error) => alert("ไม่สามารถดึงตำแหน่งปัจจุบันได้ กรุณาเปิด GPS")
+            );
+        }
+    };
+
     const recentOutbreaks = useMemo(() => {
         return [...outbreaks].sort((a, b) => new Date(b.date) - new Date(a.date));
     }, [outbreaks]);
@@ -52,10 +69,20 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                 .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); }
                 .leaflet-container a.leaflet-popup-close-button { top: 8px; right: 8px; padding: 4px; color: #94a3b8; font-size: 18px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; }
                 .leaflet-container a.leaflet-popup-close-button:hover { color: #ef4444; background: #fee2e2; }
+                .leaflet-container .leaflet-control-layers { border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 6px; }
             `}</style>
 
+            {/* --- ปุ่ม My Location --- */}
+            <button 
+                onClick={handleLocateMe}
+                className="absolute bottom-6 right-4 z-[400] w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
+                title="ตำแหน่งปัจจุบันของฉัน"
+            >
+                <Navigation className="w-6 h-6" />
+            </button>
+
             {/* --- Control Panel --- */}
-            <div className={`absolute top-4 right-4 z-[500] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
+            <div className={`absolute top-4 right-4 z-[400] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
                 <div 
                     className={`flex items-center justify-between cursor-pointer ${isCollapsed ? 'w-full h-full justify-center' : 'p-4'}`}
                     onClick={() => setIsCollapsed(!isCollapsed)}
@@ -64,50 +91,36 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                         <AlertTriangle className="w-5 h-5 text-red-500" />
                     ) : (
                         <div className="flex items-center gap-2">
-                            <div className="bg-red-100 p-1.5 rounded-lg">
-                                <AlertTriangle className="w-4 h-4 text-red-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-800 leading-none">ตั้งค่าการเฝ้าระวัง</h3>
-                            </div>
+                            <div className="bg-red-100 p-1.5 rounded-lg"><AlertTriangle className="w-4 h-4 text-red-600" /></div>
+                            <h3 className="text-sm font-bold text-slate-800 leading-none">ตั้งค่าการเฝ้าระวัง</h3>
                         </div>
                     )}
-                    {!isCollapsed && (
-                        <div className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors">
-                            <ChevronUp className="w-4 h-4" />
-                        </div>
-                    )}
+                    {!isCollapsed && <ChevronUp className="w-4 h-4 text-slate-400" />}
                 </div>
 
                 {!isCollapsed && (
                     <div className="p-3 bg-slate-50/80 border-t border-slate-100 rounded-b-2xl backdrop-blur-sm flex flex-col gap-3">
-                        
-                        {/* --- ส่วนรัศมีแจ้งเตือน --- */}
+                        {/* ส่วนรัศมีแจ้งเตือน */}
                         <div>
-                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                แสดงรัศมีแจ้งเตือน
-                            </div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">แสดงรัศมีแจ้งเตือน</div>
                             <div className="flex bg-slate-200/50 p-1 rounded-lg">
                                 {[
                                     { val: 1000, label: '1 กม.', color: 'text-red-600 bg-white shadow-sm' },
                                     { val: 3000, label: '3 กม.', color: 'text-red-500 bg-white shadow-sm' },
                                     { val: 5000, label: '5 กม.', color: 'text-orange-500 bg-white shadow-sm' }
-                                ].map((r) => {
-                                    const isActive = activeRadii.includes(r.val);
-                                    return (
-                                        <button 
-                                            key={r.val} 
-                                            onClick={() => toggleRadius(r.val)}
-                                            className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold transition-all duration-200 ${isActive ? r.color : 'text-slate-400 hover:text-slate-600'}`}
-                                        >
-                                            {r.label}
-                                        </button>
-                                    );
-                                })}
+                                ].map((r) => (
+                                    <button 
+                                        key={r.val} 
+                                        onClick={() => toggleRadius(r.val)} 
+                                        className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold transition-all duration-200 ${activeRadii.includes(r.val) ? r.color : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        {r.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
-                        {/* --- ส่วนแจ้งเตือนล่าสุด --- */}
+                        {/* การแจ้งเตือนล่าสุด */}
                         <div className="border-t border-slate-200/60 pt-3">
                             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
@@ -118,39 +131,33 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                 {recentOutbreaks.length > 0 ? (
                                     recentOutbreaks.map((item, idx) => {
                                         const isHidden = hiddenMapIds.includes(item._id);
+                                        const lat = parseFloat(item.lat);
+                                        const long = parseFloat(item.long);
                                         
                                         return (
                                             <div 
                                                 key={item._id || idx} 
-                                                className={`p-2.5 rounded-xl border shadow-sm flex flex-col gap-1 transition-all duration-300 ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-200'}`}
+                                                onClick={() => {
+                                                    if (!isHidden && !isNaN(lat) && !isNaN(long)) {
+                                                        handleFlyTo(lat, long);
+                                                    }
+                                                }}
+                                                className={`p-2.5 rounded-xl border shadow-sm flex flex-col gap-1 transition-all duration-300 ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60 cursor-default' : 'bg-white border-slate-100 hover:border-rose-200 cursor-pointer hover:shadow-md'}`}
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <p className={`text-xs font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`}>
                                                         {item.location}
                                                     </p>
-                                                    
                                                     <div className="flex items-center gap-1.5 shrink-0">
                                                         <span className="text-[9px] text-slate-400 whitespace-nowrap bg-slate-100 px-1 py-0.5 rounded font-medium">
                                                             {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
                                                         </span>
-                                                        
-                                                        {/* --- แก้ไขปุ่มตรงนี้ --- */}
                                                         <div 
-                                                            onClick={(e) => { 
-                                                                e.preventDefault(); 
-                                                                e.stopPropagation(); 
-                                                                toggleMapVisibility(item._id); 
-                                                            }}
-                                                            onPointerDown={(e) => { 
-                                                                e.stopPropagation(); // สำคัญ! หยุด Event ไม่ให้ทะลุไป Map
-                                                            }}
+                                                            onClick={(e) => { e.stopPropagation(); toggleMapVisibility(item._id); }}
                                                             className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors bg-white rounded-md shadow-sm border border-slate-100 cursor-pointer z-50 relative"
-                                                            title={isHidden ? "แสดงจุดนี้บนแผนที่" : "ซ่อนจุดนี้จากแผนที่"}
                                                         >
                                                             {isHidden ? <EyeOff className="w-3 h-3 pointer-events-none" /> : <Eye className="w-3 h-3 pointer-events-none" />}
                                                         </div>
-                                                        {/* ------------------- */}
-
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
@@ -166,17 +173,29 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                 )}
                             </div>
                         </div>
-                        
                     </div>
                 )}
             </div>
 
             {/* --- MAP --- */}
-            <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100">
-                <TileLayer 
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+            <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100" ref={mapRef}>
+                
+                {/* ระบบสลับแผนที่ดาวเทียม / ปกติ */}
+                <LayersControl position="topleft">
+                    <BaseLayer checked name="แผนที่ถนน (Street)">
+                        <TileLayer 
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                    </BaseLayer>
+                    <BaseLayer name="ภาพถ่ายดาวเทียม (Satellite)">
+                        <TileLayer 
+                            attribution='Tiles &copy; Esri &mdash; Source: Esri'
+                            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        />
+                    </BaseLayer>
+                </LayersControl>
+
                 {bangkokGeoJSON && (
                     <GeoJSON 
                         data={bangkokGeoJSON} 
@@ -189,6 +208,7 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                     const long = parseFloat(item.long);
                     if (isNaN(lat) || isNaN(long)) return null;
 
+                    // คืนชีพโค้ดคำนวณจำนวนสุนัขและแมว เพื่อแสดงใน Popup
                     const getNum = (val) => parseInt(val, 10) || 0;
                     let dogCount = 0;
                     let catCount = 0;
@@ -227,12 +247,13 @@ const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
                                         <h3 className="font-bold text-slate-800 text-base">{item.location}</h3>
                                         <p className="text-xs text-slate-500 mb-3">{item.district}</p>
                                         
+                                        {/* คืนชีพ Popup สถิติสัตว์ */}
                                         <div className="bg-red-50 rounded border border-red-100 p-2 mb-3">
-                                            <span className="text-[10px] font-bold text-red-600 block mb-1">สถิติสัตว์ติดเชื้อ</span>
+                                            <span className="text-[10px] font-bold text-red-600 block mb-1">สถิติสัตว์เสี่ยงติดเชื้อ</span>
                                             <div className="flex justify-center gap-4 text-xs font-semibold text-slate-700">
-                                                <div className="flex flex-col"><span>🐶 สุนัข</span><span>{ dogCount }</span></div>
+                                                <div className="flex flex-col"><span>🐶 สุนัข</span><span>{ dogCount } ตัว</span></div>
                                                 <div className="w-px bg-red-200"></div>
-                                                <div className="flex flex-col"><span>🐱 แมว</span><span>{ catCount }</span></div>
+                                                <div className="flex flex-col"><span>🐱 แมว</span><span>{ catCount } ตัว</span></div>
                                             </div>
                                         </div>
 
