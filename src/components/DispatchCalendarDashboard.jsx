@@ -195,10 +195,8 @@ const DispatchCalendarDashboard = () => {
         };
 
         let startMins = parseTime(startTime) - (TIMELINE_START_HOUR * 60);
-        // ถ้าไม่มีเวลาปิด ให้บวกไป 2 ชั่วโมงเป็นค่าเริ่มต้น
         let endMins = closingTime ? (parseTime(closingTime) - (TIMELINE_START_HOUR * 60)) : startMins + 120;
 
-        // ดักจับกรณีเวลาเกินขอบเขต
         if (startMins < 0) startMins = 0;
         if (endMins > TIMELINE_TOTAL_MINS) endMins = TIMELINE_TOTAL_MINS;
         if (endMins <= startMins) endMins = startMins + 60; 
@@ -239,7 +237,7 @@ const DispatchCalendarDashboard = () => {
     const [savedControllersList, setSavedControllersList] = useState([]); 
     const [editingControllerIndex, setEditingControllerIndex] = useState(null); 
 
-    // ---- Staff Management State (ใหม่) ----
+    // ---- Staff Management State ----
     const [savedStaffList, setSavedStaffList] = useState([]);
     const [isManageStaffOpen, setIsManageStaffOpen] = useState(false);
     const [staffNameInput, setStaffNameInput] = useState('');
@@ -258,16 +256,13 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    // Fetch Staffs (ใหม่)
+    // Fetch Staffs
     const fetchSavedStaffs = async () => {
         try {
             const res = await fetch(`${BASE_URL}/api/staffs`);
-            
-            // เพิ่มบรรทัดนี้: เช็คก่อนว่า Request สำเร็จหรือไม่
             if (!res.ok) {
                  throw new Error(`API Error: ${res.status}`);
             }
-            
             const data = await res.json();
             setSavedStaffList(data);
         } catch (error) {
@@ -276,7 +271,7 @@ const DispatchCalendarDashboard = () => {
     };
 
     useEffect(() => {
-        fetchSavedStaffs(); // ดึงรายชื่อทีมงานตอนโหลดหน้าเว็บ
+        fetchSavedStaffs();
     }, []);
 
     useEffect(() => {
@@ -364,7 +359,7 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    // Handlers for Staff (ใหม่)
+    // Handlers for Staff
     const handleSaveStaff = async () => {
         if (!staffNameInput.trim()) {
             addToast('error', 'กรุณาระบุชื่อทีมงาน');
@@ -935,7 +930,7 @@ const DispatchCalendarDashboard = () => {
                                             draggable={canEdit}
                                             onDragStart={(e) => handleDragStart(e, evt._id)}
                                             onContextMenu={(e) => {
-                                                e.preventDefault(); // ป้องกันไม่ให้เมนูคลิกขวาของเบราว์เซอร์เด้งขึ้นมา
+                                                e.preventDefault();
                                                 setContextMenu({ 
                                                     visible: true, 
                                                     x: e.clientX, 
@@ -1125,14 +1120,13 @@ const DispatchCalendarDashboard = () => {
                                         <div className="p-10 text-center text-slate-400 text-sm font-medium">ไม่มีตารางงานในวันนี้</div>
                                     ) : (
                                         Object.entries(eventsByTeam).map(([team, teamEvents], index) => {
-                                            // 👉 1. ดึงชื่อหน่วยมาแสดงฝั่งซ้าย (ลองดึง unit หรือ unitName ถ้าไม่มีให้ใช้ title แทน)
                                             const firstEvent = teamEvents[0] || {};
                                             const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
 
                                             return (
                                                 <div key={team} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
                                                     
-                                                    {/* 👉 2. แกน Y (ชื่อทีม) - เพิ่มชื่อหน่วย "ไว้ด้านบน" ชื่อทีม */}
+                                                    {/* แกน Y (ชื่อทีม) */}
                                                     <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
                                                         <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
                                                             {unitName}
@@ -1165,7 +1159,7 @@ const DispatchCalendarDashboard = () => {
                                                                     <div className={`text-[10px] font-bold truncate flex items-center gap-1 ${styles.text}`}>
                                                                         {evt.time} - {evt.title || 'ออกหน่วย'}
                                                                     </div>
-                                                                    {parseFloat(width) > 10 && ( // แสดง location ถ้ากล่องกว้างพอ
+                                                                    {parseFloat(width) > 10 && ( 
                                                                         <div className="text-[9px] text-slate-500 truncate mt-0.5 font-medium">
                                                                             {evt.location}
                                                                         </div>
@@ -1188,6 +1182,7 @@ const DispatchCalendarDashboard = () => {
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
 
+            {/* 🔥 เรียกใช้งาน DispatchModal และส่ง allEvents เข้าไปตรงนี้! */}
             <DispatchModal 
                 isOpen={isDispatchModalOpen} 
                 onClose={() => setIsDispatchModalOpen(false)} 
@@ -1195,8 +1190,8 @@ const DispatchCalendarDashboard = () => {
                 onSave={handleSaveDispatchEvent} 
                 onDelete={handleDeleteDispatch} 
                 initialData={viewingDispatch}
-                savedStaffList={savedStaffList}
-                allEvents={events}
+                savedStaffList={savedStaffList} 
+                allEvents={events} 
             />
 
             <AnnouncementModal 
@@ -1316,7 +1311,6 @@ const DispatchCalendarDashboard = () => {
                         </div>
                     </div>
                 </div>
-                
             )}
             {contextMenu.visible && contextMenu.event && (
                 <div
