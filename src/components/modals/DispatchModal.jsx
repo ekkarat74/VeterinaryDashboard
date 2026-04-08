@@ -136,6 +136,10 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       setUnitLetter(initialData.unitLetter || ''); 
       setUnitColor(initialData.unitColor || 'bg-blue-500'); 
       
+      // ดึงค่าผู้ควบคุมอย่างปลอดภัยเพื่อไม่ให้เป็น undefined
+      const staffController = initialData.staff?.controllers?.[0] || '';
+      const ctrlParts = staffController.split(' โทร. ');
+
       setGeneralInfo({
         date: initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0], 
         locationName: initialData.location || '',
@@ -145,8 +149,10 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         departureTime: initialData.time || '07:30',
         closingTime: initialData.closingTime || '12:00',
         note: initialData.note || '',
-        controllerName: initialData.controllerName || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[0] : ''),
-        controllerPhone: initialData.controllerPhone || (initialData.staff?.controllers ? initialData.staff.controllers[0]?.split(' โทร. ')[1] : ''),
+        
+        // แก้ไข 2 บรรทัดนี้ (บังคับให้มี || '' เสมอ)
+        controllerName: initialData.controllerName || ctrlParts[0] || '',
+        controllerPhone: initialData.controllerPhone || ctrlParts[1] || '',
         status: initialData.status || 'auto'
       });
 
