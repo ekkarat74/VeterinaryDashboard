@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import DispatchModal from './modals/DispatchModal.jsx'; 
 import LoginModal from './modals/LoginModal.jsx';
-import ToastContainer from '../path/to/ToastContainer.jsx';
+import ToastContainer from '../path/to/ToastContainer.jsx'; // ตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
 
 // ==========================================
 // 1. Shared Components
@@ -186,22 +186,29 @@ const DispatchCalendarDashboard = () => {
         const timer = setInterval(() => {
             setRealTime(new Date());
         }, 1000);
-        return () => clearInterval(timer); // เคลียร์ interval เมื่อปิดหน้าจอ
+        return () => clearInterval(timer);
     }, []);
 
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
     const [expandedEventId, setExpandedEventId] = useState(null);
 
+    // ---- Controller Management State ----
     const [isAddControllerOpen, setIsAddControllerOpen] = useState(false);
     const [controllerNameInput, setControllerNameInput] = useState('');
     const [controllerPhoneInput, setControllerPhoneInput] = useState('');
     const [savedControllersList, setSavedControllersList] = useState([]); 
     const [editingControllerIndex, setEditingControllerIndex] = useState(null); 
 
-    // 👉 อ้างอิง Reference สำหรับให้เลื่อนหน้าจอ (Auto-scroll) ไปที่ฟอร์ม
+    // ---- Staff Management State (ใหม่) ----
+    const [savedStaffList, setSavedStaffList] = useState([]);
+    const [isManageStaffOpen, setIsManageStaffOpen] = useState(false);
+    const [staffNameInput, setStaffNameInput] = useState('');
+    const [editingStaffIndex, setEditingStaffIndex] = useState(null);
+
     const formRef = useRef(null);
 
+    // Fetch Controllers
     const fetchSavedControllers = async () => {
         try {
             const res = await fetch(`${BASE_URL}/api/controllers`);
@@ -212,6 +219,21 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
+    // Fetch Staffs (ใหม่)
+    const fetchSavedStaffs = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/staffs`);
+            const data = await res.json();
+            setSavedStaffList(data);
+        } catch (error) {
+            console.error("Fetch Staffs Error", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchSavedStaffs(); // ดึงรายชื่อทีมงานตอนโหลดหน้าเว็บ
+    }, []);
+
     useEffect(() => {
         if (isAddControllerOpen) {
             fetchSavedControllers();
@@ -221,6 +243,15 @@ const DispatchCalendarDashboard = () => {
         }
     }, [isAddControllerOpen]);
 
+    useEffect(() => {
+        if (isManageStaffOpen) {
+            fetchSavedStaffs();
+            setStaffNameInput('');
+            setEditingStaffIndex(null);
+        }
+    }, [isManageStaffOpen]);
+
+    // Handlers for Controller
     const handleSaveController = async () => {
         if (!controllerNameInput.trim()) {
             addToast('error', 'กรุณาระบุชื่อผู้ควบคุม');
@@ -287,6 +318,58 @@ const DispatchCalendarDashboard = () => {
             }
         }
     };
+
+    // Handlers for Staff (ใหม่)
+    const handleSaveStaff = async () => {
+        if (!staffNameInput.trim()) {
+            addToast('error', 'กรุณาระบุชื่อทีมงาน');
+            return;
+        }
+
+        const payload = { name: staffNameInput.trim() };
+        const isEditing = editingStaffIndex !== null;
+        const url = isEditing 
+            ? `${BASE_URL}/api/staffs/${savedStaffList[editingStaffIndex]._id}`
+            : `${BASE_URL}/api/staffs`;
+
+        try {
+            const res = await fetch(url, {
+                method: isEditing ? 'PUT' : 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                addToast('success', isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'เพิ่มรายชื่อสำเร็จ');
+                fetchSavedStaffs(); 
+                setStaffNameInput('');
+                setEditingStaffIndex(null);
+            }
+        } catch (error) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล');
+        }
+    };
+
+    const handleDeleteStaff = async (index) => {
+        const target = savedStaffList[index];
+        if (window.confirm(`ยืนยันการลบคุณ ${target.name}?`)) {
+            try {
+                const res = await fetch(`${BASE_URL}/api/staffs/${target._id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${user?.token}` }
+                });
+                if (res.ok) {
+                    addToast('success', 'ลบรายชื่อเรียบร้อยแล้ว');
+                    fetchSavedStaffs();
+                }
+            } catch (error) {
+                addToast('error', 'ไม่สามารถลบข้อมูลได้');
+            }
+        }
+    };
     
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -319,7 +402,6 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    // State สำหรับเปิดฟอร์มแบบ Inline
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
     const [viewingDispatch, setViewingDispatch] = useState(null);
     const [toasts, setToasts] = useState([]);
@@ -354,7 +436,6 @@ const DispatchCalendarDashboard = () => {
         fetchData();
     }, [canViewHidden, BASE_URL]);
 
-    // 👉 เพิ่มระบบ Scroll เพื่อเลื่อนหน้าจอมายังฟอร์มอัตโนมัติ
     const scrollToForm = () => {
         setTimeout(() => {
             formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -429,7 +510,7 @@ const DispatchCalendarDashboard = () => {
     };
 
     const handleDragOver = (e, dateStr) => {
-        e.preventDefault(); // ต้องมีเพื่ออนุญาตให้ Drop ได้
+        e.preventDefault(); 
         if (canEdit && dragOverDate !== dateStr) {
             setDragOverDate(dateStr);
         }
@@ -452,7 +533,6 @@ const DispatchCalendarDashboard = () => {
         const draggedEvent = events.find(ev => ev._id === eventId);
         if (!draggedEvent || draggedEvent.date === targetDateStr) return;
 
-        // ยืนยันการย้าย
         const targetDateObj = new Date(targetDateStr);
         const formattedDate = targetDateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
         
@@ -460,11 +540,9 @@ const DispatchCalendarDashboard = () => {
             return;
         }
 
-        // 1. อัปเดต UI ทันที (Optimistic Update) เพื่อความไหลลื่น
         const previousEvents = [...events];
         setEvents(prev => prev.map(ev => ev._id === eventId ? { ...ev, date: targetDateStr } : ev));
 
-        // 2. เรียก API เพื่อบันทึกการเปลี่ยนแปลง
         try {
             const payload = { ...draggedEvent.originalData, date: targetDateStr };
             const res = await fetch(`${BASE_URL}/api/dispatches/${eventId}`, {
@@ -476,7 +554,6 @@ const DispatchCalendarDashboard = () => {
             if (res.ok) {
                 addToast('success', 'ย้ายวันปฏิบัติงานเรียบร้อยแล้ว');
             } else {
-                // ถ้า API พัง ให้ Revert ข้อมูลกลับ
                 const err = await res.json();
                 addToast('error', `ไม่สามารถย้ายได้: ${err.message}`);
                 setEvents(previousEvents);
@@ -587,6 +664,9 @@ const DispatchCalendarDashboard = () => {
                             <button onClick={() => setIsAddControllerOpen(true)} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
                                 <UserPlus className="w-4 h-4"/> <span className="hidden sm:inline">เพิ่มผู้ควบคุม</span>
                             </button>
+                            <button onClick={() => setIsManageStaffOpen(true)} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-blue-200">
+                                <Users className="w-4 h-4"/> <span className="hidden sm:inline">จัดการทีมงาน</span>
+                            </button>
                             <button onClick={openDispatchForm} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4" /> <span className="hidden sm:inline">เพิ่มงานใหม่</span>
                             </button>
@@ -657,20 +737,16 @@ const DispatchCalendarDashboard = () => {
                                 return (
                                     <div key={i} 
                                         onClick={() => setSelectedDate(dObj)}
-                                        
-                                        /* 🌟 เพิ่ม Event สำหรับ Drop Target */
                                         onDragOver={(e) => handleDragOver(e, dateStr)}
                                         onDragLeave={handleDragLeave}
                                         onDrop={(e) => handleDrop(e, dateStr)}
-                                        
-                                        /* 🌟 แก้ไข className เพื่อใส่ Effect ตอนลากผ่าน (isDragOver) */
                                         className={`relative p-1.5 rounded-xl border cursor-pointer flex flex-col items-center justify-start gap-1.5 transition-all duration-200 bg-white
-                                        ${isDragOver ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-400/50 scale-105 z-10' : // <-- Effect ลากวาง
+                                        ${isDragOver ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-400/50 scale-105 z-10' : 
                                           isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md z-10 scale-105' : 
                                           'border-slate-100 hover:border-indigo-300 hover:bg-slate-50'}`}
                                     >
                                         <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-all
-                                            ${isDragOver ? 'bg-emerald-500 text-white shadow-md' : // <-- สีตัวเลขตอนลากผ่าน
+                                            ${isDragOver ? 'bg-emerald-500 text-white shadow-md' : 
                                               isToday ? 'bg-indigo-600 text-white shadow-md' : 
                                               isSelected ? 'bg-indigo-100 text-indigo-700' : 'text-slate-700'}`}>
                                             {dayNum}
@@ -777,12 +853,8 @@ const DispatchCalendarDashboard = () => {
 
                                     return (
                                         <div key={idx} 
-                                            
-                                            /* 🌟 เพิ่มคุณสมบัติการลาก (Drag Source) */
                                             draggable={canEdit}
                                             onDragStart={(e) => handleDragStart(e, evt._id)}
-                                            
-                                            /* 🌟 เพิ่มคลาส cursor-grab เมื่อมีสิทธิ์แก้ */
                                             className={`bg-white p-6 rounded-2xl border border-slate-200 border-l-[6px] ${styles.border} shadow-sm hover:shadow-md transition-all duration-300 ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
                                         >
                                             <div className="flex justify-between items-start gap-4 mb-4">
@@ -855,7 +927,6 @@ const DispatchCalendarDashboard = () => {
                                                 </div>
                                             </div>
 
-                                            {/* ส่วนขยายเพิ่มเติมจากการ์ด */}
                                             {isExpanded && (
                                                 <div className="mt-5 pt-5 border-t border-dashed border-slate-200 animate-in slide-in-from-top-2 fade-in duration-200 flex flex-col gap-3">
                                                     
@@ -872,7 +943,6 @@ const DispatchCalendarDashboard = () => {
                                                         )}
                                                         {canEdit && (
                                                             <>
-                                                                {/* 👉 เมื่อกดแก้ไข จะ Auto-scroll ไปที่ฟอร์มด้านบน */}
                                                                 <button onClick={(e) => { e.stopPropagation(); openDispatchEvent(evt); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1.5 border border-indigo-100">
                                                                     <Edit3 className="w-3.5 h-3.5" /> แก้ไข
                                                                 </button>
@@ -955,7 +1025,8 @@ const DispatchCalendarDashboard = () => {
                 onToast={addToast} 
                 onSave={handleSaveDispatchEvent} 
                 onDelete={handleDeleteDispatch} 
-                initialData={viewingDispatch} 
+                initialData={viewingDispatch}
+                savedStaffList={savedStaffList} 
             />
 
             <AnnouncementModal 
@@ -1013,6 +1084,58 @@ const DispatchCalendarDashboard = () => {
                                                     <Edit3 className="w-4 h-4"/>
                                                 </button>
                                                 <button onClick={() => handleDeleteController(idx)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ">
+                                                    <Trash2 className="w-4 h-4"/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isManageStaffOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+                        <div className="flex justify-between items-center mb-4 shrink-0">
+                            <h3 className="text-base font-bold text-slate-800">จัดการรายชื่อทีมงานทั้งหมด</h3>
+                            <button onClick={() => setIsManageStaffOpen(false)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"><X className="w-5 h-5"/></button>
+                        </div>
+                        
+                        <div className="space-y-3 shrink-0 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Users className="w-4 h-4 text-blue-500" />
+                                <span className="text-xs font-bold text-blue-700">{editingStaffIndex !== null ? 'แก้ไขรายชื่อ' : 'เพิ่มรายชื่อใหม่'}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <input type="text" className="flex-1 p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-xs bg-white" value={staffNameInput} onChange={e => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
+                                <button onClick={handleSaveStaff} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors flex items-center gap-1.5 shrink-0">
+                                    <Plus className="w-3.5 h-3.5"/> {editingStaffIndex !== null ? 'บันทึก' : 'เพิ่ม'}
+                                </button>
+                            </div>
+                            {editingStaffIndex !== null && (
+                                <div className="flex justify-end mt-1">
+                                    <button onClick={() => { setStaffNameInput(''); setEditingStaffIndex(null); }} className="text-[10px] text-slate-500 hover:text-slate-700 underline">ยกเลิกการแก้ไข</button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-5 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[150px]">
+                            <h4 className="text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อในระบบ ({savedStaffList.length})</h4>
+                            {savedStaffList.length === 0 ? (
+                                <div className="text-center text-slate-400 text-xs py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายชื่อทีมงาน</div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {savedStaffList.map((item, idx) => (
+                                        <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingStaffIndex === idx ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+                                            <div className="text-xs font-bold text-slate-700">{item.name}</div>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => { setStaffNameInput(item.name); setEditingStaffIndex(idx); }} className={`p-1.5 rounded-lg transition-colors ${editingStaffIndex === idx ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:bg-slate-100 hover:text-blue-500'}`} title="แก้ไข">
+                                                    <Edit3 className="w-4 h-4"/>
+                                                </button>
+                                                <button onClick={() => handleDeleteStaff(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ">
                                                     <Trash2 className="w-4 h-4"/>
                                                 </button>
                                             </div>

@@ -6,7 +6,7 @@ import {
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
 
-const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon }) => (
+const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, savedStaffList = [] }) => (
   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
     <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
       <div className="flex items-center gap-2">
@@ -22,19 +22,26 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
       {staffList.map((person, idx) => (
         <div key={idx} className="flex gap-2 group">
           <div className="relative flex-1">
-            <input 
-              type="text" 
-              placeholder={`ชื่อ-สกุล ลำดับที่ ${idx + 1}`}
-              className="w-full pl-3 pr-3 py-1.5 text-sm bg-slate-50 border-0 rounded-md ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all placeholder:text-slate-300"
-              value={person}
+            {/* เปลี่ยน input เป็น select dropdown ตรงนี้ */}
+            <select 
+              className="w-full pl-3 pr-8 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-md ring-0 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer outline-none text-slate-700"
+              value={person || ""}
               onChange={(e) => onChange(roleKey, idx, e.target.value)}
-            />
+            >
+              <option value="" disabled className="text-slate-400">-- เลือกรายชื่อ --</option>
+              {savedStaffList.map((staff, i) => (
+                <option key={i} value={staff.name}>{staff.name}</option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
+              <ChevronDown className="w-3 h-3" />
+            </div>
           </div>
           {staffList.length > 1 && (
             <button 
               type="button" 
               onClick={() => onRemove(roleKey, idx)} 
-              className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+              className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -54,7 +61,7 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
 );
 
 // --- Main Component: DispatchModal ---
-const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData }) => {
+const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList }) => {
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
@@ -281,6 +288,23 @@ ${staffDetails}
     const displayTitle = unitType === 'other' && customUnitName.trim() !== ''
       ? customUnitName
       : currentUnitLabel;
+    
+    const extractLatLng = (link) => {
+        if (!link) return { lat: null, lng: null };
+        try {
+            // พยายามหา pattern แบบ @13.xxx,100.xxx
+            const atMatch = link.match(/@([-\d.]+),([-\d.]+)/);
+            if (atMatch) return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
+            
+            // พยายามหา pattern จากการปักหมุดตรงๆ เช่น 13.795495,100.338229
+            const commaMatch = link.match(/([-\d.]+),\s*([-\d.]+)/);
+            if (commaMatch) return { lat: parseFloat(commaMatch[1]), lng: parseFloat(commaMatch[2]) };
+        } catch (e) { console.error("Error parsing map link", e) }
+        return { lat: null, lng: null };
+    };
+
+    const coordsA = extractLatLng(generalInfo.mapLink);
+    const coordsB = extractLatLng(generalInfo.mapLinkB);
 
     if (isSplitTeam) {
       const payloadA = {
@@ -293,6 +317,8 @@ ${staffDetails}
         location: generalInfo.locationName,
         district: generalInfo.district,
         mapLink: generalInfo.mapLink,
+        lat: coordsA.lat, // 👉 เพิ่มบรรทัดนี้
+        lng: coordsA.lng, // 👉 เพิ่มบรรทัดนี้
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
@@ -306,6 +332,8 @@ ${staffDetails}
         location: generalInfo.locationNameB,
         district: generalInfo.districtB,
         mapLink: generalInfo.mapLinkB,
+        lat: coordsB.lat, // 👉 เพิ่มบรรทัดนี้
+        lng: coordsB.lng, // 👉 เพิ่มบรรทัดนี้
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
@@ -324,6 +352,8 @@ ${staffDetails}
         location: generalInfo.locationName,
         district: generalInfo.district,
         mapLink: generalInfo.mapLink,
+        lat: coordsA.lat, // 👉 เพิ่มบรรทัดนี้
+        lng: coordsA.lng, // 👉 เพิ่มบรรทัดนี้
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
@@ -331,7 +361,7 @@ ${staffDetails}
     }
   };
 
-  const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange };
+  const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange, savedStaffList: savedStaffList};
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
