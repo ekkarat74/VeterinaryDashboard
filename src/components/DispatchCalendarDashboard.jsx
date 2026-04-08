@@ -181,6 +181,14 @@ const DispatchCalendarDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState('ทุกประเภท');
 
+    const [realTime, setRealTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setRealTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer); // เคลียร์ interval เมื่อปิดหน้าจอ
+    }, []);
+
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
     const [expandedEventId, setExpandedEventId] = useState(null);
@@ -409,6 +417,76 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
+    const [dragOverDate, setDragOverDate] = useState(null);
+
+    const handleDragStart = (e, eventId) => {
+        if (!canEdit) {
+            e.preventDefault();
+            return;
+        }
+        e.dataTransfer.setData('eventId', eventId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e, dateStr) => {
+        e.preventDefault(); // ต้องมีเพื่ออนุญาตให้ Drop ได้
+        if (canEdit && dragOverDate !== dateStr) {
+            setDragOverDate(dateStr);
+        }
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setDragOverDate(null);
+    };
+
+    const handleDrop = async (e, targetDateStr) => {
+        e.preventDefault();
+        setDragOverDate(null);
+
+        if (!canEdit) return;
+
+        const eventId = e.dataTransfer.getData('eventId');
+        if (!eventId) return;
+
+        const draggedEvent = events.find(ev => ev._id === eventId);
+        if (!draggedEvent || draggedEvent.date === targetDateStr) return;
+
+        // ยืนยันการย้าย
+        const targetDateObj = new Date(targetDateStr);
+        const formattedDate = targetDateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+        if (!window.confirm(`ยืนยันการเลื่อนงาน "${draggedEvent.title || 'ออกหน่วย'}" \nไปยังวันที่ ${formattedDate} หรือไม่?`)) {
+            return;
+        }
+
+        // 1. อัปเดต UI ทันที (Optimistic Update) เพื่อความไหลลื่น
+        const previousEvents = [...events];
+        setEvents(prev => prev.map(ev => ev._id === eventId ? { ...ev, date: targetDateStr } : ev));
+
+        // 2. เรียก API เพื่อบันทึกการเปลี่ยนแปลง
+        try {
+            const payload = { ...draggedEvent.originalData, date: targetDateStr };
+            const res = await fetch(`${BASE_URL}/api/dispatches/${eventId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                addToast('success', 'ย้ายวันปฏิบัติงานเรียบร้อยแล้ว');
+            } else {
+                // ถ้า API พัง ให้ Revert ข้อมูลกลับ
+                const err = await res.json();
+                addToast('error', `ไม่สามารถย้ายได้: ${err.message}`);
+                setEvents(previousEvents);
+            }
+        } catch (error) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            setEvents(previousEvents);
+        }
+    };
+
     const toLocalISOString = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -500,10 +578,19 @@ const DispatchCalendarDashboard = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 text-xs font-bold shadow-sm">
+                        <Clock className="w-4 h-4 text-indigo-500" />
+                        {realTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
+                    </div>
                     {canEdit && (
-                        <button onClick={() => setIsAddControllerOpen(true)} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
-                            <UserPlus className="w-4 h-4"/> <span className="hidden sm:inline">เพิ่มผู้ควบคุม</span>
-                        </button>
+                        <>
+                            <button onClick={() => setIsAddControllerOpen(true)} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
+                                <UserPlus className="w-4 h-4"/> <span className="hidden sm:inline">เพิ่มผู้ควบคุม</span>
+                            </button>
+                            <button onClick={openDispatchForm} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
+                                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">เพิ่มงานใหม่</span>
+                            </button>
+                        </>
                     )}
                     {user ? (
                         <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 px-2 py-1.5 rounded-xl">
@@ -564,13 +651,28 @@ const DispatchCalendarDashboard = () => {
                                 
                                 const dayEvents = displayEvents.filter(e => e.date === dateStr);
                                 const dotColors = Array.from(new Set(dayEvents.map(e => getEventStyles(e).dot)));
+                                
+                                const isDragOver = dragOverDate === dateStr;
 
                                 return (
-                                    <div key={i} onClick={() => setSelectedDate(dObj)}
+                                    <div key={i} 
+                                        onClick={() => setSelectedDate(dObj)}
+                                        
+                                        /* 🌟 เพิ่ม Event สำหรับ Drop Target */
+                                        onDragOver={(e) => handleDragOver(e, dateStr)}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={(e) => handleDrop(e, dateStr)}
+                                        
+                                        /* 🌟 แก้ไข className เพื่อใส่ Effect ตอนลากผ่าน (isDragOver) */
                                         className={`relative p-1.5 rounded-xl border cursor-pointer flex flex-col items-center justify-start gap-1.5 transition-all duration-200 bg-white
-                                        ${isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md z-10 scale-105' : 'border-slate-100 hover:border-indigo-300 hover:bg-slate-50'}`}>
+                                        ${isDragOver ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-400/50 scale-105 z-10' : // <-- Effect ลากวาง
+                                          isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md z-10 scale-105' : 
+                                          'border-slate-100 hover:border-indigo-300 hover:bg-slate-50'}`}
+                                    >
                                         <span className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-all
-                                            ${isToday ? 'bg-indigo-600 text-white shadow-md' : isSelected ? 'bg-indigo-100 text-indigo-700' : 'text-slate-700'}`}>
+                                            ${isDragOver ? 'bg-emerald-500 text-white shadow-md' : // <-- สีตัวเลขตอนลากผ่าน
+                                              isToday ? 'bg-indigo-600 text-white shadow-md' : 
+                                              isSelected ? 'bg-indigo-100 text-indigo-700' : 'text-slate-700'}`}>
                                             {dayNum}
                                         </span>
                                         {dotColors.length > 0 && (
@@ -607,11 +709,6 @@ const DispatchCalendarDashboard = () => {
                                     มี {selectedDateEvents.length} กิจกรรม {selectedDateEvents.length > 0 && ` (แสดง ${selectedDateEvents.length})`}
                                 </p>
                             </div>
-                            {canEdit && (
-                                <button onClick={openDispatchForm} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition-all hover:-translate-y-0.5">
-                                    <Plus className="w-5 h-5" /> เพิ่มงานใหม่
-                                </button>
-                            )}
                         </div>
 
                         <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -679,8 +776,17 @@ const DispatchCalendarDashboard = () => {
                                     const isExpanded = expandedEventId === uniqueId;
 
                                     return (
-                                        <div key={idx} className={`bg-white p-6 rounded-2xl border border-slate-200 border-l-[6px] ${styles.border} shadow-sm hover:shadow-md transition-all duration-300`}>
+                                        <div key={idx} 
+                                            
+                                            /* 🌟 เพิ่มคุณสมบัติการลาก (Drag Source) */
+                                            draggable={canEdit}
+                                            onDragStart={(e) => handleDragStart(e, evt._id)}
+                                            
+                                            /* 🌟 เพิ่มคลาส cursor-grab เมื่อมีสิทธิ์แก้ */
+                                            className={`bg-white p-6 rounded-2xl border border-slate-200 border-l-[6px] ${styles.border} shadow-sm hover:shadow-md transition-all duration-300 ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                                        >
                                             <div className="flex justify-between items-start gap-4 mb-4">
+                                                
                                                 <div className="flex flex-col gap-3 flex-1">
                                                     <div className="flex flex-wrap items-center gap-2.5">
                                                         <span className="inline-flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-bold">
