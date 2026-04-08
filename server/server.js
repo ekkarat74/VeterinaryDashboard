@@ -234,6 +234,13 @@ const authorizeRole = (roles) => {
   };
 };
 
+// 12. Staff Schema (รายชื่อทีมงาน)
+const staffMemberSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  createdBy: String
+}, { timestamps: true });
+const StaffMember = mongoose.model('StaffMember', staffMemberSchema);
+
 // =======================
 // A. AUTHENTICATION & LOGS
 // =======================
@@ -887,6 +894,46 @@ app.delete('/api/colors/:id', authenticateToken, authorizeRole(['Developer', 'Ma
         io.emit('server_data_update', { type: 'COLOR_DELETED', id: req.params.id });
         res.json({ message: "ลบสำเร็จ" });
     } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// =======================
+// N. STAFFS (ทีมงาน)
+// =======================
+app.get('/api/staffs', async (req, res) => {
+    try {
+        const staffs = await StaffMember.find().sort({ name: 1 }).lean();
+        res.json(staffs);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.post('/api/staffs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        const newStaff = new StaffMember({ ...req.body, createdBy: req.user.username });
+        const savedStaff = await newStaff.save();
+        res.status(201).json(savedStaff);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.put('/api/staffs/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        const updatedStaff = await StaffMember.findByIdAndUpdate(req.params.id, { name: req.body.name }, { new: true });
+        res.json(updatedStaff);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+app.delete('/api/staffs/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
+    try {
+        await StaffMember.findByIdAndDelete(req.params.id);
+        res.json({ message: "ลบรายชื่อเรียบร้อย" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
 
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
