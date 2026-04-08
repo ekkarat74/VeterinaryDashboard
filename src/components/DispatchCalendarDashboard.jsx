@@ -223,6 +223,12 @@ const DispatchCalendarDashboard = () => {
     const fetchSavedStaffs = async () => {
         try {
             const res = await fetch(`${BASE_URL}/api/staffs`);
+            
+            // เพิ่มบรรทัดนี้: เช็คก่อนว่า Request สำเร็จหรือไม่
+            if (!res.ok) {
+                 throw new Error(`API Error: ${res.status}`);
+            }
+            
             const data = await res.json();
             setSavedStaffList(data);
         } catch (error) {
