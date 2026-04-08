@@ -181,6 +181,45 @@ const DispatchCalendarDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState('ทุกประเภท');
 
+    const [viewMode, setViewMode] = useState('list'); // 'list' | 'timeline'
+
+    const TIMELINE_START_HOUR = 6;
+    const TIMELINE_END_HOUR = 18;
+    const TIMELINE_TOTAL_MINS = (TIMELINE_END_HOUR - TIMELINE_START_HOUR) * 60;
+
+    const getTimelineStyle = (startTime, closingTime) => {
+        const parseTime = (t) => {
+            if (!t) return 0;
+            const [h, m] = t.split(':').map(Number);
+            return (h * 60) + m;
+        };
+
+        let startMins = parseTime(startTime) - (TIMELINE_START_HOUR * 60);
+        // ถ้าไม่มีเวลาปิด ให้บวกไป 2 ชั่วโมงเป็นค่าเริ่มต้น
+        let endMins = closingTime ? (parseTime(closingTime) - (TIMELINE_START_HOUR * 60)) : startMins + 120;
+
+        // ดักจับกรณีเวลาเกินขอบเขต
+        if (startMins < 0) startMins = 0;
+        if (endMins > TIMELINE_TOTAL_MINS) endMins = TIMELINE_TOTAL_MINS;
+        if (endMins <= startMins) endMins = startMins + 60; 
+
+        const leftPercent = (startMins / TIMELINE_TOTAL_MINS) * 100;
+        const widthPercent = ((endMins - startMins) / TIMELINE_TOTAL_MINS) * 100;
+
+        return { left: `${leftPercent}%`, width: `${widthPercent}%` };
+    };
+
+    const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, event: null, uniqueId: null });
+
+    useEffect(() => {
+        const handleClickOutside = () => setContextMenu({ visible: false, x: 0, y: 0, event: null, uniqueId: null });
+        if (contextMenu.visible) {
+            window.addEventListener('click', handleClickOutside);
+        }
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, [contextMenu.visible]);
+    // ------------------------
+
     const [realTime, setRealTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => {
@@ -617,6 +656,16 @@ const DispatchCalendarDashboard = () => {
     const todayEventsCount = displayEvents.filter(e => e.date === toLocalISOString(new Date())).length;
     const publicEventsCount = displayEvents.filter(e => e.isVisibleToPublic !== false).length;
 
+    const eventsByTeam = useMemo(() => {
+        const grouped = {};
+        selectedDateEvents.forEach(evt => {
+            const teamName = evt.team || 'ไม่ได้ระบุทีม';
+            if (!grouped[teamName]) grouped[teamName] = [];
+            grouped[teamName].push(evt);
+        });
+        return grouped;
+    }, [selectedDateEvents]);
+
     const getEventStyles = (evt) => {
         if (evt.type === 'meeting') return { border: 'border-l-teal-400', bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-400' };
         const colorMap = {
@@ -791,21 +840,40 @@ const DispatchCalendarDashboard = () => {
                                     มี {selectedDateEvents.length} กิจกรรม {selectedDateEvents.length > 0 && ` (แสดง ${selectedDateEvents.length})`}
                                 </p>
                             </div>
+                            <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                                <button 
+                                    onClick={() => setViewMode('list')}
+                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    มุมมองรายการ
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('timeline')}
+                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'timeline' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    มุมมองไทม์ไลน์
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                <input type="text" placeholder="ค้นหางาน โลเคชัน ทีม เบอร์โทร..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-12 pr-12 py-3.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-sm font-medium text-slate-700 shadow-sm" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="ค้นหางาน โลเคชัน ทีม เบอร์โทร..." 
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-9 pr-10 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-xs font-medium text-slate-700 shadow-sm" 
+                                />
                                 {searchTerm && (
-                                    <button onClick={() => setSearchTerm('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 p-1.5 rounded-full transition-colors">
-                                        <X className="w-4 h-4" />
+                                    <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 p-1 rounded-full transition-colors">
+                                        <X className="w-3 h-3" />
                                     </button>
                                 )}
                             </div>
 
-                            <div className="flex flex-wrap gap-2.5">
+                            <div className="flex flex-wrap gap-2">
                                 {eventTypes.map(([type, count]) => {
                                     const isSelected = selectedType === type;
                                     const getIcon = (t) => {
@@ -818,19 +886,24 @@ const DispatchCalendarDashboard = () => {
                                         return '📌';
                                     };
                                     return (
-                                        <button key={type} onClick={() => setSelectedType(type)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all duration-200 shadow-sm ${
+                                        <button 
+                                            key={type} 
+                                            onClick={() => setSelectedType(type)}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all duration-200 shadow-sm ${
                                                 isSelected ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/10' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
-                                            }`}>
-                                            <span className="text-sm leading-none">{getIcon(type)}</span>
+                                            }`}
+                                        >
+                                            <span className="text-xs leading-none">{getIcon(type)}</span>
                                             {type}
-                                            <span className={`px-2 py-0.5 rounded-md text-[11px] ${isSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${isSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                {count}
+                                            </span>
                                         </button>
                                     )
                                 })}
                             </div>
                         </div>
-
+                    {viewMode === 'list' ? (
                         <div className="flex-1 space-y-4">
                             {selectedDateEvents.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-300">
@@ -857,10 +930,20 @@ const DispatchCalendarDashboard = () => {
                                     const uniqueId = evt._id || idx;
                                     const isExpanded = expandedEventId === uniqueId;
 
-                                    return (
+                                   return (
                                         <div key={idx} 
                                             draggable={canEdit}
                                             onDragStart={(e) => handleDragStart(e, evt._id)}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault(); // ป้องกันไม่ให้เมนูคลิกขวาของเบราว์เซอร์เด้งขึ้นมา
+                                                setContextMenu({ 
+                                                    visible: true, 
+                                                    x: e.clientX, 
+                                                    y: e.clientY, 
+                                                    event: evt,
+                                                    uniqueId: uniqueId 
+                                                });
+                                            }}
                                             className={`bg-white p-6 rounded-2xl border border-slate-200 border-l-[6px] ${styles.border} shadow-sm hover:shadow-md transition-all duration-300 ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''}`}
                                         >
                                             <div className="flex justify-between items-start gap-4 mb-4">
@@ -1018,6 +1101,86 @@ const DispatchCalendarDashboard = () => {
                                 })
                             )}
                         </div>
+                    ) : (
+                        <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col mt-2">
+                                {/* Header แกนเวลา (X-Axis) */}
+                                <div className="flex border-b border-slate-200 bg-slate-50">
+                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex items-center justify-center font-bold text-xs text-slate-500">
+                                        ทีมปฏิบัติการ
+                                    </div>
+                                    <div className="flex-1 relative flex">
+                                        {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR + 1 }).map((_, i) => (
+                                            <div key={i} className="flex-1 border-l border-slate-200/50 relative h-10 first:border-l-0">
+                                                <span className="absolute -left-3 top-2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">
+                                                    {String(TIMELINE_START_HOUR + i).padStart(2, '0')}:00
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Body จำแนกตามทีม (Y-Axis) */}
+                                <div className="overflow-y-auto custom-scrollbar flex-1 relative">
+                                    {Object.entries(eventsByTeam).length === 0 ? (
+                                        <div className="p-10 text-center text-slate-400 text-sm font-medium">ไม่มีตารางงานในวันนี้</div>
+                                    ) : (
+                                        Object.entries(eventsByTeam).map(([team, teamEvents], index) => {
+                                            // 👉 1. ดึงชื่อหน่วยมาแสดงฝั่งซ้าย (ลองดึง unit หรือ unitName ถ้าไม่มีให้ใช้ title แทน)
+                                            const firstEvent = teamEvents[0] || {};
+                                            const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
+
+                                            return (
+                                                <div key={team} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                                                    
+                                                    {/* 👉 2. แกน Y (ชื่อทีม) - เพิ่มชื่อหน่วย "ไว้ด้านบน" ชื่อทีม */}
+                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                                                        <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
+                                                            {unitName}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-slate-700 truncate" title={team}>{team}</span>
+                                                        <span className="text-[10px] text-slate-400 mt-0.5">{teamEvents.length} งาน</span>
+                                                    </div>
+                                                    
+                                                    {/* เลนเวลา (Time Lane) */}
+                                                    <div className="flex-1 relative min-h-[60px] py-2">
+                                                        {/* เส้น Grid บางๆ */}
+                                                        <div className="absolute inset-0 flex pointer-events-none">
+                                                            {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR }).map((_, i) => (
+                                                                <div key={i} className="flex-1 border-l border-slate-100"></div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* แท่งงาน (Timeline Blocks) */}
+                                                        {teamEvents.map((evt, idx) => {
+                                                            const { left, width } = getTimelineStyle(evt.time, evt.closingTime);
+                                                            const styles = getEventStyles(evt);
+                                                            
+                                                            return (
+                                                                <div 
+                                                                    key={idx}
+                                                                    onClick={() => openDispatchEvent(evt)} 
+                                                                    className={`absolute top-2 bottom-2 rounded-lg border shadow-sm cursor-pointer overflow-hidden transition-all hover:scale-[1.02] hover:shadow-md hover:z-20 ${styles.bg} ${styles.border} border-l-[4px] opacity-90 hover:opacity-100 flex flex-col justify-center px-2 min-w-[20px]`}
+                                                                    style={{ left, width }}
+                                                                >
+                                                                    <div className={`text-[10px] font-bold truncate flex items-center gap-1 ${styles.text}`}>
+                                                                        {evt.time} - {evt.title || 'ออกหน่วย'}
+                                                                    </div>
+                                                                    {parseFloat(width) > 10 && ( // แสดง location ถ้ากล่องกว้างพอ
+                                                                        <div className="text-[9px] text-slate-500 truncate mt-0.5 font-medium">
+                                                                            {evt.location}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1032,7 +1195,8 @@ const DispatchCalendarDashboard = () => {
                 onSave={handleSaveDispatchEvent} 
                 onDelete={handleDeleteDispatch} 
                 initialData={viewingDispatch}
-                savedStaffList={savedStaffList} 
+                savedStaffList={savedStaffList}
+                allEvents={events}
             />
 
             <AnnouncementModal 
@@ -1151,6 +1315,50 @@ const DispatchCalendarDashboard = () => {
                             )}
                         </div>
                     </div>
+                </div>
+                
+            )}
+            {contextMenu.visible && contextMenu.event && (
+                <div
+                    className="fixed z-[99999] bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                >
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedEventId(contextMenu.uniqueId);
+                            setContextMenu({ ...contextMenu, visible: false });
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                    >
+                        <ChevronDown className="w-4 h-4 text-slate-400" /> ดูรายละเอียด
+                    </button>
+                    
+                    {canEdit && (
+                        <>
+                            <div className="h-px bg-slate-100 my-1 w-full"></div>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    openDispatchEvent(contextMenu.event);
+                                    setContextMenu({ ...contextMenu, visible: false });
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors"
+                            >
+                                <Edit3 className="w-4 h-4 text-indigo-400" /> แก้ไขข้อมูล
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteDispatch(contextMenu.event._id);
+                                    setContextMenu({ ...contextMenu, visible: false });
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4 text-rose-400" /> ลบรายการ
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
         </div>

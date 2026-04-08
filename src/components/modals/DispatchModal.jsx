@@ -4,9 +4,76 @@ import {
   Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown, Copy, Edit3 
 } from 'lucide-react';
 
+// หมายเหตุ: อย่าลืมตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
 
-const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, savedStaffList = [] }) => (
+// ==========================================
+// 1. Helper Functions สำหรับตรวจจับการทับซ้อน
+// ==========================================
+const timeToMins = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+};
+
+const isTimeOverlapping = (startA, endA, startB, endB) => {
+    return startA < endB && startB < endA;
+};
+
+export const checkStaffConflict = (newEventData, allExistingEvents) => {
+    const conflicts = new Set();
+    const newStart = timeToMins(newEventData.departureTime);
+    const newEnd = timeToMins(newEventData.closingTime || '16:00');
+    
+    // รวบรวมชื่อทีมงานทั้งหมดในงานใหม่
+    const newEventStaffs = new Set();
+    if (newEventData.staff) {
+        Object.values(newEventData.staff).forEach(roleArray => {
+            if (Array.isArray(roleArray)) {
+                roleArray.forEach(person => {
+                    if (person && person.trim() !== '') newEventStaffs.add(person.trim());
+                });
+            }
+        });
+    }
+
+    if (newEventStaffs.size === 0) return { isValid: true, conflictingNames: [] };
+
+    allExistingEvents.forEach(existing => {
+        // ข้ามงานตัวเอง (กรณีแก้ไขงานเดิม)
+        if (newEventData._id && existing._id === newEventData._id) return;
+        
+        // ข้ามงานที่อยู่คนละวัน
+        if (existing.date !== newEventData.date) return;
+
+        const existingStart = timeToMins(existing.time || existing.departureTime);
+        const existingEnd = timeToMins(existing.closingTime || '16:00');
+
+        // ถ้าเวลาทับซ้อนกัน (Overlap)
+        if (isTimeOverlapping(newStart, newEnd, existingStart, existingEnd)) {
+            // เช็คชื่อทีมงาน
+            Object.values(existing.staff || {}).forEach(roleArray => {
+                if (Array.isArray(roleArray)) {
+                    roleArray.forEach(existingPerson => {
+                        if (existingPerson && newEventStaffs.has(existingPerson.trim())) {
+                            conflicts.add(existingPerson.trim());
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    return {
+        isValid: conflicts.size === 0,
+        conflictingNames: Array.from(conflicts)
+    };
+};
+
+// ==========================================
+// 2. Component ย่อยสำหรับจัดการรายชื่อ
+// ==========================================
+const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, savedStaffList = [], conflictNames = [] }) => (
   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
     <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex justify-between items-center">
       <div className="flex items-center gap-2">
@@ -19,35 +86,51 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
     </div>
     
     <div className="p-3 space-y-2">
-      {staffList.map((person, idx) => (
-        <div key={idx} className="flex gap-2 group">
-          <div className="relative flex-1">
-            {/* เปลี่ยน input เป็น select dropdown ตรงนี้ */}
-            <select 
-              className="w-full pl-3 pr-8 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-md ring-0 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer outline-none text-slate-700"
-              value={person || ""}
-              onChange={(e) => onChange(roleKey, idx, e.target.value)}
-            >
-              <option value="" disabled className="text-slate-400">-- เลือกรายชื่อ --</option>
-              {savedStaffList.map((staff, i) => (
-                <option key={i} value={staff.name}>{staff.name}</option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
-              <ChevronDown className="w-3 h-3" />
+      {staffList.map((person, idx) => {
+        // 🔥 เช็คว่าชื่อนี้ติด Conflict หรือไม่
+        const isConflicting = person && conflictNames.includes(person);
+
+        return (
+        <div key={idx} className="flex flex-col gap-1">
+          <div className="flex gap-2 group">
+            <div className="relative flex-1">
+              <select 
+                className={`w-full pl-3 pr-8 py-1.5 text-sm rounded-md outline-none transition-all appearance-none cursor-pointer text-slate-700
+                  ${isConflicting 
+                    ? 'border-2 border-rose-500 bg-rose-50 text-rose-700 focus:ring-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]' 
+                    : 'bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:bg-white'
+                  }`}
+                value={person || ""}
+                onChange={(e) => onChange(roleKey, idx, e.target.value)}
+              >
+                <option value="" disabled className="text-slate-400">-- เลือกรายชื่อ --</option>
+                {savedStaffList.map((staff, i) => (
+                  <option key={i} value={staff.name}>{staff.name}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
+                <ChevronDown className={`w-3 h-3 ${isConflicting ? 'text-rose-500' : ''}`} />
+              </div>
             </div>
+            {staffList.length > 1 && (
+              <button 
+                type="button" 
+                onClick={() => onRemove(roleKey, idx)} 
+                className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          {staffList.length > 1 && (
-            <button 
-              type="button" 
-              onClick={() => onRemove(roleKey, idx)} 
-              className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          
+          {/* 🔥 ข้อความแจ้งเตือนสีแดง */}
+          {isConflicting && (
+            <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1 animate-in slide-in-from-top-1">
+              ⚠️ บุคลากรท่านนี้มีคิวงานอื่นในช่วงเวลานี้แล้ว
+            </span>
           )}
         </div>
-      ))}
+      )})}
       
       <button 
         type="button" 
@@ -60,8 +143,10 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
   </div>
 );
 
-// --- Main Component: DispatchModal ---
-const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList }) => {
+// ==========================================
+// 3. Main Component: DispatchModal
+// ==========================================
+const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList, allEvents = [] }) => {
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
@@ -99,6 +184,9 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
   const [isSplitTeam, setIsSplitTeam] = useState(false);
   const [activeDistrictField, setActiveDistrictField] = useState(null);
 
+  // 🔥 State สำหรับเก็บรายชื่อที่ชนกัน
+  const [conflictNames, setConflictNames] = useState([]);
+
   const [generalInfo, setGeneralInfo] = useState({
     date: new Date().toISOString().split('T')[0],
     locationName: '', district: '', mapLink: '',
@@ -135,8 +223,8 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       setCustomUnitName(initialData.customUnitName || '');
       setUnitLetter(initialData.unitLetter || ''); 
       setUnitColor(initialData.unitColor || 'bg-blue-500'); 
+      setConflictNames([]); // Clear conflicts on open
       
-      // ดึงค่าผู้ควบคุมอย่างปลอดภัยเพื่อไม่ให้เป็น undefined
       const staffController = initialData.staff?.controllers?.[0] || '';
       const ctrlParts = staffController.split(' โทร. ');
 
@@ -149,8 +237,6 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         departureTime: initialData.time || '07:30',
         closingTime: initialData.closingTime || '12:00',
         note: initialData.note || '',
-        
-        // แก้ไข 2 บรรทัดนี้ (บังคับให้มี || '' เสมอ)
         controllerName: initialData.controllerName || ctrlParts[0] || '',
         controllerPhone: initialData.controllerPhone || ctrlParts[1] || '',
         status: initialData.status || 'auto'
@@ -180,6 +266,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       setCustomUnitName('');
       setUnitLetter(''); 
       setUnitColor('bg-blue-500'); 
+      setConflictNames([]); // Clear conflicts on open
       setGeneralInfo({
         date: formatDateLocal(tomorrow), 
         locationName: '', district: '', mapLink: '',
@@ -195,6 +282,11 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     const newRoleList = [...staff[role]];
     newRoleList[index] = value;
     setStaff({ ...staff, [role]: newRoleList });
+    
+    // 🔥 ถ้า User เปลี่ยนชื่อคนที่ซ้ำออก ให้ลบแจ้งเตือนแดงออกไปก่อน (เพื่อ UX)
+    if (conflictNames.includes(value) || conflictNames.length > 0) {
+        setConflictNames([]);
+    }
   };
 
   const addStaffField = (role) => {
@@ -235,9 +327,9 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     let locationText = '';
     if (isSplitTeam) {
       locationText = `📍 ทีม A: ${generalInfo.locationName} (เขต ${generalInfo.district || '-'})
-      🗺️ แผนที่ A: ${generalInfo.mapLink || '-'}
-      📍 ทีม B: ${generalInfo.locationNameB} (เขต ${generalInfo.districtB || '-'})
-      🗺️ แผนที่ B: ${generalInfo.mapLinkB || '-'}`;
+🗺️ แผนที่ A: ${generalInfo.mapLink || '-'}
+📍 ทีม B: ${generalInfo.locationNameB} (เขต ${generalInfo.districtB || '-'})
+🗺️ แผนที่ B: ${generalInfo.mapLinkB || '-'}`;
     }
     
     let staffDetails = "";
@@ -290,6 +382,28 @@ ${staffDetails}
   const handleSaveLocal = () => {
     const isCreatingNew = !initialData || isCopyMode;
 
+    // 🔥 1. สร้าง Payload ฉบับเตรียมเช็ค
+    const checkingPayload = {
+        _id: isCreatingNew ? undefined : initialData?._id,
+        date: generalInfo.date,
+        departureTime: generalInfo.departureTime,
+        closingTime: generalInfo.closingTime,
+        staff: staff
+    };
+
+    // 🔥 2. ตรวจสอบ Hard Constraints ก่อน
+    const conflictCheck = checkStaffConflict(checkingPayload, allEvents);
+    if (!conflictCheck.isValid) {
+        setConflictNames(conflictCheck.conflictingNames);
+        if (onToast) {
+            onToast('error', `พบรายชื่อซ้ำซ้อนเวลาเดียวกัน: ${conflictCheck.conflictingNames.join(', ')}`);
+        }
+        return; // BLOCK ACTION 🛑 ไม่อนุญาตให้ Save
+    }
+
+    // ถ้าผ่านฉลุย เคลียร์ State แจ้งเตือน
+    setConflictNames([]);
+
     const currentUnitLabel = UNIT_OPTIONS.find(u => u.value === unitType)?.label;
     const displayTitle = unitType === 'other' && customUnitName.trim() !== ''
       ? customUnitName
@@ -298,11 +412,8 @@ ${staffDetails}
     const extractLatLng = (link) => {
         if (!link) return { lat: null, lng: null };
         try {
-            // พยายามหา pattern แบบ @13.xxx,100.xxx
             const atMatch = link.match(/@([-\d.]+),([-\d.]+)/);
             if (atMatch) return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
-            
-            // พยายามหา pattern จากการปักหมุดตรงๆ เช่น 13.795495,100.338229
             const commaMatch = link.match(/([-\d.]+),\s*([-\d.]+)/);
             if (commaMatch) return { lat: parseFloat(commaMatch[1]), lng: parseFloat(commaMatch[2]) };
         } catch (e) { console.error("Error parsing map link", e) }
@@ -323,8 +434,8 @@ ${staffDetails}
         location: generalInfo.locationName,
         district: generalInfo.district,
         mapLink: generalInfo.mapLink,
-        lat: coordsA.lat, // 👉 เพิ่มบรรทัดนี้
-        lng: coordsA.lng, // 👉 เพิ่มบรรทัดนี้
+        lat: coordsA.lat,
+        lng: coordsA.lng,
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
@@ -338,8 +449,8 @@ ${staffDetails}
         location: generalInfo.locationNameB,
         district: generalInfo.districtB,
         mapLink: generalInfo.mapLinkB,
-        lat: coordsB.lat, // 👉 เพิ่มบรรทัดนี้
-        lng: coordsB.lng, // 👉 เพิ่มบรรทัดนี้
+        lat: coordsB.lat,
+        lng: coordsB.lng,
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
@@ -358,8 +469,8 @@ ${staffDetails}
         location: generalInfo.locationName,
         district: generalInfo.district,
         mapLink: generalInfo.mapLink,
-        lat: coordsA.lat, // 👉 เพิ่มบรรทัดนี้
-        lng: coordsA.lng, // 👉 เพิ่มบรรทัดนี้
+        lat: coordsA.lat, 
+        lng: coordsA.lng, 
         time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
       };
@@ -367,7 +478,8 @@ ${staffDetails}
     }
   };
 
-  const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange, savedStaffList: savedStaffList};
+  // 🔥 ส่ง conflictNames ลงไปให้ StaffInputGroup
+  const commonProps = { onAdd: addStaffField, onRemove: removeStaffField, onChange: handleStaffChange, savedStaffList: savedStaffList, conflictNames: conflictNames };
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
