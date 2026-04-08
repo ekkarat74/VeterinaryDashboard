@@ -1810,13 +1810,13 @@ export default function VeterinaryDashboard() {
                             </button>
                         )}
                         {checkMobileTabVisibility('calendar') && (
-    <button onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} 
-        className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all text-slate-500 hover:bg-slate-50`}
-    >
-        <CalendarDays className="w-5 h-5 mb-1" />
-        <span className="text-[10px]">ปฏิทิน</span>
-    </button>
-)}
+                            <button onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} 
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all text-slate-500 hover:bg-slate-50`}
+                            >
+                                <CalendarDays className="w-5 h-5 mb-1" />
+                                <span className="text-[10px]">ปฏิทิน</span>
+                            </button>
+                        )}
                     </div>
                 );
             })()}
