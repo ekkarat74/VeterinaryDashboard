@@ -1574,7 +1574,7 @@ export default function VeterinaryDashboard() {
                             <List className="w-6 h-6" />
                         </button>
                         <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
-                        <h1 className="text-sm font-bold text-slate-800">ระบบสัตวแพทย์</h1>
+                        <h1 className="text-sm font-bold text-slate-800">ระบบรายงานออกหน่วยเคลื่อนที่สัตวแพทย์</h1>
                     </div>
                     {user ? (
                         <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
@@ -1790,7 +1790,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Activity className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">ภาพรวม</span>
+                                <span className="text-[10px]">ภาพรวมออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('outbreak') && (
@@ -1798,7 +1798,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Siren className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">จุดเสี่ยง</span>
+                                <span className="text-[10px]">จุดเสี่ยงโรคพิสุนัขบ้า</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('database') && (
@@ -1806,7 +1806,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Database className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">ฐานข้อมูล</span>
+                                <span className="text-[10px]">ฐานข้อมูลออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('calendar') && (
@@ -1814,7 +1814,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all text-slate-500 hover:bg-slate-50`}
                             >
                                 <CalendarDays className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">ปฏิทิน</span>
+                                <span className="text-[10px]">ปฏิทินออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
                     </div>

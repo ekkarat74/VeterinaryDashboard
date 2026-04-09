@@ -93,20 +93,26 @@ const Sidebar = ({
                 ${isCollapsed ? 'md:w-[88px]' : 'md:w-[280px]'}
             `}>
                 <div className={`h-[80px] flex items-center px-5 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-                    <div className={`flex items-center gap-3.5 overflow-hidden transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'flex'}`}>
-                        <div className="relative">
-                            <img 
-                                src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
-                                alt="Logo" 
-                                className="w-11 h-11 object-cover rounded-xl border border-slate-100 shrink-0 shadow-sm" 
-                            />
-                            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
-                        </div>
-                        <div className="flex flex-col whitespace-nowrap">
-                            <h1 className="text-base font-bold text-slate-800 tracking-tight leading-none mb-1">ระบบสัตวแพทย์</h1>
-                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none">Animal Control</p>
-                        </div>
-                    </div>
+                    <div className={`flex items-center gap-3.5 overflow-hidden flex-1 min-w-0 transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'flex'}`}>
+    <div className="relative shrink-0">
+        <img 
+            src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
+            alt="Logo" 
+            className="w-11 h-11 object-cover rounded-xl border border-slate-100 shrink-0 shadow-sm" 
+        />
+        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+    </div>
+    
+    {/* ลบ whitespace-nowrap ออก เพิ่ม min-w-0 และปรับขนาดฟอนต์/ระยะบรรทัด */}
+    <div className="flex flex-col min-w-0 pr-2">
+        <h1 className="text-sm font-bold text-slate-800 tracking-tight leading-tight mb-1 break-words">
+            ระบบรายงานออกหน่วยเคลื่อนที่สัตวแพทย์
+        </h1>
+        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
+            Veterinary Mobile Unit Reporting System
+        </p>
+    </div>
+</div>
 
                     <button 
                         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
@@ -128,10 +134,10 @@ const Sidebar = ({
                 <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-1.5 custom-scrollbar">
                     
                     {renderSectionHeader('แดชบอร์ด')}
-                    {checkTabVisibility('overview') && <NavItem icon={Activity} label="ภาพรวมสถิติ" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
-                    {checkTabVisibility('outbreak') && <NavItem icon={Siren} label="จัดการจุดเสี่ยง" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
-                    {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลบริการ" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
-                    {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={false} onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('overview') && <NavItem icon={Activity} label="ภาพรวมสถิติออกหน่วยเคลื่อนที่" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('outbreak') && <NavItem icon={Siren} label="จุดเสี่ยงโรคพิษสุนัขบ้า" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
+                    {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลออกหน่วยเคลื่อนที่" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
+                    {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วยเคลื่อนที่" isActive={false} onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} isCollapsed={isCollapsed} activeColor="indigo" />}
                     
                     {user && !['superadmin', 'executive', 'user'].includes(user.role) && (
                     <>
@@ -163,10 +169,10 @@ const Sidebar = ({
                                                         <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-indigo-500"/> เปิด-ปิดแท็บ (Executive)</p>
                                                         <div className="space-y-3">
                                                             {[
-                                                                { id: 'sa_overview', label: 'ภาพรวม' },
-                                                                { id: 'sa_outbreak', label: 'จุดเสี่ยง' },
-                                                                { id: 'sa_database', label: 'ฐานข้อมูล' },
-                                                                { id: 'sa_calendar', label: 'ปฏิทิน' }
+                                                                { id: 'sa_overview', label: 'ภาพรวมออกหน่วย' },
+                                                                { id: 'sa_outbreak', label: 'จุดเสี่ยงโรค' },
+                                                                { id: 'sa_database', label: 'ฐานข้อมูลออกหน่วย' },
+                                                                { id: 'sa_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
                                                                     <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
@@ -183,10 +189,10 @@ const Sidebar = ({
                                                         <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Unlock className="w-3.5 h-3.5 text-emerald-500"/> เปิด-ปิดแท็บ (Guest)</p>
                                                         <div className="space-y-3">
                                                             {[
-                                                                { id: 'public_overview', label: 'ภาพรวม' },
-                                                                { id: 'public_outbreak', label: 'จุดเสี่ยง' },
-                                                                { id: 'public_database', label: 'ฐานข้อมูล' },
-                                                                { id: 'public_calendar', label: 'ปฏิทิน' }
+                                                                { id: 'public_overview', label: 'ภาพรวมออกหน่วย' },
+                                                                { id: 'public_outbreak', label: 'จุดเสี่ยงโรค' },
+                                                                { id: 'public_database', label: 'ฐานข้อมูลออกหน่วย' },
+                                                                { id: 'public_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
                                                                     <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>

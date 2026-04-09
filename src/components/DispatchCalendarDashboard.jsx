@@ -699,8 +699,8 @@ const DispatchCalendarDashboard = () => {
                         <Calendar className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">ตารางแผนงานออกหน่วย</h3>
-                        <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">Dispatch Dashboard & Planning</p>
+                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">ปฏิทินออกหน่วยสัตวแพทย์เคลื่อนที่</h3>
+                        <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-1">Mobile Veterinary Unit Calendar</p>
                     </div>
                 </div>
 
