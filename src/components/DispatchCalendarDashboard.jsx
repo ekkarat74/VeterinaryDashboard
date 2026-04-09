@@ -7,29 +7,8 @@ import DispatchModal from './modals/DispatchModal.jsx';
 import LoginModal from './modals/LoginModal.jsx';
 import ToastContainer from '../path/to/ToastContainer.jsx'; // ตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
 
-// ==========================================
-// Audio System (เพิ่มส่วนนี้เข้าไป)
-// ==========================================
-let globalAudioCtx = null;
-const getAudioContext = () => {
-    const A = window.AudioContext || window.webkitAudioContext;
-    if (!A) return null;
-    if (!globalAudioCtx) globalAudioCtx = new A();
-    if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume().catch(() => {});
-    return globalAudioCtx;
-};
-export const playSound = (type) => {
-    try {
-        const ctx = getAudioContext(); if (!ctx) return;
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        const t = ctx.currentTime;
-        if (type === 'pop')     { o.type='sine'; o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(600,t+.05); g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.01,t+.05); o.start(t); o.stop(t+.05); }
-        if (type === 'success') { o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.setValueAtTime(800,t+.1); g.gain.setValueAtTime(.15,t); g.gain.setValueAtTime(.15,t+.1); g.gain.exponentialRampToValueAtTime(.01,t+.3); o.start(t); o.stop(t+.3); }
-        if (type === 'delete')  { o.type='triangle'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(50,t+.15); g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.01,t+.15); o.start(t); o.stop(t+.15); }
-        if (type === 'switch')  { o.type='square'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(150,t+.05); g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.01,t+.05); o.start(t); o.stop(t+.05); }
-    } catch (_) { /* ignore */ }
-};
+// นำเข้าฟังก์ชันระบบเสียง
+import { playSound } from '../utils/soundUtils.js';
 
 // ==========================================
 // 1. Shared Components
@@ -153,7 +132,7 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
                             <p className="text-[11px] text-slate-500">จัดการข้อความประชาสัมพันธ์ด้านบน</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                    <button onClick={() => { playSound('pop'); onClose(); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
@@ -750,7 +729,7 @@ const DispatchCalendarDashboard = () => {
                             <button onClick={() => { playSound('pop'); setIsManageStaffOpen(true); }} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-blue-200">
                                 <Users className="w-4 h-4"/> <span className="hidden sm:inline">จัดการทีมงาน</span>
                             </button>
-                            <button onClick={() => { playSound('pop'); setIsLoginModalOpen(true); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
+                            <button onClick={() => { playSound('pop'); openDispatchForm(true); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4" /> <span className="hidden sm:inline">เพิ่มงานใหม่</span>
                             </button>
                         </>
@@ -1223,6 +1202,7 @@ const DispatchCalendarDashboard = () => {
                 initialData={viewingDispatch}
                 savedStaffList={savedStaffList} 
                 allEvents={events} 
+                playSound={playSound}
             />
 
             <AnnouncementModal 

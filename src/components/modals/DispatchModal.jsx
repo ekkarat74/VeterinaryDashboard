@@ -4,8 +4,8 @@ import {
   Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown, Copy, Edit3 
 } from 'lucide-react';
 
-// หมายเหตุ: อย่าลืมตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
+import { playSound } from '../../utils/soundUtils.js';
 
 // ==========================================
 // 1. Helper Functions สำหรับตรวจจับการทับซ้อน
@@ -286,10 +286,12 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
   };
 
   const addStaffField = (role) => {
+    playSound('pop');
     setStaff({ ...staff, [role]: [...staff[role], ''] });
   };
 
   const removeStaffField = (role, index) => {
+    playSound('pop');
     const newRoleList = [...staff[role]];
     newRoleList.splice(index, 1);
     setStaff({ ...staff, [role]: newRoleList });
@@ -501,7 +503,7 @@ ${staffDetails}
                {isCopyMode ? 'กรุณาแก้ไขวันที่ สถานที่ หรือข้อมูลอื่นๆ แล้วกดบันทึกข้อมูล' : 'กรอกรายละเอียดเพื่อบันทึกและแจ้งเตือน'}
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all">
+          <button onClick={() => { playSound('pop'); onClose(); }} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -918,7 +920,7 @@ ${staffDetails}
         <div className="flex-1 flex gap-3">
           {initialData && onDelete && !isCopyMode && (
             <button 
-              onClick={() => onDelete(initialData._id)} 
+              onClick={() => { playSound('delete'); onDelete(initialData._id); }} 
               className="text-slate-400 hover:text-red-500 text-sm font-semibold flex items-center gap-1.5 transition-colors"
             >
               <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">ลบรายการ</span>
