@@ -1643,28 +1643,28 @@ export default function VeterinaryDashboard() {
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                                        <option value="ทั้งหมด">ทุกปี</option>
+                                        <option value="ทั้งหมด">-- เลือกปี --</option>
                                         {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                                        <option value="ทั้งหมด">ทุกเดือน</option>
+                                        <option value="ทั้งหมด">-- เลือกเดือน --</option>
                                         {THAI_MONTHS.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
-                                        <option value="ทั้งหมด">ทุกหน่วยงาน</option>
+                                        <option value="ทั้งหมด">-- เลือกหน่วยงาน --</option>
                                         {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
-                                        <option value="ทั้งหมด">ทุกเขตใน กทม.</option>
+                                        <option value="ทั้งหมด">-- เลือกเขต --</option>
                                         {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
                                     </select>
                                 </div>
