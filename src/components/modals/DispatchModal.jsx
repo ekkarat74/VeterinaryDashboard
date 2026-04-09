@@ -388,11 +388,12 @@ ${staffDetails}
 
     const conflictCheck = checkStaffConflict(checkingPayload, allEvents);
     if (!conflictCheck.isValid) {
-        setConflictNames(conflictCheck.conflictingNames);
-        if (onToast) {
-            onToast('error', `พบรายชื่อซ้ำซ้อนเวลาเดียวกัน: ${conflictCheck.conflictingNames.join(', ')}`);
-        }
-        return; 
+      playSound('delete');
+      setConflictNames(conflictCheck.conflictingNames);
+      if (onToast) {
+        onToast('error', `พบรายชื่อซ้ำซ้อนเวลาเดียวกัน: ${conflictCheck.conflictingNames.join(', ')}`);
+      }
+      return; 
     }
 
     setConflictNames([]);
@@ -564,7 +565,7 @@ ${staffDetails}
                               type="checkbox" 
                               id="splitTeamToggle" 
                               checked={isSplitTeam} 
-                              onChange={(e) => setIsSplitTeam(e.target.checked)}
+                              onChange={(e) => { playSound('switch'); setIsSplitTeam(e.target.checked); }}
                               className="w-4 h-4 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
                           />
                           <label htmlFor="splitTeamToggle" className="text-xs font-bold text-indigo-800 cursor-pointer leading-tight">
@@ -603,7 +604,7 @@ ${staffDetails}
                         <button
                           key={c.value}
                           type="button"
-                          onClick={() => setUnitColor(c.value)}
+                          onClick={() => { playSound('pop'); setUnitColor(c.value); }}
                           className={`w-6 h-6 rounded-full transition-all duration-200
                             ${c.value} 
                             ${unitColor === c.value ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 shadow-md' : 'hover:scale-105 opacity-80 shadow-sm border border-black/10'}`}
@@ -927,6 +928,7 @@ ${staffDetails}
           {initialData && !isCopyMode && (
             <button 
               onClick={() => {
+                playSound('pop');
                 setIsCopyMode(true);
                 if (onToast) onToast('info', 'อยู่ในโหมดคัดลอก กรุณาเปลี่ยนวันที่ก่อนบันทึก');
               }} 
@@ -939,7 +941,7 @@ ${staffDetails}
 
         <div className="flex gap-2 sm:gap-3 items-center">
           <button 
-            onClick={onClose} 
+            onClick={() => { playSound('pop'); onClose(); }}
             className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors text-sm sm:text-base"
           >
             ยกเลิก

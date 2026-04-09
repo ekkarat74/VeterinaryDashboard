@@ -8,6 +8,30 @@ import LoginModal from './modals/LoginModal.jsx';
 import ToastContainer from '../path/to/ToastContainer.jsx'; // ตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
 
 // ==========================================
+// Audio System (เพิ่มส่วนนี้เข้าไป)
+// ==========================================
+let globalAudioCtx = null;
+const getAudioContext = () => {
+    const A = window.AudioContext || window.webkitAudioContext;
+    if (!A) return null;
+    if (!globalAudioCtx) globalAudioCtx = new A();
+    if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume().catch(() => {});
+    return globalAudioCtx;
+};
+export const playSound = (type) => {
+    try {
+        const ctx = getAudioContext(); if (!ctx) return;
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        const t = ctx.currentTime;
+        if (type === 'pop')     { o.type='sine'; o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(600,t+.05); g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.01,t+.05); o.start(t); o.stop(t+.05); }
+        if (type === 'success') { o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.setValueAtTime(800,t+.1); g.gain.setValueAtTime(.15,t); g.gain.setValueAtTime(.15,t+.1); g.gain.exponentialRampToValueAtTime(.01,t+.3); o.start(t); o.stop(t+.3); }
+        if (type === 'delete')  { o.type='triangle'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(50,t+.15); g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.01,t+.15); o.start(t); o.stop(t+.15); }
+        if (type === 'switch')  { o.type='square'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(150,t+.05); g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.01,t+.05); o.start(t); o.stop(t+.05); }
+    } catch (_) { /* ignore */ }
+};
+
+// ==========================================
 // 1. Shared Components
 // ==========================================
 const StatCard = ({ label, value, colorClass, bgClass, icon: Icon }) => (
@@ -110,11 +134,11 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
 
     if (!isOpen) return null;
 
-    const handleToggle = (id) => setItems(items.map(item => item.id === id ? { ...item, isActive: !item.isActive } : item));
+    const handleToggle = (id) => { playSound('switch'); setItems(items.map(item => item.id === id ? { ...item, isActive: !item.isActive } : item)); };
     const handleChangeText = (id, text) => setItems(items.map(item => item.id === id ? { ...item, text } : item));
     const handleChangeIcon = (id, icon) => setItems(items.map(item => item.id === id ? { ...item, icon } : item));
-    const handleDelete = (id) => setItems(items.filter(item => item.id !== id));
-    const handleAdd = () => setItems([...items, { id: Date.now(), icon: '📌', text: 'ข้อความใหม่', isActive: true }]);
+    const handleDelete = (id) => { playSound('delete'); setItems(items.filter(item => item.id !== id)); };
+    const handleAdd = () => { playSound('pop'); setItems([...items, { id: Date.now(), icon: '📌', text: 'ข้อความใหม่', isActive: true }]); };
 
     return (
         <div className="fixed inset-0 z-[6000] flex justify-center items-end sm:items-center bg-slate-900/50 backdrop-blur-sm transition-opacity">
@@ -162,8 +186,8 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
                 </div>
 
                 <div className="p-4 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 shrink-0">
-                    <button onClick={onClose} className="py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
-                    <button onClick={() => { onSave(items); onClose(); }} className="py-2.5 rounded-xl font-bold text-xs text-white bg-[#6B4BFA] hover:bg-[#5A3EE0] shadow-md shadow-purple-200 flex justify-center items-center gap-2 transition-colors"><Save className="w-4 h-4"/> บันทึกทั้งหมด</button>
+                    <button onClick={() => { playSound('pop'); onClose(); }} className="py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                    <button onClick={() => { playSound('success'); onSave(items); onClose(); }} className="py-2.5 rounded-xl font-bold text-xs text-white bg-[#6B4BFA] hover:bg-[#5A3EE0] shadow-md shadow-purple-200 flex justify-center items-center gap-2 transition-colors"><Save className="w-4 h-4"/> บันทึกทั้งหมด</button>
                 </div>
             </div>
         </div>
@@ -315,6 +339,7 @@ const DispatchCalendarDashboard = () => {
             });
 
             if (res.ok) {
+                playSound('success');
                 addToast('success', isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'เพิ่มข้อมูลสำเร็จ');
                 fetchSavedControllers(); 
                 setControllerNameInput('');
@@ -342,6 +367,7 @@ const DispatchCalendarDashboard = () => {
                     headers: { 'Authorization': `Bearer ${user?.token}` }
                 });
                 if (res.ok) {
+                    playSound('delete');
                     addToast('success', 'ลบข้อมูลเรียบร้อยแล้ว');
                     fetchSavedControllers();
                     
@@ -383,6 +409,7 @@ const DispatchCalendarDashboard = () => {
             });
 
             if (res.ok) {
+                playSound('success');
                 addToast('success', isEditing ? 'แก้ไขข้อมูลสำเร็จ' : 'เพิ่มรายชื่อสำเร็จ');
                 fetchSavedStaffs(); 
                 setStaffNameInput('');
@@ -402,6 +429,7 @@ const DispatchCalendarDashboard = () => {
                     headers: { 'Authorization': `Bearer ${user?.token}` }
                 });
                 if (res.ok) {
+                    playSound('delete');
                     addToast('success', 'ลบรายชื่อเรียบร้อยแล้ว');
                     fetchSavedStaffs();
                 }
@@ -428,6 +456,7 @@ const DispatchCalendarDashboard = () => {
     };
 
     const handleLogin = (userData) => {
+        playSound('success');
         setUser(userData);
         localStorage.setItem('vet_user', JSON.stringify(userData));
         setIsLoginModalOpen(false);
@@ -436,6 +465,7 @@ const DispatchCalendarDashboard = () => {
 
     const handleLogout = () => {
         if (window.confirm("ยืนยันการออกจากระบบ?")) {
+            playSound('switch');
             setUser(null);
             localStorage.removeItem('vet_user');
             addToast('info', 'ออกจากระบบแล้ว');
@@ -483,6 +513,7 @@ const DispatchCalendarDashboard = () => {
     };
 
     const openDispatchForm = () => { 
+        playSound('pop');
         setViewingDispatch(null); 
         setIsDispatchModalOpen(true); 
         scrollToForm(); 
@@ -506,6 +537,7 @@ const DispatchCalendarDashboard = () => {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
+                playSound('success');
                 addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
                 setIsDispatchModalOpen(false);
                 const fetchRes = await fetch(`${BASE_URL}/api/dispatches`);
@@ -529,6 +561,7 @@ const DispatchCalendarDashboard = () => {
                 headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             if (res.ok) {
+                playSound('delete');
                 addToast('success', 'ลบแผนงานเรียบร้อย');
                 setIsDispatchModalOpen(false);
                 setEvents(prev => prev.filter(e => e._id !== id));
@@ -705,19 +738,19 @@ const DispatchCalendarDashboard = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 text-xs font-bold shadow-sm">
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 text-xs font-bold shadow-sm">
                         <Clock className="w-4 h-4 text-indigo-500" />
                         {realTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
                     </div>
                     {canEdit && (
                         <>
-                            <button onClick={() => setIsAddControllerOpen(true)} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
+                            <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
                                 <UserPlus className="w-4 h-4"/> <span className="hidden sm:inline">เพิ่มผู้ควบคุม</span>
                             </button>
-                            <button onClick={() => setIsManageStaffOpen(true)} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-blue-200">
+                            <button onClick={() => { playSound('pop'); setIsManageStaffOpen(true); }} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-blue-200">
                                 <Users className="w-4 h-4"/> <span className="hidden sm:inline">จัดการทีมงาน</span>
                             </button>
-                            <button onClick={openDispatchForm} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
+                            <button onClick={() => { playSound('pop'); setIsLoginModalOpen(true); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4" /> <span className="hidden sm:inline">เพิ่มงานใหม่</span>
                             </button>
                         </>
@@ -758,9 +791,9 @@ const DispatchCalendarDashboard = () => {
                                 {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
                             </h2>
                             <div className="flex items-center bg-slate-50 rounded-lg border border-slate-100 p-1">
-                                <button onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-white rounded-md text-slate-500 transition-colors shadow-sm"><ChevronLeft className="w-4 h-4" /></button>
-                                <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-[11px] font-bold text-indigo-600 hover:bg-white rounded-md transition-colors shadow-sm">วันนี้</button>
-                                <button onClick={() => changeMonth(1)} className="p-1.5 hover:bg-white rounded-md text-slate-500 transition-colors shadow-sm"><ChevronRight className="w-4 h-4" /></button>
+                                <button onClick={() => { playSound('pop'); changeMonth(-1); }} className="p-1.5 hover:bg-white rounded-md text-slate-500 transition-colors shadow-sm"><ChevronLeft className="w-4 h-4" /></button>
+                                <button onClick={() => { playSound('pop'); setCurrentDate(new Date()); }} className="px-3 py-1 text-[11px] font-bold text-indigo-600 hover:bg-white rounded-md transition-colors shadow-sm">วันนี้</button>
+                                <button onClick={() => { playSound('pop'); changeMonth(1); }} className="p-1.5 hover:bg-white rounded-md text-slate-500 transition-colors shadow-sm"><ChevronRight className="w-4 h-4" /></button>
                             </div>
                         </div>
 
@@ -786,7 +819,7 @@ const DispatchCalendarDashboard = () => {
 
                                 return (
                                     <div key={i} 
-                                        onClick={() => setSelectedDate(dObj)}
+                                        onClick={() => { playSound('pop'); setSelectedDate(dObj); }}
                                         onDragOver={(e) => handleDragOver(e, dateStr)}
                                         onDragLeave={handleDragLeave}
                                         onDrop={(e) => handleDrop(e, dateStr)}
@@ -836,14 +869,12 @@ const DispatchCalendarDashboard = () => {
                                 </p>
                             </div>
                             <div className="flex items-center bg-slate-100 p-1 rounded-xl">
-                                <button 
-                                    onClick={() => setViewMode('list')}
+                               <button onClick={() => { playSound('pop'); setViewMode('list'); }}
                                     className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     มุมมองรายการ
                                 </button>
-                                <button 
-                                    onClick={() => setViewMode('timeline')}
+                               <button onClick={() => { playSound('pop'); setViewMode('timeline'); }}
                                     className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'timeline' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     มุมมองไทม์ไลน์
@@ -883,7 +914,7 @@ const DispatchCalendarDashboard = () => {
                                     return (
                                         <button 
                                             key={type} 
-                                            onClick={() => setSelectedType(type)}
+                                            onClick={() => { playSound('pop'); setSelectedType(type); }}
                                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all duration-200 shadow-sm ${
                                                 isSelected ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/10' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                                             }`}

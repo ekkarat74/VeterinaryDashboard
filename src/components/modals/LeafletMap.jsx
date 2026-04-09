@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, GeoJSON, LayersControl } from 'react-leaflet';
 
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 
 import { UNIT_TYPES } from '../../constants/locations'; 
+
+const { BaseLayer } = LayersControl;
 
 const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit }) => {
     const centerPosition = [13.7563, 100.5018];
@@ -116,12 +118,13 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .leaflet-container .leaflet-control-layers { border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 6px; }
             `}</style>
 
             {/* --- Floating Control Panel --- */}
             <div className={`absolute top-4 right-4 z-[500] flex flex-col bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-white transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0 max-h-[calc(100%-2rem)] overflow-hidden'}`}> 
                 
-                {/* Header (shrink-0 เพื่อป้องกันการหดตัว) */}
+                {/* Header */}
                 <div 
                     className={`flex items-center justify-between cursor-pointer shrink-0 ${isCollapsed ? 'w-full h-full justify-center' : 'p-4 border-b border-slate-100/80'}`}
                     onClick={() => setIsCollapsed(!isCollapsed)}
@@ -146,7 +149,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                     )}
                 </div>
 
-                {/* Content Panel (ใช้ flex-1 และ overflow-y-auto เพื่อให้ Scroll ได้พอดีกรอบ) */}
+                {/* Content Panel */}
                 {!isCollapsed && (
                     <div className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300 flex-1 overflow-y-auto custom-scrollbar">
                         
@@ -279,11 +282,24 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
 
             {/* --- MAP CONTENT --- */}
             <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100">
-                <TileLayer 
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
                 
+                {/* --- ส่วนที่เพิ่ม LayersControl ครอบ TileLayer --- */}
+                <LayersControl position="topleft">
+                    <BaseLayer checked name="แผนที่ถนน (Street)">
+                        <TileLayer 
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                    </BaseLayer>
+                    <BaseLayer name="ภาพถ่ายดาวเทียม (Satellite)">
+                        <TileLayer 
+                            attribution='Tiles &copy; Esri &mdash; Source: Esri'
+                            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        />
+                    </BaseLayer>
+                </LayersControl>
+                {/* ------------------------------------------- */}
+
                 {/* ขอบเขตกรุงเทพมหานคร */}
                 {bangkokGeoJSON && (
                     <GeoJSON 

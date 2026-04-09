@@ -146,7 +146,7 @@ const RabiesOutbreakSection = ({
                 <div className="flex justify-between items-center mb-4 px-2">
                     <div>
                         <h4 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-red-500" /> แผนที่พิกัดจุดเกิดเหตุ
+                            <MapPin className="w-5 h-5 text-red-500" /> แผนที่พิกัดจุดเกิดโรคพิษสุนัขบ้า
                         </h4>
                         <p className="text-sm text-slate-400">แสดงพิกัดและการจำลองรัศมีเฝ้าระวังโรค</p>
                     </div>

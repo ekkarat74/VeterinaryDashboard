@@ -258,6 +258,7 @@ export default function VeterinaryDashboard() {
     // ✨ State สำหรับข้อความแถบเลื่อน
     const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
     const [announcements, setAnnouncements] = useState([
+        { id: 0, icon: '👋', text: 'ยินดีต้อนรับสู่ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่ - ติดตามข้อมูลวัคซีนและทำหมันสุนัข-แมว', isActive: true },
         { id: 1, icon: '💉', text: 'บริการฉีดวัคซีนสัตว์เลี้ยง ฟรี! ทุกวันอังคาร-ศุกร์', isActive: true },
         { id: 2, icon: '🏥', text: 'ทำหมันสุนัข-แมว ฟรี! รับจำนวนจำกัด โทรจองล่วงหน้า', isActive: true },
         { id: 3, icon: '🩺', text: 'ตรวจสุขภาพสัตว์เลี้ยงฟรี ทุกวันเสาร์-อาทิตย์', isActive: true },
@@ -1584,7 +1585,21 @@ export default function VeterinaryDashboard() {
                 </div>
 
                 <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8 custom-scrollbar">
-                    
+                    <div className="bg-gradient-to-r from-[#6B4BFA] to-indigo-500 rounded-2xl p-6 mb-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center gap-5 relative overflow-hidden">
+    {/* ลวดลายพื้นหลังตกแต่ง */}
+    <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl"></div>
+    
+    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm shrink-0 border border-white/20 shadow-inner">
+        <Activity className="w-8 h-8 text-white" />
+    </div>
+    <div className="relative z-10">
+        <h1 className="text-2xl font-bold mb-1">ระบบรายงานและจัดการข้อมูลสัตวแพทย์เคลื่อนที่</h1>
+        <p className="text-indigo-100 text-sm max-w-2xl leading-relaxed">
+            ระบบสำหรับเจ้าหน้าที่เพื่อบันทึก ติดตาม และประมวลผลข้อมูลการให้บริการสัตวแพทย์เคลื่อนที่ 
+            ครอบคลุมการฉีดวัคซีน ทำหมัน ฝังไมโครชิป และเฝ้าระวังจุดเสี่ยงโรคพิษสุนัขบ้าในพื้นที่กรุงเทพมหานคร
+        </p>
+    </div>
+</div>
                     <div className="bg-white p-5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-slate-200 mb-6 transition-all duration-300">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                             <div className="flex flex-col gap-2">
