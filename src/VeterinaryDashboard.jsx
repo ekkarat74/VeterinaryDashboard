@@ -33,7 +33,6 @@ import { getUnitKey } from './utils/helpers.js';
 import PieChartsSection from './components/dashboard/PieChartsSection.jsx';
 const UnitComparisonChart = React.lazy(() => import('./components/dashboard/UnitComparisonChart.jsx'));
 import ClearDataModal from './components/modals/ClearDataModal.jsx';
-import DispatchCalendarDashboard from './components/DispatchCalendarDashboard.jsx';
 const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal.jsx'));
 const BreedModal = lazy(() => import('./components/modals/BreedModal.jsx'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal.jsx'));
@@ -1366,7 +1365,6 @@ export default function VeterinaryDashboard() {
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
             <style>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }

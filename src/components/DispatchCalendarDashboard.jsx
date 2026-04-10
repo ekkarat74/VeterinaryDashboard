@@ -64,6 +64,42 @@ const RealTimeClock = React.memo(() => {
     );
 });
 
+// วางไว้ด้านบนใกล้ๆ กับ RealTimeClock
+const TimelineCurrentTimeLine = React.memo(({ startHour, endHour }) => {
+    const [position, setPosition] = useState(0);
+
+    useEffect(() => {
+        const updatePosition = () => {
+            const now = new Date();
+            const currentMins = (now.getHours() * 60) + now.getMinutes();
+            const startMins = startHour * 60;
+            const totalMins = (endHour - startHour) * 60;
+            
+            let percent = ((currentMins - startMins) / totalMins) * 100;
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
+            
+            setPosition(percent);
+        };
+        
+        updatePosition();
+        const timer = setInterval(updatePosition, 60000); // อัปเดตทุก 1 นาที
+        return () => clearInterval(timer);
+    }, [startHour, endHour]);
+
+    // แสดงเฉพาะเมื่อเวลาอยู่ในช่วงที่กำหนด
+    if (position === 0 || position === 100) return null;
+
+    return (
+        <div 
+            className="absolute top-0 bottom-0 w-0.5 bg-rose-500 z-30 pointer-events-none"
+            style={{ left: `${position}%` }}
+        >
+            <div className="absolute -top-1 -translate-x-1/2 w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.6)]"></div>
+        </div>
+    );
+});
+
 // ==========================================
 // 1. Shared Components
 // ==========================================
@@ -259,7 +295,7 @@ const DispatchCalendarDashboard = () => {
             return matchSearch && matchType;
         });
     }, [events, searchTerm, selectedType]);
-    
+
     const stats = useMemo(() => {
         const todayStr = toLocalISOString(new Date());
         let total = displayEvents.length;
@@ -718,11 +754,6 @@ const DispatchCalendarDashboard = () => {
             return b[1] - a[1];
         });
     }, [events]);
-
-    const totalEvents = displayEvents.length;
-    const upcomingEvents = displayEvents.filter(e => e.date >= toLocalISOString(new Date())).length;
-    const todayEventsCount = displayEvents.filter(e => e.date === toLocalISOString(new Date())).length;
-    const publicEventsCount = displayEvents.filter(e => e.isVisibleToPublic !== false).length;
 
     const eventsByTeam = useMemo(() => {
         const grouped = {};
@@ -1191,6 +1222,10 @@ const DispatchCalendarDashboard = () => {
                                                     
                                                     {/* เลนเวลา (Time Lane) */}
                                                     <div className="flex-1 relative min-h-[60px] py-2">
+                                                        {toLocalISOString(selectedDate) === toLocalISOString(new Date()) && (
+                                                            <TimelineCurrentTimeLine startHour={TIMELINE_START_HOUR} endHour={TIMELINE_END_HOUR} />
+                                                        )}
+
                                                         {/* เส้น Grid บางๆ */}
                                                         <div className="absolute inset-0 flex pointer-events-none">
                                                             {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR }).map((_, i) => (
