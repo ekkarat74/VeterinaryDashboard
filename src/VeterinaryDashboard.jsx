@@ -37,8 +37,22 @@ import DispatchCalendarDashboard from './components/DispatchCalendarDashboard.js
 const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal.jsx'));
 const BreedModal = lazy(() => import('./components/modals/BreedModal.jsx'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal.jsx'));
+import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors.js';
 
-const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
+// ==========================================
+// 4. Footer Component
+// ==========================================
+const Footer = React.memo(() => {
+    return (
+        <footer className="bg-white border-t border-slate-200 py-3 px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] sm:text-xs text-slate-500 shrink-0 z-20 w-full mt-auto">
+            <div className="font-medium">
+                &copy; {new Date().getFullYear()} สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย กรุงเทพมหานคร
+            </div>
+        </footer>
+    );
+});
+
+const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -62,7 +76,8 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
     const currentItem = activeAnnouncements[safeIndex];
 
     return (
-        <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-sm relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
+        // เปลี่ยน text-sm เป็น text-xs
+        <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-xs relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
             <div className="bg-[#6B4BFA] text-white px-3 py-1 rounded-full font-bold text-xs mr-3 shrink-0 z-10 flex items-center gap-2 shadow-sm">
                 <Megaphone className="w-3 h-3" /> PREVIEW
             </div>
@@ -87,10 +102,10 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
             )}
         </div>
     );
-};
+});
 
 // --- คอมโพเนนต์ Modal สำหรับแก้ไข (Announcement Modal) ---
-const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) => {
+const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, onSave }) => {
     const [items, setItems] = useState([]);
 
     useEffect(() => {
@@ -177,7 +192,44 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
             </div>
         </div>
     );
-};
+});
+
+// ==========================================
+// Component: Announcement Manager (รวม State ไว้ในนี้)
+// ==========================================
+const AnnouncementManager = React.memo(({ canEdit, addToast }) => {
+    // ย้าย State และข้อมูลเริ่มต้นออกมาจาก VeterinaryDashboard
+    const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+    const [announcements, setAnnouncements] = useState([
+        { id: 0, icon: '👋', text: 'ยินดีต้อนรับสู่ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่ - ติดตามข้อมูลวัคซีนและทำหมันสุนัข-แมว', isActive: true },
+        { id: 1, icon: '💉', text: 'บริการฉีดวัคซีนสัตว์เลี้ยง ฟรี! ทุกวันอังคาร-ศุกร์', isActive: true },
+        { id: 2, icon: '🏥', text: 'ทำหมันสุนัข-แมว ฟรี! รับจำนวนจำกัด โทรจองล่วงหน้า', isActive: true },
+        { id: 3, icon: '🩺', text: 'ตรวจสุขภาพสัตว์เลี้ยงฟรี ทุกวันเสาร์-อาทิตย์', isActive: true },
+        { id: 4, icon: '📞', text: 'แจ้งสัตว์จรจัดบาดเจ็บ โทร 1119 ตลอด 24 ชั่วโมง', isActive: true },
+        { id: 5, icon: '🚑', text: 'หน่วยสัตวแพทย์เคลื่อนที่ พร้อมให้บริการทุกพื้นที่', isActive: true }
+    ]);
+
+    const handleSaveAnnouncements = (newAnnouncements) => {
+        setAnnouncements(newAnnouncements);
+        addToast('success', '✅ บันทึกข้อความแถบเลื่อนเรียบร้อยแล้ว');
+    };
+
+    return (
+        <>
+            <AnnouncementBar 
+                announcements={announcements} 
+                onEditClick={() => setIsAnnouncementModalOpen(true)} 
+                canEdit={canEdit} 
+            />
+            <AnnouncementModal 
+                isOpen={isAnnouncementModalOpen} 
+                onClose={() => setIsAnnouncementModalOpen(false)} 
+                initialAnnouncements={announcements}
+                onSave={handleSaveAnnouncements}
+            />
+        </>
+    );
+});
 
 const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 const API_URL = `${BASE_URL}/api/reports`;
@@ -241,35 +293,19 @@ export default function VeterinaryDashboard() {
     const [isColorModalOpen, setIsColorModalOpen] = useState(false);
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
-    // ✨ จัดการสิทธิ์การแสดงผลใหม่
+    // จัดการสิทธิ์การแสดงผลใหม่
     const isSystemDeveloper = user?.role === 'Developer';
     const isTopAdmin = user && ['Developer', 'MagaAdmin'].includes(user.role);
     const isMagaAdmin = user && ['Developer', 'MagaAdmin'].includes(user.role);
 
-    // ✨ Admin, MagaAdmin, Developer แก้ไขข้อมูลได้ | (User, executive, superadmin ห้ามแก้)
+    // Admin, MagaAdmin, Developer แก้ไขข้อมูลได้ | (User, executive, superadmin ห้ามแก้)
     const canEdit = user && ['Developer', 'MagaAdmin', 'admin'].includes(user.role) && !isReadOnlyMode;
     
-    // ✨ User สามารถเพิ่มข้อมูลได้ด้วย
+    // User สามารถเพิ่มข้อมูลได้ด้วย
     const canAdd = user && ['Developer', 'MagaAdmin', 'admin', 'user'].includes(user.role) && !isReadOnlyMode;
 
-    // ✨ สิทธิ์การมองเห็นหน่วยที่ถูกซ่อน (Executive มองเห็นได้ แต่แก้ไม่ได้ถ้าไม่มี canEdit)
+    // สิทธิ์การมองเห็นหน่วยที่ถูกซ่อน (Executive มองเห็นได้ แต่แก้ไม่ได้ถ้าไม่มี canEdit)
     const canViewHiddenDispatches = user && ['Developer', 'MagaAdmin', 'admin', 'executive'].includes(user.role);
-
-    // ✨ State สำหรับข้อความแถบเลื่อน
-    const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
-    const [announcements, setAnnouncements] = useState([
-        { id: 0, icon: '👋', text: 'ยินดีต้อนรับสู่ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่ - ติดตามข้อมูลวัคซีนและทำหมันสุนัข-แมว', isActive: true },
-        { id: 1, icon: '💉', text: 'บริการฉีดวัคซีนสัตว์เลี้ยง ฟรี! ทุกวันอังคาร-ศุกร์', isActive: true },
-        { id: 2, icon: '🏥', text: 'ทำหมันสุนัข-แมว ฟรี! รับจำนวนจำกัด โทรจองล่วงหน้า', isActive: true },
-        { id: 3, icon: '🩺', text: 'ตรวจสุขภาพสัตว์เลี้ยงฟรี ทุกวันเสาร์-อาทิตย์', isActive: true },
-        { id: 4, icon: '📞', text: 'แจ้งสัตว์จรจัดบาดเจ็บ โทร 1119 ตลอด 24 ชั่วโมง', isActive: true },
-        { id: 5, icon: '🚑', text: 'หน่วยสัตวแพทย์เคลื่อนที่ พร้อมให้บริการทุกพื้นที่', isActive: true }
-    ]);
-
-    const handleSaveAnnouncements = (newAnnouncements) => {
-        setAnnouncements(newAnnouncements);
-        addToast('success', '✅ บันทึกข้อความแถบเลื่อนเรียบร้อยแล้ว');
-    };
 
     const handleNotifySystemUpdate = async () => {
         if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
@@ -379,46 +415,13 @@ export default function VeterinaryDashboard() {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                const text = event.target.result;
-                const lines = text.split(/\r?\n/);
+                // เรียกใช้ Business Logic จากไฟล์แยก
+                const { bulkData, totalRows } = parseOutbreakCSV(event.target.result);
                 
-                if (lines.length < 2) { alert("ไฟล์ไม่มีข้อมูล"); return; }
+                if (totalRows === 0) { alert("ไฟล์ไม่มีข้อมูล"); return; }
 
-                const confirmImport = window.confirm(`ต้องการนำเข้าข้อมูลจุดระบาด ${lines.length - 1} รายการใช่หรือไม่?`);
+                const confirmImport = window.confirm(`ต้องการนำเข้าข้อมูลจุดระบาด ${totalRows} รายการใช่หรือไม่?`);
                 if (!confirmImport) return;
-
-                const bulkData = [];
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
-
-                    if (cleanCols.length < 5) continue;
-
-                    const parseNum = (val) => {
-                        const num = parseInt(val);
-                        return isNaN(num) ? 0 : num;
-                    };
-
-                    const newRecord = {
-                        date: parseCSVDate(cleanCols[0]),
-                        location: cleanCols[1],
-                        district: cleanCols[2],
-                        lat: parseFloat(cleanCols[3]) || 0,
-                        long: parseFloat(cleanCols[4]) || 0,
-                        stats: {
-                            dog: { male: parseNum(cleanCols[5]), female: parseNum(cleanCols[6]) },
-                            cat: { male: parseNum(cleanCols[7]), female: parseNum(cleanCols[8]) }
-                        }
-                    };
-
-                    if (newRecord.lat !== 0 && newRecord.long !== 0) {
-                        bulkData.push(newRecord);
-                    }
-                }
 
                 if (bulkData.length === 0) {
                     alert("ไม่พบข้อมูลที่ถูกต้อง (กรุณาตรวจสอบ Lat/Long ในไฟล์ CSV)");
@@ -440,7 +443,6 @@ export default function VeterinaryDashboard() {
                 } else {
                     addToast('error', "❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
                 }
-
             } catch (error) {
                 console.error(error);
                 alert("รูปแบบไฟล์ CSV ไม่ถูกต้อง");
@@ -620,7 +622,7 @@ export default function VeterinaryDashboard() {
             setTimeout(() => { window.location.reload(true); }, 3000);
         });
         return () => { socket.disconnect(); };
-    }, [BASE_URL, fetchData, setReportData, setOutbreakData, setMeetings, setDispatchEvents, setTabsConfig, addToast]);
+    }, [BASE_URL]);
 
     useEffect(() => {
         const fetchMeetings = async () => {
@@ -744,7 +746,10 @@ export default function VeterinaryDashboard() {
                     details: newRecord.details
                 }),
             });
-            if (response.ok) { addToast('success', "✅ บันทึกข้อมูลสำเร็จ!"); } 
+            if (response.ok) { 
+                addToast('success', "✅ บันทึกข้อมูลสำเร็จ!"); 
+                setIsModalOpen(false);
+            } 
             else { addToast('error', "❌ บันทึกไม่สำเร็จ (อาจไม่มีสิทธิ์)"); }
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
@@ -785,7 +790,10 @@ export default function VeterinaryDashboard() {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
                 body: JSON.stringify(data)
             });
-            if (response.ok) { addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว"); } 
+            if (response.ok) { 
+                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว"); 
+                setIsOutbreakModalOpen(false);
+            } 
             else { addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้"); }
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
@@ -866,135 +874,53 @@ export default function VeterinaryDashboard() {
         alert(`✅ สร้างข้อมูลจำลอง ${count} เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
     };
 
-    const handleGenerateMockData = () => generateMockData(500);
-
-    const parseCSVDate = (dateStr) => {
-        const getLocalDateString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const handleGenerateMockData = () => {
+        const count = 500;
+        if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
         
-        if (!dateStr) return getLocalDateString(new Date());
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-        
-        const parts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-        if (parts) {
-            let day = parts[1].padStart(2, '0');
-            let month = parts[2].padStart(2, '0');
-            let year = parseInt(parts[3]);
-            if (year > 2400) year -= 543;
-            return `${year}-${month}-${day}`;
-        }
-        
-        const d = new Date(dateStr);
-        return !isNaN(d.getTime()) ? getLocalDateString(d) : getLocalDateString(new Date());
+        const newMockData = generateMockDataRecords(count);
+        setReportData(prev => [...newMockData, ...prev]);
+        alert(`✅ สร้างข้อมูลจำลอง ${count} เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
     };
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.type !== "text/csv" && !file.name.endsWith('.csv')) { alert("กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น"); return; }
+        if (file.type !== "text/csv" && !file.name.endsWith('.csv')) { 
+            alert("กรุณาอัปโหลดไฟล์นามสกุล .csv เท่านั้น"); 
+            return; 
+        }
         
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                const text = event.target.result;
-                const lines = text.split('\n');
-                if (lines.length < 2) { alert("ไฟล์ไม่มีข้อมูล"); return; }
+                // เรียกใช้ Business Logic จากไฟล์แยก
+                const { bulkData, failCount, totalRows } = parseReportCSV(event.target.result);
                 
-                const confirmImport = window.confirm(`พบข้อมูล ${lines.length - 1} แถว ต้องการนำเข้าทั้งหมดในครั้งเดียวหรือไม่?`);
+                if (totalRows === 0) { alert("ไฟล์ไม่มีข้อมูล"); return; }
+                
+                const confirmImport = window.confirm(`พบข้อมูล ${totalRows} แถว ต้องการนำเข้าทั้งหมดในครั้งเดียวหรือไม่?`);
                 if (!confirmImport) return;
-
-                const bulkData = [];
-                let failCount = 0;
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-
-                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    const cleanCols = cols.map(c => c.trim().replace(/^"|"$/g, ''));
-
-                    if (cleanCols.length < 6) { failCount++; continue; }
-
-                    let lat = 0; let long = 0;
-                    if (cleanCols[5]) {
-                        if(cleanCols[5].includes(',')){
-                            const coords = cleanCols[5].split(',');
-                            lat = parseFloat(coords[0].trim()) || 0;
-                            long = parseFloat(coords[1].trim()) || 0;
-                        } else {
-                            lat = parseFloat(cleanCols[5].trim()) || 0;
-                        }
-                    }
-
-                    const newRecord = {
-                        date: parseCSVDate(cleanCols[0]),
-                        location: cleanCols[1],
-                        district: cleanCols[2],
-                        subdistrict: cleanCols[3],
-                        unit: cleanCols[4],
-                        lat: lat,
-                        long: long,
-                        stats: { 
-                            vaccine: parseInt(cleanCols[9]) || 0,
-                            sterilize: parseInt(cleanCols[14]) || 0,
-                            microchip: parseInt(cleanCols[17]) || 0,
-                            register: parseInt(cleanCols[20]) || 0,
-                            medical: parseInt(cleanCols[24]) || 0
-                        },
-                        details: { 
-                            dog: { 
-                                vaccine: parseInt(cleanCols[6]) || 0, 
-                                maleSterilize: parseInt(cleanCols[10]) || 0, 
-                                femaleSterilize: parseInt(cleanCols[11]) || 0, 
-                                microchip: parseInt(cleanCols[15]) || 0,
-                                register: parseInt(cleanCols[18]) || 0,
-                                medical: parseInt(cleanCols[21]) || 0 
-                            },
-                            cat: { 
-                                vaccine: parseInt(cleanCols[7]) || 0, 
-                                maleSterilize: parseInt(cleanCols[12]) || 0, 
-                                femaleSterilize: parseInt(cleanCols[13]) || 0, 
-                                microchip: parseInt(cleanCols[16]) || 0,
-                                register: parseInt(cleanCols[19]) || 0,
-                                medical: parseInt(cleanCols[22]) || 0 
-                            },
-                            other: { 
-                                vaccine: parseInt(cleanCols[8]) || 0, 
-                                medical: parseInt(cleanCols[23]) || 0 
-                            }
-                        }
-                    };
-
-                    if (newRecord.date && newRecord.location) {
-                        bulkData.push(newRecord);
-                    } else {
-                        failCount++;
-                    }
-                }
 
                 if (bulkData.length === 0) {
                     alert("ไม่พบข้อมูลที่ถูกต้องสำหรับนำเข้า");
                     return;
                 }
 
-                try {
-                    const response = await fetch(`${BASE_URL}/api/reports/bulk`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                        body: JSON.stringify(bulkData)
-                    });
+                // เรียก API
+                const response = await fetch(`${BASE_URL}/api/reports/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                    body: JSON.stringify(bulkData)
+                });
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${result.count} รายการ\n(ข้อมูลที่ไม่สมบูรณ์และถูกข้าม: ${failCount})`);
-                        window.location.reload();
-                    } else {
-                        alert("❌ เกิดข้อผิดพลาดจาก Server ในการบันทึกข้อมูล");
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("❌ ไม่สามารถเชื่อมต่อกับ Server ได้");
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${result.count} รายการ\n(ข้อมูลที่ไม่สมบูรณ์และถูกข้าม: ${failCount})`);
+                    window.location.reload();
+                } else {
+                    alert("❌ เกิดข้อผิดพลาดจาก Server ในการบันทึกข้อมูล");
                 }
-
             } catch (error) { 
                 console.error(error);
                 alert("เกิดข้อผิดพลาดในการอ่านไฟล์ CSV"); 
@@ -1003,41 +929,11 @@ export default function VeterinaryDashboard() {
         reader.readAsText(file);
     };
 
-    const closeAddDataModal = useCallback(() => setIsModalOpen(false), [setIsModalOpen]);
-    const closeOutbreakModal = useCallback(() => setIsOutbreakModalOpen(false), [setIsOutbreakModalOpen]);
-    const closeCsvModal = useCallback(() => setIsCsvModalOpen(false), [setIsCsvModalOpen]);
-    const closeBackupModal = useCallback(() => setIsBackupModalOpen(false), [setIsBackupModalOpen]);
-    const closeImagePreview = useCallback(() => setViewImage(null), [setViewImage]);
-    const closeLoginModal = useCallback(() => setIsLoginModalOpen(false), [setIsLoginModalOpen]);
-    const closeUserMgmtModal = useCallback(() => setIsUserMgmtOpen(false), [setIsUserMgmtOpen]);
-    const closeClearDataModal = useCallback(() => setIsClearDataModalOpen(false), [setIsClearDataModalOpen]);
-    const closeChangePasswordModal = useCallback(() => setIsChangePasswordOpen(false), [setIsChangePasswordOpen]);
-    const closeLogModal = useCallback(() => setIsLogModalOpen(false), [setIsLogModalOpen]);
-    const closeDispatchModal = useCallback(() => setIsDispatchModalOpen(false), [setIsDispatchModalOpen]);
-    const closeCalendar = useCallback(() => setIsCalendarOpen(false), [setIsCalendarOpen]);
-    const closeMeetingCalendar = useCallback(() => setIsMeetingCalendarOpen(false), [setIsMeetingCalendarOpen]);
-    const closeMeetingModal = useCallback(() => setIsMeetingModalOpen(false), [setIsMeetingModalOpen]);
-    const closeMeetingList = useCallback(() => setIsMeetingListOpen(false), [setIsMeetingListOpen]);
-
     const openAddModal = useCallback(() => { setEditingItem(null); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
     const openEditModal = useCallback((item) => { setEditingItem(item); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
     const handleOpenCsvOutbreak = useCallback(() => { setCsvMode('outbreak'); setIsCsvModalOpen(true); }, [setCsvMode, setIsCsvModalOpen]);
     const handleOpenCsvReport = useCallback(() => { setCsvMode('report'); setIsCsvModalOpen(true); }, [setCsvMode, setIsCsvModalOpen]);
 
-    const openLoginModal = useCallback(() => setIsLoginModalOpen(true), [setIsLoginModalOpen]);
-    const openChangePasswordModal = useCallback(() => setIsChangePasswordOpen(true), [setIsChangePasswordOpen]);
-    const openLogModal = useCallback(() => setIsLogModalOpen(true), [setIsLogModalOpen]);
-    const openUserMgmtModal = useCallback(() => setIsUserMgmtOpen(true), [setIsUserMgmtOpen]);
-    const openBackupModal = useCallback(() => setIsBackupModalOpen(true), [setIsBackupModalOpen]);
-    const openMeetingListModal = useCallback(() => setIsMeetingListOpen(true), [setIsMeetingListOpen]);
-    const openCalendarModal = useCallback(() => setIsCalendarOpen(true), [setIsCalendarOpen]);
-    const openMeetingCalendarModal = useCallback(() => setIsMeetingCalendarOpen(true), [setIsMeetingCalendarOpen]);
-    const openMeetingModalDialog = useCallback(() => setIsMeetingModalOpen(true), [setIsMeetingModalOpen]);
-    const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), [setIsMobileMenuOpen]);
-    const openMobileMenu = useCallback(() => setIsMobileMenuOpen(true), [setIsMobileMenuOpen]);
-
-    const openDispatchForm = useCallback(() => { setViewingDispatch(null); setIsDispatchModalOpen(true); }, [setViewingDispatch, setIsDispatchModalOpen]);
-    const openDispatchEvent = useCallback((evt) => { setViewingDispatch(evt.originalData); setIsDispatchModalOpen(true); }, [setViewingDispatch, setIsDispatchModalOpen]);
     const openMeetingForm = useCallback(() => { setViewingMeeting(null); setIsMeetingModalOpen(true); }, [setViewingMeeting, setIsMeetingModalOpen]);
     const editMeetingFromList = useCallback((m) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }, [setViewingMeeting, setIsMeetingListOpen, setIsMeetingModalOpen]);
 
@@ -1050,13 +946,6 @@ export default function VeterinaryDashboard() {
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
-
-    const openCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(true), []);
-    const closeCustomUnitModal = useCallback(() => setIsCustomUnitModalOpen(false), []);
-    const openBreedMgmt = useCallback(() => setIsBreedModalOpen(true), []);
-    const closeBreedMgmt = useCallback(() => setIsBreedModalOpen(false), []);
-    const openColorMgmt = useCallback(() => setIsColorModalOpen(true), []);
-    const closeColorMgmt = useCallback(() => setIsColorModalOpen(false), []);
 
     const availableYears = useMemo(() => {
         if (!Array.isArray(reportData)) return [];
@@ -1170,9 +1059,11 @@ export default function VeterinaryDashboard() {
             return { mapDisplayData: [], totals: newTotals, unitStats: [], unitByDistrictPieData: [], unitByUnitTypePieData: [], unitByWorkTypePieData: [] };
         }
 
+        // ย้ายฟังก์ชันนี้ออกมานอกลูป ช่วยลด Memory Allocation มหาศาลเมื่อข้อมูลเยอะ
+        const toNum = (val) => parseInt(val, 10) || 0;
+
         for (let i = 0; i < filteredData.length; i++) {
             const curr = filteredData[i];
-            const toNum = (val) => parseInt(val, 10) || 0;
 
             const v = toNum(curr.stats?.vaccine);
             const s = toNum(curr.stats?.sterilize);
@@ -1311,17 +1202,30 @@ export default function VeterinaryDashboard() {
         const baseMonth = chartBaseMonth === 'ทั้งหมด' ? (new Date().getMonth() + 1) : chartBaseMonth;
 
         const monthMap = {};
+        const dayMap = {};
+
+        // รวมการทำงานของ 2 ลูปเข้าด้วยกันเพื่อความเร็ว
         filteredData.forEach(item => {
+            const day = item.date;
             const m = item.date.substring(0, 7);
-            if (!monthMap[m]) monthMap[m] = initStats();
-            
-            monthMap[m].count += 1;
-            
             const uKey = getUnitKey(item.unit);
+            
+            // ประมวลผลสำหรับรายเดือน (monthMap)
+            if (!monthMap[m]) monthMap[m] = initStats();
+            monthMap[m].count += 1;
             if (monthMap[m][uKey] !== undefined) {
                 monthMap[m][uKey] += 1;
             } else {
                 monthMap[m]['other'] += 1;
+            }
+
+            // ประมวลผลสำหรับรายวัน (dayMap)
+            if (!dayMap[day]) dayMap[day] = initStats();
+            dayMap[day].count += 1;
+            if (dayMap[day][uKey] !== undefined) {
+                 dayMap[day][uKey] += 1;
+            } else {
+                 dayMap[day]['other'] += 1;
             }
         });
 
@@ -1339,21 +1243,6 @@ export default function VeterinaryDashboard() {
                 ...(monthMap[key] || {})
             });
         }
-
-        const dayMap = {};
-        filteredData.forEach(item => {
-            const day = item.date;
-            if (!dayMap[day]) dayMap[day] = initStats();
-            
-            dayMap[day].count += 1;
-            
-            const uKey = getUnitKey(item.unit);
-            if (dayMap[day][uKey] !== undefined) {
-                 dayMap[day][uKey] += 1;
-            } else {
-                 dayMap[day]['other'] += 1;
-            }
-        });
 
         const dailyData = [];
         for (let i = 13 + freqDailyOffset; i >= freqDailyOffset; i--) {
@@ -1503,34 +1392,26 @@ export default function VeterinaryDashboard() {
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <Suspense fallback={<div className="hidden">Loading...</div>}>
-                <AddDataModal isOpen={isModalOpen} onClose={closeAddDataModal} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
-                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={closeOutbreakModal} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} breeds={breeds} colors={colors}/>
-                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={closeCustomUnitModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
+                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} breeds={breeds} colors={colors}/>
+                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
 
-                <BreedModal isOpen={isBreedModalOpen} onClose={closeBreedMgmt} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-                <ColorModal isOpen={isColorModalOpen} onClose={closeColorMgmt} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             </Suspense>
 
-            {/* เพิ่ม Announcement Modal เข้ามาในส่วนนี้ */}
-            <AnnouncementModal 
-                isOpen={isAnnouncementModalOpen} 
-                onClose={() => setIsAnnouncementModalOpen(false)} 
-                initialAnnouncements={announcements}
-                onSave={handleSaveAnnouncements}
-            />
-
-            <CsvActionModal isOpen={isCsvModalOpen} onClose={closeCsvModal} onFileChange={handleCsvFileChange} onExport={handleCsvExport}availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears}thaiMonths={THAI_MONTHS}units={UNIT_TYPES}districts={BANGKOK_DISTRICTS}csvMode={csvMode}/>
-            <BackupSystemModal isOpen={isBackupModalOpen} onClose={closeBackupModal} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
-            <ImagePreviewModal imageUrl={viewImage} onClose={closeImagePreview} />
-            <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
-            <UserManagementModal isOpen={isUserMgmtOpen} onClose={closeUserMgmtModal} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
-            <ClearDataModal isOpen={isClearDataModalOpen} onClose={closeClearDataModal} onConfirm={executeClearAllData} availableYears={availableYears} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
-            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={closeChangePasswordModal} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
-            <ActivityLogModal isOpen={isLogModalOpen} onClose={closeLogModal} token={user?.token} apiBaseUrl={BASE_URL} />
-            <DispatchModal isOpen={isDispatchModalOpen} onClose={closeDispatchModal} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
-            <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={closeMeetingCalendar} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
-            <MeetingModal isOpen={isMeetingModalOpen} onClose={closeMeetingModal} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
-            <MeetingListModal isOpen={isMeetingListOpen} onClose={closeMeetingList} meetings={meetings} onEdit={editMeetingFromList} />
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={UNIT_TYPES} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
+            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
+            <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
+            <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
+            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
+            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
+            <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={() => setIsMeetingCalendarOpen(false)} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
+            <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
+            <MeetingListModal isOpen={isMeetingListOpen} onClose={() => setIsMeetingListOpen(false)} meetings={meetings} onEdit={editMeetingFromList} />
 
             <Sidebar 
                 user={user} isSuperAdmin={isTopAdmin} canEdit={canEdit} canAdd={canAdd} 
@@ -1539,13 +1420,22 @@ export default function VeterinaryDashboard() {
                 activeTab={activeTab} setActiveTab={setActiveTab}
                 isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed}
                 isSystemMenuOpen={isSystemMenuOpen} setIsSystemMenuOpen={setIsSystemMenuOpen}
-                onLogin={openLoginModal} onLogout={handleLogout} onChangePassword={openChangePasswordModal}
-                onOpenLog={openLogModal} onOpenUserMgmt={openUserMgmtModal} onOpenBackup={openBackupModal}
-                onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData} onClearData={handleClearAllData} onOpenCustomUnits={openCustomUnitModal}
-                onOpenMeetingList={openMeetingListModal} onOpenCalendar={openCalendarModal} onOpenMeetingCalendar={openMeetingCalendarModal}
-                onOpenMeetingModal={openMeetingModalDialog} onOpenAddOutbreak={openAddOutbreakModal} onOpenAddData={openAddModal}
-                onOpenBreedMgmt={openBreedMgmt}
-                onOpenColorMgmt={openColorMgmt}
+                onLogin={() => setIsLoginModalOpen(true)} 
+                onLogout={handleLogout} 
+                onChangePassword={() => setIsChangePasswordOpen(true)}
+                onOpenLog={() => setIsLogModalOpen(true)} 
+                onOpenUserMgmt={() => setIsUserMgmtOpen(true)} 
+                onOpenBackup={() => setIsBackupModalOpen(true)}
+                onOpenCsvOutbreak={handleOpenCsvOutbreak} onOpenCsvReport={handleOpenCsvReport} onGenerateMock={handleGenerateMockData} onClearData={handleClearAllData} 
+                onOpenCustomUnits={() => setIsCustomUnitModalOpen(true)}
+                onOpenMeetingList={() => setIsMeetingListOpen(true)} 
+                onOpenCalendar={() => setIsCalendarOpen(true)} 
+                onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
+                onOpenMeetingModal={() => setIsMeetingModalOpen(true)} 
+                onOpenAddOutbreak={openAddOutbreakModal} 
+                onOpenAddData={openAddModal}
+                onOpenBreedMgmt={() => setIsBreedModalOpen(true)}
+                onOpenColorMgmt={() => setIsColorModalOpen(true)}
                 isMagaAdmin={isMagaAdmin}
                 tabsConfig={tabsConfig} toggleTab={toggleTab}
                 isMobileMenuOpen={isMobileMenuOpen}
@@ -1556,50 +1446,50 @@ export default function VeterinaryDashboard() {
             {isMobileMenuOpen && (
                 <div 
                     className="md:hidden fixed inset-0 bg-slate-900/50 z-[4999] backdrop-blur-sm transition-opacity"
-                    onClick={closeMobileMenu}
+                    onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
                 
-                {/* เพิ่มแถบวิ่ง (Announcement Bar) ไว้บนสุดในฝั่งเนื้อหาหลัก */}
-                <AnnouncementBar 
-                    announcements={announcements} 
-                    onEditClick={() => setIsAnnouncementModalOpen(true)} 
-                    canEdit={canEdit} 
-                />
+                <AnnouncementManager canEdit={canEdit} addToast={addToast} />
 
                 <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
                     <div className="flex items-center gap-3">
-                        <button onClick={openMobileMenu} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+            
+                        {/* 👇 ปุ่มเปิด Mobile Menu อยู่ตรงนี้ครับ 👇 */}
+                        <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                             <List className="w-6 h-6" />
                         </button>
+
+                        {/* 👆 ปุ่มเปิด Mobile Menu อยู่ตรงนี้ครับ 👆 */}
+
                         <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
                         <h1 className="text-sm font-bold text-slate-800">ระบบรายงานออกหน่วยเคลื่อนที่สัตวแพทย์</h1>
                     </div>
                     {user ? (
                         <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
                     ) : (
-                        <button onClick={openLoginModal} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
+                        <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
                     )}
                 </div>
 
                 <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8 custom-scrollbar">
                     <div className="bg-gradient-to-r from-[#6B4BFA] to-indigo-500 rounded-2xl p-6 mb-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center gap-5 relative overflow-hidden">
-    {/* ลวดลายพื้นหลังตกแต่ง */}
-    <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl"></div>
+                        <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl"></div>
     
-    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm shrink-0 border border-white/20 shadow-inner">
-        <Activity className="w-8 h-8 text-white" />
-    </div>
-    <div className="relative z-10">
-        <h1 className="text-2xl font-bold mb-1">ระบบรายงานและจัดการข้อมูลสัตวแพทย์เคลื่อนที่</h1>
-        <p className="text-indigo-100 text-sm max-w-2xl leading-relaxed">
-            ระบบสำหรับเจ้าหน้าที่เพื่อบันทึก ติดตาม และประมวลผลข้อมูลการให้บริการสัตวแพทย์เคลื่อนที่ 
-            ครอบคลุมการฉีดวัคซีน ทำหมัน ฝังไมโครชิป และเฝ้าระวังจุดเสี่ยงโรคพิษสุนัขบ้าในพื้นที่กรุงเทพมหานคร
-        </p>
-    </div>
-</div>
+                        <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm shrink-0 border border-white/20 shadow-inner">
+                            <Activity className="w-8 h-8 text-white" />
+                        </div>
+                        <div className="relative z-10">
+                            <h1 className="text-2xl font-bold mb-1">ระบบรายงานและจัดการข้อมูลสัตวแพทย์เคลื่อนที่</h1>
+                            <p className="text-indigo-100 text-sm max-w-2xl leading-relaxed">
+                                ระบบสำหรับเจ้าหน้าที่เพื่อบันทึก ติดตาม และประมวลผลข้อมูลการให้บริการสัตวแพทย์เคลื่อนที่ 
+                                ครอบคลุมการฉีดวัคซีน ทำหมัน ฝังไมโครชิป และเฝ้าระวังจุดเสี่ยงโรคพิษสุนัขบ้าในพื้นที่กรุงเทพมหานคร
+                            </p>
+                        </div>
+                    </div>
+
                     <div className="bg-white p-5 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-slate-200 mb-6 transition-all duration-300">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                             <div className="flex flex-col gap-2">
@@ -1625,15 +1515,6 @@ export default function VeterinaryDashboard() {
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
-                                {canEdit && (
-                                    <button 
-                                        onClick={handleGenerateMockData} 
-                                        className="text-xs bg-indigo-50 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-indigo-200 shadow-sm"
-                                    >
-                                        <Database className="w-3.5 h-3.5" /> จำลอง 200 เคส
-                                    </button>
-                                )}
-
                                 {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
                                     <button 
                                         onClick={handleClearFilters} 
@@ -1648,7 +1529,7 @@ export default function VeterinaryDashboard() {
                         {isFilterExpanded && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
                                 <div className="relative">
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input type="text" placeholder="พิมพ์คำค้นหา..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -1656,29 +1537,29 @@ export default function VeterinaryDashboard() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
-                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ปี (Year)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                                         <option value="ทั้งหมด">-- เลือกปี --</option>
                                         {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
-                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">เดือน (Month)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                                         <option value="ทั้งหมด">-- เลือกเดือน --</option>
                                         {THAI_MONTHS.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
-                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
                                         <option value="ทั้งหมด">-- เลือกหน่วยงาน --</option>
                                         {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 mb-1">เขต (District)</label>
-                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">เขต (District)</label>
+                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
                                         <option value="ทั้งหมด">-- เลือกเขต --</option>
                                         {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
                                     </select>
@@ -1773,19 +1654,7 @@ export default function VeterinaryDashboard() {
                         )}
                     </Suspense>
                     {activeTab !== 'calendar' && (
-                        <footer className="mt-12 pb-4 pt-6 border-t border-slate-200/60 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left shrink-0">
-                            <div>
-                                <p className="text-sm text-slate-600 font-bold">
-                                    © {new Date().getFullYear()} ระบบฐานข้อมูลสัตวแพทย์
-                                </p>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    Veterinary Management Dashboard
-                                </p>
-                            </div>
-                            <div className="text-xs text-slate-400 font-medium bg-slate-100 px-3 py-1.5 rounded-full">
-                                เวอร์ชัน 1.0.0
-                            </div>
-                        </footer>
+                        <Footer />
                     )}
                 </main>
             </div>
@@ -1805,7 +1674,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'overview' ? 'text-indigo-600 font-bold bg-indigo-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Activity className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">ภาพรวมออกหน่วยเคลื่อนที่</span>
+                                <span className="text-[8px]">ภาพรวมออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('outbreak') && (
@@ -1813,7 +1682,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Siren className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">จุดเสี่ยงโรคพิสุนัขบ้า</span>
+                                <span className="text-[8px]">จุดเสี่ยงโรคพิสุนัขบ้า</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('database') && (
@@ -1821,7 +1690,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Database className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">ฐานข้อมูลออกหน่วยเคลื่อนที่</span>
+                                <span className="text-[8px]">ฐานข้อมูลออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('calendar') && (
@@ -1829,7 +1698,7 @@ export default function VeterinaryDashboard() {
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all text-slate-500 hover:bg-slate-50`}
                             >
                                 <CalendarDays className="w-5 h-5 mb-1" />
-                                <span className="text-[10px]">ปฏิทินออกหน่วยเคลื่อนที่</span>
+                                <span className="text-[8px]">ปฏิทินออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
                     </div>

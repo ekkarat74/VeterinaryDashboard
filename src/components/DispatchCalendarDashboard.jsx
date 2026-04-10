@@ -10,10 +10,8 @@ import ToastContainer from '../path/to/ToastContainer.jsx'; // ตรวจส�
 // นำเข้าฟังก์ชันระบบเสียง
 import { playSound } from '../utils/soundUtils.js';
 
-// ==========================================
-// 1. Shared Components
-// ==========================================
-const StatCard = ({ label, value, colorClass, bgClass, icon: Icon }) => (
+// --- 1. เพิ่ม React.memo ให้ StatCard ป้องกันการ Re-render ซ้ำซ้อน ---
+const StatCard = React.memo(({ label, value, colorClass, bgClass, icon: Icon }) => (
     <div className="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:shadow-md transition-all duration-300">
         <div>
             <div className="text-slate-500 text-[10px] sm:text-[11px] font-bold mb-1">{label}</div>
@@ -23,7 +21,53 @@ const StatCard = ({ label, value, colorClass, bgClass, icon: Icon }) => (
             {Icon && <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${colorClass}`} />}
         </div>
     </div>
-);
+));
+
+// --- 2. ย้าย toLocalISOString ออกมาด้านนอก ---
+const toLocalISOString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+// --- 3. ย้าย getEventStyles ออกมาด้านนอก ไม่ต้องประกาศ Object สีใหม่ทุกครั้งที่ Render ---
+const getEventStyles = (evt) => {
+    if (evt.type === 'meeting') return { border: 'border-l-teal-400', bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-400' };
+    const colorMap = {
+        'bg-red-500': { border: 'border-l-rose-400', bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-400' },
+        'bg-blue-500': { border: 'border-l-blue-400', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-400' },
+        'bg-green-500': { border: 'border-l-emerald-400', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+        'bg-yellow-400': { border: 'border-l-amber-400', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-400' },
+        'bg-purple-500': { border: 'border-l-purple-400', bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-400' },
+        'bg-orange-500': { border: 'border-l-orange-400', bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-400' },
+        'bg-pink-500': { border: 'border-l-pink-400', bg: 'bg-pink-50', text: 'text-pink-700', dot: 'bg-pink-400' },
+        'bg-slate-400': { border: 'border-l-slate-400', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400' },
+        'default': { border: 'border-l-indigo-400', bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-400' }
+    };
+    return colorMap[evt.unitColor] || colorMap['default'];
+};
+
+// --- 4. สร้าง Component นาฬิกาแยกออกมา (สำคัญมาก) ---
+// ป้องกันไม่ให้ Dashboard ทั้งหน้าต้อง Re-render ทุกๆ 1 วินาที
+const RealTimeClock = React.memo(() => {
+    const [realTime, setRealTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setRealTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+    return (
+        <>
+            <Clock className="w-4 h-4 text-indigo-500" />
+            {realTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
+        </>
+    );
+});
+
+// ==========================================
+// 1. Shared Components
+// ==========================================
+
 
 const getDispatchStatus = (evt) => {
     if (!evt || !evt.date || !evt.time) return null;
@@ -174,6 +218,19 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
 };
 
 // ==========================================
+// 4. Footer Component
+// ==========================================
+const Footer = () => {
+    return (
+        <footer className="bg-white border-t border-slate-200 py-3 px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] sm:text-xs text-slate-500 shrink-0 z-20 w-full mt-auto">
+            <div className="font-medium">
+                &copy; {new Date().getFullYear()} สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย กรุงเทพมหานคร
+            </div>
+        </footer>
+    );
+};
+
+// ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
 const DispatchCalendarDashboard = () => {
@@ -190,6 +247,40 @@ const DispatchCalendarDashboard = () => {
     const TIMELINE_END_HOUR = 18;
     const TIMELINE_TOTAL_MINS = (TIMELINE_END_HOUR - TIMELINE_START_HOUR) * 60;
 
+    const displayEvents = useMemo(() => {
+        return events.filter(e => {
+            const matchSearch = !searchTerm || 
+                e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                e.team?.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const baseType = getBaseType(e.title, e.type);
+            const matchType = selectedType === 'ทุกประเภท' || baseType === selectedType;
+            return matchSearch && matchType;
+        });
+    }, [events, searchTerm, selectedType]);
+    
+    const stats = useMemo(() => {
+        const todayStr = toLocalISOString(new Date());
+        let total = displayEvents.length;
+        let upcoming = 0;
+        let today = 0;
+        let publicCount = 0;
+
+        displayEvents.forEach(e => {
+            if (e.date >= todayStr) upcoming++;
+            if (e.date === todayStr) today++;
+            if (e.isVisibleToPublic !== false) publicCount++;
+        });
+
+        return { total, upcoming, today, publicCount };
+    }, [displayEvents]);
+
+    const selectedDateEvents = useMemo(() => {
+        const selectedStr = toLocalISOString(selectedDate);
+        return displayEvents.filter(e => e.date === selectedStr);
+    }, [displayEvents, selectedDate]);
+    
     const getTimelineStyle = (startTime, closingTime) => {
         const parseTime = (t) => {
             if (!t) return 0;
@@ -219,15 +310,6 @@ const DispatchCalendarDashboard = () => {
         }
         return () => window.removeEventListener('click', handleClickOutside);
     }, [contextMenu.visible]);
-    // ------------------------
-
-    const [realTime, setRealTime] = useState(new Date());
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setRealTime(new Date());
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
@@ -616,13 +698,6 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const toLocalISOString = (date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
     const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
     const changeMonth = (offset) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
@@ -644,20 +719,6 @@ const DispatchCalendarDashboard = () => {
         });
     }, [events]);
 
-    const displayEvents = useMemo(() => {
-        return events.filter(e => {
-            const matchSearch = !searchTerm || 
-                e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                e.team?.toLowerCase().includes(searchTerm.toLowerCase());
-            
-            const baseType = getBaseType(e.title, e.type);
-            const matchType = selectedType === 'ทุกประเภท' || baseType === selectedType;
-            return matchSearch && matchType;
-        });
-    }, [events, searchTerm, selectedType]);
-
-    const selectedDateEvents = displayEvents.filter(e => e.date === toLocalISOString(selectedDate));
     const totalEvents = displayEvents.length;
     const upcomingEvents = displayEvents.filter(e => e.date >= toLocalISOString(new Date())).length;
     const todayEventsCount = displayEvents.filter(e => e.date === toLocalISOString(new Date())).length;
@@ -672,22 +733,6 @@ const DispatchCalendarDashboard = () => {
         });
         return grouped;
     }, [selectedDateEvents]);
-
-    const getEventStyles = (evt) => {
-        if (evt.type === 'meeting') return { border: 'border-l-teal-400', bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-400' };
-        const colorMap = {
-            'bg-red-500': { border: 'border-l-rose-400', bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-400' },
-            'bg-blue-500': { border: 'border-l-blue-400', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-400' },
-            'bg-green-500': { border: 'border-l-emerald-400', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400' },
-            'bg-yellow-400': { border: 'border-l-amber-400', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-400' },
-            'bg-purple-500': { border: 'border-l-purple-400', bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-400' },
-            'bg-orange-500': { border: 'border-l-orange-400', bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-400' },
-            'bg-pink-500': { border: 'border-l-pink-400', bg: 'bg-pink-50', text: 'text-pink-700', dot: 'bg-pink-400' },
-            'bg-slate-400': { border: 'border-l-slate-400', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400' },
-            'default': { border: 'border-l-indigo-400', bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-400' }
-        };
-        return colorMap[evt.unitColor] || colorMap['default'];
-    };
 
     return (
         <div className="w-full h-screen flex flex-col bg-slate-50 overflow-hidden font-sans">
@@ -718,8 +763,7 @@ const DispatchCalendarDashboard = () => {
 
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 text-xs font-bold shadow-sm">
-                        <Clock className="w-4 h-4 text-indigo-500" />
-                        {realTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
+                        <RealTimeClock />
                     </div>
                     {canEdit && (
                         <>
@@ -758,10 +802,10 @@ const DispatchCalendarDashboard = () => {
                 <div className="w-full lg:w-[420px] xl:w-[450px] p-4 sm:p-6 flex flex-col lg:h-full lg:overflow-y-auto border-b lg:border-b-0 lg:border-r border-slate-200/80 bg-slate-50 shrink-0 custom-scrollbar">
                     
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                        <StatCard label="งานทั้งหมด" value={totalEvents} colorClass="text-indigo-600" bgClass="bg-indigo-100/50" icon={CheckCircle} />
-                        <StatCard label="วันนี้" value={todayEventsCount} colorClass="text-blue-500" bgClass="bg-blue-100/50" icon={Calendar} />
-                        <StatCard label="รอบปฏิบัติ" value={upcomingEvents} colorClass="text-orange-500" bgClass="bg-orange-100/50" icon={Clock} />
-                        <StatCard label="เผยแพร่" value={publicEventsCount} colorClass="text-emerald-500" bgClass="bg-emerald-100/50" icon={Users} />
+                        <StatCard label="งานทั้งหมด" value={stats.total} colorClass="text-indigo-600" bgClass="bg-indigo-100/50" icon={CheckCircle} />
+                        <StatCard label="วันนี้" value={stats.today} colorClass="text-blue-500" bgClass="bg-blue-100/50" icon={Calendar} />
+                        <StatCard label="รอบปฏิบัติ" value={stats.upcoming} colorClass="text-orange-500" bgClass="bg-orange-100/50" icon={Clock} />
+                        <StatCard label="เผยแพร่" value={stats.publicCount} colorClass="text-emerald-500" bgClass="bg-emerald-100/50" icon={Users} />
                     </div>
 
                     <div className="bg-white rounded-[1.5rem] p-4 sm:p-6 shadow-sm border border-slate-200">
@@ -1188,6 +1232,8 @@ const DispatchCalendarDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            <Footer />
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
