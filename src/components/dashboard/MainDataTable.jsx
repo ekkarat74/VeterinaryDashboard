@@ -1,3 +1,4 @@
+import React from 'react';
 import { 
     Database, Trash2, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText
@@ -27,22 +28,22 @@ const MainDataTable = ({
             {/* Header Section */}
             <div className="px-6 py-5 border-b border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
                         <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
                             <Database className="w-5 h-5" />
                         </div>
                         ฐานข้อมูลทั้งหมด
-                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium border border-gray-200">
+                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-medium border border-gray-200">
                             {data.length} รายการ
                         </span>
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
+                    <p className="text-xs text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
                 </div>
 
                 {isSuperAdmin && data.length > 0 && (
                     <button 
                         onClick={onClearAll} 
-                        className="group flex items-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 text-sm font-medium rounded-xl border border-gray-200 hover:border-red-200 transition-all duration-200 shadow-sm"
+                        className="group flex items-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 text-xs font-medium rounded-xl border border-gray-200 hover:border-red-200 transition-all duration-200 shadow-sm"
                     >
                         <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
                         ล้างข้อมูล
@@ -50,9 +51,9 @@ const MainDataTable = ({
                 )}
             </div>
 
-            {/* Table Section - นำ max-h-[700px] และ overflow-y-auto ออกเพื่อให้ตารางแสดงยาวจนสุด */}
+            {/* Table Section */}
             <div className="overflow-x-auto custom-scrollbar border-b border-gray-100 w-full">
-                <table className="min-w-full text-sm text-left relative">
+                <table className="min-w-full text-xs text-left relative">
                     <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
                         <tr>
                             <th className="px-6 py-4 whitespace-nowrap w-32">วันที่</th>
@@ -74,7 +75,7 @@ const MainDataTable = ({
                                     <td className="px-6 py-4 text-gray-500 align-middle">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4 text-gray-400" />
-                                            <span className="font-mono text-sm">{item.date}</span>
+                                            <span className="font-mono text-xs">{item.date}</span>
                                         </div>
                                     </td>
 
@@ -84,8 +85,8 @@ const MainDataTable = ({
                                                 <MapPin className="w-4 h-4 text-indigo-500" />
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-gray-800 text-base">{item.location}</div>
-                                                <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1">
+                                                <div className="font-semibold text-gray-800 text-sm">{item.location}</div>
+                                                <div className="text-[10px] text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1">
                                                     {item.district}
                                                 </div>
                                             </div>
@@ -112,46 +113,46 @@ const MainDataTable = ({
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
                                             <Syringe className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats?.vaccine)}</span>
+                                            <span className="font-bold text-xs">{formatNumber(item.stats?.vaccine)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-700">
                                             <Scissors className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats?.sterilize)}</span>
+                                            <span className="font-bold text-xs">{formatNumber(item.stats?.sterilize)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
                                             <FileText className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats?.register)}</span>
+                                            <span className="font-bold text-xs">{formatNumber(item.stats?.register)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-700">
                                             <QrCode className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats?.microchip)}</span>
+                                            <span className="font-bold text-xs">{formatNumber(item.stats?.microchip)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700">
                                             <Stethoscope className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-sm">{formatNumber(item.stats?.medical)}</span>
+                                            <span className="font-bold text-xs">{formatNumber(item.stats?.medical)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium border border-gray-200">
+                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-[10px] font-medium border border-gray-200">
                                                 <Users className="w-3 h-3 text-gray-400"/>
                                                 {item.createdBy || 'Unknown'}
                                             </div>
                                             {item.updatedBy && item.updatedBy !== item.createdBy && (
-                                                <span className="text-[10px] text-gray-400 mt-1 italic">
+                                                <span className="text-[9px] text-gray-400 mt-1 italic">
                                                     แก้ไขโดย: {item.updatedBy}
                                                 </span>
                                             )}
@@ -187,8 +188,8 @@ const MainDataTable = ({
                                         <div className="p-4 bg-gray-50 rounded-full mb-3">
                                             <Database className="w-8 h-8 text-gray-300" />
                                         </div>
-                                        <p className="text-gray-500 font-medium">ไม่พบข้อมูลในระบบ</p>
-                                        <p className="text-xs text-gray-400 mt-1">เริ่มบันทึกข้อมูลใหม่ได้เลย</p>
+                                        <p className="text-sm text-gray-500 font-medium">ไม่พบข้อมูลในระบบ</p>
+                                        <p className="text-[10px] text-gray-400 mt-1">เริ่มบันทึกข้อมูลใหม่ได้เลย</p>
                                     </div>
                                 </td>
                             </tr>
@@ -197,12 +198,12 @@ const MainDataTable = ({
                     {data.length > 0 && (
                         <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
                             <tr>
-                                <td colSpan="3" className="px-6 py-4 text-right text-sm">รวมทั้งหมด:</td>
-                                <td className="px-6 py-4 text-center text-blue-700">{formatNumber(totals.vaccine)}</td>
-                                <td className="px-6 py-4 text-center text-orange-700">{formatNumber(totals.sterilize)}</td>
-                                <td className="px-6 py-4 text-center text-teal-700">{formatNumber(totals.register)}</td>
-                                <td className="px-6 py-4 text-center text-purple-700">{formatNumber(totals.microchip)}</td>
-                                <td className="px-6 py-4 text-center text-emerald-700">{formatNumber(totals.medical)}</td>
+                                <td colSpan="3" className="px-6 py-4 text-right text-xs">รวมทั้งหมด:</td>
+                                <td className="px-6 py-4 text-center text-blue-700 text-xs">{formatNumber(totals.vaccine)}</td>
+                                <td className="px-6 py-4 text-center text-orange-700 text-xs">{formatNumber(totals.sterilize)}</td>
+                                <td className="px-6 py-4 text-center text-teal-700 text-xs">{formatNumber(totals.register)}</td>
+                                <td className="px-6 py-4 text-center text-purple-700 text-xs">{formatNumber(totals.microchip)}</td>
+                                <td className="px-6 py-4 text-center text-emerald-700 text-xs">{formatNumber(totals.medical)}</td>
                                 <td colSpan={canEdit ? 2 : 1}></td>
                             </tr>
                         </tfoot>
@@ -211,7 +212,7 @@ const MainDataTable = ({
             </div>
             
             {data.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex justify-between items-center">
+                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-[10px] text-gray-500 flex justify-between items-center">
                      <span>แสดงข้อมูลทั้งหมด {data.length} รายการ</span>
                 </div>
             )}

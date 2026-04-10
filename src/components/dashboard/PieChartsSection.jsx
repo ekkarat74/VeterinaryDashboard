@@ -19,7 +19,7 @@ export default function PieChartsSection({
             
             {/* กราฟวงที่ 1: ออกหน่วย (ตามเขต) */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <h3 className="font-bold text-slate-700 mb-2 text-center text-sm">ยอดงานสะสม (แยกตามเขต)</h3>
+                <h3 className="font-bold text-slate-700 mb-2 text-center text-xs">ยอดงานสะสม (แยกตามเขต)</h3>
                 <div className="h-[220px] w-full flex items-center justify-center">
                     {unitByDistrictPieData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -27,7 +27,7 @@ export default function PieChartsSection({
                                 <Pie 
                                     data={unitByDistrictPieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
-                                    style={{ fontSize: '11px' }}
+                                    style={{ fontSize: '10px' }}
                                     label={({ name, percent }) => percent > 0.05 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {unitByDistrictPieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
@@ -36,14 +36,14 @@ export default function PieChartsSection({
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <span className="text-slate-400 text-sm">ไม่มีข้อมูล</span>
+                        <span className="text-slate-400 text-xs">ไม่มีข้อมูล</span>
                     )}
                 </div>
             </div>
 
             {/* กราฟวงที่ 2: ออกหน่วย (ตามหน่วยงาน) */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <h3 className="font-bold text-slate-700 mb-2 text-center text-sm">ยอดงานสะสม (แยกตามหน่วย)</h3>
+                <h3 className="font-bold text-slate-700 mb-2 text-center text-xs">ยอดงานสะสม (แยกตามหน่วย)</h3>
                 <div className="h-[220px] w-full flex items-center justify-center">
                     {unitByUnitTypePieData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -51,7 +51,7 @@ export default function PieChartsSection({
                                 <Pie 
                                     data={unitByUnitTypePieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
-                                    style={{ fontSize: '11px' }}
+                                    style={{ fontSize: '10px' }}
                                     label={({ name, percent }) => percent > 0.05 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {unitByUnitTypePieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
@@ -60,14 +60,14 @@ export default function PieChartsSection({
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <span className="text-slate-400 text-sm">ไม่มีข้อมูล</span>
+                        <span className="text-slate-400 text-xs">ไม่มีข้อมูล</span>
                     )}
                 </div>
             </div>
 
             {/* กราฟวงที่ 3: ออกหน่วย (ตามประเภทงาน) */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <h3 className="font-bold text-slate-700 mb-2 text-center text-sm">สัดส่วนประเภทงานที่ออกหน่วย</h3>
+                <h3 className="font-bold text-slate-700 mb-2 text-center text-xs">สัดส่วนประเภทงานที่ออกหน่วย</h3>
                 <div className="h-[220px] w-full flex items-center justify-center">
                     {unitByWorkTypePieData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -75,7 +75,7 @@ export default function PieChartsSection({
                                 <Pie 
                                     data={unitByWorkTypePieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
-                                    style={{ fontSize: '11px' }}
+                                    style={{ fontSize: '10px' }}
                                     label={({ name, percent }) => percent > 0 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {unitByWorkTypePieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
@@ -84,14 +84,14 @@ export default function PieChartsSection({
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <span className="text-slate-400 text-sm">ไม่มีข้อมูล</span>
+                        <span className="text-slate-400 text-xs">ไม่มีข้อมูล</span>
                     )}
                 </div>
             </div>
 
             {/* กราฟวงที่ 4: โรคพิษสุนัขบ้า */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <h3 className="font-bold text-slate-700 mb-2 text-center text-sm">จุดเสี่ยงโรคระบาด (แยกตามเขต)</h3>
+                <h3 className="font-bold text-slate-700 mb-2 text-center text-xs">จุดเสี่ยงโรคระบาด (แยกตามเขต)</h3>
                 <div className="h-[220px] w-full flex items-center justify-center">
                     {outbreakPieData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -99,7 +99,7 @@ export default function PieChartsSection({
                                 <Pie 
                                     data={outbreakPieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#82ca9d" dataKey="value"
-                                    style={{ fontSize: '11px' }}
+                                    style={{ fontSize: '10px' }}
                                     label={({ name, percent }) => percent > 0.05 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {outbreakPieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
@@ -108,7 +108,7 @@ export default function PieChartsSection({
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <span className="text-slate-400 text-sm">ไม่มีข้อมูล</span>
+                        <span className="text-slate-400 text-xs">ไม่มีข้อมูล</span>
                     )}
                 </div>
             </div>

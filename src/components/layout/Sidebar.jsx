@@ -30,7 +30,7 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
         <button 
             onClick={onClick} 
             title={label} 
-            className={`relative group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl text-sm ${isActive ? 'font-semibold' : 'font-medium'} transition-all duration-200 ${colorStyles[activeColor]}`}
+            className={`relative group w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'justify-start gap-3 px-3 py-2.5'} rounded-xl text-xs ${isActive ? 'font-semibold' : 'font-medium'} transition-all duration-200 ${colorStyles[activeColor]}`}
         >
             {isActive && !isCollapsed && (
                 <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-md ${indicatorColors[activeColor]}`} />
@@ -63,7 +63,7 @@ const Sidebar = ({
 
     const renderSectionHeader = (title) => (
         !isCollapsed && (
-            <p className="px-3 mt-6 mb-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+            <p className="px-3 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                 {title}
             </p>
         )
@@ -94,25 +94,24 @@ const Sidebar = ({
             `}>
                 <div className={`h-[80px] flex items-center px-5 shrink-0 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
                     <div className={`flex items-center gap-3.5 overflow-hidden flex-1 min-w-0 transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'flex'}`}>
-    <div className="relative shrink-0">
-        <img 
-            src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
-            alt="Logo" 
-            className="w-11 h-11 object-cover rounded-xl border border-slate-100 shrink-0 shadow-sm" 
-        />
-        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
-    </div>
-    
-    {/* ลบ whitespace-nowrap ออก เพิ่ม min-w-0 และปรับขนาดฟอนต์/ระยะบรรทัด */}
-    <div className="flex flex-col min-w-0 pr-2">
-        <h1 className="text-sm font-bold text-slate-800 tracking-tight leading-tight mb-1 break-words">
-            ระบบรายงานออกหน่วยเคลื่อนที่สัตวแพทย์
-        </h1>
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
-            Veterinary Mobile Unit Reporting System
-        </p>
-    </div>
-</div>
+                        <div className="relative shrink-0">
+                            <img 
+                                src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
+                                alt="Logo" 
+                                className="w-11 h-11 object-cover rounded-xl border border-slate-100 shrink-0 shadow-sm" 
+                            />
+                            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                        </div>
+                        
+                        <div className="flex flex-col min-w-0 pr-2">
+                            <h1 className="text-xs font-bold text-slate-800 tracking-tight leading-tight mb-1 break-words">
+                                ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่
+                            </h1>
+                            <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider leading-none">
+                                Mobile Veterinary Unit Reporting System
+                            </p>
+                        </div>
+                    </div>
 
                     <button 
                         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
@@ -155,7 +154,7 @@ const Sidebar = ({
                                     <button onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)} className="w-full flex items-center justify-between px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
                                         <div className="flex items-center gap-3">
                                             <Settings className={`w-5 h-5 shrink-0 transition-colors ${isSystemMenuOpen ? 'text-slate-800' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                                            <span className={`text-sm whitespace-nowrap ${isSystemMenuOpen ? 'font-semibold text-slate-800' : 'font-medium'}`}>ศูนย์ควบคุมระบบ</span>
+                                            <span className={`text-xs whitespace-nowrap ${isSystemMenuOpen ? 'font-semibold text-slate-800' : 'font-medium'}`}>ศูนย์ควบคุมระบบ</span>
                                         </div>
                                         <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform duration-300 ${isSystemMenuOpen ? 'rotate-180 text-slate-800' : ''}`} />
                                     </button>
@@ -166,7 +165,7 @@ const Sidebar = ({
                                                 
                                                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-indigo-500"/> เปิด-ปิดแท็บ (Executive)</p>
+                                                        <p className="text-[9px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-indigo-500"/> เปิด-ปิดแท็บ (Executive)</p>
                                                         <div className="space-y-3">
                                                             {[
                                                                 { id: 'sa_overview', label: 'ภาพรวมออกหน่วย' },
@@ -175,7 +174,7 @@ const Sidebar = ({
                                                                 { id: 'sa_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
-                                                                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
+                                                                    <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
                                                                     <div className="relative inline-flex items-center cursor-pointer">
                                                                         <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="sr-only peer" />
                                                                         <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -186,7 +185,7 @@ const Sidebar = ({
                                                     </div>
                                                     <div className="h-px bg-slate-100"></div>
                                                     <div>
-                                                        <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Unlock className="w-3.5 h-3.5 text-emerald-500"/> เปิด-ปิดแท็บ (Guest)</p>
+                                                        <p className="text-[9px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Unlock className="w-3.5 h-3.5 text-emerald-500"/> เปิด-ปิดแท็บ (Guest)</p>
                                                         <div className="space-y-3">
                                                             {[
                                                                 { id: 'public_overview', label: 'ภาพรวมออกหน่วย' },
@@ -195,7 +194,7 @@ const Sidebar = ({
                                                                 { id: 'public_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
-                                                                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
+                                                                    <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
                                                                     <div className="relative inline-flex items-center cursor-pointer">
                                                                         <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="sr-only peer" />
                                                                         <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -207,16 +206,16 @@ const Sidebar = ({
                                                 </div>
                                                 
                                                 <div className="space-y-1.5">
-                                                    <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">จัดการระบบหลัก</p>
-                                                    <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><PaintBucket className="w-4 h-4 shrink-0 text-slate-400"/> รูปแบบหน้าจอ</button>
-                                                    <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Users className="w-4 h-4 shrink-0 text-slate-400"/> บัญชีผู้ใช้</button>
-                                                    <button onClick={() => handleAction(onOpenCustomUnits)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Building2 className="w-4 h-4 shrink-0 text-slate-400"/> รายชื่อหน่วยงาน</button>
+                                                    <p className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider">จัดการระบบหลัก</p>
+                                                    <button onClick={() => handleAction(onOpenThemeSettings)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><PaintBucket className="w-4 h-4 shrink-0 text-slate-400"/> รูปแบบหน้าจอ</button>
+                                                    <button onClick={() => handleAction(onOpenUserMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Users className="w-4 h-4 shrink-0 text-slate-400"/> บัญชีผู้ใช้</button>
+                                                    <button onClick={() => handleAction(onOpenCustomUnits)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Building2 className="w-4 h-4 shrink-0 text-slate-400"/> รายชื่อหน่วยงาน</button>
                                                     
-                                                    <button onClick={() => handleAction(onOpenBreedMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Dog className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสายพันธุ์</button>
-                                                    <button onClick={() => handleAction(onOpenColorMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Palette className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสีสัตว์</button>
+                                                    <button onClick={() => handleAction(onOpenBreedMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Dog className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสายพันธุ์</button>
+                                                    <button onClick={() => handleAction(onOpenColorMgmt)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Palette className="w-4 h-4 shrink-0 text-slate-400"/> จัดการสีสัตว์</button>
                                                     
                                                     {isSystemDeveloper && (
-                                                        <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-3 rounded-xl text-sm font-medium text-sky-700 bg-sky-50 hover:bg-sky-100 flex items-center gap-3 transition-all border border-sky-200">
+                                                        <button onClick={() => handleAction(onNotifyUpdate)} className="w-full text-left py-2 px-3 mt-3 rounded-xl text-xs font-medium text-sky-700 bg-sky-50 hover:bg-sky-100 flex items-center gap-3 transition-all border border-sky-200">
                                                             <RefreshCw className="w-4 h-4 shrink-0" />
                                                             บังคับอัปเดตระบบ
                                                         </button>
@@ -224,13 +223,13 @@ const Sidebar = ({
                                                 </div>
 
                                                 <div className="space-y-1.5 pb-2">
-                                                    <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">ความปลอดภัย & ข้อมูล</p>
-                                                    <button onClick={() => handleAction(onOpenLog)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><FileText className="w-4 h-4 shrink-0 text-slate-400"/> ประวัติใช้งาน (Log)</button>
-                                                    <button onClick={() => handleAction(onOpenBackup)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><Database className="w-4 h-4 shrink-0 text-slate-400"/> สำรอง/กู้คืนข้อมูล</button>
-                                                    <button onClick={() => handleAction(onOpenCsvOutbreak)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"><Download className="w-4 h-4 shrink-0 text-slate-400"/> นำเข้า CSV (ระบาด)</button>
-                                                    <button onClick={() => handleAction(onOpenCsvReport)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><Download className="w-4 h-4 shrink-0 text-slate-400"/> นำเข้า CSV (บริการ)</button>
-                                                    <button onClick={() => handleAction(onGenerateMock)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Sparkles className="w-4 h-4 shrink-0 text-slate-400"/> สร้าง Mock Data</button>
-                                                    <button onClick={() => handleAction(onClearData)} className="w-full text-left py-2 px-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors mt-2"><Trash2 className="w-4 h-4 shrink-0"/> ล้างข้อมูลทั้งหมด</button>
+                                                    <p className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wider">ความปลอดภัย & ข้อมูล</p>
+                                                    <button onClick={() => handleAction(onOpenLog)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><FileText className="w-4 h-4 shrink-0 text-slate-400"/> ประวัติใช้งาน (Log)</button>
+                                                    <button onClick={() => handleAction(onOpenBackup)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><Database className="w-4 h-4 shrink-0 text-slate-400"/> สำรอง/กู้คืนข้อมูล</button>
+                                                    <button onClick={() => handleAction(onOpenCsvOutbreak)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"><Download className="w-4 h-4 shrink-0 text-slate-400"/> นำเข้า CSV (ระบาด)</button>
+                                                    <button onClick={() => handleAction(onOpenCsvReport)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><Download className="w-4 h-4 shrink-0 text-slate-400"/> นำเข้า CSV (บริการ)</button>
+                                                    <button onClick={() => handleAction(onGenerateMock)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors"><Sparkles className="w-4 h-4 shrink-0 text-slate-400"/> สร้าง Mock Data</button>
+                                                    <button onClick={() => handleAction(onClearData)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors mt-2"><Trash2 className="w-4 h-4 shrink-0"/> ล้างข้อมูลทั้งหมด</button>
                                                 </div>
 
                                             </div>
@@ -249,12 +248,12 @@ const Sidebar = ({
                 {user && canAdd && !['superadmin', 'executive'].includes(user.role) && (
                     <div className={`px-4 pt-2 pb-4 shrink-0 bg-white space-y-2.5 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
                         <button onClick={() => handleAction(onOpenAddOutbreak)} title="แจ้งโรคระบาด" 
-                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-12 h-12 p-0 rounded-[14px]' : 'w-full px-4 py-3 rounded-xl'} font-semibold text-sm bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all duration-300 border border-rose-200/50 hover:border-transparent hover:shadow-lg hover:shadow-rose-500/25`}>
+                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-12 h-12 p-0 rounded-[14px]' : 'w-full px-4 py-3 rounded-xl'} font-semibold text-xs bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all duration-300 border border-rose-200/50 hover:border-transparent hover:shadow-lg hover:shadow-rose-500/25`}>
                             <AlertTriangle className="w-[18px] h-[18px] shrink-0" />
                             {!isCollapsed && <span>แจ้งโรคระบาด</span>}
                         </button>
                         <button onClick={() => handleAction(onOpenAddData)} title="เพิ่มข้อมูลบริการ" 
-                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-12 h-12 p-0 rounded-[14px]' : 'w-full px-4 py-3 rounded-xl'} font-semibold text-sm bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/25 transition-all duration-300`}>
+                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-12 h-12 p-0 rounded-[14px]' : 'w-full px-4 py-3 rounded-xl'} font-semibold text-xs bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/25 transition-all duration-300`}>
                             <Plus className="w-[18px] h-[18px] shrink-0" />
                             {!isCollapsed && <span>เพิ่มข้อมูลบริการ</span>}
                         </button>
@@ -264,7 +263,7 @@ const Sidebar = ({
                 <div className={`m-3 shrink-0 ${isCollapsed ? 'mt-0' : 'mt-auto'}`}>
                     <div className={`bg-slate-50 border border-slate-200/60 rounded-2xl ${isCollapsed ? 'p-2' : 'p-3'}`}>
                         {!user ? (
-                            <button onClick={() => handleAction(onLogin)} title="เข้าสู่ระบบ" className={`group w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2.5' : 'px-4 py-2.5'} bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold transition-all shadow-md`}>
+                            <button onClick={() => handleAction(onLogin)} title="เข้าสู่ระบบ" className={`group w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2.5' : 'px-4 py-2.5'} bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-all shadow-md`}>
                                 <Unlock className="w-[18px] h-[18px] shrink-0" />
                                 {!isCollapsed && <span>เข้าสู่ระบบ</span>}
                             </button>
@@ -272,12 +271,12 @@ const Sidebar = ({
                             <div className={`flex items-center justify-between gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
                                 {!isCollapsed && (
                                     <div className="flex items-center gap-3 w-full overflow-hidden pl-1">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                                             {user.username.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex flex-col min-w-0 flex-1">
-                                        <span className="text-sm font-bold text-slate-800 truncate">{user.username}</span>
-                                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">
+                                        <span className="text-xs font-bold text-slate-800 truncate">{user.username}</span>
+                                        <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider truncate">
                                             {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
                                         </span>
                                     </div>

@@ -92,7 +92,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
             html: `
                 <div class="relative transition-all hover:scale-110 duration-200 ease-out drop-shadow-lg" style="width: ${size}px; height: ${size}px;">
                     <div class="absolute inset-0 rounded-full border-[3px] border-white flex items-center justify-center" style="background-color: ${colorSet.bg};">
-                        <span class="text-white font-black font-sans tracking-tight" style="font-size: ${size > 38 ? '11px' : '10px'}">${total.toLocaleString()}</span>
+                        <span class="text-white font-black font-sans tracking-tight" style="font-size: ${size > 38 ? '10px' : '9px'}">${total.toLocaleString()}</span>
                     </div>
                     <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 rounded-sm shadow-sm"></div>
                     <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 rounded-sm" style="background-color: ${colorSet.bg}; clip-path: polygon(0 0, 100% 0, 0 100%);"></div>
@@ -137,8 +137,8 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                 <Filter className="w-4 h-4 text-indigo-600" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-slate-800 leading-none">ตัวกรองแผนที่</h3>
-                                <span className="text-[10px] text-slate-500 font-medium">จัดการการแสดงผลบนแผนที่</span>
+                                <h3 className="text-xs font-bold text-slate-800 leading-none">ตัวกรองแผนที่</h3>
+                                <span className="text-[9px] text-slate-500 font-medium">จัดการการแสดงผลบนแผนที่</span>
                             </div>
                         </div>
                     )}
@@ -156,7 +156,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                         {/* 1. Unit List (ข้อมูลผลการปฏิบัติงาน) */}
                         {data && data.length > 0 && (
                             <div className="p-3 space-y-1.5 shrink-0">
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
+                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
                                     ประเภทหน่วยออกงาน
                                 </div>
                                 {UNIT_TYPES.map((unit) => {
@@ -174,7 +174,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                     </div>
                                                     <div className="flex items-center gap-2 overflow-hidden flex-1">
                                                         <span className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm`} style={{ backgroundColor: colorSet.bg }}></span>
-                                                        <span className={`text-xs font-semibold truncate transition-colors ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{unit}</span>
+                                                        <span className={`text-[10px] font-semibold truncate transition-colors ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{unit}</span>
                                                     </div>
                                                 </button>
 
@@ -189,12 +189,12 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                             {isExpanded && (
                                                 <div className="px-2 pb-2 mx-2 mb-1 border-t border-slate-100/80 pt-2 grid grid-cols-2 gap-2">
                                                     <div className="bg-slate-50 rounded-lg p-2 text-center border border-slate-100">
-                                                        <div className="text-[10px] text-slate-500 mb-1 flex items-center justify-center gap-1"><Activity className="w-3 h-3"/> ครั้ง</div>
-                                                        <div className="text-sm font-bold text-slate-700">{stats.totalTimes.toLocaleString()}</div>
+                                                        <div className="text-[9px] text-slate-500 mb-1 flex items-center justify-center gap-1"><Activity className="w-3 h-3"/> ครั้ง</div>
+                                                        <div className="text-xs font-bold text-slate-700">{stats.totalTimes.toLocaleString()}</div>
                                                     </div>
                                                     <div className="rounded-lg p-2 text-center border" style={{ backgroundColor: colorSet.ring, borderColor: colorSet.bg + '30' }}>
-                                                        <div className="text-[10px] opacity-80 mb-1 flex items-center justify-center gap-1" style={{ color: colorSet.bg }}><PawPrint className="w-3 h-3"/> สัตว์</div>
-                                                        <div className="text-sm font-bold" style={{ color: colorSet.bg }}>{stats.totalAnimals.toLocaleString()}</div>
+                                                        <div className="text-[9px] opacity-80 mb-1 flex items-center justify-center gap-1" style={{ color: colorSet.bg }}><PawPrint className="w-3 h-3"/> สัตว์</div>
+                                                        <div className="text-xs font-bold" style={{ color: colorSet.bg }}>{stats.totalAnimals.toLocaleString()}</div>
                                                     </div>
                                                 </div>
                                             )}
@@ -209,7 +209,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                             <div className="border-t border-slate-200/80 mt-1 pt-4 pb-3 px-3 bg-red-50/40 shrink-0">
                                 
                                 {/* รัศมีแจ้งเตือน */}
-                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1 ml-1">
+                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1 ml-1">
                                     <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> รัศมีแจ้งเตือนจุดเสี่ยง
                                 </div>
                                 <div className="flex bg-slate-200/50 p-1 rounded-lg mb-4">
@@ -223,7 +223,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                             <button 
                                                 key={r.val} 
                                                 onClick={() => toggleRadius(r.val)}
-                                                className={`flex-1 py-1 rounded-[6px] text-[10px] font-bold transition-all duration-200 ${isActive ? r.color : 'text-slate-400 hover:text-slate-600'}`}
+                                                className={`flex-1 py-1 rounded-[6px] text-[9px] font-bold transition-all duration-200 ${isActive ? r.color : 'text-slate-400 hover:text-slate-600'}`}
                                             >
                                                 {r.label}
                                             </button>
@@ -232,7 +232,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                 </div>
 
                                {/* การแจ้งเตือนล่าสุด */}
-                                <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1.5 ml-1">
+                                <div className="text-[9px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1.5 ml-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
                                     จุดแจ้งเตือนล่าสุด
                                 </div>
@@ -246,11 +246,11 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                 className={`p-2.5 rounded-xl border shadow-sm flex flex-col gap-1 transition-all duration-300 ${isHidden ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100 hover:border-rose-200'}`}
                                             >
                                                 <div className="flex justify-between items-start">
-                                                    <p className={`text-xs font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`} title={item.location}>
+                                                    <p className={`text-[10px] font-bold truncate pr-2 ${isHidden ? 'text-slate-500' : 'text-slate-800'}`} title={item.location}>
                                                         {item.location}
                                                     </p>
                                                     <div className="flex items-center gap-1.5 shrink-0">
-                                                        <span className="text-[9px] text-slate-400 whitespace-nowrap bg-slate-100 px-1 py-0.5 rounded font-medium">
+                                                        <span className="text-[8px] text-slate-400 whitespace-nowrap bg-slate-100 px-1 py-0.5 rounded font-medium">
                                                             {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
                                                         </span>
                                                         <div 
@@ -267,7 +267,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1 mt-0.5 text-[10px] text-slate-500">
+                                                <div className="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500">
                                                     <MapPin className="w-2.5 h-2.5" /> {item.district}
                                                 </div>
                                             </div>
@@ -333,7 +333,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
 
                         return (
                             <Marker key={item._id} position={[lat, long]} icon={createNumberIcon(totalActivity, colorSet)}>
-                                <Tooltip direction="top" offset={[0, -38]} opacity={1} className="!bg-slate-800 !text-white !border-0 !rounded-md !px-2 !py-1 !font-bold !text-xs !shadow-lg">
+                                <Tooltip direction="top" offset={[0, -38]} opacity={1} className="!bg-slate-800 !text-white !border-0 !rounded-md !px-2 !py-1 !font-bold !text-[10px] !shadow-lg">
                                     {item.location}
                                 </Tooltip>
                                 <Popup>
@@ -348,15 +348,15 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                             )}
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
                                             <div className="absolute bottom-3 left-3 right-3">
-                                                <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold text-white mb-1 shadow-sm" style={{ backgroundColor: colorSet.bg }}>
+                                                <span className="inline-block px-2 py-0.5 rounded text-[8px] font-bold text-white mb-1 shadow-sm" style={{ backgroundColor: colorSet.bg }}>
                                                     {item.unit}
                                                 </span>
-                                                <h3 className="font-bold text-white text-base leading-tight drop-shadow-md truncate">{item.location}</h3>
+                                                <h3 className="font-bold text-white text-sm leading-tight drop-shadow-md truncate">{item.location}</h3>
                                             </div>
                                         </div>
 
                                         <div className="p-4">
-                                            <div className="flex items-center gap-2 mb-4 text-xs text-slate-500">
+                                            <div className="flex items-center gap-2 mb-4 text-[10px] text-slate-500">
                                                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
                                                 <span>{item.district || 'ไม่ระบุเขต'}</span>
                                             </div>
@@ -364,33 +364,33 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                             <div className="grid grid-cols-2 gap-2">
                                                 {stats.vaccine > 0 && (
                                                     <div className="bg-emerald-50 rounded-lg p-2 flex flex-col items-center justify-center border border-emerald-100">
-                                                        <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">วัคซีน</span>
-                                                        <span className="text-lg font-black text-emerald-700">{stats.vaccine}</span>
+                                                        <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">วัคซีน</span>
+                                                        <span className="text-base font-black text-emerald-700">{stats.vaccine}</span>
                                                     </div>
                                                 )}
                                                 {stats.sterilize > 0 && (
                                                     <div className="bg-pink-50 rounded-lg p-2 flex flex-col items-center justify-center border border-pink-100">
-                                                        <span className="text-[10px] text-pink-600 font-bold uppercase tracking-wider">ทำหมัน</span>
-                                                        <span className="text-lg font-black text-pink-700">{stats.sterilize}</span>
+                                                        <span className="text-[9px] text-pink-600 font-bold uppercase tracking-wider">ทำหมัน</span>
+                                                        <span className="text-base font-black text-pink-700">{stats.sterilize}</span>
                                                     </div>
                                                 )}
                                                 {stats.microchip > 0 && (
                                                     <div className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center border border-blue-100">
-                                                        <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">ไมโครชิป</span>
-                                                        <span className="text-lg font-black text-blue-700">{stats.microchip}</span>
+                                                        <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">ไมโครชิป</span>
+                                                        <span className="text-base font-black text-blue-700">{stats.microchip}</span>
                                                     </div>
                                                 )}
                                                 {stats.medical > 0 && (
                                                     <div className="bg-orange-50 rounded-lg p-2 flex flex-col items-center justify-center border border-orange-100">
-                                                        <span className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">รักษา</span>
-                                                        <span className="text-lg font-black text-orange-700">{stats.medical}</span>
+                                                        <span className="text-[9px] text-orange-600 font-bold uppercase tracking-wider">รักษา</span>
+                                                        <span className="text-base font-black text-orange-700">{stats.medical}</span>
                                                     </div>
                                                 )}
                                             </div>
                                             
                                             <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-                                                <span className="text-[10px] text-slate-400 font-medium">กิจกรรมรวมทั้งสิ้น</span>
-                                                <div className="text-2xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
+                                                <span className="text-[9px] text-slate-400 font-medium">กิจกรรมรวมทั้งสิ้น</span>
+                                                <div className="text-xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
                                             </div>
 
                                             {canEdit && (
@@ -400,7 +400,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                             e.stopPropagation(); 
                                                             onEdit(item); 
                                                         }}
-                                                        className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-2 rounded-lg transition-colors text-xs border border-indigo-100"
+                                                        className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-2 rounded-lg transition-colors text-[10px] border border-indigo-100"
                                                     >
                                                         <Edit2 className="w-3.5 h-3.5" /> แก้ไขข้อมูล
                                                     </button>
@@ -455,12 +455,12 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                         <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2 text-red-600">
                                             <AlertTriangle className="w-6 h-6" />
                                         </div>
-                                        <h3 className="font-bold text-slate-800 text-base">{item.location}</h3>
-                                        <p className="text-xs text-slate-500 mb-3">{item.district}</p>
+                                        <h3 className="font-bold text-slate-800 text-sm">{item.location}</h3>
+                                        <p className="text-[10px] text-slate-500 mb-3">{item.district}</p>
                                         
                                         <div className="bg-red-50 rounded border border-red-100 p-2 mb-1">
-                                            <span className="text-[10px] font-bold text-red-600 block mb-1">สถิติสัตว์ติดเชื้อ</span>
-                                            <div className="flex justify-center gap-4 text-xs font-semibold text-slate-700">
+                                            <span className="text-[9px] font-bold text-red-600 block mb-1">สถิติสัตว์ติดเชื้อ</span>
+                                            <div className="flex justify-center gap-4 text-[10px] font-semibold text-slate-700">
                                                 <div className="flex flex-col"><span>🐶 สุนัข</span><span>{ dogCount }</span></div>
                                                 <div className="w-px bg-red-200"></div>
                                                 <div className="flex flex-col"><span>🐱 แมว</span><span>{ catCount }</span></div>
@@ -473,7 +473,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                         e.stopPropagation(); 
                                                         if (onEditOutbreak) onEditOutbreak(item); 
                                                     }}
-                                                    className="w-full flex items-center justify-center gap-1.5 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg transition-colors text-xs"
+                                                    className="w-full flex items-center justify-center gap-1.5 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg transition-colors text-[10px]"
                                                 >
                                                     <Edit2 className="w-3.5 h-3.5" /> แก้ไขจุดแจ้งเหตุ
                                                 </button>

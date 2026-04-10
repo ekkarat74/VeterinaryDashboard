@@ -12,13 +12,13 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 ${colorClass}`}></div>
         <div className="flex justify-between items-start w-full relative z-10 mb-4">
             <div className="flex-1 pr-2">
-                <p className="text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1 leading-tight line-clamp-2 min-h-[2rem]">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1 leading-tight line-clamp-2 min-h-[2rem]">
                     {title}
                 </p>
-                <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">
                     {(value || 0).toLocaleString()}
                 </h3>
-                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                <p className="text-[9px] text-slate-400 mt-2 flex items-center gap-1">
                     <span className={`w-1.5 h-1.5 rounded-full inline-block ${colorClass.split(' ')[0].replace('bg-gradient-to-br', 'bg-blue-500')}`}></span>
                     {subtext}
                 </p>
@@ -34,10 +34,10 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
                 <div className="flex justify-between items-center mb-1.5">
                     <div className="flex items-center gap-1">
                         <Dog className="w-3 h-3 text-orange-500" />
-                        <span className="text-[10px] font-bold text-slate-600">{dogCount.toLocaleString()}</span>
+                        <span className="text-[9px] font-bold text-slate-600">{dogCount.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold text-slate-600">{catCount.toLocaleString()}</span>
+                        <span className="text-[9px] font-bold text-slate-600">{catCount.toLocaleString()}</span>
                         <Cat className="w-3 h-3 text-blue-500" />
                     </div>
                 </div>
@@ -85,34 +85,34 @@ const UnitCard = ({ unit, index, maxVal }) => {
                             <IconComponent className={`w-5 h-5 ${theme.icon}`} />
                         </div>
                         <div className="min-w-0"> 
-                            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Unit No.{index + 1}</p>
-                            <h4 className="font-bold text-slate-800 text-sm leading-tight truncate" title={unit.name}>
+                            <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Unit No.{index + 1}</p>
+                            <h4 className="font-bold text-slate-800 text-xs leading-tight truncate" title={unit.name}>
                                 {unit.name}
                             </h4>
                         </div>
                     </div>
                     
-                    <div className={`text-[10px] font-bold px-2 py-1 rounded-md ${theme.rank}`}>
+                    <div className={`text-[9px] font-bold px-2 py-1 rounded-md ${theme.rank}`}>
                         #{index + 1}
                     </div>
                 </div>
 
                 <div className={`mt-auto ${unit.count === 0 ? 'opacity-40' : 'opacity-100'}`}>
                     <div className="flex items-end gap-1.5 mb-2">
-                        <span className="text-3xl font-extrabold text-slate-800 tracking-tighter">
+                        <span className="text-2xl font-extrabold text-slate-800 tracking-tighter">
                             {unit.count.toLocaleString()}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-bold mb-1.5 uppercase">ครั้ง</span>
+                        <span className="text-[9px] text-slate-500 font-bold mb-1.5 uppercase">ครั้ง</span>
                     </div>
 
                     <div className="flex items-center gap-2 pt-3 border-t border-slate-200/50">
                         <div className="flex items-center gap-1 bg-white/70 px-2 py-1 rounded shadow-sm">
                             <Dog className="w-3 h-3 text-orange-600" />
-                            <span className="text-[10px] font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
+                            <span className="text-[9px] font-bold text-orange-700">{unit.dog.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-1 bg-white/70 px-2 py-1 rounded shadow-sm">
                             <Cat className="w-3 h-3 text-blue-600" />
-                            <span className="text-[10px] font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
+                            <span className="text-[9px] font-bold text-blue-700">{unit.cat.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -142,11 +142,11 @@ const KPISection = ({ totals = {}, unitStats = [] }) => {
                                 <Truck className="w-5 h-5 text-white" /> 
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800 leading-none mb-1">สถิติการออกปฏิบัติงาน</h3>
-                                <p className="text-xs text-slate-400 font-medium">แยกตามหน่วยให้บริการ (Unit Dispatch)</p>
+                                <h3 className="text-lg font-bold text-slate-800 leading-none mb-1">สถิติการออกปฏิบัติงาน</h3>
+                                <p className="text-[11px] text-slate-400 font-medium">แยกตามหน่วยให้บริการ (Unit Dispatch)</p>
                             </div>
                         </div>
-                        <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
                             Active: {unitStats.length} Units
                         </span>
                     </div>
@@ -166,7 +166,7 @@ const KPISection = ({ totals = {}, unitStats = [] }) => {
                 ) : (
                     <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-slate-400">
                         <AlertCircle className="w-10 h-10 mb-2 opacity-20" />
-                        <p className="text-sm font-medium">ไม่พบข้อมูลสถิติรายหน่วยงาน</p>
+                        <p className="text-xs font-medium">ไม่พบข้อมูลสถิติรายหน่วยงาน</p>
                     </div>
                 )}
             </div>
@@ -176,7 +176,7 @@ const KPISection = ({ totals = {}, unitStats = [] }) => {
                 <div>
                     <div className="flex items-center gap-2 mb-5">
                         <BarChart3 className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-bold text-slate-700">สรุปยอดรวมการให้บริการ (Overall)</h3>
+                        <h3 className="text-base font-bold text-slate-700">สรุปยอดรวมการให้บริการ (Overall)</h3>
                     </div>
                 </div>
                 
