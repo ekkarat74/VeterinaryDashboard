@@ -335,6 +335,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               </div>
             </div>
 
+            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ (เพิ่มลิงก์แผนที่) */}
             {foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
                 <h4 className="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
@@ -345,6 +346,17 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div><span className="font-bold text-slate-500">วันที่:</span> {new Date(foundDispatch.date).toLocaleDateString('th-TH')}</div>
                   <div><span className="font-bold text-slate-500">เขต:</span> {foundDispatch.district || '-'}</div>
                   <div><span className="font-bold text-slate-500">เวลาปฏิบัติงาน:</span> {foundDispatch.time} - {foundDispatch.closingTime}</div>
+                  
+                  {/* เพิ่มการแสดงผลแผนที่ตรงนี้ */}
+                  {foundDispatch.mapLink && (
+                    <div className="sm:col-span-2">
+                      <span className="font-bold text-slate-500">ลิงก์แผนที่:</span>{' '}
+                      <a href={foundDispatch.mapLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                        {foundDispatch.mapLink}
+                      </a>
+                    </div>
+                  )}
+
                   {foundDispatch.note && <div className="sm:col-span-2"><span className="font-bold text-slate-500">หมายเหตุ:</span> {foundDispatch.note}</div>}
                 </div>
               </div>
