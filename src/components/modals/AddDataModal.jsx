@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Edit, Plus, X, FileText, Trash2, 
   Syringe, Scissors, Database, Stethoscope, 
-  Activity, Save, MapPin, Edit2, Check, Settings2
+  Activity, Save, MapPin, Edit2, Check, Settings2, Search
 } from 'lucide-react';
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
@@ -38,6 +38,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [editingUnitId, setEditingUnitId] = useState(null);
   const [editingUnitName, setEditingUnitName] = useState("");
 
+  const [foundDispatch, setFoundDispatch] = useState(null);
+
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
   const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
 
@@ -59,6 +61,27 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     }
   };
 
+  const handleSearchLocation = async () => {
+    if (!formData.location.trim()) return;
+    try {
+      const res = await fetch(`${BASE_URL}/api/dispatches`);
+      if (res.ok) {
+        const dispatches = await res.json();
+        const match = dispatches.find(d => 
+          d.location && d.location.toLowerCase().includes(formData.location.toLowerCase())
+        );
+        if (match) {
+          setFoundDispatch(match);
+          if(onToast) onToast('success', 'พบข้อมูลสถานที่ในแผนออกหน่วย');
+        } else {
+          setFoundDispatch(null);
+        }
+      }
+    } catch (err) {
+      console.error("Search location error", err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchCustomUnits();
@@ -67,21 +90,23 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       setBreakdown(defaultBreakdown);
       setCoordInput("");
       setImagePreview(null);
+      setFoundDispatch(null);
     }
   }, [isOpen]);
 
-useEffect(() => {
-  if (isOpen && initialData) {
-    setFormData({
-      ...initialData,
-      unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
-      otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
-    });
-    setBreakdown(initialData.details || defaultBreakdown);
-    setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
-    setImagePreview(initialData.imageUrl || null);
-  }
-}, [isOpen, initialData, allUnitOptions]);
+  useEffect(() => {
+    if (isOpen && initialData) {
+      setFormData({
+        ...initialData,
+        unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
+        otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
+      });
+      setBreakdown(initialData.details || defaultBreakdown);
+      setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
+      setImagePreview(initialData.imageUrl || null);
+    }
+  }, [isOpen, initialData, allUnitOptions]);
+
   const handleDeleteUnit = async (id, name) => {
     if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
     try {
@@ -221,7 +246,24 @@ useEffect(() => {
 
                 <div className="md:col-span-5">
                   <label className={labelClass}>สถานที่</label>
-                  <input type="text" required placeholder="ระบุสถานที่/จุดบริการ" className={inputClass} value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="ระบุสถานที่/จุดบริการ" 
+                      className={inputClass} 
+                      value={formData.location} 
+                      onChange={e => setFormData({...formData, location: e.target.value})} 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleSearchLocation} 
+                      className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0" 
+                      title="ค้นหาข้อมูลจากแผนออกหน่วย"
+                    >
+                      <Search className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="md:col-span-4">
@@ -233,7 +275,7 @@ useEffect(() => {
                         setShowDistrictDropdown(true);
                       }}
                       onFocus={() => setShowDistrictDropdown(true)}
-                      onBlur={() => setShowDistrictDropdown(false)}
+                      onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
                     />
                     
                     {showDistrictDropdown && (
@@ -293,107 +335,122 @@ useEffect(() => {
               </div>
             </div>
 
+            {foundDispatch && (
+              <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
+                <h4 className="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4" /> ข้อมูลสถานที่จากแผนออกหน่วย (Dispatch Plan)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
+                  <div><span className="font-bold text-slate-500">สถานที่:</span> {foundDispatch.location}</div>
+                  <div><span className="font-bold text-slate-500">วันที่:</span> {new Date(foundDispatch.date).toLocaleDateString('th-TH')}</div>
+                  <div><span className="font-bold text-slate-500">เขต:</span> {foundDispatch.district || '-'}</div>
+                  <div><span className="font-bold text-slate-500">เวลาปฏิบัติงาน:</span> {foundDispatch.time} - {foundDispatch.closingTime}</div>
+                  {foundDispatch.note && <div className="sm:col-span-2"><span className="font-bold text-slate-500">หมายเหตุ:</span> {foundDispatch.note}</div>}
+                </div>
+              </div>
+            )}
+
             {/* SECTION 2: Quantitative Data */}
-<div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-  <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
-    <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span> ข้อมูลจำนวนสัตว์
-  </h4>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span> ข้อมูลจำนวนสัตว์
+              </h4>
 
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {/* 1. ฉีดวัคซีน */}
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
-      <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 flex items-center gap-2">
-        <Syringe className="w-4 h-4" /> ฉีดวัคซีน
-      </div>
-      <div className="p-4 grid grid-cols-3 gap-3">
-        {['dog', 'cat', 'other'].map(t => (
-          <div key={t}>
-            <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
-            <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].vaccine} 
-              onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], vaccine: e.target.value}})} />
-          </div>
-        ))}
-      </div>
-    </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 1. ฉีดวัคซีน */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 flex items-center gap-2">
+                    <Syringe className="w-4 h-4" /> ฉีดวัคซีน
+                  </div>
+                  <div className="p-4 grid grid-cols-3 gap-3">
+                    {['dog', 'cat', 'other'].map(t => (
+                      <div key={t}>
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
+                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].vaccine} 
+                          onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], vaccine: e.target.value}})} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-    {/* 2. ผ่าตัดทำหมัน */}
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
-      <div className="bg-orange-50/50 px-4 py-2 border-b border-slate-200 font-bold text-orange-700 flex items-center gap-2">
-        <Scissors className="w-4 h-4" /> ผ่าตัดทำหมัน
-      </div>
-      <div className="p-4 grid grid-cols-2 gap-4">
-        {['dog', 'cat'].map(t => (
-          <div key={t} className="space-y-2">
-            <label className="text-[10px] text-slate-500 uppercase font-bold block">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
-            <div className="flex gap-2">
-              <input type="number" placeholder="ผู้" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].maleSterilize} 
-                onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], maleSterilize: e.target.value}})} />
-              <input type="number" placeholder="เมีย" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].femaleSterilize} 
-                onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], femaleSterilize: e.target.value}})} />
+                {/* 2. ผ่าตัดทำหมัน */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-orange-50/50 px-4 py-2 border-b border-slate-200 font-bold text-orange-700 flex items-center gap-2">
+                    <Scissors className="w-4 h-4" /> ผ่าตัดทำหมัน
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-4">
+                    {['dog', 'cat'].map(t => (
+                      <div key={t} className="space-y-2">
+                        <label className="text-[10px] text-slate-500 uppercase font-bold block">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
+                        <div className="flex gap-2">
+                          <input type="number" placeholder="ผู้" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].maleSterilize} 
+                            onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], maleSterilize: e.target.value}})} />
+                          <input type="number" placeholder="เมีย" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].femaleSterilize} 
+                            onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], femaleSterilize: e.target.value}})} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. ฝังไมโครชิป */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-purple-50/50 px-4 py-2 border-b border-slate-200 font-bold text-purple-700 flex items-center gap-2">
+                    <Database className="w-4 h-4" /> ฝังไมโครชิป
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-4">
+                    {['dog', 'cat'].map(t => (
+                      <div key={t}>
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
+                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].microchip} 
+                          onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], microchip: e.target.value}})} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. จดทะเบียน */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-emerald-50/50 px-4 py-2 border-b border-slate-200 font-bold text-emerald-700 flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> จดทะเบียนสัตว์
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-4">
+                    {['dog', 'cat'].map(t => (
+                      <div key={t}>
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
+                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].register} 
+                          onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], register: e.target.value}})} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. รักษาสัตว์ */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden lg:col-span-2">
+                  <div className="bg-rose-50/50 px-4 py-2 border-b border-slate-200 font-bold text-rose-700 flex items-center gap-2">
+                    <Stethoscope className="w-4 h-4" /> รักษาสัตว์
+                  </div>
+                  <div className="p-4 grid grid-cols-3 gap-3">
+                    {['dog', 'cat', 'other'].map(t => (
+                      <div key={t}>
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
+                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].medical} 
+                          onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], medical: e.target.value}})} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* สรุปยอดรวม (Summary Bar) */}
+              <div className="mt-6 bg-slate-900 rounded-2xl p-5 text-white flex flex-wrap justify-around gap-4">
+                <div className="text-center"><div className="text-2xl font-bold">{totals.vaccine}</div><div className="text-[10px] text-slate-400 uppercase">วัคซีน</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div><div className="text-[10px] text-slate-400 uppercase">ทำหมัน</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-emerald-400">{totals.register}</div><div className="text-[10px] text-slate-400 uppercase">จดทะเบียน</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-purple-400">{totals.microchip}</div><div className="text-[10px] text-slate-400 uppercase">ไมโครชิป</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-rose-400">{totals.medical}</div><div className="text-[10px] text-slate-400 uppercase">รักษา</div></div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* 3. ฝังไมโครชิป (เพิ่มกลับมา) */}
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
-      <div className="bg-purple-50/50 px-4 py-2 border-b border-slate-200 font-bold text-purple-700 flex items-center gap-2">
-        <Database className="w-4 h-4" /> ฝังไมโครชิป
-      </div>
-      <div className="p-4 grid grid-cols-2 gap-4">
-        {['dog', 'cat'].map(t => (
-          <div key={t}>
-            <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
-            <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].microchip} 
-              onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], microchip: e.target.value}})} />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* 4. จดทะเบียน (เพิ่มกลับมา) */}
-    <div className="border border-slate-200 rounded-xl overflow-hidden">
-      <div className="bg-emerald-50/50 px-4 py-2 border-b border-slate-200 font-bold text-emerald-700 flex items-center gap-2">
-        <FileText className="w-4 h-4" /> จดทะเบียนสัตว์
-      </div>
-      <div className="p-4 grid grid-cols-2 gap-4">
-        {['dog', 'cat'].map(t => (
-          <div key={t}>
-            <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
-            <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].register} 
-              onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], register: e.target.value}})} />
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* 5. รักษาสัตว์ (เพิ่มกลับมา) */}
-    <div className="border border-slate-200 rounded-xl overflow-hidden lg:col-span-2">
-      <div className="bg-rose-50/50 px-4 py-2 border-b border-slate-200 font-bold text-rose-700 flex items-center gap-2">
-        <Stethoscope className="w-4 h-4" /> รักษาสัตว์
-      </div>
-      <div className="p-4 grid grid-cols-3 gap-3">
-        {['dog', 'cat', 'other'].map(t => (
-          <div key={t}>
-            <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
-            <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].medical} 
-              onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], medical: e.target.value}})} />
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-
-  {/* สรุปยอดรวม (Summary Bar) */}
-  <div className="mt-6 bg-slate-900 rounded-2xl p-5 text-white flex flex-wrap justify-around gap-4">
-    <div className="text-center"><div className="text-2xl font-bold">{totals.vaccine}</div><div className="text-[10px] text-slate-400 uppercase">วัคซีน</div></div>
-    <div className="text-center"><div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div><div className="text-[10px] text-slate-400 uppercase">ทำหมัน</div></div>
-    <div className="text-center"><div className="text-2xl font-bold text-emerald-400">{totals.register}</div><div className="text-[10px] text-slate-400 uppercase">จดทะเบียน</div></div>
-    <div className="text-center"><div className="text-2xl font-bold text-purple-400">{totals.microchip}</div><div className="text-[10px] text-slate-400 uppercase">ไมโครชิป</div></div>
-    <div className="text-center"><div className="text-2xl font-bold text-rose-400">{totals.medical}</div><div className="text-[10px] text-slate-400 uppercase">รักษา</div></div>
-  </div>
-</div>
           </div>
 
           {/* Footer Buttons */}
