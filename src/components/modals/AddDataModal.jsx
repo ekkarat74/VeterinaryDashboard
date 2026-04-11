@@ -15,7 +15,8 @@ const defaultFormData = {
   unit: UNIT_TYPES[0],
   otherUnit: '',
   lat: '',
-  long: ''
+  long: '',
+  mapLink: '' // เผื่อกรณีมีการดึงข้อมูลลิงก์แผนที่ด้วย
 };
 
 const defaultBreakdown = {
@@ -75,6 +76,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           if(onToast) onToast('success', 'พบข้อมูลสถานที่ในแผนออกหน่วย');
         } else {
           setFoundDispatch(null);
+          if(onToast) onToast('info', 'ไม่พบข้อมูลสถานที่นี้ในแผนออกหน่วย');
         }
       }
     } catch (err) {
@@ -115,10 +117,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         headers: { 'Authorization': `Bearer ${getUserToken()}` }
       });
       if (res.ok) {
-        onToast('success', 'ลบหน่วยงานสำเร็จ');
+        if (onToast) onToast('success', 'ลบหน่วยงานสำเร็จ');
         fetchCustomUnits();
       }
-    } catch (err) { onToast('error', 'ลบไม่สำเร็จ'); }
+    } catch (err) { if (onToast) onToast('error', 'ลบไม่สำเร็จ'); }
   };
 
   const handleUpdateUnitName = async (id) => {
@@ -130,11 +132,11 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         body: JSON.stringify({ name: editingUnitName })
       });
       if (res.ok) {
-        onToast('success', 'แก้ไขสำเร็จ');
+        if (onToast) onToast('success', 'แก้ไขสำเร็จ');
         setEditingUnitId(null);
         fetchCustomUnits();
       }
-    } catch (err) { onToast('error', 'แก้ไขไม่สำเร็จ'); }
+    } catch (err) { if (onToast) onToast('error', 'แก้ไขไม่สำเร็จ'); }
   };
 
   const totals = useMemo(() => {
@@ -253,7 +255,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       placeholder="ระบุสถานที่/จุดบริการ" 
                       className={inputClass} 
                       value={formData.location} 
-                      onChange={e => setFormData({...formData, location: e.target.value})} 
+                      onChange={e => {
+                        setFormData({...formData, location: e.target.value});
+                        setFoundDispatch(null); // ซ่อนผลการค้นหาเมื่อพิมพ์ใหม่
+                      }} 
                     />
                     <button 
                       type="button" 
@@ -335,19 +340,45 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               </div>
             </div>
 
-            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ (เพิ่มลิงก์แผนที่) */}
+            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ (เพิ่มปุ่มใช้งานข้อมูลนี้) */}
             {foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
-                <h4 className="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
-                  <Activity className="w-4 h-4" /> ข้อมูลสถานที่จากแผนออกหน่วย (Dispatch Plan)
-                </h4>
+                <div className="flex justify-between items-start mb-3">
+                  <h4 className="text-sm font-bold text-indigo-800 flex items-center gap-2">
+                    <Activity className="w-4 h-4" /> ข้อมูลสถานที่จากแผนออกหน่วย (Dispatch Plan)
+                  </h4>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        date: foundDispatch.date ? foundDispatch.date.split('T')[0] : prev.date,
+                        district: foundDispatch.district || prev.district,
+                        mapLink: foundDispatch.mapLink || prev.mapLink // ถ้ามีการใช้ mapLink ให้ดึงมาด้วย
+                      }));
+                      
+                      // ถ้ามีพิกัดใน Dispatch ให้ดึงมาใส่ด้วย
+                      if(foundDispatch.lat || foundDispatch.lng) {
+                        const newLat = foundDispatch.lat || formData.lat;
+                        const newLng = foundDispatch.lng || formData.long;
+                        setCoordInput(`${newLat}, ${newLng}`);
+                        setFormData(prev => ({...prev, lat: newLat, long: newLng}));
+                      }
+
+                      if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อย');
+                    }}
+                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                  >
+                    ใช้ข้อมูลชุดนี้
+                  </button>
+                </div>
+                
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
                   <div><span className="font-bold text-slate-500">สถานที่:</span> {foundDispatch.location}</div>
                   <div><span className="font-bold text-slate-500">วันที่:</span> {new Date(foundDispatch.date).toLocaleDateString('th-TH')}</div>
                   <div><span className="font-bold text-slate-500">เขต:</span> {foundDispatch.district || '-'}</div>
                   <div><span className="font-bold text-slate-500">เวลาปฏิบัติงาน:</span> {foundDispatch.time} - {foundDispatch.closingTime}</div>
                   
-                  {/* เพิ่มการแสดงผลแผนที่ตรงนี้ */}
                   {foundDispatch.mapLink && (
                     <div className="sm:col-span-2">
                       <span className="font-bold text-slate-500">ลิงก์แผนที่:</span>{' '}
