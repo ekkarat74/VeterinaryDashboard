@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Edit, Plus, X, FileText, Trash2, 
   Syringe, Scissors, Database, Stethoscope, 
-  Activity, Save, MapPin, Edit2, Check, Settings2, Search, Loader2, CalendarDays
+  Activity, Save, MapPin, Edit2, Check, Settings2, Search,
+  ImagePlus, Loader2 // เพิ่ม Icon สำหรับอัปโหลดรูปและ Loading
 } from 'lucide-react';
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
@@ -10,13 +11,13 @@ import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../const
 const defaultFormData = {
   date: new Date().toISOString().split('T')[0],
   location: '',
-  district: BANGKOK_DISTRICTS[0],
+  district: BANGKOK_DISTRICTS[0] || '',
   subdistrict: '',
-  unit: UNIT_TYPES[0],
+  unit: UNIT_TYPES[0] || '',
   otherUnit: '',
   lat: '',
   long: '',
-  mapLink: ''
+  mapLink: '' 
 };
 
 const defaultBreakdown = {
@@ -29,10 +30,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [formData, setFormData] = useState(defaultFormData);
   const [breakdown, setBreakdown] = useState(defaultBreakdown);
   const [coordInput, setCoordInput] = useState("");
+  
+  // States สำหรับรูปภาพ
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false); // State สำหรับ Loading ตอนค้นหาสถานที่
 
   const [customUnitsObj, setCustomUnitsObj] = useState([]);
   const [isManagingUnits, setIsManagingUnits] = useState(false); 
@@ -40,9 +44,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [editingUnitName, setEditingUnitName] = useState("");
 
   const [foundDispatch, setFoundDispatch] = useState(null);
-  const [allDispatches, setAllDispatches] = useState([]);
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
   const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
@@ -53,38 +54,74 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     return [...new Set([...baseUnits, ...dbUnits]), 'หน่วยอื่น ๆ'];
   }, [customUnitsObj]);
 
-  const fetchData = async () => {
+  const fetchCustomUnits = async () => {
     try {
-      const [unitsRes, dispatchRes] = await Promise.all([
-        fetch(`${BASE_URL}/api/custom-units`),
-        fetch(`${BASE_URL}/api/dispatches`)
-      ]);
-
-      if (unitsRes.ok) {
-        const data = await unitsRes.json();
+      const res = await fetch(`${BASE_URL}/api/custom-units`);
+      if (res.ok) {
+        const data = await res.json();
         setCustomUnitsObj(Array.isArray(data) ? data : []); 
       }
-
-      if (dispatchRes.ok) {
-        const dData = await dispatchRes.json();
-        setAllDispatches(dData);
-      }
     } catch (error) {
-      console.error("Fetch data error", error);
+      console.error("Fetch units error", error);
     }
+  };
+
+  const handleSearchLocation = async () => {
+    if (!formData.location.trim()) return;
+    setIsSearching(true); // เริ่ม Loading
+    try {
+      const res = await fetch(`${BASE_URL}/api/dispatches`);
+      if (res.ok) {
+        const dispatches = await res.json();
+        const match = dispatches.find(d => 
+          d.location && d.location.toLowerCase().includes(formData.location.toLowerCase())
+        );
+        if (match) {
+          setFoundDispatch(match);
+          if(onToast) onToast('success', 'พบข้อมูลสถานที่ในแผนออกหน่วย');
+        } else {
+          setFoundDispatch(null);
+          if(onToast) onToast('info', 'ไม่พบข้อมูลสถานที่นี้ในแผนออกหน่วย');
+        }
+      }
+    } catch (err) {
+      console.error("Search location error", err);
+      if(onToast) onToast('error', 'เกิดข้อผิดพลาดในการค้นหา');
+    } finally {
+      setIsSearching(false); // จบ Loading
+    }
+  };
+
+  // ฟังก์ชันจัดการรูปภาพ
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   useEffect(() => {
     if (isOpen) {
-      fetchData();
-      setIsSubmitting(false);
+      fetchCustomUnits();
     } else {
       setFormData(defaultFormData);
       setBreakdown(defaultBreakdown);
       setCoordInput("");
+      setImageFile(null);
       setImagePreview(null);
       setFoundDispatch(null);
-      setAllDispatches([]);
+      setIsManagingUnits(false);
+      setShowDistrictDropdown(false);
     }
   }, [isOpen]);
 
@@ -96,50 +133,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
       });
       setBreakdown(initialData.details || defaultBreakdown);
-      setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
+      setCoordInput(initialData.lat && initialData.long ? `${initialData.lat}, ${initialData.long}` : "");
       setImagePreview(initialData.imageUrl || null);
     }
   }, [isOpen, initialData, allUnitOptions]);
-
-  const dispatchesOnSelectedDate = useMemo(() => {
-    if (!formData.date || !allDispatches.length) return [];
-    return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
-  }, [allDispatches, formData.date]);
-
-  // ✅ เปลี่ยนชื่อฟังก์ชันและหน้าที่ เป็นแค่การดึงข้อมูลลงฟอร์ม
-  const handleUseDispatchData = (dispatch) => {
-    const newLat = dispatch.lat || formData.lat;
-    const newLng = dispatch.lng || formData.long;
-
-    setFormData(prev => ({
-      ...prev,
-      location: dispatch.location || prev.location,
-      district: dispatch.district || prev.district,
-      mapLink: dispatch.mapLink || prev.mapLink,
-      lat: newLat,
-      long: newLng
-    }));
-
-    if (newLat || newLng) {
-      setCoordInput(`${newLat || ''}, ${newLng || ''}`);
-    }
-
-    if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อยแล้ว');
-  };
-
-  const handleSearchLocation = () => {
-    if (!formData.location.trim()) return;
-    const match = allDispatches.find(d => 
-      d.location && d.location.toLowerCase().includes(formData.location.toLowerCase())
-    );
-    if (match) {
-      setFoundDispatch(match);
-      if(onToast) onToast('success', 'พบข้อมูลสถานที่ในแผนออกหน่วย');
-    } else {
-      setFoundDispatch(null);
-      if(onToast) onToast('info', 'ไม่พบข้อมูลสถานที่นี้ในแผนออกหน่วย');
-    }
-  };
 
   const handleDeleteUnit = async (id, name) => {
     if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
@@ -150,7 +147,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       });
       if (res.ok) {
         if (onToast) onToast('success', 'ลบหน่วยงานสำเร็จ');
-        fetchData();
+        fetchCustomUnits();
       }
     } catch (err) { if (onToast) onToast('error', 'ลบไม่สำเร็จ'); }
   };
@@ -166,7 +163,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       if (res.ok) {
         if (onToast) onToast('success', 'แก้ไขสำเร็จ');
         setEditingUnitId(null);
-        fetchData();
+        fetchCustomUnits();
       }
     } catch (err) { if (onToast) onToast('error', 'แก้ไขไม่สำเร็จ'); }
   };
@@ -185,40 +182,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return;
-
-    const totalStats = totals.vaccine + totals.sterilize + totals.register + totals.microchip + totals.medical;
-    if (totalStats === 0) {
-      const confirmZero = window.confirm('⚠️ ยอดรวมการให้บริการทั้งหมดเป็น 0\n\nคุณแน่ใจหรือไม่ว่าต้องการบันทึกข้อมูลนี้?');
-      if (!confirmZero) return;
-    }
-
-    if (!initialData) {
-      try {
-        setIsSubmitting(true);
-        const res = await fetch(`${BASE_URL}/api/reports?startDate=${formData.date}&endDate=${formData.date}`);
-        if (res.ok) {
-          const data = await res.json();
-          const reportsOnDate = Array.isArray(data) ? data : (data.data || []);
-          
-          const isDuplicate = reportsOnDate.some(report => 
-            report.location.trim().toLowerCase() === formData.location.trim().toLowerCase()
-          );
-
-          if (isDuplicate) {
-            const confirmDuplicate = window.confirm(`🚨 พบข้อมูลซ้ำซ้อนในระบบ!\n\nมีการบันทึกผลปฏิบัติงานของสถานที่ "${formData.location}" ในวันที่ ${new Date(formData.date).toLocaleDateString('th-TH')} ไปแล้วก่อนหน้านี้\n\nคุณต้องการบันทึกเป็นข้อมูลใหม่แยกอีกบรรทึกหนึ่งหรือไม่?`);
-            if (!confirmDuplicate) {
-              setIsSubmitting(false);
-              return;
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Duplicate check failed", error);
-      }
-    }
-
-    setIsSubmitting(true);
     const finalUnit = formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit;
 
     const payload = {
@@ -228,16 +191,11 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       details: breakdown,
       lat: parseFloat(formData.lat) || 0,
       long: parseFloat(formData.long) || 0,
-      imageUrl: imagePreview
+      imageUrl: imagePreview // ส่งเป็น Base64 หรือ URL (ถ้ามีการอัปโหลดขึ้น Server จริง แนะนำให้แยก Upload API ครับ)
     };
 
-    if (initialData) {
-      await onUpdate(initialData._id, payload);
-    } else {
-      await onSave(payload);
-    }
-    
-    setIsSubmitting(false);
+    if (initialData) onUpdate(initialData._id, payload);
+    else onSave(payload);
     onClose();
   };
 
@@ -245,6 +203,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const inputClass = "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all";
   const labelClass = "block text-xs font-bold text-slate-600 mb-1.5";
+  const numberInputClass = "w-full p-2 border border-slate-200 rounded-lg text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"; // Class เสริมสำหรับช่องตัวเลข
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-0 sm:p-6">
@@ -260,28 +219,30 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               {initialData ? 'แก้ไขข้อมูลปฏิบัติงาน' : 'บันทึกผลปฏิบัติงานใหม่'}
             </h3>
           </div>
-          <button onClick={onClose} disabled={isSubmitting} className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col bg-slate-50/30">
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar relative">
+            
+            {/* SECTION 1: ข้อมูลทั่วไป */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative z-10">
               <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span> ข้อมูลทั่วไป
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 relative">
                 <div className="md:col-span-3">
                   <label className={labelClass}>วันที่</label>
-                  <input type="date" required className={inputClass} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} disabled={isSubmitting} />
+                  <input type="date" required className={inputClass} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                 </div>
 
-                <div className="md:col-span-4">
+                <div className="md:col-span-4 relative">
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="text-xs font-bold text-slate-600">หน่วยกิจกรรม</label>
-                    <button type="button" onClick={() => setIsManagingUnits(!isManagingUnits)} disabled={isSubmitting} className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                    <button type="button" onClick={() => setIsManagingUnits(!isManagingUnits)} className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1">
                       <Settings2 className="w-3 h-3" /> {isManagingUnits ? 'เสร็จสิ้น' : 'จัดการหน่วย'}
                     </button>
                   </div>
@@ -291,29 +252,29 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       {customUnitsObj.map(u => (
                         <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1 rounded-lg border border-slate-100">
                           {editingUnitId === u._id ? (
-                            <input autoFocus className="flex-1 text-xs outline-none" value={editingUnitName} onChange={e => setEditingUnitName(e.target.value)} disabled={isSubmitting} />
+                            <input autoFocus className="flex-1 text-xs outline-none" value={editingUnitName} onChange={e => setEditingUnitName(e.target.value)} />
                           ) : (
                             <span className="text-xs text-slate-700 truncate">{u.name}</span>
                           )}
                           <div className="flex gap-1">
                             {editingUnitId === u._id ? (
-                              <button type="button" onClick={() => handleUpdateUnitName(u._id)} disabled={isSubmitting} className="text-emerald-600 p-1"><Check className="w-3.5 h-3.5" /></button>
+                              <button type="button" onClick={() => handleUpdateUnitName(u._id)} className="text-emerald-600 p-1"><Check className="w-3.5 h-3.5" /></button>
                             ) : (
-                              <button type="button" onClick={() => {setEditingUnitId(u._id); setEditingUnitName(u.name);}} disabled={isSubmitting} className="text-amber-500 p-1"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button type="button" onClick={() => {setEditingUnitId(u._id); setEditingUnitName(u.name);}} className="text-amber-500 p-1"><Edit2 className="w-3.5 h-3.5" /></button>
                             )}
-                            <button type="button" onClick={() => handleDeleteUnit(u._id, u.name)} disabled={isSubmitting} className="text-rose-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => handleDeleteUnit(u._id, u.name)} className="text-rose-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <select className={inputClass} value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})} disabled={isSubmitting}>
+                    <select className={inputClass} value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}>
                       {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   )}
 
                   {formData.unit === 'หน่วยอื่น ๆ' && !isManagingUnits && (
-                    <input type="text" required placeholder="ระบุหน่วยงานใหม่..." className={`${inputClass} mt-2 bg-blue-50`} value={formData.otherUnit} onChange={e => setFormData({...formData, otherUnit: e.target.value})} disabled={isSubmitting} />
+                    <input type="text" required placeholder="ระบุหน่วยงานใหม่..." className={`${inputClass} mt-2 bg-blue-50`} value={formData.otherUnit} onChange={e => setFormData({...formData, otherUnit: e.target.value})} />
                   )}
                 </div>
 
@@ -330,35 +291,33 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                         setFormData({...formData, location: e.target.value});
                         setFoundDispatch(null);
                       }} 
-                      disabled={isSubmitting}
                     />
                     <button 
                       type="button" 
                       onClick={handleSearchLocation} 
-                      disabled={isSubmitting}
-                      className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0 disabled:opacity-50" 
+                      disabled={isSearching}
+                      className="px-3 w-12 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0" 
                       title="ค้นหาข้อมูลจากแผนออกหน่วย"
                     >
-                      <Search className="w-5 h-5" />
+                      {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="md:col-span-4">
+                <div className="md:col-span-3">
                   <label className={labelClass}>เขต</label>
                   <div className="relative">
-                    <input type="text" className={inputClass} placeholder="พิมพ์เพื่อค้นหาเขต..."value={formData.district} 
+                    <input type="text" className={inputClass} placeholder="พิมพ์เพื่อค้นหาเขต..." value={formData.district} 
                       onChange={e => {
                         setFormData({...formData, district: e.target.value, subdistrict: ''});
                         setShowDistrictDropdown(true);
                       }}
                       onFocus={() => setShowDistrictDropdown(true)}
                       onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
-                      disabled={isSubmitting}
                     />
                     
                     {showDistrictDropdown && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar">
                         {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).length > 0 ? (
                           BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).map(d => (
                             <div 
@@ -381,98 +340,112 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </div>
                 </div>
 
-                <div className="md:col-span-4">
+                <div className="md:col-span-3">
                   <label className={labelClass}>แขวง</label>
-                  <select className={inputClass} value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} disabled={isSubmitting}>
+                  <select className={inputClass} value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})}>
                     <option value="">-- เลือกแขวง --</option>
                     {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
 
-                <div className="md:col-span-4">
+                <div className="md:col-span-6 relative">
                   <label className={labelClass}>พิกัด (Lat, Long)</label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="13.xxx, 100.xxx" className={`${inputClass} pl-10`} value={coordInput} 
-                      disabled={isSubmitting}
+                    <input type="text" placeholder="13.xxx, 100.xxx" className={`${inputClass} pl-10 pr-10`} value={coordInput} 
                       onChange={e => {
                       const val = e.target.value;
                       setCoordInput(val);
-  
                       if (!val.trim()) {
                         setFormData({...formData, lat: '', long: ''});
                         return;
                       }
-
                       const parts = val.split(',');
                         if(parts.length >= 2) {
                           setFormData({...formData, lat: parts[0].trim(), long: parts[1].trim()});
                         }
                       }}
                     />
+                    {coordInput && (
+                      <button 
+                        type="button" 
+                        onClick={() => { setCoordInput(''); setFormData({...formData, lat: '', long: ''}); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* ✅ การแสดงการ์ดรายการแผนออกหน่วย */}
-                {dispatchesOnSelectedDate.length > 0 && !initialData && (
-                  <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 mb-3">
-                      <CalendarDays className="w-4 h-4 text-indigo-500" />
-                      แผนออกหน่วยประจำวันที่ {new Date(formData.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })} 
-                      <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">{dispatchesOnSelectedDate.length} รายการ</span>
-                    </label>
-                    
-                    <div className="flex overflow-x-auto gap-3 pb-3 custom-scrollbar">
-                      {dispatchesOnSelectedDate.map(dispatch => (
-                        <div key={dispatch._id} className="min-w-[260px] max-w-[280px] bg-white border border-slate-200 hover:border-indigo-300 rounded-xl p-3 shadow-sm hover:shadow-md transition-all shrink-0 flex flex-col justify-between">
-                          <div>
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md truncate max-w-[150px]">
-                                {dispatch.title || 'แผนออกหน่วย'}
-                              </span>
-                              <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                                <Activity className="w-3 h-3"/> {dispatch.time}
-                              </span>
-                            </div>
-                            <div className="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">
-                              {dispatch.location}
-                            </div>
-                            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-slate-400" /> เขต{dispatch.district || '-'}
-                            </div>
-                          </div>
-                          
-                          <button 
-                            type="button"
-                            disabled={isSubmitting}
-                            onClick={() => setFoundDispatch(dispatch)} // ✅ เปลี่ยนเป็นโชว์กล่องรายละเอียดแทน
-                            className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors border border-indigo-100 disabled:opacity-50"
-                          >
-                            ดูข้อมูล
-                          </button>
-                        </div>
-                      ))}
+                <div className="md:col-span-12">
+                  <label className={labelClass}>ลิงก์แผนที่ (Google Maps)</label>
+                  <input 
+                    type="url" 
+                    placeholder="https://maps.app.goo.gl/..." 
+                    className={inputClass} 
+                    value={formData.mapLink || ''} 
+                    onChange={e => setFormData({...formData, mapLink: e.target.value})} 
+                  />
+                </div>
+
+                {/* อัปโหลดรูปภาพ */}
+                <div className="md:col-span-12">
+                  <label className={labelClass}>รูปภาพแนบ (ตัวเลือก)</label>
+                  {imagePreview ? (
+                    <div className="relative inline-block mt-2">
+                      <img src={imagePreview} alt="Preview" className="h-32 w-auto object-cover rounded-xl border border-slate-200 shadow-sm" />
+                      <button 
+                        type="button" 
+                        onClick={handleRemoveImage} 
+                        className="absolute -top-2 -right-2 bg-white text-rose-500 rounded-full p-1.5 shadow-md hover:bg-rose-50 border border-slate-100 transition-colors"
+                        title="ลบรูปภาพ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full sm:w-64 h-32 mt-2 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <ImagePlus className="w-8 h-8 text-slate-400 mb-2" />
+                        <p className="text-xs text-slate-500 font-bold">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                      </div>
+                      <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                    </label>
+                  )}
+                </div>
 
               </div>
             </div>
 
-            {/* ✅ กล่องแสดงรายละเอียดที่เลือกดู */}
+            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ */}
             {foundDispatch && (
-              <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
+              <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300 relative z-0">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-sm font-bold text-indigo-800 flex items-center gap-2">
                     <Activity className="w-4 h-4" /> ข้อมูลสถานที่จากแผนออกหน่วย (Dispatch Plan)
                   </h4>
                   <button 
                     type="button"
-                    disabled={isSubmitting}
-                    onClick={() => handleUseDispatchData(foundDispatch)} // ✅ เมื่อกดยืนยัน ถึงจะดึงลงฟอร์ม
-                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        date: foundDispatch.date ? foundDispatch.date.split('T')[0] : prev.date,
+                        district: foundDispatch.district || prev.district,
+                        mapLink: foundDispatch.mapLink || prev.mapLink 
+                      }));
+                      
+                      if(foundDispatch.lat || foundDispatch.lng) {
+                        const newLat = foundDispatch.lat || formData.lat;
+                        const newLng = foundDispatch.lng || formData.long;
+                        setCoordInput(`${newLat}, ${newLng}`);
+                        setFormData(prev => ({...prev, lat: newLat, long: newLng}));
+                      }
+                      if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อย');
+                    }}
+                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shrink-0 ml-2"
                   >
-                    ใช้ข้อมูลนี้
+                    ใช้ข้อมูลชุดนี้
                   </button>
                 </div>
                 
@@ -497,7 +470,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
             )}
 
             {/* SECTION 2: Quantitative Data */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative z-0">
               <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span> ข้อมูลจำนวนสัตว์
               </h4>
@@ -511,9 +484,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="p-4 grid grid-cols-3 gap-3">
                     {['dog', 'cat', 'other'].map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
-                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].vaccine} 
-                          disabled={isSubmitting}
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block text-center">{t === 'dog' ? '🐶 สุนัข' : t === 'cat' ? '🐱 แมว' : 'อื่นๆ'}</label>
+                        <input type="number" min="0" inputMode="numeric" pattern="[0-9]*" placeholder="0" className={numberInputClass} value={breakdown[t].vaccine} 
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], vaccine: e.target.value}})} />
                       </div>
                     ))}
@@ -528,13 +500,11 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="p-4 grid grid-cols-2 gap-4">
                     {['dog', 'cat'].map(t => (
                       <div key={t} className="space-y-2">
-                        <label className="text-[10px] text-slate-500 uppercase font-bold block">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
+                        <label className="text-[10px] text-slate-500 uppercase font-bold block text-center">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
                         <div className="flex gap-2">
-                          <input type="number" placeholder="ผู้" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].maleSterilize} 
-                            disabled={isSubmitting}
+                          <input type="number" min="0" inputMode="numeric" pattern="[0-9]*" placeholder="ผู้" className={numberInputClass} value={breakdown[t].maleSterilize} 
                             onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], maleSterilize: e.target.value}})} />
-                          <input type="number" placeholder="เมีย" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].femaleSterilize} 
-                            disabled={isSubmitting}
+                          <input type="number" min="0" inputMode="numeric" pattern="[0-9]*" placeholder="เมีย" className={numberInputClass} value={breakdown[t].femaleSterilize} 
                             onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], femaleSterilize: e.target.value}})} />
                         </div>
                       </div>
@@ -550,9 +520,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="p-4 grid grid-cols-2 gap-4">
                     {['dog', 'cat'].map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
-                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].microchip} 
-                          disabled={isSubmitting}
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block text-center">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
+                        <input type="number" min="0" inputMode="numeric" pattern="[0-9]*" placeholder="0" className={numberInputClass} value={breakdown[t].microchip} 
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], microchip: e.target.value}})} />
                       </div>
                     ))}
@@ -567,9 +536,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="p-4 grid grid-cols-2 gap-4">
                     {['dog', 'cat'].map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
-                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].register} 
-                          disabled={isSubmitting}
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block text-center">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
+                        <input type="number" min="0" inputMode="numeric" pattern="[0-9]*" placeholder="0" className={numberInputClass} value={breakdown[t].register} 
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], register: e.target.value}})} />
                       </div>
                     ))}
@@ -584,9 +552,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="p-4 grid grid-cols-3 gap-3">
                     {['dog', 'cat', 'other'].map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
-                        <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].medical} 
-                          disabled={isSubmitting}
+                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block text-center">{t === 'dog' ? '🐶 สุนัข' : t === 'cat' ? '🐱 แมว' : 'อื่นๆ'}</label>
+                        <input type="number" min="0" inputMode="numeric" pattern="[0-9]*" placeholder="0" className={numberInputClass} value={breakdown[t].medical} 
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], medical: e.target.value}})} />
                       </div>
                     ))}
@@ -595,7 +562,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               </div>
 
               {/* สรุปยอดรวม (Summary Bar) */}
-              <div className="mt-6 bg-slate-900 rounded-2xl p-5 text-white flex flex-wrap justify-around gap-4">
+              <div className="mt-6 bg-slate-900 rounded-2xl p-5 text-white flex flex-wrap justify-around gap-4 shadow-lg">
                 <div className="text-center"><div className="text-2xl font-bold">{totals.vaccine}</div><div className="text-[10px] text-slate-400 uppercase">วัคซีน</div></div>
                 <div className="text-center"><div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div><div className="text-[10px] text-slate-400 uppercase">ทำหมัน</div></div>
                 <div className="text-center"><div className="text-2xl font-bold text-emerald-400">{totals.register}</div><div className="text-[10px] text-slate-400 uppercase">จดทะเบียน</div></div>
@@ -606,16 +573,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           </div>
 
           {/* Footer Buttons */}
-          <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50">
-              ยกเลิก
-            </button>
-            <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all disabled:bg-blue-400">
-              {isSubmitting ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> กำลังบันทึก...</>
-              ) : (
-                <><Save className="w-5 h-5" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}</>
-              )}
+          <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-20">
+            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">ยกเลิก</button>
+            <button type="submit" className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all">
+              <Save className="w-5 h-5" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}
             </button>
           </div>
         </form>
