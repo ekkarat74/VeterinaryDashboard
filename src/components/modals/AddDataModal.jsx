@@ -40,7 +40,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [editingUnitName, setEditingUnitName] = useState("");
 
   const [foundDispatch, setFoundDispatch] = useState(null);
-  const [allDispatches, setAllDispatches] = useState([]); // ✅ เพิ่ม State เก็บแผนทั้งหมด
+  const [allDispatches, setAllDispatches] = useState([]);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,7 +53,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     return [...new Set([...baseUnits, ...dbUnits]), 'หน่วยอื่น ๆ'];
   }, [customUnitsObj]);
 
-  // ✅ ดึงข้อมูล Custom Units และ Dispatch ทั้งหมดเมื่อเปิด Modal
   const fetchData = async () => {
     try {
       const [unitsRes, dispatchRes] = await Promise.all([
@@ -102,16 +101,15 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     }
   }, [isOpen, initialData, allUnitOptions]);
 
-  // ✅ กรองแผนออกหน่วยเฉพาะ "วันที่ผู้ใช้เลือก"
   const dispatchesOnSelectedDate = useMemo(() => {
     if (!formData.date || !allDispatches.length) return [];
     return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
   }, [allDispatches, formData.date]);
 
-  // ✅ ฟังก์ชันเมื่อกดปุ่ม "เลือกใช้ข้อมูลนี้" จากการ์ด
-  const handleSelectDispatchCard = (dispatch) => {
+  // ✅ เปลี่ยนชื่อฟังก์ชันและหน้าที่ เป็นแค่การดึงข้อมูลลงฟอร์ม
+  const handleUseDispatchData = (dispatch) => {
     const newLat = dispatch.lat || formData.lat;
-    const newLng = dispatch.lng || formData.long; // API ของ Dispatch มักใช้ lng
+    const newLng = dispatch.lng || formData.long;
 
     setFormData(prev => ({
       ...prev,
@@ -126,11 +124,9 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       setCoordInput(`${newLat || ''}, ${newLng || ''}`);
     }
 
-    setFoundDispatch(dispatch); // ให้โชว์กล่องรายละเอียดด้านล่างด้วย
     if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อยแล้ว');
   };
 
-  // ✅ ปรับปุ่มค้นหาให้หาจากข้อมูล Local (เร็วกว่าเดิม)
   const handleSearchLocation = () => {
     if (!formData.location.trim()) return;
     const match = allDispatches.find(d => 
@@ -154,7 +150,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       });
       if (res.ok) {
         if (onToast) onToast('success', 'ลบหน่วยงานสำเร็จ');
-        fetchData(); // โหลดใหม่
+        fetchData();
       }
     } catch (err) { if (onToast) onToast('error', 'ลบไม่สำเร็จ'); }
   };
@@ -417,7 +413,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </div>
                 </div>
 
-                {/* ✅ ส่วนนี้คือการแสดงการ์ดรายการแผนออกหน่วยประจำวันที่เลือก */}
+                {/* ✅ การแสดงการ์ดรายการแผนออกหน่วย */}
                 {dispatchesOnSelectedDate.length > 0 && !initialData && (
                   <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
                     <label className="flex items-center gap-2 text-xs font-bold text-slate-700 mb-3">
@@ -449,22 +445,21 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                           <button 
                             type="button"
                             disabled={isSubmitting}
-                            onClick={() => handleSelectDispatchCard(dispatch)}
+                            onClick={() => setFoundDispatch(dispatch)} // ✅ เปลี่ยนเป็นโชว์กล่องรายละเอียดแทน
                             className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors border border-indigo-100 disabled:opacity-50"
                           >
-                            เลือกใช้ข้อมูลนี้
+                            ดูข้อมูล
                           </button>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                {/* ✅ สิ้นสุดส่วนแสดงการ์ด */}
 
               </div>
             </div>
 
-            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ (Manual Search Box) */}
+            {/* ✅ กล่องแสดงรายละเอียดที่เลือกดู */}
             {foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
                 <div className="flex justify-between items-start mb-3">
@@ -474,10 +469,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <button 
                     type="button"
                     disabled={isSubmitting}
-                    onClick={() => handleSelectDispatchCard(foundDispatch)}
+                    onClick={() => handleUseDispatchData(foundDispatch)} // ✅ เมื่อกดยืนยัน ถึงจะดึงลงฟอร์ม
                     className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
                   >
-                    ดึงข้อมูลลงฟอร์ม
+                    ใช้ข้อมูลนี้
                   </button>
                 </div>
                 
