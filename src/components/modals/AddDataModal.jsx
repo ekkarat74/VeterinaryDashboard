@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Edit, Plus, X, FileText, Trash2, 
   Syringe, Scissors, Database, Stethoscope, 
-  Activity, Save, MapPin, Edit2, Check, Settings2, Search, Loader2
+  Activity, Save, MapPin, Edit2, Check, Settings2, Search, Loader2, CalendarDays
 } from 'lucide-react';
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
@@ -40,8 +40,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [editingUnitName, setEditingUnitName] = useState("");
 
   const [foundDispatch, setFoundDispatch] = useState(null);
+  const [allDispatches, setAllDispatches] = useState([]); // ✅ เพิ่ม State เก็บแผนทั้งหมด
   
-  // State ป้องกันการกดบันทึกรัวๆ
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
@@ -53,50 +53,39 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     return [...new Set([...baseUnits, ...dbUnits]), 'หน่วยอื่น ๆ'];
   }, [customUnitsObj]);
 
-  const fetchCustomUnits = async () => {
+  // ✅ ดึงข้อมูล Custom Units และ Dispatch ทั้งหมดเมื่อเปิด Modal
+  const fetchData = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/custom-units`);
-      if (res.ok) {
-        const data = await res.json();
+      const [unitsRes, dispatchRes] = await Promise.all([
+        fetch(`${BASE_URL}/api/custom-units`),
+        fetch(`${BASE_URL}/api/dispatches`)
+      ]);
+
+      if (unitsRes.ok) {
+        const data = await unitsRes.json();
         setCustomUnitsObj(Array.isArray(data) ? data : []); 
       }
-    } catch (error) {
-      console.error("Fetch units error", error);
-    }
-  };
 
-  const handleSearchLocation = async () => {
-    if (!formData.location.trim()) return;
-    try {
-      const res = await fetch(`${BASE_URL}/api/dispatches`);
-      if (res.ok) {
-        const dispatches = await res.json();
-        const match = dispatches.find(d => 
-          d.location && d.location.toLowerCase().includes(formData.location.toLowerCase())
-        );
-        if (match) {
-          setFoundDispatch(match);
-          if(onToast) onToast('success', 'พบข้อมูลสถานที่ในแผนออกหน่วย');
-        } else {
-          setFoundDispatch(null);
-          if(onToast) onToast('info', 'ไม่พบข้อมูลสถานที่นี้ในแผนออกหน่วย');
-        }
+      if (dispatchRes.ok) {
+        const dData = await dispatchRes.json();
+        setAllDispatches(dData);
       }
-    } catch (err) {
-      console.error("Search location error", err);
+    } catch (error) {
+      console.error("Fetch data error", error);
     }
   };
 
   useEffect(() => {
     if (isOpen) {
-      fetchCustomUnits();
-      setIsSubmitting(false); // Reset สถานะปุ่มบันทึกเมื่อเปิด Modal ใหม่
+      fetchData();
+      setIsSubmitting(false);
     } else {
       setFormData(defaultFormData);
       setBreakdown(defaultBreakdown);
       setCoordInput("");
       setImagePreview(null);
       setFoundDispatch(null);
+      setAllDispatches([]);
     }
   }, [isOpen]);
 
@@ -113,6 +102,49 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     }
   }, [isOpen, initialData, allUnitOptions]);
 
+  // ✅ กรองแผนออกหน่วยเฉพาะ "วันที่ผู้ใช้เลือก"
+  const dispatchesOnSelectedDate = useMemo(() => {
+    if (!formData.date || !allDispatches.length) return [];
+    return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
+  }, [allDispatches, formData.date]);
+
+  // ✅ ฟังก์ชันเมื่อกดปุ่ม "เลือกใช้ข้อมูลนี้" จากการ์ด
+  const handleSelectDispatchCard = (dispatch) => {
+    const newLat = dispatch.lat || formData.lat;
+    const newLng = dispatch.lng || formData.long; // API ของ Dispatch มักใช้ lng
+
+    setFormData(prev => ({
+      ...prev,
+      location: dispatch.location || prev.location,
+      district: dispatch.district || prev.district,
+      mapLink: dispatch.mapLink || prev.mapLink,
+      lat: newLat,
+      long: newLng
+    }));
+
+    if (newLat || newLng) {
+      setCoordInput(`${newLat || ''}, ${newLng || ''}`);
+    }
+
+    setFoundDispatch(dispatch); // ให้โชว์กล่องรายละเอียดด้านล่างด้วย
+    if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อยแล้ว');
+  };
+
+  // ✅ ปรับปุ่มค้นหาให้หาจากข้อมูล Local (เร็วกว่าเดิม)
+  const handleSearchLocation = () => {
+    if (!formData.location.trim()) return;
+    const match = allDispatches.find(d => 
+      d.location && d.location.toLowerCase().includes(formData.location.toLowerCase())
+    );
+    if (match) {
+      setFoundDispatch(match);
+      if(onToast) onToast('success', 'พบข้อมูลสถานที่ในแผนออกหน่วย');
+    } else {
+      setFoundDispatch(null);
+      if(onToast) onToast('info', 'ไม่พบข้อมูลสถานที่นี้ในแผนออกหน่วย');
+    }
+  };
+
   const handleDeleteUnit = async (id, name) => {
     if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
     try {
@@ -122,7 +154,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       });
       if (res.ok) {
         if (onToast) onToast('success', 'ลบหน่วยงานสำเร็จ');
-        fetchCustomUnits();
+        fetchData(); // โหลดใหม่
       }
     } catch (err) { if (onToast) onToast('error', 'ลบไม่สำเร็จ'); }
   };
@@ -138,7 +170,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       if (res.ok) {
         if (onToast) onToast('success', 'แก้ไขสำเร็จ');
         setEditingUnitId(null);
-        fetchCustomUnits();
+        fetchData();
       }
     } catch (err) { if (onToast) onToast('error', 'แก้ไขไม่สำเร็จ'); }
   };
@@ -157,26 +189,22 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return; // ป้องกันการกดรัวๆ
+    if (isSubmitting) return;
 
-    // 1. Data Validation: ตรวจสอบว่ายอดรวมเป็น 0 หรือไม่
     const totalStats = totals.vaccine + totals.sterilize + totals.register + totals.microchip + totals.medical;
     if (totalStats === 0) {
       const confirmZero = window.confirm('⚠️ ยอดรวมการให้บริการทั้งหมดเป็น 0\n\nคุณแน่ใจหรือไม่ว่าต้องการบันทึกข้อมูลนี้?');
       if (!confirmZero) return;
     }
 
-    // 2. Duplicate Prevention: เช็คข้อมูลซ้ำซ้อนในวันและสถานที่เดียวกัน (เฉพาะการสร้างใหม่)
     if (!initialData) {
       try {
         setIsSubmitting(true);
-        // ดึงข้อมูล report ของวันที่ระบุมาเช็ค
         const res = await fetch(`${BASE_URL}/api/reports?startDate=${formData.date}&endDate=${formData.date}`);
         if (res.ok) {
           const data = await res.json();
           const reportsOnDate = Array.isArray(data) ? data : (data.data || []);
           
-          // ค้นหาว่ามีชื่อสถานที่เดียวกันในวันที่เดียวกันไหม (ไม่คำนึงถึงช่องว่างตัวพิมพ์เล็กใหญ่)
           const isDuplicate = reportsOnDate.some(report => 
             report.location.trim().toLowerCase() === formData.location.trim().toLowerCase()
           );
@@ -185,18 +213,16 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
             const confirmDuplicate = window.confirm(`🚨 พบข้อมูลซ้ำซ้อนในระบบ!\n\nมีการบันทึกผลปฏิบัติงานของสถานที่ "${formData.location}" ในวันที่ ${new Date(formData.date).toLocaleDateString('th-TH')} ไปแล้วก่อนหน้านี้\n\nคุณต้องการบันทึกเป็นข้อมูลใหม่แยกอีกบรรทึกหนึ่งหรือไม่?`);
             if (!confirmDuplicate) {
               setIsSubmitting(false);
-              return; // ยกเลิกการบันทึก
+              return;
             }
           }
         }
       } catch (error) {
         console.error("Duplicate check failed", error);
-        // ถ้า API พังก็ยอมให้บันทึกผ่านไปก่อน
       }
     }
 
-    setIsSubmitting(true); // ล็อคปุ่มขณะกำลังเซฟ
-
+    setIsSubmitting(true);
     const finalUnit = formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit;
 
     const payload = {
@@ -209,7 +235,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       imageUrl: imagePreview
     };
 
-    // ส่งข้อมูลไปเซฟที่ Component แม่
     if (initialData) {
       await onUpdate(initialData._id, payload);
     } else {
@@ -307,7 +332,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       value={formData.location} 
                       onChange={e => {
                         setFormData({...formData, location: e.target.value});
-                        setFoundDispatch(null); // ซ่อนผลการค้นหาเมื่อพิมพ์ใหม่
+                        setFoundDispatch(null);
                       }} 
                       disabled={isSubmitting}
                     />
@@ -391,10 +416,55 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     />
                   </div>
                 </div>
+
+                {/* ✅ ส่วนนี้คือการแสดงการ์ดรายการแผนออกหน่วยประจำวันที่เลือก */}
+                {dispatchesOnSelectedDate.length > 0 && !initialData && (
+                  <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 mb-3">
+                      <CalendarDays className="w-4 h-4 text-indigo-500" />
+                      แผนออกหน่วยประจำวันที่ {new Date(formData.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })} 
+                      <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">{dispatchesOnSelectedDate.length} รายการ</span>
+                    </label>
+                    
+                    <div className="flex overflow-x-auto gap-3 pb-3 custom-scrollbar">
+                      {dispatchesOnSelectedDate.map(dispatch => (
+                        <div key={dispatch._id} className="min-w-[260px] max-w-[280px] bg-white border border-slate-200 hover:border-indigo-300 rounded-xl p-3 shadow-sm hover:shadow-md transition-all shrink-0 flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md truncate max-w-[150px]">
+                                {dispatch.title || 'แผนออกหน่วย'}
+                              </span>
+                              <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <Activity className="w-3 h-3"/> {dispatch.time}
+                              </span>
+                            </div>
+                            <div className="text-sm font-bold text-slate-800 line-clamp-2 leading-tight">
+                              {dispatch.location}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-slate-400" /> เขต{dispatch.district || '-'}
+                            </div>
+                          </div>
+                          
+                          <button 
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={() => handleSelectDispatchCard(dispatch)}
+                            className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors border border-indigo-100 disabled:opacity-50"
+                          >
+                            เลือกใช้ข้อมูลนี้
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* ✅ สิ้นสุดส่วนแสดงการ์ด */}
+
               </div>
             </div>
 
-            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ (เพิ่มปุ่มใช้งานข้อมูลนี้) */}
+            {/* ส่วนแสดงข้อมูลที่ค้นหาเจอ (Manual Search Box) */}
             {foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
                 <div className="flex justify-between items-start mb-3">
@@ -404,27 +474,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <button 
                     type="button"
                     disabled={isSubmitting}
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        date: foundDispatch.date ? foundDispatch.date.split('T')[0] : prev.date,
-                        district: foundDispatch.district || prev.district,
-                        mapLink: foundDispatch.mapLink || prev.mapLink // ถ้ามีการใช้ mapLink ให้ดึงมาด้วย
-                      }));
-                      
-                      // ถ้ามีพิกัดใน Dispatch ให้ดึงมาใส่ด้วย
-                      if(foundDispatch.lat || foundDispatch.lng) {
-                        const newLat = foundDispatch.lat || formData.lat;
-                        const newLng = foundDispatch.lng || formData.long;
-                        setCoordInput(`${newLat}, ${newLng}`);
-                        setFormData(prev => ({...prev, lat: newLat, long: newLng}));
-                      }
-
-                      if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อย');
-                    }}
+                    onClick={() => handleSelectDispatchCard(foundDispatch)}
                     className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
                   >
-                    ใช้ข้อมูลชุดนี้
+                    ดึงข้อมูลลงฟอร์ม
                   </button>
                 </div>
                 
