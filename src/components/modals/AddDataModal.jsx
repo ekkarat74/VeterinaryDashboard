@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Edit, Plus, X, FileText, Trash2, 
   Syringe, Scissors, Database, Stethoscope, 
-  Activity, Save, MapPin, Edit2, Check, Settings2, Search
+  Activity, Save, MapPin, Edit2, Check, Settings2, Search, Loader2
 } from 'lucide-react';
 
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
@@ -16,7 +16,7 @@ const defaultFormData = {
   otherUnit: '',
   lat: '',
   long: '',
-  mapLink: '' // เผื่อกรณีมีการดึงข้อมูลลิงก์แผนที่ด้วย
+  mapLink: ''
 };
 
 const defaultBreakdown = {
@@ -40,6 +40,9 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   const [editingUnitName, setEditingUnitName] = useState("");
 
   const [foundDispatch, setFoundDispatch] = useState(null);
+  
+  // State ป้องกันการกดบันทึกรัวๆ
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
   const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
@@ -87,6 +90,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   useEffect(() => {
     if (isOpen) {
       fetchCustomUnits();
+      setIsSubmitting(false); // Reset สถานะปุ่มบันทึกเมื่อเปิด Modal ใหม่
     } else {
       setFormData(defaultFormData);
       setBreakdown(defaultBreakdown);
@@ -153,6 +157,46 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return; // ป้องกันการกดรัวๆ
+
+    // 1. Data Validation: ตรวจสอบว่ายอดรวมเป็น 0 หรือไม่
+    const totalStats = totals.vaccine + totals.sterilize + totals.register + totals.microchip + totals.medical;
+    if (totalStats === 0) {
+      const confirmZero = window.confirm('⚠️ ยอดรวมการให้บริการทั้งหมดเป็น 0\n\nคุณแน่ใจหรือไม่ว่าต้องการบันทึกข้อมูลนี้?');
+      if (!confirmZero) return;
+    }
+
+    // 2. Duplicate Prevention: เช็คข้อมูลซ้ำซ้อนในวันและสถานที่เดียวกัน (เฉพาะการสร้างใหม่)
+    if (!initialData) {
+      try {
+        setIsSubmitting(true);
+        // ดึงข้อมูล report ของวันที่ระบุมาเช็ค
+        const res = await fetch(`${BASE_URL}/api/reports?startDate=${formData.date}&endDate=${formData.date}`);
+        if (res.ok) {
+          const data = await res.json();
+          const reportsOnDate = Array.isArray(data) ? data : (data.data || []);
+          
+          // ค้นหาว่ามีชื่อสถานที่เดียวกันในวันที่เดียวกันไหม (ไม่คำนึงถึงช่องว่างตัวพิมพ์เล็กใหญ่)
+          const isDuplicate = reportsOnDate.some(report => 
+            report.location.trim().toLowerCase() === formData.location.trim().toLowerCase()
+          );
+
+          if (isDuplicate) {
+            const confirmDuplicate = window.confirm(`🚨 พบข้อมูลซ้ำซ้อนในระบบ!\n\nมีการบันทึกผลปฏิบัติงานของสถานที่ "${formData.location}" ในวันที่ ${new Date(formData.date).toLocaleDateString('th-TH')} ไปแล้วก่อนหน้านี้\n\nคุณต้องการบันทึกเป็นข้อมูลใหม่แยกอีกบรรทึกหนึ่งหรือไม่?`);
+            if (!confirmDuplicate) {
+              setIsSubmitting(false);
+              return; // ยกเลิกการบันทึก
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Duplicate check failed", error);
+        // ถ้า API พังก็ยอมให้บันทึกผ่านไปก่อน
+      }
+    }
+
+    setIsSubmitting(true); // ล็อคปุ่มขณะกำลังเซฟ
+
     const finalUnit = formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit;
 
     const payload = {
@@ -165,8 +209,14 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       imageUrl: imagePreview
     };
 
-    if (initialData) onUpdate(initialData._id, payload);
-    else onSave(payload);
+    // ส่งข้อมูลไปเซฟที่ Component แม่
+    if (initialData) {
+      await onUpdate(initialData._id, payload);
+    } else {
+      await onSave(payload);
+    }
+    
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -189,7 +239,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               {initialData ? 'แก้ไขข้อมูลปฏิบัติงาน' : 'บันทึกผลปฏิบัติงานใหม่'}
             </h3>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+          <button onClick={onClose} disabled={isSubmitting} className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50">
             <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
@@ -204,13 +254,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                 <div className="md:col-span-3">
                   <label className={labelClass}>วันที่</label>
-                  <input type="date" required className={inputClass} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                  <input type="date" required className={inputClass} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} disabled={isSubmitting} />
                 </div>
 
                 <div className="md:col-span-4">
                   <div className="flex justify-between items-center mb-1.5">
                     <label className="text-xs font-bold text-slate-600">หน่วยกิจกรรม</label>
-                    <button type="button" onClick={() => setIsManagingUnits(!isManagingUnits)} className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                    <button type="button" onClick={() => setIsManagingUnits(!isManagingUnits)} disabled={isSubmitting} className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1">
                       <Settings2 className="w-3 h-3" /> {isManagingUnits ? 'เสร็จสิ้น' : 'จัดการหน่วย'}
                     </button>
                   </div>
@@ -220,29 +270,29 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       {customUnitsObj.map(u => (
                         <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1 rounded-lg border border-slate-100">
                           {editingUnitId === u._id ? (
-                            <input autoFocus className="flex-1 text-xs outline-none" value={editingUnitName} onChange={e => setEditingUnitName(e.target.value)} />
+                            <input autoFocus className="flex-1 text-xs outline-none" value={editingUnitName} onChange={e => setEditingUnitName(e.target.value)} disabled={isSubmitting} />
                           ) : (
                             <span className="text-xs text-slate-700 truncate">{u.name}</span>
                           )}
                           <div className="flex gap-1">
                             {editingUnitId === u._id ? (
-                              <button type="button" onClick={() => handleUpdateUnitName(u._id)} className="text-emerald-600 p-1"><Check className="w-3.5 h-3.5" /></button>
+                              <button type="button" onClick={() => handleUpdateUnitName(u._id)} disabled={isSubmitting} className="text-emerald-600 p-1"><Check className="w-3.5 h-3.5" /></button>
                             ) : (
-                              <button type="button" onClick={() => {setEditingUnitId(u._id); setEditingUnitName(u.name);}} className="text-amber-500 p-1"><Edit2 className="w-3.5 h-3.5" /></button>
+                              <button type="button" onClick={() => {setEditingUnitId(u._id); setEditingUnitName(u.name);}} disabled={isSubmitting} className="text-amber-500 p-1"><Edit2 className="w-3.5 h-3.5" /></button>
                             )}
-                            <button type="button" onClick={() => handleDeleteUnit(u._id, u.name)} className="text-rose-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => handleDeleteUnit(u._id, u.name)} disabled={isSubmitting} className="text-rose-500 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <select className={inputClass} value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})}>
+                    <select className={inputClass} value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value, otherUnit: ''})} disabled={isSubmitting}>
                       {allUnitOptions.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   )}
 
                   {formData.unit === 'หน่วยอื่น ๆ' && !isManagingUnits && (
-                    <input type="text" required placeholder="ระบุหน่วยงานใหม่..." className={`${inputClass} mt-2 bg-blue-50`} value={formData.otherUnit} onChange={e => setFormData({...formData, otherUnit: e.target.value})} />
+                    <input type="text" required placeholder="ระบุหน่วยงานใหม่..." className={`${inputClass} mt-2 bg-blue-50`} value={formData.otherUnit} onChange={e => setFormData({...formData, otherUnit: e.target.value})} disabled={isSubmitting} />
                   )}
                 </div>
 
@@ -259,11 +309,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                         setFormData({...formData, location: e.target.value});
                         setFoundDispatch(null); // ซ่อนผลการค้นหาเมื่อพิมพ์ใหม่
                       }} 
+                      disabled={isSubmitting}
                     />
                     <button 
                       type="button" 
                       onClick={handleSearchLocation} 
-                      className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0" 
+                      disabled={isSubmitting}
+                      className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0 disabled:opacity-50" 
                       title="ค้นหาข้อมูลจากแผนออกหน่วย"
                     >
                       <Search className="w-5 h-5" />
@@ -281,6 +333,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       }}
                       onFocus={() => setShowDistrictDropdown(true)}
                       onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
+                      disabled={isSubmitting}
                     />
                     
                     {showDistrictDropdown && (
@@ -309,7 +362,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
                 <div className="md:col-span-4">
                   <label className={labelClass}>แขวง</label>
-                  <select className={inputClass} value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})}>
+                  <select className={inputClass} value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} disabled={isSubmitting}>
                     <option value="">-- เลือกแขวง --</option>
                     {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -320,6 +373,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input type="text" placeholder="13.xxx, 100.xxx" className={`${inputClass} pl-10`} value={coordInput} 
+                      disabled={isSubmitting}
                       onChange={e => {
                       const val = e.target.value;
                       setCoordInput(val);
@@ -349,6 +403,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </h4>
                   <button 
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
@@ -367,7 +422,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
                       if (onToast) onToast('success', 'ดึงข้อมูลลงฟอร์มเรียบร้อย');
                     }}
-                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
                   >
                     ใช้ข้อมูลชุดนี้
                   </button>
@@ -410,6 +465,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].vaccine} 
+                          disabled={isSubmitting}
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], vaccine: e.target.value}})} />
                       </div>
                     ))}
@@ -427,8 +483,10 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                         <label className="text-[10px] text-slate-500 uppercase font-bold block">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
                         <div className="flex gap-2">
                           <input type="number" placeholder="ผู้" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].maleSterilize} 
+                            disabled={isSubmitting}
                             onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], maleSterilize: e.target.value}})} />
                           <input type="number" placeholder="เมีย" className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs" value={breakdown[t].femaleSterilize} 
+                            disabled={isSubmitting}
                             onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], femaleSterilize: e.target.value}})} />
                         </div>
                       </div>
@@ -446,6 +504,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].microchip} 
+                          disabled={isSubmitting}
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], microchip: e.target.value}})} />
                       </div>
                     ))}
@@ -462,6 +521,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].register} 
+                          disabled={isSubmitting}
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], register: e.target.value}})} />
                       </div>
                     ))}
@@ -478,6 +538,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].medical} 
+                          disabled={isSubmitting}
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], medical: e.target.value}})} />
                       </div>
                     ))}
@@ -498,9 +559,15 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
           {/* Footer Buttons */}
           <div className="p-5 border-t border-slate-100 bg-white flex justify-end gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">ยกเลิก</button>
-            <button type="submit" className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all">
-              <Save className="w-5 h-5" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50">
+              ยกเลิก
+            </button>
+            <button type="submit" disabled={isSubmitting} className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all disabled:bg-blue-400">
+              {isSubmitting ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> กำลังบันทึก...</>
+              ) : (
+                <><Save className="w-5 h-5" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}</>
+              )}
             </button>
           </div>
         </form>
