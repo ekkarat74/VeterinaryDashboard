@@ -469,30 +469,77 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <button 
                     type="button"
                     disabled={isSubmitting}
-                    onClick={() => handleUseDispatchData(foundDispatch)} // ✅ เมื่อกดยืนยัน ถึงจะดึงลงฟอร์ม
-                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                    onClick={() => handleUseDispatchData(foundDispatch)}
+                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 shrink-0 ml-2"
                   >
                     ใช้ข้อมูลนี้
                   </button>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
-                  <div><span className="font-bold text-slate-500">สถานที่:</span> {foundDispatch.location}</div>
-                  <div><span className="font-bold text-slate-500">วันที่:</span> {new Date(foundDispatch.date).toLocaleDateString('th-TH')}</div>
-                  <div><span className="font-bold text-slate-500">เขต:</span> {foundDispatch.district || '-'}</div>
-                  <div><span className="font-bold text-slate-500">เวลาปฏิบัติงาน:</span> {foundDispatch.time} - {foundDispatch.closingTime}</div>
-                  
-                  {foundDispatch.mapLink && (
-                    <div className="sm:col-span-2">
-                      <span className="font-bold text-slate-500">ลิงก์แผนที่:</span>{' '}
-                      <a href={foundDispatch.mapLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
-                        {foundDispatch.mapLink}
-                      </a>
-                    </div>
-                  )}
+                {/* คำนวณเบอร์โทรและชื่อผู้ควบคุมตามลอจิกของ Dashboard */}
+                {(() => {
+                  let phoneNum = foundDispatch.controllerPhone;
+                  let controllerName = foundDispatch.controllerName; 
+                  if (foundDispatch.staff?.controllers?.[0]) {
+                      const splitData = foundDispatch.staff.controllers[0].split('โทร.');
+                      if (!controllerName) controllerName = splitData[0].trim();
+                      if (!phoneNum && splitData.length > 1) phoneNum = splitData[1].trim();
+                  }
 
-                  {foundDispatch.note && <div className="sm:col-span-2"><span className="font-bold text-slate-500">หมายเหตุ:</span> {foundDispatch.note}</div>}
-                </div>
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
+                      {/* ส่วนที่เพิ่มมาใหม่: ชื่อกิจกรรมและทีม */}
+                      {foundDispatch.title && (
+                        <div className="sm:col-span-2">
+                          <span className="font-bold text-slate-500">กิจกรรม:</span> <span className="font-bold text-indigo-700">{foundDispatch.title}</span>
+                        </div>
+                      )}
+                      
+                      <div><span className="font-bold text-slate-500">สถานที่:</span> {foundDispatch.location}</div>
+                      <div><span className="font-bold text-slate-500">วันที่:</span> {new Date(foundDispatch.date).toLocaleDateString('th-TH')}</div>
+                      <div><span className="font-bold text-slate-500">เขต:</span> {foundDispatch.district || '-'}</div>
+                      <div><span className="font-bold text-slate-500">เวลาปฏิบัติงาน:</span> {foundDispatch.time} - {foundDispatch.closingTime || 'ไม่ระบุ'}</div>
+                      
+                      {/* ส่วนที่เพิ่มมาใหม่: ทีมและผู้ประสานงาน */}
+                      {foundDispatch.team && (
+                        <div><span className="font-bold text-slate-500">ทีมปฏิบัติการ:</span> {foundDispatch.team}</div>
+                      )}
+                      {(controllerName || phoneNum) && (
+                        <div>
+                          <span className="font-bold text-slate-500">ผู้ประสานงาน:</span> {controllerName || '-'}
+                          {phoneNum && <span className="ml-1 text-indigo-600 font-medium">(โทร. {phoneNum})</span>}
+                        </div>
+                      )}
+
+                      {/* ส่วนที่เพิ่มมาใหม่: บริการที่มี */}
+                      {foundDispatch.services && foundDispatch.services.length > 0 && (
+                        <div className="sm:col-span-2 flex flex-wrap gap-1.5 items-center mt-1">
+                          <span className="font-bold text-slate-500">บริการ:</span>
+                          {foundDispatch.services.map((srv, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-[10px] font-bold">
+                              {srv}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {foundDispatch.mapLink && (
+                        <div className="sm:col-span-2 mt-1">
+                          <span className="font-bold text-slate-500">ลิงก์แผนที่:</span>{' '}
+                          <a href={foundDispatch.mapLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                            {foundDispatch.mapLink}
+                          </a>
+                        </div>
+                      )}
+
+                      {foundDispatch.note && (
+                        <div className="sm:col-span-2 mt-1 p-2 bg-amber-50/50 rounded-lg border border-amber-100/50">
+                          <span className="font-bold text-amber-600">หมายเหตุ:</span> {foundDispatch.note}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

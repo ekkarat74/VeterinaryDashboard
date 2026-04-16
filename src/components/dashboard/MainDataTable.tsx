@@ -39,16 +39,6 @@ const MainDataTable = ({
                     </h2>
                     <p className="text-xs text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
                 </div>
-
-                {isSuperAdmin && data.length > 0 && (
-                    <button 
-                        onClick={onClearAll} 
-                        className="group flex items-center gap-2 px-4 py-2 bg-white hover:bg-red-50 text-gray-600 hover:text-red-600 text-xs font-medium rounded-xl border border-gray-200 hover:border-red-200 transition-all duration-200 shadow-sm"
-                    >
-                        <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
-                        ล้างข้อมูล
-                    </button>
-                )}
             </div>
 
             {/* Table Section */}
