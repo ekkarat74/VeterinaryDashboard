@@ -1,5 +1,5 @@
 // src/utils/dataProcessors.js
-import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../constants/locations.jsx';
+import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../constants/locations.js';
 
 export const parseCSVDate = (dateStr) => {
     const getLocalDateString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

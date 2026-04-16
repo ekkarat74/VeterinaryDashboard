@@ -5,38 +5,41 @@ import {
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
-import useDashboardState from './hooks/useDashboardState.js'; 
+// เอา .js / .jsx ออกทั้งหมดเพื่อให้ TypeScript/Bundler จัดการค้นหาไฟล์ให้อัตโนมัติ
+import useDashboardState from './hooks/useDashboardState'; 
 
-import KPISection from './components/dashboard/KPICards.jsx';
-import UserManagementModal from './components/UserManagementModal.jsx';
-import { UNIT_TYPES, BANGKOK_DISTRICTS } from './constants/locations.jsx';
-const AddDataModal = lazy(() => import('./components/modals/AddDataModal.jsx'));
-const RabiesOutbreakSection = lazy(() => import('./components/dashboard/RabiesOutbreakSection.jsx'));
-const MainDataTable = lazy(() => import('./components/dashboard/MainDataTable.jsx'));
-import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils.js';
-import ChangePasswordModal from './components/modals/ChangePasswordModal.jsx';
-import Sidebar from './components/layout/Sidebar.jsx';
-const StatisticsCharts = React.lazy(() => import('./components/dashboard/StatisticsCharts.jsx'));
-import RankingSection from './components/dashboard/RankingSection.jsx';
-const LeafletMap = lazy(() => import('./components/modals/LeafletMap.jsx'));
-import LoginModal from './components/modals/LoginModal.jsx';
-const AddOutbreakModal = lazy(() => import('./components/modals/AddOutbreakModal.jsx'));
-import { MeetingCalendarDashboard} from './components/CalendarComponents.jsx';
-import DispatchModal from './components/modals/DispatchModal.jsx';
-import { MeetingModal, MeetingListModal } from './components/modals/MeetingModal.jsx';
-import ActivityLogModal from './components/modals/ActivityLogModal.jsx';
-import CsvActionModal from './components/modals/CsvActionModal.jsx';
-import BackupSystemModal from './components/modals/BackupSystemModal.jsx';
-import ToastContainer from './path/to/ToastContainer.jsx';
-import ImagePreviewModal from './components/modals/ImagePreviewModal.jsx';
-import { getUnitKey } from './utils/helpers.js';
-import PieChartsSection from './components/dashboard/PieChartsSection.jsx';
-const UnitComparisonChart = React.lazy(() => import('./components/dashboard/UnitComparisonChart.jsx'));
-import ClearDataModal from './components/modals/ClearDataModal.jsx';
-const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal.jsx'));
-const BreedModal = lazy(() => import('./components/modals/BreedModal.jsx'));
-const ColorModal = lazy(() => import('./components/modals/ColorModal.jsx'));
-import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors.js';
+import KPISection from './components/dashboard/KPICards';
+import UserManagementModal from './components/UserManagementModal';
+import { UNIT_TYPES, BANGKOK_DISTRICTS } from './constants/locations';
+const AddDataModal = lazy(() => import('./components/modals/AddDataModal'));
+const RabiesOutbreakSection = lazy(() => import('./components/dashboard/RabiesOutbreakSection'));
+const MainDataTable = lazy(() => import('./components/dashboard/MainDataTable'));
+import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils';
+import ChangePasswordModal from './components/modals/ChangePasswordModal';
+import Sidebar from './components/layout/Sidebar';
+const StatisticsCharts = React.lazy(() => import('./components/dashboard/StatisticsCharts'));
+import RankingSection from './components/dashboard/RankingSection';
+const LeafletMap = lazy(() => import('./components/modals/LeafletMap'));
+import LoginModal from './components/modals/LoginModal';
+const AddOutbreakModal = lazy(() => import('./components/modals/AddOutbreakModal'));
+import { MeetingCalendarDashboard} from './components/CalendarComponents';
+import DispatchModal from './components/modals/DispatchModal';
+import { MeetingModal, MeetingListModal } from './components/modals/MeetingModal';
+import ActivityLogModal from './components/modals/ActivityLogModal';
+import CsvActionModal from './components/modals/CsvActionModal';
+import BackupSystemModal from './components/modals/BackupSystemModal';
+
+import ToastContainer from './path/to/ToastContainer';
+
+import ImagePreviewModal from './components/modals/ImagePreviewModal';
+import { getUnitKey } from './utils/helpers';
+import PieChartsSection from './components/dashboard/PieChartsSection';
+const UnitComparisonChart = React.lazy(() => import('./components/dashboard/UnitComparisonChart'));
+import ClearDataModal from './components/modals/ClearDataModal';
+const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal'));
+const BreedModal = lazy(() => import('./components/modals/BreedModal'));
+const ColorModal = lazy(() => import('./components/modals/ColorModal'));
+import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors';
 
 // ==========================================
 // 4. Footer Component
@@ -398,16 +401,10 @@ export default function VeterinaryDashboard() {
         const fetchDispatches = async () => {
             try {
                 const res = await fetch(`${BASE_URL}/api/dispatches`);
-                if (res.ok) {
-                    const data = await res.json();
-                    // บังคับให้เป็น Array เสมอ ถ้าไม่ใช่ให้ใส่ []
-                    setDispatchEvents(Array.isArray(data) ? data : []);
-                } else {
-                    setDispatchEvents([]); // ดักเคส Server 500
-                }
+                const data = await res.json();
+                setDispatchEvents(data);
             } catch (error) {
                 console.error("Fetch Dispatches Error", error);
-                setDispatchEvents([]);
             }
         };
         fetchDispatches();
@@ -633,16 +630,10 @@ export default function VeterinaryDashboard() {
         const fetchMeetings = async () => {
             try {
                 const res = await fetch(`${BASE_URL}/api/meetings`);
-                if (res.ok) {
-                    const data = await res.json();
-                    // บังคับให้เป็น Array เสมอ
-                    setMeetings(Array.isArray(data) ? data : []);
-                } else {
-                    setMeetings([]); // ดักเคส Server 500
-                }
+                const data = await res.json();
+                setMeetings(data);
             } catch (error) {
                 console.error("Fetch Meetings Error", error);
-                setMeetings([]);
             }
         };
         fetchMeetings();

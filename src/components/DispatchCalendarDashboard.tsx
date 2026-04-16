@@ -3,9 +3,9 @@ import {
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus
 } from 'lucide-react';
-import DispatchModal from './modals/DispatchModal.jsx'; 
-import LoginModal from './modals/LoginModal.jsx';
-import ToastContainer from '../path/to/ToastContainer.jsx'; // ตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
+import DispatchModal from './modals/DispatchModal.js'; 
+import LoginModal from './modals/LoginModal.js';
+import ToastContainer from '../path/to/ToastContainer.js'; // ตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
 
 // นำเข้าฟังก์ชันระบบเสียง
 import { playSound } from '../utils/soundUtils.js';
