@@ -398,10 +398,16 @@ export default function VeterinaryDashboard() {
         const fetchDispatches = async () => {
             try {
                 const res = await fetch(`${BASE_URL}/api/dispatches`);
-                const data = await res.json();
-                setDispatchEvents(data);
+                if (res.ok) {
+                    const data = await res.json();
+                    // บังคับให้เป็น Array เสมอ ถ้าไม่ใช่ให้ใส่ []
+                    setDispatchEvents(Array.isArray(data) ? data : []);
+                } else {
+                    setDispatchEvents([]); // ดักเคส Server 500
+                }
             } catch (error) {
                 console.error("Fetch Dispatches Error", error);
+                setDispatchEvents([]);
             }
         };
         fetchDispatches();
@@ -627,10 +633,16 @@ export default function VeterinaryDashboard() {
         const fetchMeetings = async () => {
             try {
                 const res = await fetch(`${BASE_URL}/api/meetings`);
-                const data = await res.json();
-                setMeetings(data);
+                if (res.ok) {
+                    const data = await res.json();
+                    // บังคับให้เป็น Array เสมอ
+                    setMeetings(Array.isArray(data) ? data : []);
+                } else {
+                    setMeetings([]); // ดักเคส Server 500
+                }
             } catch (error) {
                 console.error("Fetch Meetings Error", error);
+                setMeetings([]);
             }
         };
         fetchMeetings();

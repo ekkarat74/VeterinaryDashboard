@@ -70,8 +70,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // --- DATABASE CONNECTION ---
 // ✅ ปรับปรุง: เพิ่ม connection pool options
 mongoose.connect(MONGO_URI, {
-  maxPoolSize: 10,       // connection pool สูงสุด 10
-  serverSelectionTimeoutMS: 5000,
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
 })
   .then(() => console.log('✅ MongoDB Connected'))
