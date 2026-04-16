@@ -3,10 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json']
-  },
   build: {
-    chunkSizeWarningLimit: 1600,
+    chunkSizeWarningLimit: 1600, // เพิ่มขีดจำกัดเป็น 1600 kB (1.6 MB)
   },
 })

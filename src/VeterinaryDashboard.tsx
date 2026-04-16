@@ -78,11 +78,13 @@ const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }) => 
     const currentItem = activeAnnouncements[safeIndex];
 
     return (
+        // เปลี่ยน text-sm เป็น text-xs
         <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-xs relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
             <div className="bg-[#6B4BFA] text-white px-3 py-1 rounded-full font-bold text-xs mr-3 shrink-0 z-10 flex items-center gap-2 shadow-sm">
                 <Megaphone className="w-3 h-3" /> PREVIEW
             </div>
             
+            {/* พื้นที่แสดงข้อความ */}
             <div className="flex-1 relative h-full flex items-center overflow-hidden">
                 {currentItem && (
                     <div 
@@ -194,7 +196,11 @@ const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, o
     );
 });
 
+// ==========================================
+// Component: Announcement Manager (รวม State ไว้ในนี้)
+// ==========================================
 const AnnouncementManager = React.memo(({ canEdit, addToast }) => {
+    // ย้าย State และข้อมูลเริ่มต้นออกมาจาก VeterinaryDashboard
     const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
     const [announcements, setAnnouncements] = useState([
         { id: 0, icon: '👋', text: 'ยินดีต้อนรับสู่ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่ - ติดตามข้อมูลวัคซีนและทำหมันสุนัข-แมว', isActive: true },
@@ -520,7 +526,7 @@ export default function VeterinaryDashboard() {
     const fetchData = useCallback(async () => {
         try {
             setIsInitialLoading(true);
-            const response = await fetch(`${API_URL}?limit=100&page=1`);
+            const response = await fetch(`${API_URL}?limit=5000`);
             const result = await response.json();
             const dataArray = Array.isArray(result) ? result : (result.data || []);
             setReportData(dataArray);
