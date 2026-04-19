@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
-// เอา .js / .jsx ออกทั้งหมดเพื่อให้ TypeScript/Bundler จัดการค้นหาไฟล์ให้อัตโนมัติ
 import useDashboardState from './hooks/useDashboardState'; 
 
 import KPISection from './components/dashboard/KPICards';
@@ -28,9 +27,7 @@ import { MeetingModal, MeetingListModal } from './components/modals/MeetingModal
 import ActivityLogModal from './components/modals/ActivityLogModal';
 import CsvActionModal from './components/modals/CsvActionModal';
 import BackupSystemModal from './components/modals/BackupSystemModal';
-
 import ToastContainer from './path/to/ToastContainer';
-
 import ImagePreviewModal from './components/modals/ImagePreviewModal';
 import { getUnitKey } from './utils/helpers';
 import PieChartsSection from './components/dashboard/PieChartsSection';
@@ -40,6 +37,39 @@ const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal')
 const BreedModal = lazy(() => import('./components/modals/BreedModal'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal'));
 import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors';
+
+export interface Announcement {
+    id: number;
+    icon: string;
+    text: string;
+    isActive: boolean;
+}
+
+interface AnnouncementBarProps {
+    announcements: Announcement[];
+    onEditClick: () => void;
+    canEdit: boolean | any;
+}
+
+interface AnnouncementModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    initialAnnouncements: Announcement[];
+    onSave: (items: Announcement[]) => void;
+}
+
+export interface User {
+    role: string;
+    token: string;
+    [key: string]: any;
+}
+
+export interface Announcement {
+    id: number;
+    icon: string;
+    text: string;
+    isActive: boolean;
+}
 
 // ==========================================
 // 4. Footer Component
@@ -54,7 +84,7 @@ const Footer = React.memo(() => {
     );
 });
 
-const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }) => {
+const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }: AnnouncementBarProps) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -107,8 +137,9 @@ const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }) => 
 });
 
 // --- คอมโพเนนต์ Modal สำหรับแก้ไข (Announcement Modal) ---
-const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, onSave }) => {
-    const [items, setItems] = useState([]);
+const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, onSave }: AnnouncementModalProps) => {
+    // 📌 ใส่ Type <Announcement[]> ให้ useState
+    const [items, setItems] = useState<Announcement[]>([]);
 
     useEffect(() => {
         if (isOpen) setItems([...initialAnnouncements]);
@@ -116,19 +147,20 @@ const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, o
 
     if (!isOpen) return null;
 
-    const handleToggle = (id) => {
+    // 📌 ใส่ Type กำกับให้พารามิเตอร์
+    const handleToggle = (id: number) => {
         setItems(items.map(item => item.id === id ? { ...item, isActive: !item.isActive } : item));
     };
 
-    const handleChangeText = (id, text) => {
+    const handleChangeText = (id: number, text: string) => {
         setItems(items.map(item => item.id === id ? { ...item, text } : item));
     };
 
-    const handleChangeIcon = (id, icon) => {
+    const handleChangeIcon = (id: number, icon: string) => {
         setItems(items.map(item => item.id === id ? { ...item, icon } : item));
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = (id: number) => {
         setItems(items.filter(item => item.id !== id));
     };
 
@@ -197,12 +229,12 @@ const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, o
 });
 
 // ==========================================
-// Component: Announcement Manager (รวม State ไว้ในนี้)
+// Component: Announcement Manager
 // ==========================================
-const AnnouncementManager = React.memo(({ canEdit, addToast }) => {
-    // ย้าย State และข้อมูลเริ่มต้นออกมาจาก VeterinaryDashboard
+const AnnouncementManager = React.memo(({ canEdit, addToast }: { canEdit: any, addToast: any }) => {
     const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
-    const [announcements, setAnnouncements] = useState([
+    
+    const [announcements, setAnnouncements] = useState<Announcement[]>([
         { id: 0, icon: '👋', text: 'ยินดีต้อนรับสู่ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่ - ติดตามข้อมูลวัคซีนและทำหมันสุนัข-แมว', isActive: true },
         { id: 1, icon: '💉', text: 'บริการฉีดวัคซีนสัตว์เลี้ยง ฟรี! ทุกวันอังคาร-ศุกร์', isActive: true },
         { id: 2, icon: '🏥', text: 'ทำหมันสุนัข-แมว ฟรี! รับจำนวนจำกัด โทรจองล่วงหน้า', isActive: true },
@@ -211,7 +243,7 @@ const AnnouncementManager = React.memo(({ canEdit, addToast }) => {
         { id: 5, icon: '🚑', text: 'หน่วยสัตวแพทย์เคลื่อนที่ พร้อมให้บริการทุกพื้นที่', isActive: true }
     ]);
 
-    const handleSaveAnnouncements = (newAnnouncements) => {
+    const handleSaveAnnouncements = (newAnnouncements: Announcement[]) => {
         setAnnouncements(newAnnouncements);
         addToast('success', '✅ บันทึกข้อความแถบเลื่อนเรียบร้อยแล้ว');
     };
@@ -260,7 +292,7 @@ export default function VeterinaryDashboard() {
         isMeetingModalOpen, setIsMeetingModalOpen, isMeetingListOpen, setIsMeetingListOpen,
         isMeetingCalendarOpen, setIsMeetingCalendarOpen, isConfirmPasswordOpen, setIsConfirmPasswordOpen,
         isClearDataModalOpen, setIsClearDataModalOpen,
-        user, setUser, activeTab, setActiveTab, tabsConfig, setTabsConfig,
+        user: rawUser, setUser, activeTab, setActiveTab, tabsConfig, setTabsConfig,
         isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
         isSystemMenuOpen, setIsSystemMenuOpen, isFilterExpanded, setIsFilterExpanded,
         csvMode, setCsvMode, isInitialLoading, setIsInitialLoading,
@@ -270,8 +302,10 @@ export default function VeterinaryDashboard() {
         toasts, addToast, removeToast
     } = useDashboardState();
 
-    const [breeds, setBreeds] = useState([]);
-    const [colors, setColors] = useState([]);
+    const user = rawUser as User | null;
+
+    const [breeds, setBreeds] = useState<any[]>([]);
+    const [colors, setColors] = useState<any[]>([]);
 
     useEffect(() => {
     const fetchBreedsAndColors = async () => {
@@ -332,14 +366,14 @@ export default function VeterinaryDashboard() {
     const dispatchEventsOnly = useMemo(() => {
         const filteredEvents = canViewHiddenDispatches 
             ? dispatchEvents 
-            : dispatchEvents.filter(d => d.isVisibleToPublic !== false);
+            : dispatchEvents.filter((d: any) => d.isVisibleToPublic !== false);
 
-        return filteredEvents.map(d => ({
+        return filteredEvents.map((d: any) => ({
             ...d, type: 'dispatch', originalData: d
         }));
     }, [dispatchEvents, canViewHiddenDispatches]);
 
-    const handleToggleDispatchVisibility = async (id, currentStatus) => {
+    const handleToggleDispatchVisibility = async (id: string, currentStatus: boolean) => {
         try {
             const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
                 method: 'PUT',
@@ -356,11 +390,11 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const meetingEventsOnly = useMemo(() => meetings.map(m => ({
+    const meetingEventsOnly = useMemo(() => meetings.map((m: any) => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
     })), [meetings]);
 
-    const handleSaveDispatchEvent = async (payload) => {
+    const handleSaveDispatchEvent = async (payload: any) => {
         try {
             const method = payload._id ? 'PUT' : 'POST';
             const url = payload._id ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
@@ -381,7 +415,7 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const handleDeleteDispatch = async (id) => {
+    const handleDeleteDispatch = async (id: string) => {
         if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
         try {
             const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
@@ -410,12 +444,12 @@ export default function VeterinaryDashboard() {
         fetchDispatches();
     }, [BASE_URL, setDispatchEvents]);
 
-    const handleOutbreakFileUpload = (e) => {
+    const handleOutbreakFileUpload = (e: any) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = async (event) => {
+        reader.onload = async (event: any) => {
             try {
                 // เรียกใช้ Business Logic จากไฟล์แยก
                 const { bulkData, totalRows } = parseOutbreakCSV(event.target.result);
@@ -458,7 +492,7 @@ export default function VeterinaryDashboard() {
         if (storedUser) { setUser(JSON.parse(storedUser)); }
     }, [setUser]);
 
-    const handleLogin = useCallback((userData) => {
+    const handleLogin = useCallback((userData: any) => {
         setUser(userData);
         localStorage.setItem('vet_user', JSON.stringify(userData));
         setIsLoginModalOpen(false);
@@ -486,9 +520,10 @@ export default function VeterinaryDashboard() {
         fetchTabsConfig();
     }, [BASE_URL, setTabsConfig]);
 
-    const toggleTab = async (tabName) => {
+    const toggleTab = async (tabName: string) => {
         const previousConfig = { ...tabsConfig };
-        const newConfig = { ...tabsConfig, [tabName]: !tabsConfig[tabName] };
+        const config = tabsConfig as Record<string, any>;
+        const newConfig = { ...tabsConfig, [tabName]: !config[tabName] };
         
         setTabsConfig(newConfig); 
 
@@ -507,10 +542,13 @@ export default function VeterinaryDashboard() {
     };
 
     useEffect(() => {
-        const checkTabVisibility = (tabName) => {
-            if (!user) return tabsConfig?.[`public_${tabName}`] ?? true;
+        const checkTabVisibility = (tabName: string) => {
+            // 📌 แก้ไข: แปลง type เช่นเดียวกันเพื่อหลีกเลี่ยง Error แบบเดียวกัน
+            const config = tabsConfig as Record<string, any>;
+
+            if (!user) return config?.[`public_${tabName}`] ?? true;
             
-            if (user.role === 'executive') return tabsConfig?.[`sa_${tabName}`] ?? true;
+            if (user.role === 'executive') return config?.[`sa_${tabName}`] ?? true;
             
             return true; 
         };
@@ -543,47 +581,53 @@ export default function VeterinaryDashboard() {
     useEffect(() => {
         const socket = io(BASE_URL);
         socket.on('connect', () => { console.log("🟢 Connected to Real-time Server"); });
-        socket.on('server_data_update', (payload) => {
+        socket.on('server_data_update', (payload: any) => {
             console.log("⚡ Realtime Update:", payload);
+            
+            const updateReport = setReportData as any;
+            const updateOutbreak = setOutbreakData as any;
+            const updateMeetings = setMeetings as any;
+            const updateDispatch = setDispatchEvents as any;
+
             switch (payload.type) {
                 case 'REPORT_ADDED':
-                    setReportData(prev => [payload.data, ...prev]);
+                    updateReport((prev: any[]) => [payload.data, ...prev]);
                     addToast('info', `📝 มีข้อมูลใหม่เข้ามา: ${payload.data.location}`);
                     break;
                 case 'REPORT_UPDATED':
-                    setReportData(prev => prev.map(item => item._id === payload.data._id ? payload.data : item));
+                    updateReport((prev: any[]) => prev.map((item: any) => item._id === payload.data._id ? payload.data : item));
                     addToast('info', `✏️ มีการแก้ไขข้อมูล: ${payload.data.location}`);
                     break;
                 case 'REPORT_DELETED':
-                    setReportData(prev => prev.filter(item => item._id !== payload.id));
+                    updateReport((prev: any[]) => prev.filter((item: any) => item._id !== payload.id));
                     break;
                 case 'REPORTS_CLEARED':
-                    setReportData([]);
+                    updateReport([]);
                     addToast('error', '⚠️ ข้อมูลทั้งหมดถูกล้างโดยผู้ดูแลระบบ');
                     break;
                 case 'OUTBREAK_ADDED':
-                    setOutbreakData(prev => [payload.data, ...prev]);
+                    updateOutbreak((prev: any[]) => [payload.data, ...prev]);
                     addToast('error', `🚨 แจ้งเตือน: พบจุดเสี่ยงโรคระบาดใหม่!`);
                     break;
                 case 'OUTBREAK_DELETED':
-                    setOutbreakData(prev => prev.filter(item => item._id !== payload.id));
+                    updateOutbreak((prev: any[]) => prev.filter((item: any) => item._id !== payload.id));
                     break;
                 case 'OUTBREAK_UPDATED':
-                    setOutbreakData(prev => prev.map(item => item._id === payload.data._id ? payload.data : item));
+                    updateOutbreak((prev: any[]) => prev.map((item: any) => item._id === payload.data._id ? payload.data : item));
                     addToast('info', `📝 แก้ไขจุดเสี่ยงระบาด: ${payload.data.location}`);
                     break;
                 case 'SYSTEM_RESTORED':
                     fetchData();
                     break;
                 case 'MEETING_ADDED':
-                    setMeetings(prev => [...prev, payload.data]);
+                    updateMeetings((prev: any[]) => [...prev, payload.data]);
                     addToast('info', `📅 มีนัดหมายประชุมใหม่: ${payload.data.title}`);
                     break;
                 case 'MEETING_DELETED':
-                    setMeetings(prev => prev.filter(m => m._id !== payload.id));
+                    updateMeetings((prev: any[]) => prev.filter((m: any) => m._id !== payload.id));
                     break;
                 case 'MEETING_UPDATED':
-                    setMeetings(prev => prev.map(m => m._id === payload.data._id ? payload.data : m));
+                    updateMeetings((prev: any[]) => prev.map((m: any) => m._id === payload.data._id ? payload.data : m));
                     addToast('info', `📝 แก้ไขนัดหมายประชุม: ${payload.data.title}`);
                     break;
                 case 'REPORTS_IMPORTED':
@@ -591,37 +635,37 @@ export default function VeterinaryDashboard() {
                     addToast('success', `📥 มีการนำเข้าข้อมูลชุดใหญ่จำนวน ${payload.count} รายการ`);
                     break;
                 case 'DISPATCH_ADDED':
-                    setDispatchEvents(prev => [...prev, payload.data]);
+                    updateDispatch((prev: any[]) => [...prev, payload.data]);
                     addToast('info', `🚐 แผนออกหน่วยใหม่: ${payload.data.location}`);
                     break;
                 case 'DISPATCH_UPDATED':
-                    setDispatchEvents(prev => prev.map(ev => ev._id === payload.data._id ? payload.data : ev));
+                    updateDispatch((prev: any[]) => prev.map((ev: any) => ev._id === payload.data._id ? payload.data : ev));
                     addToast('info', `📝 แก้ไขแผนออกหน่วย: ${payload.data.location}`);
                     break;
                 case 'DISPATCH_DELETED':
-                    setDispatchEvents(prev => prev.filter(ev => ev._id !== payload.id));
+                    updateDispatch((prev: any[]) => prev.filter((ev: any) => ev._id !== payload.id));
                     break;
                 case 'TABS_CONFIG_UPDATED':
                     setTabsConfig(payload.data);
                     break;
                 case 'BREED_ADDED':
-                    setBreeds(prev => [...prev, payload.data]);
+                    setBreeds((prev: any[]) => [...prev, payload.data]);
                     break;
                 case 'BREED_DELETED':
-                    setBreeds(prev => prev.filter(b => b._id !== payload.id));
+                    setBreeds((prev: any[]) => prev.filter(b => b._id !== payload.id));
                     break;
                 case 'COLOR_ADDED':
-                    setColors(prev => [...prev, payload.data]);
+                    setColors((prev: any[]) => [...prev, payload.data]);
                     break;
                 case 'COLOR_DELETED':
-                    setColors(prev => prev.filter(c => c._id !== payload.id));
+                    setColors((prev: any[]) => prev.filter(c => c._id !== payload.id));
                     break;
                 default: break;
             }
         });
-        socket.on('system_update_refresh', (payload) => {
+        socket.on('system_update_refresh', (payload: any) => {
             addToast('info', `🔄 ${payload.message}`);
-            setTimeout(() => { window.location.reload(true); }, 3000);
+            setTimeout(() => { window.location.reload(); }, 3000);
         });
         return () => { socket.disconnect(); };
     }, [BASE_URL]);
@@ -639,7 +683,7 @@ export default function VeterinaryDashboard() {
         fetchMeetings();
     }, [BASE_URL, setMeetings]);
 
-    const handleSaveMeeting = async (meetingData) => {
+    const handleSaveMeeting = async (meetingData: any) => {
         try {
             const method = meetingData._id ? 'PUT' : 'POST';
             const url = meetingData._id ? `${BASE_URL}/api/meetings/${meetingData._id}` : `${BASE_URL}/api/meetings`;
@@ -652,8 +696,8 @@ export default function VeterinaryDashboard() {
             if (res.ok) {
                 addToast('success', meetingData._id ? 'แก้ไขข้อมูลเรียบร้อย' : 'บันทึกการประชุมเรียบร้อย');
                 if(meetingData._id) {
-                     const updated = await res.json();
-                     setMeetings(prev => prev.map(m => m._id === updated._id ? updated : m));
+                    const updated = await res.json();
+                        (setMeetings as any)((prev: any[]) => prev.map((m: any) => m._id === updated._id ? updated : m));
                 }
             } else {
                 addToast('error', 'บันทึกไม่สำเร็จ');
@@ -663,7 +707,7 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const handleDeleteMeeting = async (id) => {
+    const handleDeleteMeeting = async (id: string) => {
         try {
             const res = await fetch(`${BASE_URL}/api/meetings/${id}`, {
                 method: 'DELETE',
@@ -671,7 +715,7 @@ export default function VeterinaryDashboard() {
             });
             if (res.ok) {
                 addToast('success', 'ลบการประชุมเรียบร้อย');
-                setMeetings(prev => prev.filter(m => m._id !== id));
+                (setMeetings as any)((prev: any[]) => prev.filter((m: any) => m._id !== id));
             } else {
                 addToast('error', 'ลบไม่สำเร็จ');
             }
@@ -680,7 +724,7 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const handleCalendarEventClick = (evt) => {
+    const handleCalendarEventClick = (evt: any) => {
         if (evt.type === 'meeting') {
             setViewingMeeting(evt.originalData);
             setIsMeetingModalOpen(true);
@@ -705,11 +749,11 @@ export default function VeterinaryDashboard() {
         fetchOutbreaks();
     }, [BASE_URL, setOutbreakData]);
 
-    const toggleOutbreakVisibility = (id) => {
-        setHiddenOutbreakIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    const toggleOutbreakVisibility = (id: string) => {
+        setHiddenOutbreakIds((prev: string[]) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    const handleUpdateOutbreak = async (id, updatedData) => {
+    const handleUpdateOutbreak = async (id: string, updatedData: any) => {
         try {
             const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
                 method: 'PUT',
@@ -727,10 +771,10 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const openEditOutbreakModal = (item) => { setEditingOutbreak(item); setIsOutbreakModalOpen(true); };
+    const openEditOutbreakModal = (item: any) => { setEditingOutbreak(item); setIsOutbreakModalOpen(true); };
     const openAddOutbreakModal = () => { setEditingOutbreak(null); setIsOutbreakModalOpen(true); };
 
-    const handleAddNewData = async (newRecord) => {
+    const handleAddNewData = async (newRecord: any) => {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
@@ -756,7 +800,7 @@ export default function VeterinaryDashboard() {
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
 
-    const handleUpdateData = async (id, updatedRecord) => {
+    const handleUpdateData = async (id: string, updatedRecord: any) => {
         try {
             const response = await fetch(`${API_URL}/${id}`, {
                 method: 'PUT',
@@ -772,7 +816,7 @@ export default function VeterinaryDashboard() {
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
 
-    const handleDeleteData = async (id) => {
+    const handleDeleteData = async (id: string) => {
         if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?")) {
             try {
                 const response = await fetch(`${API_URL}/${id}`, {
@@ -785,7 +829,7 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const handleAddOutbreak = async (data) => {
+    const handleAddOutbreak = async (data: any) => {
         try {
             const response = await fetch(`${BASE_URL}/api/outbreaks`, {
                 method: 'POST',
@@ -800,7 +844,7 @@ export default function VeterinaryDashboard() {
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
 
-    const handleDeleteOutbreak = async (id) => {
+    const handleDeleteOutbreak = async (id: string) => {
         if (window.confirm("⚠️ ยืนยันการลบจุดแจ้งเหตุโรคระบาดนี้?")) {
             try {
                 const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
@@ -821,7 +865,7 @@ export default function VeterinaryDashboard() {
         setIsClearDataModalOpen(true);
     };
 
-    const executeClearAllData = async (passwordInput, filters) => {
+    const executeClearAllData = async (passwordInput: string, filters: any) => {
         try {
             const response = await fetch(API_URL, {
                 method: 'DELETE',
@@ -844,13 +888,13 @@ export default function VeterinaryDashboard() {
         } catch (error) { alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server"); }
     };
 
-    const generateMockData = (count) => {
+    const generateMockData = (count: number) => {
         if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
         const newMockData = [];
         const endDate = new Date();
         const startDate = new Date();
         startDate.setFullYear(endDate.getFullYear() - 1);
-        const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
         const randCoord = () => ({ lat: 13.6 + Math.random() * 0.35, long: 100.35 + Math.random() * 0.4 });
 
         for (let i = 0; i < count; i++) {
@@ -872,7 +916,7 @@ export default function VeterinaryDashboard() {
                 }
             });
         }
-        setReportData(prev => [...newMockData, ...prev]);
+        setReportData((prev: any[]) => [...newMockData, ...prev]);
         alert(`✅ สร้างข้อมูลจำลอง ${count} เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
     };
 
@@ -881,11 +925,11 @@ export default function VeterinaryDashboard() {
         if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
         
         const newMockData = generateMockDataRecords(count);
-        setReportData(prev => [...newMockData, ...prev]);
+        setReportData((prev: any[]) => [...newMockData, ...prev]);
         alert(`✅ สร้างข้อมูลจำลอง ${count} เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
     };
 
-    const handleFileUpload = (e) => {
+    const handleFileUpload = (e: any) => {
         const file = e.target.files[0];
         if (!file) return;
         if (file.type !== "text/csv" && !file.name.endsWith('.csv')) { 
@@ -894,7 +938,7 @@ export default function VeterinaryDashboard() {
         }
         
         const reader = new FileReader();
-        reader.onload = async (event) => {
+        reader.onload = async (event: any) => {
             try {
                 // เรียกใช้ Business Logic จากไฟล์แยก
                 const { bulkData, failCount, totalRows } = parseReportCSV(event.target.result);
@@ -932,12 +976,12 @@ export default function VeterinaryDashboard() {
     };
 
     const openAddModal = useCallback(() => { setEditingItem(null); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
-    const openEditModal = useCallback((item) => { setEditingItem(item); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
+    const openEditModal = useCallback((item: any) => { setEditingItem(item); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
     const handleOpenCsvOutbreak = useCallback(() => { setCsvMode('outbreak'); setIsCsvModalOpen(true); }, [setCsvMode, setIsCsvModalOpen]);
     const handleOpenCsvReport = useCallback(() => { setCsvMode('report'); setIsCsvModalOpen(true); }, [setCsvMode, setIsCsvModalOpen]);
 
     const openMeetingForm = useCallback(() => { setViewingMeeting(null); setIsMeetingModalOpen(true); }, [setViewingMeeting, setIsMeetingModalOpen]);
-    const editMeetingFromList = useCallback((m) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }, [setViewingMeeting, setIsMeetingListOpen, setIsMeetingModalOpen]);
+    const editMeetingFromList = useCallback((m: any) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }, [setViewingMeeting, setIsMeetingListOpen, setIsMeetingModalOpen]);
 
     const handleClearFilters = useCallback(() => {
         setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate('');
@@ -967,9 +1011,12 @@ export default function VeterinaryDashboard() {
             try {
                 if (!item) return false;
 
-                if (searchDate) { 
-                    if (item.date !== searchDate) return false; 
-                } else if (!isYearAll || !isMonthAll) {
+                // 1. กรองวันที่เจาะจง
+                if (searchDate) {
+                    if (item.date !== searchDate) return false;
+                } 
+                // 2. กรอง ปี/เดือน
+                else if (!isYearAll || !isMonthAll) {
                     if (!item.date) return false;
                     const dateParts = String(item.date).split('-');
                     if (dateParts.length < 2) return false;
@@ -978,37 +1025,51 @@ export default function VeterinaryDashboard() {
                     if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(deferredMonth, 10)) return false;
                 }
 
-                if (!isUnitAll && item.unit !== deferredUnit) return false;
-                if (!isDistrictAll && (!item.district || item.district.trim() !== deferredDistrict)) return false;
+                // จัดการปัญหา Whitespace ใน DB ด้วย .trim() ก่อนเปรียบเทียบ
+                const itemUnit = item.unit ? String(item.unit).trim() : '';
+                const itemDistrict = item.district ? String(item.district).trim() : '';
 
+                // 3. กรอง หน่วยงาน และ เขต
+                if (!isUnitAll && itemUnit !== String(deferredUnit).trim()) return false;
+                if (!isDistrictAll && itemDistrict !== String(deferredDistrict).trim()) return false;
+
+                // 4. กรองด้วยคำค้นหา (Text Search) - เพิ่ม Unit, Team และ Details เข้าไปเพื่อให้หาครอบคลุมขึ้น
                 if (lowerSearch) {
                     const itemLocation = item.location ? String(item.location).toLowerCase() : '';
-                    const itemDistrict = item.district ? String(item.district).toLowerCase() : '';
+                    const itemDistrictLower = itemDistrict.toLowerCase();
                     const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
-                    
+                    const itemUnitLower = itemUnit.toLowerCase();
+                    const itemTeam = item.team ? String(item.team).toLowerCase() : '';
+                    // นำ detail มา stringify เผื่อค้นหาจาก Note หรือรายละเอียดเชิงลึก
+                    const itemDetails = item.details ? JSON.stringify(item.details).toLowerCase() : ''; 
+
                     if (!itemLocation.includes(lowerSearch) && 
-                        !itemDistrict.includes(lowerSearch) && 
-                        !itemSubdistrict.includes(lowerSearch)) {
+                        !itemDistrictLower.includes(lowerSearch) && 
+                        !itemSubdistrict.includes(lowerSearch) &&
+                        !itemUnitLower.includes(lowerSearch) &&
+                        !itemTeam.includes(lowerSearch) &&
+                        !itemDetails.includes(lowerSearch)) {
                         return false;
                     }
                 }
                 return true;
             } catch (error) {
+                console.error("Filter Error:", error);
                 return false; 
             }
         });
     }, [deferredReportData, deferredYear, deferredMonth, deferredUnit, deferredDistrict, deferredSearchTerm, searchDate]);
 
-    const handleCsvFileChange = useCallback((e) => {
+    const handleCsvFileChange = useCallback((e: any) => {
         if (csvMode === 'outbreak') handleOutbreakFileUpload(e);
         else handleFileUpload(e);
     }, [csvMode]);
 
-    const handleCsvExport = useCallback((filters) => {
+    const handleCsvExport = useCallback((filters: any) => {
         let dataToExport = csvMode === 'outbreak' ? outbreakData : reportData;
 
         if (filters) {
-            dataToExport = dataToExport.filter(item => {
+            dataToExport = dataToExport.filter((item: any) => {
                 const isYearAll = filters.year === 'ทั้งหมด';
                 const isMonthAll = filters.month === 'ทั้งหมด';
                 const isUnitAll = filters.unit === 'ทั้งหมด';
@@ -1023,11 +1084,15 @@ export default function VeterinaryDashboard() {
                     if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(filters.month, 10)) return false;
                 }
 
+                // จัดการ Whitespace แบบเดียวกับตารางหลัก
+                const itemUnit = item.unit ? String(item.unit).trim() : '';
+                const itemDistrict = item.district ? String(item.district).trim() : '';
+
                 if (csvMode !== 'outbreak' && !isUnitAll) {
-                    if (item.unit !== filters.unit) return false;
+                    if (itemUnit !== String(filters.unit).trim()) return false;
                 }
                 
-                if (!isDistrictAll && (!item.district || item.district.trim() !== filters.district)) return false;
+                if (!isDistrictAll && itemDistrict !== String(filters.district).trim()) return false;
 
                 return true;
             });
@@ -1048,21 +1113,21 @@ export default function VeterinaryDashboard() {
         unitByUnitTypePieData, 
         unitByWorkTypePieData 
     } = useMemo(() => {
-        const newMapDisplayData = [];
+        const newMapDisplayData: any[] = [];
         const newTotals = { 
             vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0,
             dog: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 },
             cat: { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 }
         };
-        const unitDict = {};
-        const districtDict = {};
+        const unitDict: any = {};
+        const districtDict: any = {};
 
         if (!Array.isArray(filteredData)) {
             return { mapDisplayData: [], totals: newTotals, unitStats: [], unitByDistrictPieData: [], unitByUnitTypePieData: [], unitByWorkTypePieData: [] };
         }
 
         // ย้ายฟังก์ชันนี้ออกมานอกลูป ช่วยลด Memory Allocation มหาศาลเมื่อข้อมูลเยอะ
-        const toNum = (val) => parseInt(val, 10) || 0;
+        const toNum = (val: any) => parseInt(val, 10) || 0;
 
         for (let i = 0; i < filteredData.length; i++) {
             const curr = filteredData[i];
@@ -1110,14 +1175,14 @@ export default function VeterinaryDashboard() {
             districtDict[distName].value += workTotal;
         }
 
-        const newUnitStats = Object.values(unitDict).sort((a, b) => b.total - a.total);
+        const newUnitStats = Object.values(unitDict).sort((a: any, b: any) => b.total - a.total);
 
         return {
             mapDisplayData: newMapDisplayData,
             totals: newTotals,
             unitStats: newUnitStats,
-            unitByDistrictPieData: Object.values(districtDict).sort((a, b) => b.value - a.value).slice(0, 10),
-            unitByUnitTypePieData: newUnitStats.map(u => ({ name: u.name, value: u.total })).slice(0, 10),
+            unitByDistrictPieData: Object.values(districtDict).sort((a: any, b: any) => b.value - a.value).slice(0, 10),
+            unitByUnitTypePieData: newUnitStats.map((u: any) => ({ name: u.name, value: u.total })).slice(0, 10),
             unitByWorkTypePieData: [
                 { name: 'ฉีดวัคซีน', value: newTotals.vaccine },
                 { name: 'ผ่าตัดทำหมัน', value: newTotals.sterilize },
@@ -1129,7 +1194,7 @@ export default function VeterinaryDashboard() {
     }, [filteredData]);
 
     const { rankingNestedStats, rankingUnitStats } = useMemo(() => {
-        const unitDict = {};
+        const unitDict: any = {};
         
         if (!Array.isArray(reportData)) return { rankingNestedStats: [], rankingUnitStats: [] };
 
@@ -1146,7 +1211,7 @@ export default function VeterinaryDashboard() {
 
             const unitName = item.unit ? item.unit : 'ไม่ระบุ';
             const districtName = item.district ? item.district.trim() : 'ไม่ระบุ';
-            const toNum = (val) => parseInt(val, 10) || 0;
+            const toNum = (val: any) => parseInt(val, 10) || 0;
             
             const v = toNum(item.stats?.vaccine);
             const s = toNum(item.stats?.sterilize);
@@ -1182,17 +1247,17 @@ export default function VeterinaryDashboard() {
         const values = Object.values(unitDict);
 
         const newRankingNestedStats = values
-            .sort((a, b) => b.totalWork - a.totalWork)
+            .sort((a: any, b: any) => b.totalWork - a.totalWork)
             .slice(0, 5)
-            .map(unit => {
+            .map((unit: any) => {
                 const sortedDistricts = Object.entries(unit.districts)
-                    .map(([dName, dData]) => ({ name: dName, total: dData.total, stats: dData.stats }))
+                    .map(([dName, dData]: [string, any]) => ({ name: dName, total: dData.total, stats: dData.stats }))
                     .sort((a, b) => b.total - a.total)
                     .slice(0, 5);
                 return { ...unit, topDistricts: sortedDistricts };
             });
 
-        const newRankingUnitStats = values.sort((a, b) => b.count - a.count || b.total - a.total);
+        const newRankingUnitStats = values.sort((a: any, b: any) => b.count - a.count || b.total - a.total);
 
         return { rankingNestedStats: newRankingNestedStats, rankingUnitStats: newRankingUnitStats };
     }, [reportData, rankingYear, rankingMonth]);
@@ -1203,8 +1268,8 @@ export default function VeterinaryDashboard() {
         const baseYear = chartBaseYear === 'ทั้งหมด' ? new Date().getFullYear() : chartBaseYear;
         const baseMonth = chartBaseMonth === 'ทั้งหมด' ? (new Date().getMonth() + 1) : chartBaseMonth;
 
-        const monthMap = {};
-        const dayMap = {};
+        const monthMap: any = {};
+        const dayMap: any = {};
 
         // รวมการทำงานของ 2 ลูปเข้าด้วยกันเพื่อความเร็ว
         filteredData.forEach(item => {
@@ -1233,7 +1298,7 @@ export default function VeterinaryDashboard() {
 
         const monthlyData = [];
         for (let i = 9 + freqMonthlyOffset; i >= freqMonthlyOffset; i--) {
-            const d = new Date(baseYear, baseMonth - 1, 1);
+            const d = new Date(baseYear as number, (baseMonth as number) - 1, 1);
             d.setMonth(d.getMonth() - i);
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -1249,7 +1314,7 @@ export default function VeterinaryDashboard() {
         const dailyData = [];
         for (let i = 13 + freqDailyOffset; i >= freqDailyOffset; i--) {
             const isCurrentMonth = baseYear === new Date().getFullYear() && baseMonth === (new Date().getMonth() + 1);
-            const d = isCurrentMonth ? new Date() : new Date(baseYear, baseMonth, 0);
+            const d = isCurrentMonth ? new Date() : new Date(baseYear as number, baseMonth as number, 0);
             
             d.setDate(d.getDate() - i);
             const year = d.getFullYear();
@@ -1273,9 +1338,9 @@ export default function VeterinaryDashboard() {
         const baseYear = chartBaseYear === 'ทั้งหมด' ? new Date().getFullYear() : chartBaseYear;
         const baseMonth = chartBaseMonth === 'ทั้งหมด' ? (new Date().getMonth() + 1) : chartBaseMonth;
 
-        const dataMap = filteredData.reduce((acc, curr) => {
+        const dataMap = filteredData.reduce((acc: any, curr) => {
             const month = curr.date.substring(0, 7);
-            const toNum = (val) => parseInt(val, 10) || 0;
+            const toNum = (val: any) => parseInt(val, 10) || 0;
             
             if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
             
@@ -1292,7 +1357,7 @@ export default function VeterinaryDashboard() {
 
         const last10Months = [];
         for (let i = 9 + trendOffset; i >= trendOffset; i--) {
-            const d = new Date(baseYear, baseMonth - 1, 1); 
+            const d = new Date(baseYear as number, (baseMonth as number) - 1, 1); 
             d.setMonth(d.getMonth() - i);
             
             const year = d.getFullYear();
@@ -1304,11 +1369,11 @@ export default function VeterinaryDashboard() {
         return last10Months;
     }, [filteredData, trendOffset, chartBaseYear, chartBaseMonth]);
 
-    const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y !== null))].sort().reverse(), [outbreakData]);
-    const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter(item => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
+    const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map((item: any) => item.date ? item.date.split('-')[0] : null).filter((y: any) => y !== null))].sort().reverse(), [outbreakData]);
+    const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter((item: any) => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
     const outbreakStats = useMemo(() => {
         const total = filteredOutbreaks.length;
-        const grouped = filteredOutbreaks.reduce((acc, curr) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
+        const grouped = filteredOutbreaks.reduce((acc: any, curr: any) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
         const topDistricts = Object.keys(grouped).map(key => ({ name: key, count: grouped[key] })).sort((a, b) => b.count - a.count).slice(0, 5);
         const animalStats = {
             owned: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 },
@@ -1316,9 +1381,9 @@ export default function VeterinaryDashboard() {
             feeder: { dogMale: 0, dogFemale: 0, catMale: 0, catFemale: 0 }
         };
 
-        filteredOutbreaks.forEach(item => {
+        filteredOutbreaks.forEach((item: any) => {
             if (item.stats) {
-                ['owned', 'unowned', 'feeder'].forEach(type => {
+                (['owned', 'unowned', 'feeder'] as const).forEach(type => {
                     if (item.stats[type]) {
                         animalStats[type].dogMale += parseInt(item.stats[type].dog?.male) || 0;
                         animalStats[type].dogFemale += parseInt(item.stats[type].dog?.female) || 0;
@@ -1351,18 +1416,18 @@ export default function VeterinaryDashboard() {
     }, [filteredOutbreaks]);
     
     const outbreakYearlyTrend = useMemo(() => {
-        const stats = outbreakData.reduce((acc, curr) => { if (!curr.date) return acc; const year = curr.date.split('-')[0]; acc[year] = (acc[year] || 0) + 1; return acc; }, {});
+        const stats = outbreakData.reduce((acc: any, curr: any) => { if (!curr.date) return acc; const year = curr.date.split('-')[0]; acc[year] = (acc[year] || 0) + 1; return acc; }, {});
         return Object.keys(stats).sort().map(year => ({ name: year, count: stats[year] }));
     }, [outbreakData]);
 
     const outbreakPieData = useMemo(() => {
-        const grouped = filteredOutbreaks.reduce((acc, curr) => {
+        const grouped = filteredOutbreaks.reduce((acc: any, curr: any) => {
             const district = curr.district || 'ไม่ระบุ';
             if (!acc[district]) acc[district] = { name: district, value: 0 };
             acc[district].value += 1;
             return acc;
         }, {});
-        return Object.values(grouped).sort((a, b) => b.value - a.value).slice(0, 10);
+        return Object.values(grouped).sort((a: any, b: any) => b.value - a.value).slice(0, 10);
     }, [filteredOutbreaks]);
 
     return (
@@ -1507,8 +1572,8 @@ export default function VeterinaryDashboard() {
                                     <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
                                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
                                         {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
-                                        {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear) + 543}</span>}
-                                        {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth) - 1]}</span>}
+                                        {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear as string) + 543}</span>}
+                                        {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth as string) - 1]}</span>}
                                         {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
                                         {selectedDistrict !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-orange-100">{selectedDistrict}</span>}
                                     </div>
@@ -1541,7 +1606,7 @@ export default function VeterinaryDashboard() {
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ปี (Year)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                                         <option value="ทั้งหมด">-- เลือกปี --</option>
-                                        {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
+                                        {availableYears.map(y => <option key={y} value={y}>{parseInt(y as string) + 543}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -1661,7 +1726,7 @@ export default function VeterinaryDashboard() {
             </div>
 
             {(() => {
-                const checkMobileTabVisibility = (tabName) => {
+                const checkMobileTabVisibility = (tabName: string) => {
                     if (!user) return tabsConfig?.[`public_${tabName}`];
                     if (user.role === 'executive') return tabsConfig?.[`sa_${tabName}`];
                     

@@ -971,13 +971,13 @@ const DispatchCalendarDashboard = () => {
                                 {eventTypes.map(([type, count]) => {
                                     const isSelected = selectedType === type;
                                     const getIcon = (t) => {
-                                        if (t === 'ทุกประเภท') return '✨';
-                                        if (t.includes('วัคซีน')) return '💉';
-                                        if (t.includes('ทำหมัน')) return '✂️';
-                                        if (t.includes('ตรวจสุขภาพ')) return '🩺';
-                                        if (t.includes('รักษา')) return '💊';
-                                        if (t.includes('ประชุม')) return '💼';
-                                        return '📌';
+                                        if (t === 'ทุกประเภท') return ;
+                                        if (t.includes('วัคซีน')) return ;
+                                        if (t.includes('ทำหมัน')) return ;
+                                        if (t.includes('ตรวจสุขภาพ')) return ;
+                                        if (t.includes('รักษา')) return ;
+                                        if (t.includes('ประชุม')) return ;
+                                        return;
                                     };
                                     return (
                                         <button 
@@ -1137,26 +1137,26 @@ const DispatchCalendarDashboard = () => {
                                                     </div>
 
                                                     <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                                        <div className="text-[10px] font-bold text-slate-400 mb-0.5 flex items-center gap-1">🏷️ สถานที่ออกหน่วยเคลื่อนที่</div>
+                                                        <div className="text-[10px] font-bold text-slate-400 mb-0.5 flex items-center gap-1">สถานที่ออกหน่วยเคลื่อนที่</div>
                                                         <div className="text-xs font-medium text-slate-700">{evt.location || '-'}</div>
                                                     </div>
 
                                                     {(evt.lat || evt.lng) && (
                                                         <div className="bg-sky-50/50 p-2 rounded-lg border border-sky-100">
-                                                            <div className="text-[10px] font-bold text-sky-500 mb-0.5 flex items-center gap-1">📌 พิกัด GPS</div>
+                                                            <div className="text-[10px] font-bold text-sky-500 mb-0.5 flex items-center gap-1">พิกัด GPS</div>
                                                             <div className="text-xs font-mono text-slate-600">{evt.lat}, {evt.lng}</div>
                                                         </div>
                                                     )}
 
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                         <div className="bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
-                                                            <div className="text-[10px] font-bold text-indigo-400 mb-0.5 flex items-center gap-1">🧍‍♂️ สัตว์แพทย์ผู้นำทีม</div>
+                                                            <div className="text-[10px] font-bold text-indigo-400 mb-0.5 flex items-center gap-1">สัตว์แพทย์ผู้นำทีม</div>
                                                             <div className="text-xs font-bold text-indigo-900">{evt.team || '-'}</div>
                                                         </div>
                                                         
                                                         {(controllerName || phoneNum) && (
                                                             <div className="bg-rose-50/30 p-2 rounded-lg border border-rose-100">
-                                                                <div className="text-[10px] font-bold text-rose-400 mb-0.5 flex items-center gap-1">👩‍💼 ผู้ควบคุมและประสานงาน</div>
+                                                                <div className="text-[10px] font-bold text-rose-400 mb-0.5 flex items-center gap-1">ผู้ควบคุมและประสานงาน</div>
                                                                 <div className="text-xs font-bold text-rose-900">{controllerName || '-'}</div>
                                                                 {phoneNum && (
                                                                     <div className="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">

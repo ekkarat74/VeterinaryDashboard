@@ -1,7 +1,18 @@
 import React from 'react';
 import { Check, AlertCircle, Info, X } from 'lucide-react';
 
-const ToastContainer = ({ toasts, removeToast }) => {
+interface Toast {
+    id: string | number;
+    type: 'success' | 'error' | 'info';
+    message: string;
+}
+
+interface ToastContainerProps {
+    toasts: Toast[];
+    removeToast: (id: string | number) => void;
+}
+
+const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) => {
     return (
         <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
             {toasts.map((toast) => (

@@ -1,5 +1,4 @@
-// src/utils/helpers.js
-export const getUnitKey = (unitName) => {
+export const getUnitKey = (unitName: any): string => {
     if (!unitName) return 'other';
     const lower = String(unitName).toLowerCase();
     

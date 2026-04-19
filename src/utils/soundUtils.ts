@@ -1,13 +1,8 @@
-// src/utils/soundUtils.ts
-
-// ประกาศตัวแปรเก็บ AudioContext แบบ Singleton
 let globalAudioCtx: AudioContext | null = null;
 
 const getAudioContext = (): AudioContext | null => {
-    // ป้องกัน Error กรณีรันบน Server-Side Rendering (เช่น Next.js/Gatsby)
     if (typeof window === 'undefined') return null;
 
-    // รองรับ Safari (webkitAudioContext) และเบราว์เซอร์อื่นๆ
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return null;
 
@@ -15,8 +10,6 @@ const getAudioContext = (): AudioContext | null => {
         globalAudioCtx = new AudioContextClass();
     }
 
-    // เบราว์เซอร์มักจะระงับ (Suspend) เสียงจนกว่าผู้ใช้จะคลิกโต้ตอบกับเว็บ
-    // เราจึงต้องสั่ง resume() เมื่อมีการเรียกใช้
     if (globalAudioCtx.state === 'suspended') {
         globalAudioCtx.resume().catch(() => {});
     }
@@ -24,7 +17,6 @@ const getAudioContext = (): AudioContext | null => {
     return globalAudioCtx;
 };
 
-// กำหนด Type ของเสียงที่มีในระบบ
 export type SoundType = 'pop' | 'success' | 'delete' | 'switch';
 
 export const playSound = (type: SoundType): void => {
@@ -83,7 +75,6 @@ export const playSound = (type: SoundType): void => {
                 break;
         }
     } catch (error) {
-        // เปลี่ยนจากการปล่อยผ่านเงียบๆ เป็นแสดง Warning ใน Console ตอน Development
         console.warn('Audio playback failed:', error);
     }
 };
