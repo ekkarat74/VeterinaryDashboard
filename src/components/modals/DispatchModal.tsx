@@ -5,28 +5,92 @@ import {
 } from 'lucide-react';
 
 // ตรวจสอบ path ของ constants และ utils ให้ตรงกับโปรเจกต์ของคุณ
+// @ts-ignore (ใส่ไว้ชั่วคราวหากไฟล์เหล่านี้ยังไม่ใช่ TS)
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
+// @ts-ignore
 import { playSound } from '../../utils/soundUtils.js';
+
+// ==========================================
+// 0. Interfaces & Types (กำหนดรูปร่างของข้อมูล)
+// ==========================================
+
+export interface StaffState {
+  controllers: string[];
+  vets: string[];
+  registration: string[];
+  prep_catch: string[];
+  prep_shave: string[];
+  prep_lift: string[];
+  vaccine_staff: string[];
+  tattoo: string[];
+  surgery_assist: string[];
+  drivers: string[];
+  assistants: string[];
+}
+
+export interface GeneralInfo {
+  date: string;
+  endDate: string;
+  locationName: string;
+  district: string;
+  mapLink: string;
+  locationNameB: string;
+  districtB: string;
+  mapLinkB: string;
+  departureTime: string;
+  closingTime: string;
+  note: string;
+  controllerName: string;
+  controllerPhone: string;
+  status: string;
+}
+
+export interface EventData {
+  _id?: string;
+  date?: string;
+  time?: string;
+  departureTime?: string;
+  closingTime?: string;
+  staff?: Partial<StaffState>;
+  location?: string;
+  locationName?: string;
+  district?: string;
+  mapLink?: string;
+  originalData?: any;
+  unitType?: string;
+  customUnitName?: string;
+  unitLetter?: string;
+  unitColor?: string;
+  controllerName?: string;
+  controllerPhone?: string;
+  status?: string;
+  [key: string]: any; // สำหรับฟิลด์อื่นๆ ที่อาจมีในระบบ
+}
+
+export interface StaffMember {
+  name: string;
+  phone?: string;
+}
 
 // ==========================================
 // 1. Helper Functions สำหรับตรวจจับการทับซ้อนและคำนวณวัน
 // ==========================================
-const timeToMins = (timeStr) => {
+const timeToMins = (timeStr?: string): number => {
     if (!timeStr) return 0;
     const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
 };
 
-const isTimeOverlapping = (startA, endA, startB, endB) => {
+const isTimeOverlapping = (startA: number, endA: number, startB: number, endB: number): boolean => {
     return startA < endB && startB < endA;
 };
 
-export const checkStaffConflict = (newEventData, allExistingEvents) => {
-    const conflicts = new Set();
+export const checkStaffConflict = (newEventData: EventData, allExistingEvents: EventData[]) => {
+    const conflicts = new Set<string>();
     const newStart = timeToMins(newEventData.departureTime);
     const newEnd = timeToMins(newEventData.closingTime || '16:00');
     
-    const newEventStaffs = new Set();
+    const newEventStaffs = new Set<string>();
     if (newEventData.staff) {
         Object.values(newEventData.staff).forEach(roleArray => {
             if (Array.isArray(roleArray)) {
@@ -50,7 +114,7 @@ export const checkStaffConflict = (newEventData, allExistingEvents) => {
             Object.values(existing.staff || {}).forEach(roleArray => {
                 if (Array.isArray(roleArray)) {
                     roleArray.forEach(existingPerson => {
-                        if (existingPerson && newEventStaffs.has(existingPerson.trim())) {
+                        if (existingPerson && typeof existingPerson === 'string' && newEventStaffs.has(existingPerson.trim())) {
                             conflicts.add(existingPerson.trim());
                         }
                     });
@@ -65,8 +129,8 @@ export const checkStaffConflict = (newEventData, allExistingEvents) => {
     };
 };
 
-const getDatesInRange = (startDate, endDate) => {
-    const dates = [];
+const getDatesInRange = (startDate: string, endDate: string): string[] => {
+    const dates: string[] = [];
     let currDate = new Date(startDate);
     const lastDate = new Date(endDate);
     while (currDate <= lastDate) {
@@ -79,7 +143,24 @@ const getDatesInRange = (startDate, endDate) => {
 // ==========================================
 // 2. Component ย่อยสำหรับจัดการรายชื่อ
 // ==========================================
-const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, savedStaffList = [], conflictNames = [], allSelectedStaff = [], busyStaff = [] }) => (
+interface StaffInputGroupProps {
+  roleKey: keyof StaffState;
+  label: string;
+  staffList: string[];
+  onAdd: (roleKey: keyof StaffState) => void;
+  onRemove: (roleKey: keyof StaffState, index: number) => void;
+  onChange: (roleKey: keyof StaffState, index: number, value: string) => void;
+  icon?: React.ElementType;
+  savedStaffList?: StaffMember[];
+  conflictNames?: string[];
+  allSelectedStaff?: string[];
+  busyStaff?: string[];
+}
+
+const StaffInputGroup: React.FC<StaffInputGroupProps> = ({ 
+  roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, 
+  savedStaffList = [], conflictNames = [], allSelectedStaff = [], busyStaff = [] 
+}) => (
   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:border-indigo-300 hover:shadow-md transition-all duration-200 group/card">
     <div className="bg-slate-50/80 px-3 py-2.5 border-b border-slate-100 flex justify-between items-center group-hover/card:bg-indigo-50/30 transition-colors">
       <div className="flex items-center gap-2">
@@ -166,19 +247,32 @@ const StaffInputGroup = ({ roleKey, label, staffList, onAdd, onRemove, onChange,
 // ==========================================
 // 3. Main Component: DispatchModal
 // ==========================================
-const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList, allEvents = [] }) => {
+interface DispatchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
+  onSave?: (data: any, closeAfter?: boolean) => Promise<boolean> | boolean;
+  onDelete?: (id: string) => void;
+  initialData?: EventData | null;
+  savedStaffList?: StaffMember[];
+  allEvents?: EventData[];
+}
+
+const DispatchModal: React.FC<DispatchModalProps> = ({ 
+  isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList = [], allEvents = [] 
+}) => {
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
-  const formatDateLocal = (date) => {
+  const formatDateLocal = (date: Date): string => {
     return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   };
 
-  const [conflictNames, setConflictNames] = useState([]);
-  const [activeLocationField, setActiveLocationField] = useState(null);
+  const [conflictNames, setConflictNames] = useState<string[]>([]);
+  const [activeLocationField, setActiveLocationField] = useState<'A' | 'B' | null>(null);
 
   const locationHistory = useMemo(() => {
-    const locMap = new Map();
+    const locMap = new Map<string, { name: string, district: string, mapLink: string }>();
     allEvents.forEach(evt => {
         const locName = evt.location || evt.locationName || evt.originalData?.location; 
         if (locName && !locMap.has(locName)) {
@@ -214,15 +308,15 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     { value: 'bg-slate-400', label: 'สีเทา', emoji: '⚫' }
   ];
 
-  const [unitType, setUnitType] = useState('sterilization'); 
-  const [customUnitName, setCustomUnitName] = useState('');
-  const [unitLetter, setUnitLetter] = useState(''); 
-  const [unitColor, setUnitColor] = useState('bg-blue-500'); 
+  const [unitType, setUnitType] = useState<string>('sterilization'); 
+  const [customUnitName, setCustomUnitName] = useState<string>('');
+  const [unitLetter, setUnitLetter] = useState<string>(''); 
+  const [unitColor, setUnitColor] = useState<string>('bg-blue-500'); 
 
-  const [isSplitTeam, setIsSplitTeam] = useState(false);
-  const [activeDistrictField, setActiveDistrictField] = useState(null);
+  const [isSplitTeam, setIsSplitTeam] = useState<boolean>(false);
+  const [activeDistrictField, setActiveDistrictField] = useState<'A' | 'B' | null>(null);
 
-  const [generalInfo, setGeneralInfo] = useState({
+  const [generalInfo, setGeneralInfo] = useState<GeneralInfo>({
     date: new Date().toISOString().split('T')[0],
     endDate: '', 
     locationName: '', district: '', mapLink: '',
@@ -233,23 +327,23 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     status: 'auto'
   });
 
-  const [staff, setStaff] = useState({
+  const [staff, setStaff] = useState<StaffState>({
     controllers: [''], 
     vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], 
     vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
   });
 
-  const [isCopyMode, setIsCopyMode] = useState(false);
-  const [savedControllers, setSavedControllers] = useState([]);
+  const [isCopyMode, setIsCopyMode] = useState<boolean>(false);
+  const [savedControllers, setSavedControllers] = useState<StaffMember[]>([]);
   
-  const [isDirty, setIsDirty] = useState(false);
-  const isLoadedRef = useRef(false);
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const isLoadedRef = useRef<boolean>(false);
 
   const busyStaff = useMemo(() => {
     if (!generalInfo.date || !generalInfo.departureTime || !allEvents) return [];
     const currentStart = timeToMins(generalInfo.departureTime);
     const currentEnd = timeToMins(generalInfo.closingTime || '16:00');
-    const busy = new Set();
+    const busy = new Set<string>();
 
     allEvents.forEach(evt => {
         if (initialData && evt._id === initialData._id) return; 
@@ -262,7 +356,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
             Object.values(evt.staff || {}).forEach(roleArray => {
                 if (Array.isArray(roleArray)) {
                     roleArray.forEach(person => {
-                        if (person && person.trim() !== '') busy.add(person.trim());
+                        if (person && typeof person === 'string' && person.trim() !== '') busy.add(person.trim());
                     });
                 }
             });
@@ -275,7 +369,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     if (isOpen) {
         fetch(`${BASE_URL}/api/controllers`)
             .then(res => res.json())
-            .then(data => setSavedControllers(data))
+            .then((data: StaffMember[]) => setSavedControllers(data))
             .catch(err => console.error(err));
     }
   }, [isOpen]);
@@ -300,7 +394,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
         district: initialData.district || '',
         mapLink: initialData.mapLink || '',
         locationNameB: '', districtB: '', mapLinkB: '',
-        departureTime: initialData.time || '07:30',
+        departureTime: initialData.time || initialData.departureTime || '07:30',
         closingTime: initialData.closingTime || '12:00',
         note: initialData.note || '',
         controllerName: initialData.controllerName || ctrlParts[0] || '',
@@ -376,7 +470,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     }
   };
 
-  const handleStaffChange = (role, index, value) => {
+  const handleStaffChange = (role: keyof StaffState, index: number, value: string) => {
     const newRoleList = [...staff[role]];
     newRoleList[index] = value;
     setStaff({ ...staff, [role]: newRoleList });
@@ -386,12 +480,12 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
     }
   };
 
-  const addStaffField = (role) => {
+  const addStaffField = (role: keyof StaffState) => {
     playSound('pop');
     setStaff({ ...staff, [role]: [...staff[role], ''] });
   };
 
-  const removeStaffField = (role, index) => {
+  const removeStaffField = (role: keyof StaffState, index: number) => {
     playSound('pop');
     const newRoleList = [...staff[role]];
     newRoleList.splice(index, 1);
@@ -411,7 +505,7 @@ const DispatchModal = ({ isOpen, onClose, onToast, onSave, onDelete, initialData
       return;
     }
 
-    const formatStaffList = (list) => list.filter(s => s.trim()).join(', ') || '-';
+    const formatStaffList = (list: string[]) => list.filter(s => s.trim()).join(', ') || '-';
     const currentUnit = UNIT_OPTIONS.find(u => u.value === unitType);
     const currentColor = COLOR_OPTIONS.find(c => c.value === unitColor);
     
@@ -485,10 +579,10 @@ ${staffDetails}
         : [generalInfo.date];
 
     let hasConflict = false;
-    let allConflicts = new Set();
+    let allConflicts = new Set<string>();
 
     for (const targetDate of datesToSave) {
-        const checkingPayload = {
+        const checkingPayload: EventData = {
             _id: isCreatingNew ? undefined : initialData?._id,
             date: targetDate,
             departureTime: generalInfo.departureTime,
@@ -516,7 +610,7 @@ ${staffDetails}
     const displayTitle = unitType === 'other' && customUnitName.trim() !== ''
       ? customUnitName : currentUnitLabel;
     
-    const extractLatLng = (link) => {
+    const extractLatLng = (link: string) => {
         if (!link) return { lat: null, lng: null };
         try {
             const atMatch = link.match(/@([-\d.]+),([-\d.]+)/);
@@ -530,7 +624,7 @@ ${staffDetails}
     const coordsA = extractLatLng(generalInfo.mapLink);
     const coordsB = extractLatLng(generalInfo.mapLinkB);
 
-    const payloadsToSave = [];
+    const payloadsToSave: any[] = [];
 
     datesToSave.forEach(targetDate => {
         if (isSplitTeam) {
@@ -659,7 +753,7 @@ ${staffDetails}
                   <div className="relative">
                     <select 
                       value={unitType} 
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                         setUnitType(e.target.value);
                         if(e.target.value !== 'cat_cage') setIsSplitTeam(false);
                       }}
@@ -678,7 +772,7 @@ ${staffDetails}
                       placeholder="ระบุชื่อหน่วยงานเพิ่มเติม..."
                       className="mt-2.5 w-full p-2 border border-slate-200 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                       value={customUnitName}
-                      onChange={(e) => setCustomUnitName(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomUnitName(e.target.value)}
                     />
                   )}
 
@@ -705,7 +799,7 @@ ${staffDetails}
                       <div className="relative">
                         <select 
                           value={unitLetter} 
-                          onChange={(e) => setUnitLetter(e.target.value)}
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setUnitLetter(e.target.value)}
                           className="w-full pl-2 pr-6 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
                         >
                           <option value="">-</option>
@@ -742,7 +836,7 @@ ${staffDetails}
                   <div className="relative w-[127px]">
                     <select
                       value={generalInfo.status}
-                      onChange={(e) => setGeneralInfo({ ...generalInfo, status: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setGeneralInfo({ ...generalInfo, status: e.target.value })}
                       className={`w-full pl-2 pr-6 py-1 border rounded-md text-[11px] font-bold appearance-none transition-colors cursor-pointer outline-none
                         ${generalInfo.status === 'cancelled' ? 'bg-rose-50 border-rose-200 text-rose-700' : 
                           generalInfo.status === 'postponed' ? 'bg-orange-50 border-orange-200 text-orange-700' :
@@ -766,7 +860,7 @@ ${staffDetails}
                       type="date" 
                       className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                       value={generalInfo.date} 
-                      onChange={e => setGeneralInfo({ ...generalInfo, date: e.target.value })} 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, date: e.target.value })} 
                     />
                   </div>
                   {(!initialData || isCopyMode) && (
@@ -776,7 +870,7 @@ ${staffDetails}
                         type="date" min={generalInfo.date}
                         className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                         value={generalInfo.endDate || ''} 
-                        onChange={e => setGeneralInfo({ ...generalInfo, endDate: e.target.value })} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, endDate: e.target.value })} 
                       />
                     </div>
                   )}
@@ -799,21 +893,21 @@ ${staffDetails}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-500 mb-1 block flex items-center gap-1"><Clock className="w-3 h-3"/> เวลารถออก</label>
+                      <label className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1"><Clock className="w-3 h-3"/> เวลารถออก</label>
                       <input 
                         type="time" 
                         className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                         value={generalInfo.departureTime} 
-                        onChange={e => setGeneralInfo({ ...generalInfo, departureTime: e.target.value })} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, departureTime: e.target.value })} 
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-500 mb-1 block flex items-center gap-1"><Clock className="w-3 h-3"/> เวลาปิดหน่วย</label>
+                      <label className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1"><Clock className="w-3 h-3"/> เวลาปิดหน่วย</label>
                       <input 
                         type="time" 
                         className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                         value={generalInfo.closingTime} 
-                        onChange={e => setGeneralInfo({ ...generalInfo, closingTime: e.target.value })} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, closingTime: e.target.value })} 
                       />
                     </div>
                   </div>
@@ -827,7 +921,7 @@ ${staffDetails}
               
               {/* Card: สถานที่ */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-0 opacity-50"></div>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full opacity-50"></div>
                 <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 mb-4 relative z-10">
                   <MapPin className="w-4 h-4 text-rose-500" /> รายละเอียดสถานที่ (Location)
                 </h4>
@@ -842,7 +936,7 @@ ${staffDetails}
                         placeholder="ระบุชื่อวัด, ชุมชน, หรือสถานที่..." 
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                         value={generalInfo.locationName} 
-                        onChange={e => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             setGeneralInfo({ ...generalInfo, locationName: e.target.value });
                             setActiveLocationField('A');
                         }}
@@ -888,7 +982,7 @@ ${staffDetails}
                         placeholder="พิมพ์ค้นหาเขต..." 
                         className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                         value={generalInfo.district} 
-                        onChange={e => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           setGeneralInfo({ ...generalInfo, district: e.target.value });
                           setActiveDistrictField('A');
                         }}
@@ -897,8 +991,8 @@ ${staffDetails}
                       />
                       {activeDistrictField === 'A' && (
                         <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto custom-scrollbar">
-                          {BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.district)).length > 0 ? (
-                            BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.district)).map(d => (
+                          {BANGKOK_DISTRICTS.filter((d: string) => d.includes(generalInfo.district)).length > 0 ? (
+                            BANGKOK_DISTRICTS.filter((d: string) => d.includes(generalInfo.district)).map((d: string) => (
                               <div key={d} className="px-3 py-2 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
                                 onClick={() => { setGeneralInfo({ ...generalInfo, district: d }); setActiveDistrictField(null); }}
                               >
@@ -920,7 +1014,7 @@ ${staffDetails}
                           type="text" placeholder="http://googleusercontent.com/maps..." 
                           className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                           value={generalInfo.mapLink} 
-                          onChange={e => setGeneralInfo({ ...generalInfo, mapLink: e.target.value })} 
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, mapLink: e.target.value })} 
                         />
                       </div>
                     </div>
@@ -937,7 +1031,7 @@ ${staffDetails}
                             placeholder="ระบุชื่อวัด, ชุมชน, หรือสถานที่..." 
                             className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                             value={generalInfo.locationNameB} 
-                            onChange={e => {
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                 setGeneralInfo({ ...generalInfo, locationNameB: e.target.value });
                                 setActiveLocationField('B');
                             }}
@@ -976,7 +1070,7 @@ ${staffDetails}
                             type="text" placeholder="พิมพ์ค้นหาเขต..." 
                             className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                             value={generalInfo.districtB} 
-                            onChange={e => {
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                               setGeneralInfo({ ...generalInfo, districtB: e.target.value });
                               setActiveDistrictField('B');
                             }}
@@ -985,8 +1079,8 @@ ${staffDetails}
                           />
                           {activeDistrictField === 'B' && (
                             <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto custom-scrollbar">
-                              {BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.districtB)).length > 0 && (
-                                BANGKOK_DISTRICTS.filter(d => d.includes(generalInfo.districtB)).map(d => (
+                              {BANGKOK_DISTRICTS.filter((d: string) => d.includes(generalInfo.districtB)).length > 0 && (
+                                BANGKOK_DISTRICTS.filter((d: string) => d.includes(generalInfo.districtB)).map((d: string) => (
                                   <div key={d} className="px-3 py-2 text-xs text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
                                     onClick={() => { setGeneralInfo({ ...generalInfo, districtB: d }); setActiveDistrictField(null); }}
                                   >
@@ -1006,7 +1100,7 @@ ${staffDetails}
                               type="text" placeholder="http://googleusercontent.com/maps..." 
                               className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                               value={generalInfo.mapLinkB} 
-                              onChange={e => setGeneralInfo({ ...generalInfo, mapLinkB: e.target.value })} 
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, mapLinkB: e.target.value })} 
                             />
                           </div>
                         </div>
@@ -1017,11 +1111,11 @@ ${staffDetails}
                   <div className="pt-1">
                     <label className="block text-[11px] font-bold text-slate-500 mb-1">หมายเหตุ / รายละเอียดเพิ่มเติม</label>
                     <textarea 
-                      rows="2" 
+                      rows={2} 
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none resize-none transition-all"
                       placeholder="เช่น จุดจอดรถ, รายละเอียดชุมชน..."
                       value={generalInfo.note} 
-                      onChange={e => setGeneralInfo({ ...generalInfo, note: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setGeneralInfo({ ...generalInfo, note: e.target.value })}
                     />
                   </div>
                 </div>
@@ -1041,13 +1135,13 @@ ${staffDetails}
                       placeholder="ระบุหรือเลือกชื่อผู้ควบคุม..." 
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                       value={generalInfo.controllerName} 
-                      onChange={e => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const val = e.target.value;
                         const selected = savedControllers.find(c => c.name === val);
                         setGeneralInfo({ 
                           ...generalInfo, 
                           controllerName: val,
-                          controllerPhone: selected ? selected.phone : generalInfo.controllerPhone 
+                          controllerPhone: selected ? selected.phone || '' : generalInfo.controllerPhone 
                         });
                       }} 
                     />
@@ -1062,7 +1156,7 @@ ${staffDetails}
                       placeholder="08X-XXX-XXXX" 
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
                       value={generalInfo.controllerPhone} 
-                      onChange={e => setGeneralInfo({ ...generalInfo, controllerPhone: e.target.value })} 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, controllerPhone: e.target.value })} 
                     />
                   </div>
                 </div>
@@ -1119,7 +1213,7 @@ ${staffDetails}
           <div className="flex w-full sm:w-auto gap-2.5">
             {initialData && onDelete && !isCopyMode && (
               <button 
-                onClick={() => { playSound('delete'); onDelete(initialData._id); }} 
+                onClick={() => { playSound('delete'); onDelete(initialData._id as string); }} 
                 className="flex-1 sm:flex-none px-3 py-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors border border-transparent hover:border-rose-200"
               >
                 <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">ลบงานนี้</span>
