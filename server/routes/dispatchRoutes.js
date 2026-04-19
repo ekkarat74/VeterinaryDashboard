@@ -47,13 +47,25 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
     // POST: สร้างแผนออกหน่วยใหม่
     router.post('/', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin', 'admin']), async (req, res) => {
         try {
-            const newPlan = new DispatchPlan({ ...req.body, createdBy: req.user.username });
-            const savedPlan = await newPlan.save();
+            // เช็คว่า Payload ที่ส่งมาเป็น Array (หลายวัน/หลายทีม) หรือไม่
+            if (Array.isArray(req.body)) {
+                const plansToInsert = req.body.map(plan => ({ ...plan, createdBy: req.user.username }));
+                const savedPlans = await DispatchPlan.insertMany(plansToInsert);
 
-            await createLog(req, 'CREATE_DISPATCH', `สร้างแผนออกหน่วย: ${savedPlan.location}`);
-            io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedPlan });
+                await createLog(req, 'CREATE_DISPATCH_BULK', `สร้างแผนออกหน่วยหลายรายการ จำนวน ${savedPlans.length} งาน`);
+                io.emit('server_data_update', { type: 'DISPATCH_ADDED_BULK', data: savedPlans });
 
-            res.status(201).json(savedPlan);
+                return res.status(201).json(savedPlans);
+            } else {
+                // กรณีสร้างแค่วันเดียวตามปกติ
+                const newPlan = new DispatchPlan({ ...req.body, createdBy: req.user.username });
+                const savedPlan = await newPlan.save();
+
+                await createLog(req, 'CREATE_DISPATCH', `สร้างแผนออกหน่วย: ${savedPlan.location}`);
+                io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedPlan });
+
+                return res.status(201).json(savedPlan);
+            }
         } catch (err) {
             res.status(400).json({ message: err.message });
         }
@@ -87,7 +99,5 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
             res.status(500).json({ message: err.message });
         }
     });
-
     return router;
-    
 };

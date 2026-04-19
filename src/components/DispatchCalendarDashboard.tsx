@@ -624,29 +624,43 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const handleSaveDispatchEvent = async (payload) => {
+    const handleSaveDispatchEvent = async (payload, shouldClose = true) => {
         try {
-            const method = payload._id ? 'PUT' : 'POST';
-            const url = payload._id ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
+            // ตรวจสอบว่าเป็นการอัปเดต (มี _id และไม่ใช่ Array) หรือการสร้างใหม่
+            const isUpdate = !Array.isArray(payload) && payload._id;
+            const method = isUpdate ? 'PUT' : 'POST';
+            const url = isUpdate ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
+            
             const res = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
                 body: JSON.stringify(payload)
             });
+            
             if (res.ok) {
                 playSound('success');
-                addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
-                setIsDispatchModalOpen(false);
+                addToast('success', isUpdate ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
+                
+                // ปิด Modal เฉพาะเมื่อ shouldClose เป็น true
+                if (shouldClose) {
+                    setIsDispatchModalOpen(false);
+                }
+                
+                // Refresh Data
                 const fetchRes = await fetch(`${BASE_URL}/api/dispatches`);
                 const data = await fetchRes.json();
                 const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
                 setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
+                
+                return true; // คืนค่าเพื่อบอกว่าสำเร็จ
             } else {
                 const err = await res.json();
                 addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
+                return false;
             }
         } catch (error) {
             addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            return false;
         }
     };
 
