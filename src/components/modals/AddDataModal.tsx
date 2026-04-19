@@ -1,51 +1,139 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, FormEvent } from 'react';
 import { 
   Edit, Plus, X, FileText, Trash2, 
   Syringe, Scissors, Database, Stethoscope, 
   Activity, Save, MapPin, Edit2, Check, Settings2, Search, Loader2, CalendarDays
 } from 'lucide-react';
 
+// สมมติว่าไฟล์นี้มีการ export ตัวแปรเหล่านี้เป็น string[] และ Record<string, string[]>
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
 
-const defaultFormData = {
+// ==============================
+// 1. กำหนด Interfaces & Types
+// ==============================
+
+interface BreakdownStats {
+  vaccine: string | number;
+  medical: string | number;
+  maleSterilize?: string | number;
+  femaleSterilize?: string | number;
+  register?: string | number;
+  microchip?: string | number;
+}
+
+interface Breakdown {
+  dog: BreakdownStats;
+  cat: BreakdownStats;
+  other: BreakdownStats;
+}
+
+interface FormDataState {
+  date: string;
+  location: string;
+  district: string;
+  subdistrict: string;
+  unit: string;
+  otherUnit: string;
+  lat: string | number;
+  long: string | number;
+  mapLink: string;
+}
+
+interface CustomUnit {
+  _id: string;
+  name: string;
+}
+
+interface DispatchType {
+  _id: string;
+  title?: string;
+  location: string;
+  district?: string;
+  lat?: number;
+  lng?: number;
+  mapLink?: string;
+  date: string;
+  time: string;
+  closingTime?: string;
+  team?: string;
+  controllerName?: string;
+  controllerPhone?: string;
+  staff?: { controllers?: string[] };
+  services?: string[];
+  note?: string;
+}
+
+// Type สำหรับ Props ที่ Component นี้รับเข้ามา
+interface AddDataModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (payload: any) => Promise<void>; 
+  onUpdate: (id: string, payload: any) => Promise<void>;
+  initialData?: any; // ถ้ามี Interface ของ Initial Data สามารถเปลี่ยนจาก any ได้
+  onToast?: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
+}
+
+// ==============================
+// 2. ค่าเริ่มต้น (Default Values)
+// ==============================
+
+const defaultFormData: FormDataState = {
   date: new Date().toISOString().split('T')[0],
   location: '',
-  district: BANGKOK_DISTRICTS[0],
+  district: BANGKOK_DISTRICTS[0] || '',
   subdistrict: '',
-  unit: UNIT_TYPES[0],
+  unit: UNIT_TYPES[0] || '',
   otherUnit: '',
   lat: '',
   long: '',
   mapLink: ''
 };
 
-const defaultBreakdown = {
+const defaultBreakdown: Breakdown = {
   dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
   cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
   other: { vaccine: '', medical: '' }
 };
 
-const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast }) => {
-  const [formData, setFormData] = useState(defaultFormData);
-  const [breakdown, setBreakdown] = useState(defaultBreakdown);
-  const [coordInput, setCoordInput] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+// ==============================
+// 3. Component
+// ==============================
 
-  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+const AddDataModal: React.FC<AddDataModalProps> = ({ 
+  isOpen, onClose, onSave, onUpdate, initialData, onToast 
+}) => {
+  // --- States ---
+  const [formData, setFormData] = useState<FormDataState>(defaultFormData);
+  const [breakdown, setBreakdown] = useState<Breakdown>(defaultBreakdown);
+  const [coordInput, setCoordInput] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const [customUnitsObj, setCustomUnitsObj] = useState([]);
-  const [isManagingUnits, setIsManagingUnits] = useState(false); 
-  const [editingUnitId, setEditingUnitId] = useState(null);
-  const [editingUnitName, setEditingUnitName] = useState("");
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState<boolean>(false);
 
-  const [foundDispatch, setFoundDispatch] = useState(null);
-  const [allDispatches, setAllDispatches] = useState([]);
+  const [customUnitsObj, setCustomUnitsObj] = useState<CustomUnit[]>([]);
+  const [isManagingUnits, setIsManagingUnits] = useState<boolean>(false); 
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
+  const [editingUnitName, setEditingUnitName] = useState<string>("");
+
+  const [foundDispatch, setFoundDispatch] = useState<DispatchType | null>(null);
+  const [allDispatches, setAllDispatches] = useState<DispatchType[]>([]);
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
-  const getUserToken = () => JSON.parse(localStorage.getItem('vet_user'))?.token || '';
+  
+  const getUserToken = (): string => {
+    const user = localStorage.getItem('vet_user');
+    if (user) {
+      try {
+        return JSON.parse(user).token || '';
+      } catch (e) {
+        return '';
+      }
+    }
+    return '';
+  };
 
   const allUnitOptions = useMemo(() => {
     const baseUnits = UNIT_TYPES.filter(u => u !== 'หน่วยอื่น ๆ');
@@ -67,7 +155,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
       if (dispatchRes.ok) {
         const dData = await dispatchRes.json();
-        setAllDispatches(dData);
+        setAllDispatches(Array.isArray(dData) ? dData : []);
       }
     } catch (error) {
       console.error("Fetch data error", error);
@@ -91,6 +179,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
   useEffect(() => {
     if (isOpen && initialData) {
       setFormData({
+        ...defaultFormData,
         ...initialData,
         unit: allUnitOptions.includes(initialData.unit) ? initialData.unit : 'หน่วยอื่น ๆ',
         otherUnit: !allUnitOptions.includes(initialData.unit) ? initialData.unit : ''
@@ -106,8 +195,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
   }, [allDispatches, formData.date]);
 
-  // ✅ เปลี่ยนชื่อฟังก์ชันและหน้าที่ เป็นแค่การดึงข้อมูลลงฟอร์ม
-  const handleUseDispatchData = (dispatch) => {
+  const handleUseDispatchData = (dispatch: DispatchType) => {
     const newLat = dispatch.lat || formData.lat;
     const newLng = dispatch.lng || formData.long;
 
@@ -141,7 +229,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     }
   };
 
-  const handleDeleteUnit = async (id, name) => {
+  const handleDeleteUnit = async (id: string, name: string) => {
     if (!window.confirm(`ยืนยันลบหน่วย: ${name}?`)) return;
     try {
       const res = await fetch(`${BASE_URL}/api/custom-units/${id}`, {
@@ -152,10 +240,12 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         if (onToast) onToast('success', 'ลบหน่วยงานสำเร็จ');
         fetchData();
       }
-    } catch (err) { if (onToast) onToast('error', 'ลบไม่สำเร็จ'); }
+    } catch (err) { 
+      if (onToast) onToast('error', 'ลบไม่สำเร็จ'); 
+    }
   };
 
-  const handleUpdateUnitName = async (id) => {
+  const handleUpdateUnitName = async (id: string) => {
     if (!editingUnitName.trim()) return;
     try {
       const res = await fetch(`${BASE_URL}/api/custom-units/${id}`, {
@@ -168,11 +258,13 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
         setEditingUnitId(null);
         fetchData();
       }
-    } catch (err) { if (onToast) onToast('error', 'แก้ไขไม่สำเร็จ'); }
+    } catch (err) { 
+      if (onToast) onToast('error', 'แก้ไขไม่สำเร็จ'); 
+    }
   };
 
   const totals = useMemo(() => {
-    const parse = (val) => parseInt(val) || 0;
+    const parse = (val: string | number | undefined) => parseInt(String(val)) || 0;
     const { dog, cat, other } = breakdown;
     return {
       vaccine: parse(dog.vaccine) + parse(cat.vaccine) + parse(other.vaccine),
@@ -183,7 +275,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
     };
   }, [breakdown]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -201,7 +293,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
           const data = await res.json();
           const reportsOnDate = Array.isArray(data) ? data : (data.data || []);
           
-          const isDuplicate = reportsOnDate.some(report => 
+          const isDuplicate = reportsOnDate.some((report: any) => 
             report.location.trim().toLowerCase() === formData.location.trim().toLowerCase()
           );
 
@@ -226,8 +318,8 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
       unit: finalUnit,
       stats: totals,
       details: breakdown,
-      lat: parseFloat(formData.lat) || 0,
-      long: parseFloat(formData.long) || 0,
+      lat: parseFloat(String(formData.lat)) || 0,
+      long: parseFloat(String(formData.long)) || 0,
       imageUrl: imagePreview
     };
 
@@ -347,7 +439,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                 <div className="md:col-span-4">
                   <label className={labelClass}>เขต</label>
                   <div className="relative">
-                    <input type="text" className={inputClass} placeholder="พิมพ์เพื่อค้นหาเขต..."value={formData.district} 
+                    <input type="text" className={inputClass} placeholder="พิมพ์เพื่อค้นหาเขต..." value={formData.district} 
                       onChange={e => {
                         setFormData({...formData, district: e.target.value, subdistrict: ''});
                         setShowDistrictDropdown(true);
@@ -385,7 +477,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   <label className={labelClass}>แขวง</label>
                   <select className={inputClass} value={formData.subdistrict} onChange={e => setFormData({...formData, subdistrict: e.target.value})} disabled={isSubmitting}>
                     <option value="">-- เลือกแขวง --</option>
-                    {formData.district && BANGKOK_SUBDISTRICTS[formData.district]?.map(s => <option key={s} value={s}>{s}</option>)}
+                    {formData.district && BANGKOK_SUBDISTRICTS[formData.district as keyof typeof BANGKOK_SUBDISTRICTS]?.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
 
@@ -413,7 +505,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </div>
                 </div>
 
-                {/* ✅ การแสดงการ์ดรายการแผนออกหน่วย */}
+                {/* การแสดงการ์ดรายการแผนออกหน่วย */}
                 {dispatchesOnSelectedDate.length > 0 && !initialData && (
                   <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
                     <label className="flex items-center gap-2 text-xs font-bold text-slate-700 mb-3">
@@ -445,7 +537,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                           <button 
                             type="button"
                             disabled={isSubmitting}
-                            onClick={() => setFoundDispatch(dispatch)} // ✅ เปลี่ยนเป็นโชว์กล่องรายละเอียดแทน
+                            onClick={() => setFoundDispatch(dispatch)} 
                             className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-bold rounded-lg transition-colors border border-indigo-100 disabled:opacity-50"
                           >
                             ดูข้อมูล
@@ -459,7 +551,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
               </div>
             </div>
 
-            {/* ✅ กล่องแสดงรายละเอียดที่เลือกดู */}
+            {/* กล่องแสดงรายละเอียดที่เลือกดู */}
             {foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
                 <div className="flex justify-between items-start mb-3">
@@ -476,7 +568,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                   </button>
                 </div>
                 
-                {/* คำนวณเบอร์โทรและชื่อผู้ควบคุมตามลอจิกของ Dashboard */}
                 {(() => {
                   let phoneNum = foundDispatch.controllerPhone;
                   let controllerName = foundDispatch.controllerName; 
@@ -488,7 +579,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
 
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
-                      {/* ส่วนที่เพิ่มมาใหม่: ชื่อกิจกรรมและทีม */}
                       {foundDispatch.title && (
                         <div className="sm:col-span-2">
                           <span className="font-bold text-slate-500">กิจกรรม:</span> <span className="font-bold text-indigo-700">{foundDispatch.title}</span>
@@ -500,7 +590,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                       <div><span className="font-bold text-slate-500">เขต:</span> {foundDispatch.district || '-'}</div>
                       <div><span className="font-bold text-slate-500">เวลาปฏิบัติงาน:</span> {foundDispatch.time} - {foundDispatch.closingTime || 'ไม่ระบุ'}</div>
                       
-                      {/* ส่วนที่เพิ่มมาใหม่: ทีมและผู้ประสานงาน */}
                       {foundDispatch.team && (
                         <div><span className="font-bold text-slate-500">ทีมปฏิบัติการ:</span> {foundDispatch.team}</div>
                       )}
@@ -511,7 +600,6 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                         </div>
                       )}
 
-                      {/* ส่วนที่เพิ่มมาใหม่: บริการที่มี */}
                       {foundDispatch.services && foundDispatch.services.length > 0 && (
                         <div className="sm:col-span-2 flex flex-wrap gap-1.5 items-center mt-1">
                           <span className="font-bold text-slate-500">บริการ:</span>
@@ -556,7 +644,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     <Syringe className="w-4 h-4" /> ฉีดวัคซีน
                   </div>
                   <div className="p-4 grid grid-cols-3 gap-3">
-                    {['dog', 'cat', 'other'].map(t => (
+                    {(['dog', 'cat', 'other'] as const).map(t => (
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].vaccine} 
@@ -573,7 +661,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     <Scissors className="w-4 h-4" /> ผ่าตัดทำหมัน
                   </div>
                   <div className="p-4 grid grid-cols-2 gap-4">
-                    {['dog', 'cat'].map(t => (
+                    {(['dog', 'cat'] as const).map(t => (
                       <div key={t} className="space-y-2">
                         <label className="text-[10px] text-slate-500 uppercase font-bold block">{t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}</label>
                         <div className="flex gap-2">
@@ -595,7 +683,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     <Database className="w-4 h-4" /> ฝังไมโครชิป
                   </div>
                   <div className="p-4 grid grid-cols-2 gap-4">
-                    {['dog', 'cat'].map(t => (
+                    {(['dog', 'cat'] as const).map(t => (
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].microchip} 
@@ -612,7 +700,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     <FileText className="w-4 h-4" /> จดทะเบียนสัตว์
                   </div>
                   <div className="p-4 grid grid-cols-2 gap-4">
-                    {['dog', 'cat'].map(t => (
+                    {(['dog', 'cat'] as const).map(t => (
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : 'แมว'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].register} 
@@ -629,7 +717,7 @@ const AddDataModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast 
                     <Stethoscope className="w-4 h-4" /> รักษาสัตว์
                   </div>
                   <div className="p-4 grid grid-cols-3 gap-3">
-                    {['dog', 'cat', 'other'].map(t => (
+                    {(['dog', 'cat', 'other'] as const).map(t => (
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
                         <input type="number" min="0" placeholder="0" className="w-full p-2 border border-slate-200 rounded-lg text-center" value={breakdown[t].medical} 
