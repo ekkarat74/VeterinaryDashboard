@@ -3,15 +3,90 @@ import {
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus
 } from 'lucide-react';
-import DispatchModal from './modals/DispatchModal.js'; 
-import LoginModal from './modals/LoginModal.js';
-import ToastContainer from '../path/to/ToastContainer.js'; // ตรวจสอบ path ให้ตรงกับโปรเจกต์ของคุณ
+// สมมติว่าคุณจะเปลี่ยนไฟล์เหล่านี้เป็น TSX ด้วยในอนาคต
+import DispatchModal from './modals/DispatchModal'; 
+import LoginModal from './modals/LoginModal';
+import ToastContainer from '../path/to/ToastContainer'; 
 
 // นำเข้าฟังก์ชันระบบเสียง
-import { playSound } from '../utils/soundUtils.js';
+import { playSound } from '../utils/soundUtils';
 
-// --- 1. เพิ่ม React.memo ให้ StatCard ป้องกันการ Re-render ซ้ำซ้อน ---
-const StatCard = React.memo(({ label, value, colorClass, bgClass, icon: Icon }) => (
+// ==========================================
+// 📌 Interfaces & Types (ประกาศโครงสร้างข้อมูล)
+// ==========================================
+
+export interface User {
+    username: string;
+    role: string;
+    token: string;
+    [key: string]: any; // เผื่อมีฟิลด์อื่นๆ เพิ่มเติม
+}
+
+export interface ControllerData {
+    _id?: string;
+    name: string;
+    phone?: string;
+}
+
+export interface StaffData {
+    _id?: string;
+    name: string;
+    controllers?: string[];
+}
+
+export interface EventData {
+    _id?: string;
+    title?: string;
+    type?: string;
+    date: string; // YYYY-MM-DD
+    time?: string; // HH:mm
+    closingTime?: string; // HH:mm
+    location?: string;
+    district?: string;
+    lat?: number | string;
+    lng?: number | string;
+    team?: string;
+    status?: 'cancelled' | 'postponed' | 'completed' | string;
+    isVisibleToPublic?: boolean;
+    unitColor?: string;
+    controllerName?: string;
+    controllerPhone?: string;
+    services?: string[];
+    details?: string;
+    description?: string;
+    mapLink?: string;
+    staff?: StaffData;
+    originalData?: any;
+    unit?: string;
+    unitName?: string;
+}
+
+export interface Announcement {
+    id: number;
+    icon: string;
+    text: string;
+    isActive: boolean;
+}
+
+export interface ToastMessage {
+    id: number;
+    type: 'success' | 'error' | 'info' | 'warning';
+    message: string;
+}
+
+// ==========================================
+// 1. Shared Components & Utils
+// ==========================================
+
+interface StatCardProps {
+    label: string;
+    value: string | number;
+    colorClass: string;
+    bgClass: string;
+    icon?: React.ElementType;
+}
+
+const StatCard: React.FC<StatCardProps> = React.memo(({ label, value, colorClass, bgClass, icon: Icon }) => (
     <div className="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:shadow-md transition-all duration-300">
         <div>
             <div className="text-slate-500 text-[10px] sm:text-[11px] font-bold mb-1">{label}</div>
@@ -23,18 +98,17 @@ const StatCard = React.memo(({ label, value, colorClass, bgClass, icon: Icon }) 
     </div>
 ));
 
-// --- 2. ย้าย toLocalISOString ออกมาด้านนอก ---
-const toLocalISOString = (date) => {
+const toLocalISOString = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
 
-// --- 3. ย้าย getEventStyles ออกมาด้านนอก ไม่ต้องประกาศ Object สีใหม่ทุกครั้งที่ Render ---
-const getEventStyles = (evt) => {
+const getEventStyles = (evt: EventData): { border: string, bg: string, text: string, dot: string } => {
     if (evt.type === 'meeting') return { border: 'border-l-teal-400', bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-400' };
-    const colorMap = {
+    
+    const colorMap: Record<string, { border: string, bg: string, text: string, dot: string }> = {
         'bg-red-500': { border: 'border-l-rose-400', bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-400' },
         'bg-blue-500': { border: 'border-l-blue-400', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-400' },
         'bg-green-500': { border: 'border-l-emerald-400', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400' },
@@ -45,13 +119,37 @@ const getEventStyles = (evt) => {
         'bg-slate-400': { border: 'border-l-slate-400', bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400' },
         'default': { border: 'border-l-indigo-400', bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-400' }
     };
-    return colorMap[evt.unitColor] || colorMap['default'];
+    return colorMap[evt.unitColor || ''] || colorMap['default'];
 };
 
-// --- 4. สร้าง Component นาฬิกาแยกออกมา (สำคัญมาก) ---
-// ป้องกันไม่ให้ Dashboard ทั้งหน้าต้อง Re-render ทุกๆ 1 วินาที
-const RealTimeClock = React.memo(() => {
-    const [realTime, setRealTime] = useState(new Date());
+const getDispatchStatus = (evt: EventData): { text: string, badge: string } | null => {
+    if (!evt || !evt.date || !evt.time) return null;
+    if (evt.status === 'cancelled') return { text: 'ยกเลิก', badge: 'bg-rose-100 text-rose-700 border-rose-200' };
+    if (evt.status === 'postponed') return { text: 'เลื่อน', badge: 'bg-orange-100 text-orange-700 border-orange-200' };
+    if (evt.status === 'completed') return { text: 'เสร็จสิ้น (Manual)', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+
+    const closeTime = evt.closingTime || '16:00'; 
+    const now = new Date();
+    const start = new Date(`${evt.date}T${evt.time}:00`);
+    const end = new Date(`${evt.date}T${closeTime}:00`);
+    const thirtyMins = 30 * 60 * 1000; 
+
+    if (now < new Date(start.getTime() - thirtyMins)) return { text: 'รอปฏิบัติงาน', badge: 'bg-slate-100 text-slate-600 border-slate-200/60' };
+    else if (now >= new Date(start.getTime() - thirtyMins) && now < start) return { text: 'เตรียมพร้อม', badge: 'bg-amber-100 text-amber-700 border-amber-200' };
+    else if (now >= start && now < new Date(end.getTime() - thirtyMins)) return { text: 'กำลังดำเนินงาน', badge: 'bg-blue-100 text-blue-700 border-blue-200' };
+    else return { text: 'สิ้นสุดปฏิบัติงาน', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+};
+
+const getBaseType = (title?: string, type?: string): string => {
+    let t = title || (type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย');
+    if (t === 'นัดหมายประชุม') return t;
+    t = t.replace(/\s*\(.*?\)/g, '');
+    t = t.replace(/\s+(ทีม|สาย)?\s*[A-Za-zก-ฮ0-9]$/i, '');
+    return t.trim() || 'ออกหน่วย';
+};
+
+const RealTimeClock: React.FC = React.memo(() => {
+    const [realTime, setRealTime] = useState<Date>(new Date());
     useEffect(() => {
         const timer = setInterval(() => setRealTime(new Date()), 1000);
         return () => clearInterval(timer);
@@ -64,9 +162,13 @@ const RealTimeClock = React.memo(() => {
     );
 });
 
-// วางไว้ด้านบนใกล้ๆ กับ RealTimeClock
-const TimelineCurrentTimeLine = React.memo(({ startHour, endHour }) => {
-    const [position, setPosition] = useState(0);
+interface TimelineLineProps {
+    startHour: number;
+    endHour: number;
+}
+
+const TimelineCurrentTimeLine: React.FC<TimelineLineProps> = React.memo(({ startHour, endHour }) => {
+    const [position, setPosition] = useState<number>(0);
 
     useEffect(() => {
         const updatePosition = () => {
@@ -87,7 +189,6 @@ const TimelineCurrentTimeLine = React.memo(({ startHour, endHour }) => {
         return () => clearInterval(timer);
     }, [startHour, endHour]);
 
-    // แสดงเฉพาะเมื่อเวลาอยู่ในช่วงที่กำหนด
     if (position === 0 || position === 100) return null;
 
     return (
@@ -101,42 +202,18 @@ const TimelineCurrentTimeLine = React.memo(({ startHour, endHour }) => {
 });
 
 // ==========================================
-// 1. Shared Components
-// ==========================================
-
-
-const getDispatchStatus = (evt) => {
-    if (!evt || !evt.date || !evt.time) return null;
-    if (evt.status === 'cancelled') return { text: 'ยกเลิก', badge: 'bg-rose-100 text-rose-700 border-rose-200' };
-    if (evt.status === 'postponed') return { text: 'เลื่อน', badge: 'bg-orange-100 text-orange-700 border-orange-200' };
-    if (evt.status === 'completed') return { text: 'เสร็จสิ้น (Manual)', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-
-    const closeTime = evt.closingTime || '16:00'; 
-    const now = new Date();
-    const start = new Date(`${evt.date}T${evt.time}:00`);
-    const end = new Date(`${evt.date}T${closeTime}:00`);
-    const thirtyMins = 30 * 60 * 1000; 
-
-    if (now < new Date(start.getTime() - thirtyMins)) return { text: 'รอปฏิบัติงาน', badge: 'bg-slate-100 text-slate-600 border-slate-200/60' };
-    else if (now >= new Date(start.getTime() - thirtyMins) && now < start) return { text: 'เตรียมพร้อม', badge: 'bg-amber-100 text-amber-700 border-amber-200' };
-    else if (now >= start && now < new Date(end.getTime() - thirtyMins)) return { text: 'กำลังดำเนินงาน', badge: 'bg-blue-100 text-blue-700 border-blue-200' };
-    else return { text: 'สิ้นสุดปฏิบัติงาน', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-};
-
-const getBaseType = (title, type) => {
-    let t = title || (type === 'meeting' ? 'นัดหมายประชุม' : 'ออกหน่วย');
-    if (t === 'นัดหมายประชุม') return t;
-    t = t.replace(/\s*\(.*?\)/g, '');
-    t = t.replace(/\s+(ทีม|สาย)?\s*[A-Za-zก-ฮ0-9]$/i, '');
-    return t.trim() || 'ออกหน่วย';
-};
-
-// ==========================================
 // 2. Announcement Components
 // ==========================================
-const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
+
+interface AnnouncementBarProps {
+    announcements: Announcement[];
+    onEditClick: () => void;
+    canEdit: boolean | null;
+}
+
+const AnnouncementBar: React.FC<AnnouncementBarProps> = ({ announcements, onEditClick, canEdit }) => {
     const activeAnnouncements = announcements.filter(a => a.isActive);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState<number>(0);
 
     useEffect(() => {
         if (activeAnnouncements.length <= 1) return;
@@ -184,8 +261,15 @@ const AnnouncementBar = ({ announcements, onEditClick, canEdit }) => {
     );
 };
 
-const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) => {
-    const [items, setItems] = useState([]);
+interface AnnouncementModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    initialAnnouncements: Announcement[];
+    onSave: (items: Announcement[]) => void;
+}
+
+const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, initialAnnouncements, onSave }) => {
+    const [items, setItems] = useState<Announcement[]>([]);
 
     useEffect(() => {
         if (isOpen) setItems([...initialAnnouncements]);
@@ -193,10 +277,10 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
 
     if (!isOpen) return null;
 
-    const handleToggle = (id) => { playSound('switch'); setItems(items.map(item => item.id === id ? { ...item, isActive: !item.isActive } : item)); };
-    const handleChangeText = (id, text) => setItems(items.map(item => item.id === id ? { ...item, text } : item));
-    const handleChangeIcon = (id, icon) => setItems(items.map(item => item.id === id ? { ...item, icon } : item));
-    const handleDelete = (id) => { playSound('delete'); setItems(items.filter(item => item.id !== id)); };
+    const handleToggle = (id: number) => { playSound('switch'); setItems(items.map(item => item.id === id ? { ...item, isActive: !item.isActive } : item)); };
+    const handleChangeText = (id: number, text: string) => setItems(items.map(item => item.id === id ? { ...item, text } : item));
+    const handleChangeIcon = (id: number, icon: string) => setItems(items.map(item => item.id === id ? { ...item, icon } : item));
+    const handleDelete = (id: number) => { playSound('delete'); setItems(items.filter(item => item.id !== id)); };
     const handleAdd = () => { playSound('pop'); setItems([...items, { id: Date.now(), icon: '📌', text: 'ข้อความใหม่', isActive: true }]); };
 
     return (
@@ -227,8 +311,8 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
                                     <ChevronUp className="w-4 h-4 -mb-1" />
                                     <ChevronDown className="w-4 h-4 -mt-1" />
                                 </div>
-                                <input type="text" value={item.icon} onChange={(e) => handleChangeIcon(item.id, e.target.value)} className="w-8 text-center bg-slate-50 border border-slate-200 rounded-md py-1 text-xs outline-none focus:border-purple-400" />
-                                <input type="text" value={item.text} onChange={(e) => handleChangeText(item.id, e.target.value)} className="flex-1 bg-transparent border-none text-xs text-slate-700 outline-none placeholder-slate-400 focus:ring-0" placeholder="พิมพ์ข้อความ..." />
+                                <input type="text" value={item.icon} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChangeIcon(item.id, e.target.value)} className="w-8 text-center bg-slate-50 border border-slate-200 rounded-md py-1 text-xs outline-none focus:border-purple-400" />
+                                <input type="text" value={item.text} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChangeText(item.id, e.target.value)} className="flex-1 bg-transparent border-none text-xs text-slate-700 outline-none placeholder-slate-400 focus:ring-0" placeholder="พิมพ์ข้อความ..." />
                                 <div className="flex items-center gap-2 ml-2">
                                     <button onClick={() => handleToggle(item.id)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.isActive ? 'bg-[#6B4BFA]' : 'bg-slate-200'}`}>
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -253,10 +337,7 @@ const AnnouncementModal = ({ isOpen, onClose, initialAnnouncements, onSave }) =>
     );
 };
 
-// ==========================================
-// 4. Footer Component
-// ==========================================
-const Footer = () => {
+const Footer: React.FC = () => {
     return (
         <footer className="bg-white border-t border-slate-200 py-3 px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] sm:text-xs text-slate-500 shrink-0 z-20 w-full mt-auto">
             <div className="font-medium">
@@ -269,15 +350,15 @@ const Footer = () => {
 // ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
-const DispatchCalendarDashboard = () => {
-    const [events, setEvents] = useState([]);
-    const [user, setUser] = useState(null);
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedType, setSelectedType] = useState('ทุกประเภท');
+const DispatchCalendarDashboard: React.FC = () => {
+    const [events, setEvents] = useState<EventData[]>([]);
+    const [user, setUser] = useState<User | null>(null);
+    const [currentDate, setCurrentDate] = useState<Date>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [selectedType, setSelectedType] = useState<string>('ทุกประเภท');
 
-    const [viewMode, setViewMode] = useState('list'); // 'list' | 'timeline'
+    const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
     const TIMELINE_START_HOUR = 6;
     const TIMELINE_END_HOUR = 18;
@@ -317,8 +398,8 @@ const DispatchCalendarDashboard = () => {
         return displayEvents.filter(e => e.date === selectedStr);
     }, [displayEvents, selectedDate]);
     
-    const getTimelineStyle = (startTime, closingTime) => {
-        const parseTime = (t) => {
+    const getTimelineStyle = (startTime?: string, closingTime?: string) => {
+        const parseTime = (t?: string) => {
             if (!t) return 0;
             const [h, m] = t.split(':').map(Number);
             return (h * 60) + m;
@@ -337,7 +418,7 @@ const DispatchCalendarDashboard = () => {
         return { left: `${leftPercent}%`, width: `${widthPercent}%` };
     };
 
-    const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, event: null, uniqueId: null });
+    const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, event: EventData | null, uniqueId: string | number | null }>({ visible: false, x: 0, y: 0, event: null, uniqueId: null });
 
     useEffect(() => {
         const handleClickOutside = () => setContextMenu({ visible: false, x: 0, y: 0, event: null, uniqueId: null });
@@ -349,42 +430,40 @@ const DispatchCalendarDashboard = () => {
 
     const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
-    const [expandedEventId, setExpandedEventId] = useState(null);
+    const [expandedEventId, setExpandedEventId] = useState<string | number | null>(null);
 
     // ---- Controller Management State ----
-    const [isAddControllerOpen, setIsAddControllerOpen] = useState(false);
-    const [controllerNameInput, setControllerNameInput] = useState('');
-    const [controllerPhoneInput, setControllerPhoneInput] = useState('');
-    const [savedControllersList, setSavedControllersList] = useState([]); 
-    const [editingControllerIndex, setEditingControllerIndex] = useState(null); 
+    const [isAddControllerOpen, setIsAddControllerOpen] = useState<boolean>(false);
+    const [controllerNameInput, setControllerNameInput] = useState<string>('');
+    const [controllerPhoneInput, setControllerPhoneInput] = useState<string>('');
+    const [savedControllersList, setSavedControllersList] = useState<ControllerData[]>([]); 
+    const [editingControllerIndex, setEditingControllerIndex] = useState<number | null>(null); 
 
     // ---- Staff Management State ----
-    const [savedStaffList, setSavedStaffList] = useState([]);
-    const [isManageStaffOpen, setIsManageStaffOpen] = useState(false);
-    const [staffNameInput, setStaffNameInput] = useState('');
-    const [editingStaffIndex, setEditingStaffIndex] = useState(null);
+    const [savedStaffList, setSavedStaffList] = useState<StaffData[]>([]);
+    const [isManageStaffOpen, setIsManageStaffOpen] = useState<boolean>(false);
+    const [staffNameInput, setStaffNameInput] = useState<string>('');
+    const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
 
-    const formRef = useRef(null);
+    const formRef = useRef<HTMLDivElement | HTMLFormElement | null>(null);
 
-    // Fetch Controllers
     const fetchSavedControllers = async () => {
         try {
             const res = await fetch(`${BASE_URL}/api/controllers`);
-            const data = await res.json();
+            const data: ControllerData[] = await res.json();
             setSavedControllersList(data);
         } catch (error) {
             console.error("Fetch Controllers Error", error);
         }
     };
 
-    // Fetch Staffs
     const fetchSavedStaffs = async () => {
         try {
             const res = await fetch(`${BASE_URL}/api/staffs`);
             if (!res.ok) {
                  throw new Error(`API Error: ${res.status}`);
             }
-            const data = await res.json();
+            const data: StaffData[] = await res.json();
             setSavedStaffList(data);
         } catch (error) {
             console.error("Fetch Staffs Error", error);
@@ -412,7 +491,6 @@ const DispatchCalendarDashboard = () => {
         }
     }, [isManageStaffOpen]);
 
-    // Handlers for Controller
     const handleSaveController = async () => {
         if (!controllerNameInput.trim()) {
             addToast('error', 'กรุณาระบุชื่อผู้ควบคุม');
@@ -448,14 +526,14 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const handleEditController = (index) => {
+    const handleEditController = (index: number) => {
         const item = savedControllersList[index];
         setControllerNameInput(item.name);
         setControllerPhoneInput(item.phone || '');
         setEditingControllerIndex(index);
     };
 
-    const handleDeleteController = async (index) => {
+    const handleDeleteController = async (index: number) => {
         const target = savedControllersList[index];
         if (window.confirm(`ยืนยันการลบคุณ ${target.name}?`)) {
             try {
@@ -472,7 +550,7 @@ const DispatchCalendarDashboard = () => {
                         setControllerNameInput('');
                         setControllerPhoneInput('');
                         setEditingControllerIndex(null);
-                    } else if (editingControllerIndex > index) {
+                    } else if (editingControllerIndex !== null && editingControllerIndex > index) {
                         setEditingControllerIndex(editingControllerIndex - 1);
                     }
                 }
@@ -482,7 +560,6 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    // Handlers for Staff
     const handleSaveStaff = async () => {
         if (!staffNameInput.trim()) {
             addToast('error', 'กรุณาระบุชื่อทีมงาน');
@@ -517,7 +594,7 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const handleDeleteStaff = async (index) => {
+    const handleDeleteStaff = async (index: number) => {
         const target = savedStaffList[index];
         if (window.confirm(`ยืนยันการลบคุณ ${target.name}?`)) {
             try {
@@ -536,10 +613,10 @@ const DispatchCalendarDashboard = () => {
         }
     };
     
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
 
-    const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
-    const [announcements, setAnnouncements] = useState([
+    const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState<boolean>(false);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([
         { id: 1, icon: '💉', text: 'บริการฉีดวัคซีนสัตว์เลี้ยง ฟรี! ทุกวันอังคาร-ศุกร์', isActive: true },
         { id: 2, icon: '🏥', text: 'ทำหมันสุนัข-แมว ฟรี! รับจำนวนจำกัด โทรจองล่วงหน้า', isActive: true },
         { id: 3, icon: '🩺', text: 'ตรวจสุขภาพสัตว์เลี้ยงฟรี ทุกวันเสาร์-อาทิตย์', isActive: true },
@@ -547,12 +624,12 @@ const DispatchCalendarDashboard = () => {
         { id: 5, icon: '🚑', text: 'หน่วยสัตวแพทย์เคลื่อนที่ พร้อมให้บริการทุกพื้นที่', isActive: true }
     ]);
 
-    const handleSaveAnnouncements = (newAnnouncements) => {
+    const handleSaveAnnouncements = (newAnnouncements: Announcement[]) => {
         setAnnouncements(newAnnouncements);
         addToast('success', '✅ บันทึกข้อความแถบเลื่อนเรียบร้อยแล้ว');
     };
 
-    const handleLogin = (userData) => {
+    const handleLogin = (userData: User) => {
         playSound('success');
         setUser(userData);
         localStorage.setItem('vet_user', JSON.stringify(userData));
@@ -569,15 +646,15 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
-    const [viewingDispatch, setViewingDispatch] = useState(null);
-    const [toasts, setToasts] = useState([]);
+    const [isDispatchModalOpen, setIsDispatchModalOpen] = useState<boolean>(false);
+    const [viewingDispatch, setViewingDispatch] = useState<EventData | null>(null);
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-    const addToast = (type, message) => {
+    const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, type, message }]);
     };
-    const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+    const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
     useEffect(() => {
         const storedUser = localStorage.getItem('vet_user');
@@ -591,7 +668,7 @@ const DispatchCalendarDashboard = () => {
         const fetchData = async () => {
             try {
                 const res = await fetch(`${BASE_URL}/api/dispatches`);
-                const data = await res.json();
+                const data: EventData[] = await res.json();
                 
                 const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
                 const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
@@ -605,7 +682,7 @@ const DispatchCalendarDashboard = () => {
 
     const scrollToForm = () => {
         setTimeout(() => {
-            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            (formRef.current as HTMLElement)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
     };
 
@@ -616,7 +693,7 @@ const DispatchCalendarDashboard = () => {
         scrollToForm(); 
     };
     
-    const openDispatchEvent = (evt) => { 
+    const openDispatchEvent = (evt: EventData) => { 
         if (canEdit) {
             setViewingDispatch(evt.originalData || evt); 
             setIsDispatchModalOpen(true); 
@@ -624,9 +701,8 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const handleSaveDispatchEvent = async (payload, shouldClose = true) => {
+    const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
         try {
-            // ตรวจสอบว่าเป็นการอัปเดต (มี _id และไม่ใช่ Array) หรือการสร้างใหม่
             const isUpdate = !Array.isArray(payload) && payload._id;
             const method = isUpdate ? 'PUT' : 'POST';
             const url = isUpdate ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
@@ -641,18 +717,16 @@ const DispatchCalendarDashboard = () => {
                 playSound('success');
                 addToast('success', isUpdate ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
                 
-                // ปิด Modal เฉพาะเมื่อ shouldClose เป็น true
                 if (shouldClose) {
                     setIsDispatchModalOpen(false);
                 }
                 
-                // Refresh Data
                 const fetchRes = await fetch(`${BASE_URL}/api/dispatches`);
-                const data = await fetchRes.json();
+                const data: EventData[] = await fetchRes.json();
                 const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
                 setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
                 
-                return true; // คืนค่าเพื่อบอกว่าสำเร็จ
+                return true; 
             } else {
                 const err = await res.json();
                 addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
@@ -664,7 +738,8 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const handleDeleteDispatch = async (id) => {
+    const handleDeleteDispatch = async (id?: string) => {
+        if(!id) return;
         if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
         try {
             const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
@@ -682,10 +757,10 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const [dragOverDate, setDragOverDate] = useState(null);
+    const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
-    const handleDragStart = (e, eventId) => {
-        if (!canEdit) {
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, eventId?: string) => {
+        if (!canEdit || !eventId) {
             e.preventDefault();
             return;
         }
@@ -693,19 +768,19 @@ const DispatchCalendarDashboard = () => {
         e.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleDragOver = (e, dateStr) => {
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>, dateStr: string) => {
         e.preventDefault(); 
         if (canEdit && dragOverDate !== dateStr) {
             setDragOverDate(dateStr);
         }
     };
 
-    const handleDragLeave = (e) => {
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setDragOverDate(null);
     };
 
-    const handleDrop = async (e, targetDateStr) => {
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetDateStr: string) => {
         e.preventDefault();
         setDragOverDate(null);
 
@@ -748,16 +823,16 @@ const DispatchCalendarDashboard = () => {
         }
     };
 
-    const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    const changeMonth = (offset) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
+    const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    const changeMonth = (offset: number) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
 
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
     const daysArray = [...Array(daysInMonth + firstDay).keys()];
 
     const eventTypes = useMemo(() => {
-        const counts = { 'ทุกประเภท': events.length };
+        const counts: Record<string, number> = { 'ทุกประเภท': events.length };
         events.forEach(e => {
             const baseType = getBaseType(e.title, e.type);
             counts[baseType] = (counts[baseType] || 0) + 1;
@@ -770,7 +845,7 @@ const DispatchCalendarDashboard = () => {
     }, [events]);
 
     const eventsByTeam = useMemo(() => {
-        const grouped = {};
+        const grouped: Record<string, EventData[]> = {};
         selectedDateEvents.forEach(evt => {
             const teamName = evt.team || 'ไม่ได้ระบุทีม';
             if (!grouped[teamName]) grouped[teamName] = [];
@@ -818,7 +893,7 @@ const DispatchCalendarDashboard = () => {
                             <button onClick={() => { playSound('pop'); setIsManageStaffOpen(true); }} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-blue-200">
                                 <Users className="w-4 h-4"/> <span className="hidden sm:inline">จัดการทีมงาน</span>
                             </button>
-                            <button onClick={() => { playSound('pop'); openDispatchForm(true); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
+                            <button onClick={() => { playSound('pop'); openDispatchForm(); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
                                 <Plus className="w-4 h-4" /> <span className="hidden sm:inline">เพิ่มงานใหม่</span>
                             </button>
                         </>
@@ -957,7 +1032,7 @@ const DispatchCalendarDashboard = () => {
                                     type="text" 
                                     placeholder="ค้นหางาน โลเคชัน ทีม เบอร์โทร..." 
                                     value={searchTerm} 
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                                     className="w-full pl-9 pr-10 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-xs font-medium text-slate-700 shadow-sm" 
                                 />
                                 {searchTerm && (
@@ -970,7 +1045,7 @@ const DispatchCalendarDashboard = () => {
                             <div className="flex flex-wrap gap-2">
                                 {eventTypes.map(([type, count]) => {
                                     const isSelected = selectedType === type;
-                                    const getIcon = (t) => {
+                                    const getIcon = (t: string) => {
                                         if (t === 'ทุกประเภท') return ;
                                         if (t.includes('วัคซีน')) return ;
                                         if (t.includes('ทำหมัน')) return ;
@@ -1026,9 +1101,9 @@ const DispatchCalendarDashboard = () => {
 
                                     return (
                                         <div key={idx} 
-                                            draggable={canEdit}
+                                            draggable={canEdit || false}
                                             onDragStart={(e) => handleDragStart(e, evt._id)}
-                                            onContextMenu={(e) => {
+                                            onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => {
                                                 e.preventDefault();
                                                 setContextMenu({ 
                                                     visible: true, 
@@ -1094,7 +1169,7 @@ const DispatchCalendarDashboard = () => {
                                                     )}
                                                     
                                                     <button 
-                                                        onClick={(e) => {
+                                                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                                             e.stopPropagation();
                                                             setExpandedEventId(isExpanded ? null : uniqueId);
                                                         }}
@@ -1322,10 +1397,10 @@ const DispatchCalendarDashboard = () => {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="col-span-2">
-                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-xs bg-white" value={controllerNameInput} onChange={e => setControllerNameInput(e.target.value)} placeholder="ชื่อ-นามสกุล..." />
+                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-xs bg-white" value={controllerNameInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setControllerNameInput(e.target.value)} placeholder="ชื่อ-นามสกุล..." />
                                 </div>
                                 <div className="col-span-2">
-                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-xs bg-white" value={controllerPhoneInput} onChange={e => setControllerPhoneInput(e.target.value)} placeholder="เบอร์โทร (เช่น 08X-XXX-XXXX)" />
+                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-xs bg-white" value={controllerPhoneInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setControllerPhoneInput(e.target.value)} placeholder="เบอร์โทร (เช่น 08X-XXX-XXXX)" />
                                 </div>
                             </div>
                             <div className="flex gap-2 justify-end pt-1">
@@ -1381,7 +1456,7 @@ const DispatchCalendarDashboard = () => {
                                 <span className="text-xs font-bold text-blue-700">{editingStaffIndex !== null ? 'แก้ไขรายชื่อ' : 'เพิ่มรายชื่อใหม่'}</span>
                             </div>
                             <div className="flex gap-2">
-                                <input type="text" className="flex-1 p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-xs bg-white" value={staffNameInput} onChange={e => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
+                                <input type="text" className="flex-1 p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-xs bg-white" value={staffNameInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
                                 <button onClick={handleSaveStaff} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors flex items-center gap-1.5 shrink-0">
                                     <Plus className="w-3.5 h-3.5"/> {editingStaffIndex !== null ? 'บันทึก' : 'เพิ่ม'}
                                 </button>
@@ -1424,7 +1499,7 @@ const DispatchCalendarDashboard = () => {
                     style={{ top: contextMenu.y, left: contextMenu.x }}
                 >
                     <button
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                             e.stopPropagation();
                             setExpandedEventId(contextMenu.uniqueId);
                             setContextMenu({ ...contextMenu, visible: false });
@@ -1438,9 +1513,9 @@ const DispatchCalendarDashboard = () => {
                         <>
                             <div className="h-px bg-slate-100 my-1 w-full"></div>
                             <button
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
-                                    openDispatchEvent(contextMenu.event);
+                                    if(contextMenu.event) openDispatchEvent(contextMenu.event);
                                     setContextMenu({ ...contextMenu, visible: false });
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors"
@@ -1448,9 +1523,9 @@ const DispatchCalendarDashboard = () => {
                                 <Edit3 className="w-4 h-4 text-indigo-400" /> แก้ไขข้อมูล
                             </button>
                             <button
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
-                                    handleDeleteDispatch(contextMenu.event._id);
+                                    handleDeleteDispatch(contextMenu.event?._id);
                                     setContextMenu({ ...contextMenu, visible: false });
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
