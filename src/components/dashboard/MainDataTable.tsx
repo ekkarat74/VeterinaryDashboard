@@ -4,17 +4,56 @@ import {
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText
 } from 'lucide-react';
 
-const MainDataTable = ({ 
+// ---------------------------------------------------------------------------
+// 1. กำหนด Type (Interfaces) สำหรับข้อมูลและ Props
+// ---------------------------------------------------------------------------
+
+export interface ItemStats {
+    vaccine?: number;
+    sterilize?: number;
+    register?: number;
+    microchip?: number;
+    medical?: number;
+}
+
+export interface DataItem {
+    _id: string; // หากใช้ ID เป็นตัวเลขให้เปลี่ยนเป็น number
+    date: string;
+    location: string;
+    district: string;
+    imageUrl?: string | null;
+    stats?: ItemStats;
+    createdBy?: string;
+    updatedBy?: string;
+}
+
+interface MainDataTableProps {
+    data?: DataItem[];
+    canEdit?: boolean;
+    isSuperAdmin?: boolean;
+    onClearAll?: () => void;
+    onEdit: (item: DataItem) => void;
+    onDelete: (id: string) => void;
+    onViewImage: (url: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// 2. Component หลัก
+// ---------------------------------------------------------------------------
+
+const MainDataTable: React.FC<MainDataTableProps> = ({ 
     data = [], 
-    canEdit, 
-    isSuperAdmin, 
+    canEdit = false, 
+    isSuperAdmin = false, 
     onClearAll, 
     onEdit, 
     onDelete, 
     onViewImage 
 }) => {
 
-    const formatNumber = (num) => num ? num.toLocaleString() : '0';
+    const formatNumber = (num?: number | string | null): string => 
+        num ? Number(num).toLocaleString() : '0';
+
     const totals = data.reduce((acc, item) => ({
         vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
         sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
@@ -89,7 +128,7 @@ const MainDataTable = ({
                                                 <img 
                                                     src={item.imageUrl} 
                                                     alt="preview" 
-                                                    onClick={() => onViewImage(item.imageUrl)}
+                                                    onClick={() => onViewImage(item.imageUrl!)}
                                                     className="w-full h-full object-cover rounded-lg border border-gray-200 cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-105" 
                                                 />
                                             </div>
@@ -188,7 +227,7 @@ const MainDataTable = ({
                     {data.length > 0 && (
                         <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
                             <tr>
-                                <td colSpan="3" className="px-6 py-4 text-right text-xs">รวมทั้งหมด:</td>
+                                <td colSpan={3} className="px-6 py-4 text-right text-xs">รวมทั้งหมด:</td>
                                 <td className="px-6 py-4 text-center text-blue-700 text-xs">{formatNumber(totals.vaccine)}</td>
                                 <td className="px-6 py-4 text-center text-orange-700 text-xs">{formatNumber(totals.sterilize)}</td>
                                 <td className="px-6 py-4 text-center text-teal-700 text-xs">{formatNumber(totals.register)}</td>
