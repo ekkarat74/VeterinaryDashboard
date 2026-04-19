@@ -5,9 +5,68 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-const getPercentage = (part, total) => (total > 0 ? (part / total) * 100 : 0);
+// กำหนด Type ให้ฟังก์ชัน Helper
+const getPercentage = (part: number, total: number): number => 
+    (total > 0 ? (part / total) * 100 : 0);
 
-const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, dogCount = 0, catCount = 0 }) => (
+// ----------------------------------------
+// Interfaces & Types
+// ----------------------------------------
+
+interface KPICardProps {
+    title: string;
+    value?: number;
+    subtext: string;
+    icon: React.ElementType;
+    colorClass: string;
+    shadowClass: string;
+    dogCount?: number;
+    catCount?: number;
+}
+
+export interface UnitData {
+    id?: string | number;
+    name: string;
+    count: number;
+    dog: number;
+    cat: number;
+}
+
+interface UnitCardProps {
+    unit: UnitData;
+    index: number;
+    maxVal: number;
+}
+
+export interface TotalsData {
+    vaccine?: number;
+    sterilize?: number;
+    register?: number;
+    microchip?: number;
+    medical?: number;
+    dog?: Record<string, number>;
+    cat?: Record<string, number>;
+}
+
+interface KPISectionProps {
+    totals?: TotalsData;
+    unitStats?: UnitData[];
+}
+
+// ----------------------------------------
+// Components
+// ----------------------------------------
+
+const KPICard: React.FC<KPICardProps> = ({ 
+    title, 
+    value = 0, 
+    subtext, 
+    icon: Icon, 
+    colorClass, 
+    shadowClass, 
+    dogCount = 0, 
+    catCount = 0 
+}) => (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow duration-300 cursor-default group relative overflow-hidden h-full">
         <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 ${colorClass}`}></div>
         <div className="flex justify-between items-start w-full relative z-10 mb-4">
@@ -57,7 +116,7 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass, shadowClass, d
     </div>
 );
 
-const UnitCard = ({ unit, index, maxVal }) => {
+const UnitCard: React.FC<UnitCardProps> = ({ unit, index, maxVal }) => {
     const percentage = maxVal > 0 ? (unit.count / maxVal) * 100 : 0;
     
     const colorThemes = [
@@ -128,7 +187,7 @@ const UnitCard = ({ unit, index, maxVal }) => {
     );
 };
 
-const KPISection = ({ totals = {}, unitStats = [] }) => {
+const KPISection: React.FC<KPISectionProps> = ({ totals = {}, unitStats = [] }) => {
     const maxUnitCount = unitStats.length > 0 ? Math.max(...unitStats.map(u => u.count), 1) : 1;
 
     return (
