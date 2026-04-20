@@ -78,13 +78,21 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         medical: acc.medical + (Number(item.stats?.medical) || 0),
     }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
 
-    // สร้าง array ของหมายเลขหน้าเพื่อเอาไป map เป็นปุ่ม
-    const getPageNumbers = () => {
-        const pages = [];
-        for (let i = 1; i <= totalPages; i++) {
-            pages.push(i);
+    // สร้าง array ของหมายเลขหน้าแบบมีจุดไข่ปลา (...)
+    const getPageNumbers = (): (number | string)[] => {
+        if (totalPages <= 5) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
         }
-        return pages;
+        
+        if (currentPage <= 3) {
+            return [1, 2, 3, 4, 5, '...', totalPages];
+        }
+        
+        if (currentPage >= totalPages - 2) {
+            return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+        
+        return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
     return (
@@ -294,19 +302,28 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             </button>
                             
                             {/* ปุ่มตัวเลขหน้า */}
-                            {getPageNumbers().map(number => (
-                                <button
-                                    key={number}
-                                    onClick={() => handlePageChange(number)}
-                                    className={`min-w-[40px] px-3 py-2 border text-sm font-medium transition-colors ${
-                                        currentPage === number
-                                            ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
-                                            : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
-                                    }`}
-                                >
-                                    {number}
-                                </button>
-                            ))}
+                            {getPageNumbers().map((number, index) => {
+                                if (number === '...') {
+                                    return (
+                                        <span key={`ellipsis-${index}`} className="px-3 py-2 border-y border-gray-200 bg-gray-50 text-sm font-medium text-gray-400">
+                                            ...
+                                        </span>
+                                    );
+                                }
+                                return (
+                                    <button
+                                        key={number}
+                                        onClick={() => handlePageChange(number as number)}
+                                        className={`min-w-[40px] px-3 py-2 border text-sm font-medium transition-colors ${
+                                            currentPage === number
+                                                ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
+                                                : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
+                                        }`}
+                                    >
+                                        {number}
+                                    </button>
+                                );
+                            })}
 
                             {/* ปุ่ม >> (ถัดไป) */}
                             <button
