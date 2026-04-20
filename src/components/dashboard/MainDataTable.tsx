@@ -69,7 +69,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     const formatNumber = (num?: number | string | null): string => 
         num ? Number(num).toLocaleString() : '0';
 
-    // คำนวณผลรวมจากข้อมูล *ทั้งหมด* const totals = data.reduce((acc, item) => ({
+    // คำนวณผลรวมจากข้อมูล *ทั้งหมด*
+    const totals = data.reduce((acc, item) => ({
         vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
         sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
         register: acc.register + (Number(item.stats?.register) || 0),
