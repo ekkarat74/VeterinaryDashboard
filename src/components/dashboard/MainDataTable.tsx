@@ -95,6 +95,83 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
+    // ฟังก์ชันสำหรับ Render Pagination (เรียกใช้ได้ทั้งบนและล่างตาราง)
+    const renderPagination = (isTop: boolean) => {
+        if (data.length === 0) return null;
+        
+        return (
+            <div className={`px-6 py-4 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
+                <span className="text-[11px] text-gray-500 font-medium">
+                    แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
+                </span>
+                
+                {totalPages > 1 && (
+                    <div className="inline-flex -space-x-px rounded-md shadow-sm">
+                        {/* ปุ่ม First */}
+                        <button
+                            onClick={() => handlePageChange(1)}
+                            disabled={currentPage === 1}
+                            className="px-3 py-2 rounded-l-md border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            First
+                        </button>
+                        
+                        {/* ปุ่ม << (ย้อนกลับ) */}
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="px-3 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            &laquo;
+                        </button>
+                        
+                        {/* ปุ่มตัวเลขหน้า */}
+                        {getPageNumbers().map((number, index) => {
+                            if (number === '...') {
+                                return (
+                                    <span key={`ellipsis-${index}${isTop ? '-top' : '-bottom'}`} className="px-3 py-2 border-y border-gray-200 bg-gray-50 text-sm font-medium text-gray-400">
+                                        ...
+                                    </span>
+                                );
+                            }
+                            return (
+                                <button
+                                    key={`${number}${isTop ? '-top' : '-bottom'}`}
+                                    onClick={() => handlePageChange(number as number)}
+                                    className={`min-w-[40px] px-3 py-2 border text-sm font-medium transition-colors ${
+                                        currentPage === number
+                                            ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
+                                            : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
+                                    }`}
+                                >
+                                    {number}
+                                </button>
+                            );
+                        })}
+
+                        {/* ปุ่ม >> (ถัดไป) */}
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            &raquo;
+                        </button>
+                        
+                        {/* ปุ่ม Last */}
+                        <button
+                            onClick={() => handlePageChange(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-2 rounded-r-md border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Last
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden">
             {/* Header Section */}
@@ -112,6 +189,9 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     <p className="text-xs text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
                 </div>
             </div>
+
+            {/* Pagination Section (Top) */}
+            {renderPagination(true)}
 
             {/* Table Section */}
             <div className="overflow-x-auto custom-scrollbar border-b border-gray-100 w-full">
@@ -273,79 +353,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </table>
             </div>
             
-            {/* Pagination & Footer Section */}
-            {data.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <span className="text-[11px] text-gray-500 font-medium">
-                        แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
-                    </span>
-                    
-                    {/* ปุ่มกด Pagination แบบแนบชิดกัน */}
-                    {totalPages > 1 && (
-                        <div className="inline-flex -space-x-px rounded-md shadow-sm">
-                            {/* ปุ่ม First */}
-                            <button
-                                onClick={() => handlePageChange(1)}
-                                disabled={currentPage === 1}
-                                className="px-3 py-2 rounded-l-md border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                First
-                            </button>
-                            
-                            {/* ปุ่ม << (ย้อนกลับ) */}
-                            <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="px-3 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                &laquo;
-                            </button>
-                            
-                            {/* ปุ่มตัวเลขหน้า */}
-                            {getPageNumbers().map((number, index) => {
-                                if (number === '...') {
-                                    return (
-                                        <span key={`ellipsis-${index}`} className="px-3 py-2 border-y border-gray-200 bg-gray-50 text-sm font-medium text-gray-400">
-                                            ...
-                                        </span>
-                                    );
-                                }
-                                return (
-                                    <button
-                                        key={number}
-                                        onClick={() => handlePageChange(number as number)}
-                                        className={`min-w-[40px] px-3 py-2 border text-sm font-medium transition-colors ${
-                                            currentPage === number
-                                                ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
-                                                : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
-                                        }`}
-                                    >
-                                        {number}
-                                    </button>
-                                );
-                            })}
-
-                            {/* ปุ่ม >> (ถัดไป) */}
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="px-3 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                &raquo;
-                            </button>
-                            
-                            {/* ปุ่ม Last */}
-                            <button
-                                onClick={() => handlePageChange(totalPages)}
-                                disabled={currentPage === totalPages}
-                                className="px-3 py-2 rounded-r-md border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                Last
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* Pagination Section (Bottom) */}
+            {renderPagination(false)}
         </div>
     );
 };
