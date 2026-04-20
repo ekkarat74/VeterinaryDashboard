@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
     Database, Trash2, Users, Pencil, X, MapPin, Calendar, 
-    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText
+    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText,
+    ChevronLeft, ChevronRight // เพิ่มไอคอนสำหรับปุ่มกดเปลี่ยนหน้า
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -50,10 +51,26 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     onDelete, 
     onViewImage 
 }) => {
+    // --- State สำหรับ Pagination ---
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 50;
+
+    // คำนวณจำนวนหน้าทั้งหมด
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+
+    // ดึงข้อมูลเฉพาะหน้าปัจจุบัน
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const currentData = data.slice(startIndex, startIndex + itemsPerPage);
+
+    // ฟังก์ชันจัดการการเปลี่ยนหน้า
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const formatNumber = (num?: number | string | null): string => 
         num ? Number(num).toLocaleString() : '0';
 
+    // คำนวณผลรวมจากข้อมูล *ทั้งหมด* (ถ้าอยากให้รวมแค่หน้าที่แสดง ให้เปลี่ยน data เป็น currentData)
     const totals = data.reduce((acc, item) => ({
         vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
         sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
@@ -61,6 +78,15 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         microchip: acc.microchip + (Number(item.stats?.microchip) || 0),
         medical: acc.medical + (Number(item.stats?.medical) || 0),
     }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
+
+    // สร้าง array ของหมายเลขหน้าเพื่อเอาไป map เป็นปุ่ม
+    const getPageNumbers = () => {
+        const pages = [];
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
 
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden">
@@ -98,8 +124,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {data.length > 0 ? (
-                            data.map((item) => (
+                        {currentData.length > 0 ? ( // ใช้ currentData แทน data
+                            currentData.map((item) => (
                                 <tr key={item._id} className="hover:bg-indigo-50/30 transition-colors group">
                                     <td className="px-6 py-4 text-gray-500 align-middle">
                                         <div className="flex items-center gap-2">
@@ -227,7 +253,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     {data.length > 0 && (
                         <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
                             <tr>
-                                <td colSpan={3} className="px-6 py-4 text-right text-xs">รวมทั้งหมด:</td>
+                                <td colSpan={3} className="px-6 py-4 text-right text-xs">รวมทั้งหมด (จากทุกหน้า):</td>
                                 <td className="px-6 py-4 text-center text-blue-700 text-xs">{formatNumber(totals.vaccine)}</td>
                                 <td className="px-6 py-4 text-center text-orange-700 text-xs">{formatNumber(totals.sterilize)}</td>
                                 <td className="px-6 py-4 text-center text-teal-700 text-xs">{formatNumber(totals.register)}</td>
@@ -240,9 +266,47 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </table>
             </div>
             
+            {/* Pagination & Footer Section */}
             {data.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 text-[10px] text-gray-500 flex justify-between items-center">
-                     <span>แสดงข้อมูลทั้งหมด {data.length} รายการ</span>
+                <div className="px-6 py-4 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <span className="text-[11px] text-gray-500 font-medium">
+                        แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
+                    </span>
+                    
+                    {/* ปุ่มกด Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="p-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            
+                            {getPageNumbers().map(number => (
+                                <button
+                                    key={number}
+                                    onClick={() => handlePageChange(number)}
+                                    className={`min-w-[28px] h-7 px-2 rounded-lg text-xs font-medium transition-colors ${
+                                        currentPage === number
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {number}
+                                </button>
+                            ))}
+
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="p-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
