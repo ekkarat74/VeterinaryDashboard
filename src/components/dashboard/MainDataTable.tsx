@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-    Database, Trash2, Users, Pencil, X, MapPin, Calendar, 
+    Database, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText
 } from 'lucide-react';
 
@@ -299,8 +299,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     onClick={() => handlePageChange(number)}
                                     className={`min-w-[40px] px-3 py-2 border text-sm font-medium transition-colors ${
                                         currentPage === number
-                                            ? 'z-10 bg-indigo-500 border-indigo-500 text-white' // สีตอน Active (สีน้ำเงิน)
-                                            : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50' // สีตอน Inactive
+                                            ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
+                                            : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
                                     }`}
                                 >
                                     {number}
