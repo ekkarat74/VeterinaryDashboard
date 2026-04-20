@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
-    Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus
+    Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
+    Volume2, VolumeX
 } from 'lucide-react';
 // สมมติว่าคุณจะเปลี่ยนไฟล์เหล่านี้เป็น TSX ด้วยในอนาคต
 import DispatchModal from './modals/DispatchModal'; 
@@ -359,6 +360,33 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [selectedType, setSelectedType] = useState<string>('ทุกประเภท');
 
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
+
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [volume, setVolume] = useState<number>(0.3); // ค่าเริ่มต้นความดัง 30%
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+    if (!audioRef.current) {
+        audioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'); 
+        audioRef.current.loop = true;
+    }
+    audioRef.current.volume = volume;
+}, [volume]);
+    const togglePlay = () => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(e => console.log('Autoplay prevented:', e));
+            }
+            setIsPlaying(!isPlaying);
+            playSound('switch');
+        }
+    };
+
+    const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setVolume(parseFloat(e.target.value));
+    };
 
     const TIMELINE_START_HOUR = 6;
     const TIMELINE_END_HOUR = 18;
@@ -885,6 +913,29 @@ const DispatchCalendarDashboard: React.FC = () => {
                     <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-slate-700 text-xs font-bold shadow-sm">
                         <RealTimeClock />
                     </div>
+
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-2 py-1.5 rounded-xl shadow-sm transition-all">
+        <button
+            onClick={togglePlay}
+            className={`p-1.5 rounded-lg transition-colors ${isPlaying ? 'text-indigo-600 bg-indigo-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'}`}
+            title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
+        >
+            {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
+        {isPlaying && (
+            <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="w-16 sm:w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 animate-in fade-in slide-in-from-left-2"
+                title={`ระดับเสียง ${Math.round(volume * 100)}%`}
+            />
+        )}
+    </div>
+
                     {canEdit && (
                         <>
                             <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
