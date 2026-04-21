@@ -1,18 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, Plus, Edit2, Trash2, Check, Loader2 } from 'lucide-react';
 
-const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
-    const [units, setUnits] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [newName, setNewName] = useState('');
-    const [editingId, setEditingId] = useState(null);
-    const [editName, setEditName] = useState('');
+// 1. กำหนด Type สำหรับข้อมูลหน่วยงาน
+export interface Unit {
+    _id: string;
+    name: string;
+}
+
+// 2. กำหนด Type สำหรับประเภทของ Toast
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+// 3. กำหนด Interface สำหรับ Props ของ Component
+export interface CustomUnitModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    apiBaseUrl: string;
+    token: string;
+    onToast: (type: ToastType, message: string) => void;
+}
+
+const CustomUnitModal: React.FC<CustomUnitModalProps> = ({ 
+    isOpen, 
+    onClose, 
+    apiBaseUrl, 
+    token, 
+    onToast 
+}) => {
+    // 4. ระบุ Type ให้กับ State
+    const [units, setUnits] = useState<Unit[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [newName, setNewName] = useState<string>('');
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editName, setEditName] = useState<string>('');
 
     useEffect(() => {
         if (isOpen) fetchUnits();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
-    const fetchUnits = async () => {
+    const fetchUnits = async (): Promise<void> => {
         try {
             setLoading(true);
             const res = await fetch(`${apiBaseUrl}/api/custom-units`);
@@ -25,7 +51,8 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
         }
     };
 
-    const handleAdd = async (e) => {
+    // 5. ระบุ Type ให้กับ Form Event
+    const handleAdd = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         if (!newName.trim()) return;
         try {
@@ -39,7 +66,7 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
                 setNewName('');
                 fetchUnits();
             } else {
-                const err = await res.json();
+                const err: { message?: string } = await res.json();
                 onToast('error', err.message || 'เพิ่มไม่สำเร็จ');
             }
         } catch (error) {
@@ -47,7 +74,8 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
         }
     };
 
-    const handleUpdate = async (id) => {
+    // 6. ระบุ Type ของ Parameter
+    const handleUpdate = async (id: string): Promise<void> => {
         if (!editName.trim()) return;
         try {
             const res = await fetch(`${apiBaseUrl}/api/custom-units/${id}`, {
@@ -67,7 +95,7 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
         }
     };
 
-    const handleDelete = async (id, name) => {
+    const handleDelete = async (id: string, name: string): Promise<void> => {
         if (!window.confirm(`ยืนยันการลบหน่วยงาน "${name}" ?`)) return;
         try {
             const res = await fetch(`${apiBaseUrl}/api/custom-units/${id}`, {
@@ -114,7 +142,8 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
                             type="text" 
                             placeholder="พิมพ์ชื่อหน่วยงานใหม่..." 
                             value={newName} 
-                            onChange={(e) => setNewName(e.target.value)}
+                            // 7. ระบุ Type ให้กับ Input Change Event
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)}
                             className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                         />
                         <button 
@@ -142,7 +171,7 @@ const CustomUnitModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
                                             <input 
                                                 type="text" 
                                                 value={editName} 
-                                                onChange={(e) => setEditName(e.target.value)}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
                                                 className="flex-1 px-3 py-1.5 border border-indigo-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                                                 autoFocus
                                             />

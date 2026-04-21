@@ -1,7 +1,28 @@
 import React, { useState } from 'react';
 import { X, FileSpreadsheet, UploadCloud, Download, Filter } from 'lucide-react';
 
-const CsvActionModal = ({ 
+// กำหนด Interface สำหรับข้อมูลที่จะถูกส่งออกไปตอน Export
+export interface ExportFilters {
+    year: string;
+    month: string;
+    unit: string;
+    district: string;
+}
+
+// กำหนด Interface สำหรับ Props ของ Component นี้
+export interface CsvActionModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onExport: (filters: ExportFilters) => void;
+    availableYears?: string[]; // กำหนดเป็น Optional (?) เนื่องจากในโค้ดเดิมมี Default Value เป็น []
+    thaiMonths?: string[];
+    units?: string[];
+    districts?: string[];
+    csvMode?: string; 
+}
+
+const CsvActionModal: React.FC<CsvActionModalProps> = ({ 
     isOpen, 
     onClose, 
     onFileChange, 
@@ -12,14 +33,15 @@ const CsvActionModal = ({
     districts = [], 
     csvMode 
 }) => {
-    const [exportYear, setExportYear] = useState('ทั้งหมด');
-    const [exportMonth, setExportMonth] = useState('ทั้งหมด');
-    const [exportUnit, setExportUnit] = useState('ทั้งหมด');
-    const [exportDistrict, setExportDistrict] = useState('ทั้งหมด');
+    // กำหนด Type ของ State เป็น string
+    const [exportYear, setExportYear] = useState<string>('ทั้งหมด');
+    const [exportMonth, setExportMonth] = useState<string>('ทั้งหมด');
+    const [exportUnit, setExportUnit] = useState<string>('ทั้งหมด');
+    const [exportDistrict, setExportDistrict] = useState<string>('ทั้งหมด');
 
     if (!isOpen) return null;
 
-    const handleExportClick = () => {
+    const handleExportClick = (): void => {
         onExport({ 
             year: exportYear, 
             month: exportMonth, 
@@ -67,7 +89,7 @@ const CsvActionModal = ({
                             <input 
                                 type="file" 
                                 accept=".csv" 
-                                onChange={(e) => { onFileChange(e); onClose(); }} 
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { onFileChange(e); onClose(); }} 
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
                                 title="คลิกเพื่อเลือกไฟล์ CSV" 
                             />
@@ -91,22 +113,30 @@ const CsvActionModal = ({
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">ปี (Year)</label>
                                 <select 
                                     value={exportYear} 
-                                    onChange={e => setExportYear(e.target.value)} 
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setExportYear(e.target.value)} 
                                     className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white cursor-pointer"
                                 >
                                     <option value="ทั้งหมด">ทั้งหมด</option>
-                                    {availableYears?.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
+                                    {availableYears?.map(y => (
+                                        <option key={y} value={y}>
+                                            {parseInt(y) + 543}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">เดือน (Month)</label>
                                 <select 
                                     value={exportMonth} 
-                                    onChange={e => setExportMonth(e.target.value)} 
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setExportMonth(e.target.value)} 
                                     className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white cursor-pointer"
                                 >
                                     <option value="ทั้งหมด">ทั้งหมด</option>
-                                    {thaiMonths?.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+                                    {thaiMonths?.map((m, i) => (
+                                        <option key={i} value={String(i + 1).padStart(2, '0')}>
+                                            {m}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             
@@ -115,11 +145,15 @@ const CsvActionModal = ({
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
                                     <select 
                                         value={exportUnit} 
-                                        onChange={e => setExportUnit(e.target.value)} 
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setExportUnit(e.target.value)} 
                                         className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white cursor-pointer"
                                     >
                                         <option value="ทั้งหมด">ทั้งหมด</option>
-                                        {units?.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                                        {units?.map((u, i) => (
+                                            <option key={i} value={u}>
+                                                {u}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                             )}
@@ -128,11 +162,15 @@ const CsvActionModal = ({
                                 <label className="block text-[10px] font-bold text-slate-500 mb-1">เขต (District)</label>
                                 <select 
                                     value={exportDistrict} 
-                                    onChange={e => setExportDistrict(e.target.value)} 
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setExportDistrict(e.target.value)} 
                                     className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white cursor-pointer"
                                 >
                                     <option value="ทั้งหมด">ทั้งหมด</option>
-                                    {districts?.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                                    {districts?.map((d, i) => (
+                                        <option key={i} value={d}>
+                                            {d}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

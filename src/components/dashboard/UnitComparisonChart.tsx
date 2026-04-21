@@ -2,7 +2,19 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { Users } from 'lucide-react';
 
-export default function UnitComparisonChart({ unitStats }) {
+// 1. เพิ่ม Interface เพื่อกำหนด Type ให้กับ props ป้องกัน Error ts(7031)
+interface UnitStat {
+  name: string;
+  total: number;
+  count: number;
+  [key: string]: any; // เผื่อมี properties อื่นๆ ส่งมาด้วย
+}
+
+interface UnitComparisonChartProps {
+  unitStats: UnitStat[];
+}
+
+export default function UnitComparisonChart({ unitStats }: UnitComparisonChartProps) {
   if (!unitStats || unitStats.length === 0) return null;
 
   return (
@@ -79,20 +91,21 @@ export default function UnitComparisonChart({ unitStats }) {
                 <LabelList 
                   dataKey="total" 
                   position="right" 
-                  content={(props) => {
+                  content={(props: any) => {
                     const { x, y, width, value, index } = props;
-                    const count = unitStats[index]?.count || 0;
-                    const displayValue = value || 0; 
+                  
+                    const count = unitStats[Number(index)]?.count || 0;
+                    const displayValue = Number(value) || 0; 
+                    const numX = Number(x) || 0;
+                    const numY = Number(y) || 0;
+                    const numWidth = Number(width) || 0;
 
                     return (
                       <g>
-                        <text x={x + width + 8} y={y + 16} className="font-mono">
-                          {/* ตัวเลขยอดบริการ */}
+                        <text x={numX + numWidth + 8} y={numY + 16} className="font-mono">
                           <tspan fill="#334155" fontSize="12" fontWeight="bold">
                             {displayValue.toLocaleString()}
                           </tspan>
-          
-                          {/* จำนวนครั้งที่ออกหน่วย (ใช้ dx="6" เพื่อเว้นวรรคจากตัวเลขด้านหน้า) */}
                           <tspan fill="#6366f1" fontSize="10" fontWeight="600" dx="6">
                             | {count} ครั้ง
                           </tspan>

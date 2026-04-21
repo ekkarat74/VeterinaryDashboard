@@ -1,22 +1,44 @@
 import React, { useState } from 'react';
 import { KeyRound, CheckCircle, Shield, Lock, X, Loader2 } from 'lucide-react';
 
-const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) => {
-    const [oldPassword, setOldPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+// 1. กำหนด Type สำหรับประเภทของ Toast Alert
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+// 2. สร้าง Interface สำหรับ Props
+interface ChangePasswordModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    apiBaseUrl: string;
+    token: string;
+    onToast?: (type: ToastType, message: string) => void; // ใส่ ? เพราะมีการเช็ค if(onToast) ในโค้ด
+}
+
+// 3. ใส่ Type ให้กับ Component
+const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ 
+    isOpen, 
+    onClose, 
+    apiBaseUrl, 
+    token, 
+    onToast 
+}) => {
+    // 4. ระบุ Type ให้กับ State 
+    const [oldPassword, setOldPassword] = useState<string>("");
+    const [newPassword, setNewPassword] = useState<string>("");
+    const [confirmPassword, setConfirmPassword] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e) => {
+    // 5. กำหนด Type ให้กับ Form Event
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
+        
         if (newPassword !== confirmPassword) {
-            if(onToast) onToast('error', "รหัสผ่านใหม่ไม่ตรงกัน");
+            if (onToast) onToast('error', "รหัสผ่านใหม่ไม่ตรงกัน");
             return;
         }
         if (newPassword.length < 4) {
-            if(onToast) onToast('error', "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
+            if (onToast) onToast('error', "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
             return;
         }
 
@@ -30,25 +52,28 @@ const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) =>
                 },
                 body: JSON.stringify({ oldPassword, newPassword })
             });
-            const data = await res.json();
+            
+            // กำหนด Type โครงสร้างคร่าวๆ ให้กับ data ที่รับกลับมา
+            const data: { message?: string } = await res.json();
 
             if (res.ok) {
-                if(onToast) onToast('success', 'เปลี่ยนรหัสผ่านสำเร็จ');
+                if (onToast) onToast('success', 'เปลี่ยนรหัสผ่านสำเร็จ');
                 setOldPassword("");
                 setNewPassword("");
                 setConfirmPassword("");
                 onClose();
             } else {
-                if(onToast) onToast('error', data.message || 'เปลี่ยนรหัสผ่านไม่สำเร็จ');
+                if (onToast) onToast('error', data.message || 'เปลี่ยนรหัสผ่านไม่สำเร็จ');
             }
         } catch (error) {
-            if(onToast) onToast('error', "เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            if (onToast) onToast('error', "เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            console.error(error); // เพิ่ม console.error ไว้ดู log เวลาพัง
         } finally {
             setIsLoading(false);
         }
     };
 
-    const isFormValid = oldPassword && newPassword && confirmPassword;
+    const isFormValid: boolean = Boolean(oldPassword && newPassword && confirmPassword);
 
     return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -89,7 +114,7 @@ const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) =>
                                 className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-2xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
                                 placeholder="••••••••"
                                 value={oldPassword} 
-                                onChange={e => setOldPassword(e.target.value)} 
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOldPassword(e.target.value)} 
                             />
                         </div>
                     </div>
@@ -108,7 +133,7 @@ const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) =>
                                 className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-2xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400" 
                                 placeholder="กำหนดรหัสผ่านใหม่"
                                 value={newPassword} 
-                                onChange={e => setNewPassword(e.target.value)} 
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)} 
                             />
                         </div>
                     </div>
@@ -129,7 +154,7 @@ const ChangePasswordModal = ({ isOpen, onClose, apiBaseUrl, token, onToast }) =>
                                     }`} 
                                 placeholder="พิมพ์รหัสใหม่อีกครั้ง"
                                 value={confirmPassword} 
-                                onChange={e => setConfirmPassword(e.target.value)} 
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)} 
                             />
                         </div>
                         {confirmPassword && newPassword !== confirmPassword && (

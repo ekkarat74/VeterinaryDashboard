@@ -1,46 +1,134 @@
 import React, { useState, useEffect } from 'react';
 import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map } from 'lucide-react';
-import { BANGKOK_DISTRICTS } from '../../constants/locations';
+import { BANGKOK_DISTRICTS } from '../../constants/locations'; // ตรวจสอบให้แน่ใจว่าไฟล์นี้ส่งออกเป็น string[]
 
-const DEFAULT_STATS = {
+// --- Types & Interfaces ---
+
+// โครงสร้างสำหรับเก็บสถิติเพศ
+interface GenderStats {
+  male: number;
+  female: number;
+}
+
+// โครงสร้างสำหรับเก็บสถิติชนิดสัตว์
+interface AnimalStats {
+  dog: GenderStats;
+  cat: GenderStats;
+}
+
+// โครงสร้างสำหรับเก็บสถิติตามสถานะ
+interface BaseStats {
+  owned: AnimalStats;
+  unowned: AnimalStats;
+  feeder: AnimalStats;
+}
+
+// โครงสร้างสำหรับข้อมูลเชิงลึก
+interface InsightData {
+  spcc: string;
+  testNo: string;
+  animalType: string;
+  ownership: string;
+  gender: string;
+  breed: string;
+  color: string;
+  age: string;
+  vaccineHistory: string;
+}
+
+// โครงสร้างข้อมูลสำหรับฟอร์มทั้งหมด
+interface FormData {
+  date: string;
+  location: string;
+  district: string;
+  lat: string;
+  long: string;
+  stats: BaseStats;
+  insight: InsightData;
+}
+
+// โครงสร้างข้อมูลที่ใช้ในการ Submit
+interface PayloadData extends Omit<FormData, 'lat' | 'long'> {
+    lat: number;
+    long: number;
+}
+
+// โครงสร้างข้อมูลสำหรับ initialData
+interface InitialData extends Partial<PayloadData> {
+  _id: string; // สมมติว่ามี _id สำหรับการแก้ไข
+}
+
+// โครงสร้างข้อมูลสำหรับ Array ของหมวดหมู่
+interface CategoryItem {
+  key: keyof BaseStats;
+  label: string;
+  color: string;
+}
+
+interface Breed {
+  name: string;
+}
+
+interface Color {
+  name: string;
+}
+
+interface AddOutbreakModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (payload: PayloadData) => void;
+  onUpdate: (id: string, payload: PayloadData) => void;
+  initialData?: InitialData | null;
+  onToast?: (message: string, type: 'success' | 'error') => void; // กรณีที่ไม่ได้ใช้ให้ลบออกได้
+  breeds?: Breed[];
+  colors?: Color[];
+}
+
+// --- Constants ---
+
+const DEFAULT_STATS: BaseStats = {
   owned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
   unowned: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } },
   feeder: { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } }
 };
 
-const DEFAULT_INSIGHT = {
+const DEFAULT_INSIGHT: InsightData = {
   spcc: '', testNo: '', animalType: '', ownership: '', gender: '', breed: '', color: '', age: '', vaccineHistory: ''
 };
 
-const CATEGORIES = [
+const CATEGORIES: CategoryItem[] = [
   { key: 'owned', label: '🏠 สัตว์มีเจ้าของ', color: 'bg-blue-50 border-blue-100 text-blue-800' },
   { key: 'unowned', label: '🛣️ สัตว์ไม่มีเจ้าของ', color: 'bg-orange-50 border-orange-100 text-orange-800' },
   { key: 'feeder', label: '🥣 สัตว์มีผู้ให้อาหาร', color: 'bg-emerald-50 border-emerald-100 text-emerald-800' }
 ];
 
-const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onToast, breeds = [], colors = [] }) => {
-  const [formData, setFormData] = useState({
+// --- Component ---
+
+const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({ 
+    isOpen, onClose, onSave, onUpdate, initialData, onToast, breeds = [], colors = [] 
+}) => {
+  const [formData, setFormData] = useState<FormData>({
     date: new Date().toISOString().split('T')[0],
     location: '',
-    district: BANGKOK_DISTRICTS[0],
+    district: BANGKOK_DISTRICTS[0] || '', // ป้องกันกรณี array ว่าง
     lat: '',
     long: '',
     stats: DEFAULT_STATS,
     insight: DEFAULT_INSIGHT
   });
 
-  const [coordInput, setCoordInput] = useState("");
-  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+  const [coordInput, setCoordInput] = useState<string>("");
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
         setFormData({
-          date: initialData.date,
-          location: initialData.location,
-          district: initialData.district,
-          lat: initialData.lat,
-          long: initialData.long,
+          date: initialData.date || new Date().toISOString().split('T')[0],
+          location: initialData.location || '',
+          district: initialData.district || BANGKOK_DISTRICTS[0] || '',
+          lat: initialData.lat ? initialData.lat.toString() : '',
+          long: initialData.long ? initialData.long.toString() : '',
           stats: {
             owned: {
               dog: { male: initialData.stats?.owned?.dog?.male || 0, female: initialData.stats?.owned?.dog?.female || 0 },
@@ -67,7 +155,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
         setFormData({
           date: new Date().toISOString().split('T')[0],
           location: '',
-          district: BANGKOK_DISTRICTS[0],
+          district: BANGKOK_DISTRICTS[0] || '',
           lat: '',
           long: '',
           stats: DEFAULT_STATS,
@@ -78,7 +166,12 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     }
   }, [isOpen, initialData]);
 
-  const handleStatChange = (category, animal, gender, value) => {
+  const handleStatChange = (
+      category: keyof BaseStats, 
+      animal: keyof AnimalStats, 
+      gender: keyof GenderStats, 
+      value: string
+  ) => {
     const numValue = parseInt(value) || 0;
     setFormData(prev => ({
       ...prev,
@@ -95,30 +188,33 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
     }));
   };
 
-  const handleInsightChange = (field, value) => {
+  const handleInsightChange = (field: keyof InsightData, value: string) => {
     setFormData(prev => ({
       ...prev,
       insight: { ...prev.insight, [field]: value }
     }));
   };
 
-  if (!isOpen) return null;
-
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const payload = {
+    const latNum = parseFloat(formData.lat);
+    const longNum = parseFloat(formData.long);
+
+    const payload: PayloadData = {
       ...formData,
-      lat: (formData.lat && !isNaN(formData.lat)) ? parseFloat(formData.lat) : 0,
-      long: (formData.long && !isNaN(formData.long)) ? parseFloat(formData.long) : 0
+      lat: !isNaN(latNum) ? latNum : 0,
+      long: !isNaN(longNum) ? longNum : 0
     };
 
-    if (initialData) {
+    if (initialData && initialData._id) {
       onUpdate(initialData._id, payload);
     } else {
       onSave(payload);
     }
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-6 animate-in fade-in">
@@ -129,7 +225,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
             <Skull className="w-5 h-5 sm:w-6 sm:h-6" />
             {initialData ? 'แก้ไขข้อมูลจุดเสี่ยง' : 'บันทึกจุดเกิดเหตุโรคพิษสุนัขบ้า'}
           </h3>
-          <button onClick={onClose} className="hover:bg-red-700 p-2 rounded-full transition-colors">
+          <button type="button" onClick={onClose} className="hover:bg-red-700 p-2 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -177,7 +273,7 @@ const AddOutbreakModal = ({ isOpen, onClose, onSave, onUpdate, initialData, onTo
                           <div
                             key={d}
                             className="px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors border-b border-slate-50 last:border-0"
-                            onClick={() => {
+                            onMouseDown={() => { // เปลี่ยน onClick เป็น onMouseDown ป้องกัน blur ทำงานก่อน
                               setFormData({ ...formData, district: d });
                               setShowDistrictDropdown(false);
                             }}

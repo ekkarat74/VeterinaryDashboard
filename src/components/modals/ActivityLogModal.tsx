@@ -1,9 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Database, X, FileText, Search, RefreshCw, Terminal, Clock, 
+import { 
+    Database, X, FileText, Search, RefreshCw, Terminal, Clock, 
     User, Info, Activity 
 } from 'lucide-react';
 
-const LogDetailModal = ({ isOpen, onClose, data }) => {
+// --- Types & Interfaces ---
+
+// กำหนดโครงสร้างข้อมูลของ Log แต่ละรายการ
+interface LogEntry {
+    _id: string;
+    user: string;
+    action: string;
+    details: string;
+    role: string;
+    createdAt: string; // รับมาเป็น ISO string จาก API
+    metadata?: Record<string, any> | null;
+}
+
+// กำหนด Props สำหรับ LogDetailModal
+interface LogDetailModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    data: Record<string, any> | null;
+}
+
+// กำหนด Props สำหรับ ActivityLogModal
+interface ActivityLogModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    token: string;
+    apiBaseUrl: string;
+}
+
+// --- Components ---
+
+const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }) => {
     if (!isOpen || !data) return null;
     return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -39,11 +70,12 @@ const LogDetailModal = ({ isOpen, onClose, data }) => {
     );
 };
 
-const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
-    const [logs, setLogs] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedLogData, setSelectedLogData] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
+const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onClose, token, apiBaseUrl }) => {
+    // กำหนด Type ให้กับ State
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [selectedLogData, setSelectedLogData] = useState<Record<string, any> | null>(null);
+    const [searchTerm, setSearchTerm] = useState<string>('');
 
     useEffect(() => {
         if (isOpen) {
@@ -59,7 +91,7 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                const data = await res.json();
+                const data: LogEntry[] = await res.json();
                 setLogs(data);
             }
         } catch (error) {
@@ -82,7 +114,8 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
 
     if (!isOpen) return null;
 
-    const getActionBadge = (action) => {
+    // กำหนด Type ให้กับ Parameter action 
+    const getActionBadge = (action: string): React.ReactNode => {
         if (action.includes('DELETE') || action.includes('CLEAR')) 
             return <span className="px-3 py-1 bg-red-50 text-red-600 border border-red-100 rounded-full text-[11px] font-bold uppercase tracking-wider">{action}</span>;
         if (action.includes('CREATE') || action.includes('ADD')) 
@@ -164,7 +197,7 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                             <tbody className="divide-y divide-slate-100">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan="5" className="p-12 text-center">
+                                        <td colSpan={5} className="p-12 text-center">
                                             <div className="flex flex-col items-center justify-center space-y-3">
                                                 <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
                                                 <span className="text-slate-500 font-medium">กำลังดึงข้อมูล...</span>
@@ -173,7 +206,7 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                     </tr>
                                 ) : filteredLogs.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="p-16 text-center">
+                                        <td colSpan={5} className="p-16 text-center">
                                             <div className="flex flex-col items-center justify-center space-y-3">
                                                 <div className="p-4 bg-slate-50 rounded-full">
                                                     <FileText className="w-8 h-8 text-slate-300" />
@@ -188,7 +221,7 @@ const ActivityLogModal = ({ isOpen, onClose, token, apiBaseUrl }) => {
                                             <td className="px-6 py-3 text-center">
                                                 {log.metadata && Object.keys(log.metadata).length > 0 ? (
                                                     <button 
-                                                        onClick={() => setSelectedLogData(log.metadata)}
+                                                        onClick={() => setSelectedLogData(log.metadata || null)}
                                                         className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-lg transition-all shadow-sm opacity-70 group-hover:opacity-100"
                                                         title="ดูข้อมูล Payload"
                                                     >

@@ -4,23 +4,24 @@ import {
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
     Volume2, VolumeX
 } from 'lucide-react';
-// สมมติว่าคุณจะเปลี่ยนไฟล์เหล่านี้เป็น TSX ด้วยในอนาคต
+// สมมติว่ามี Component เหล่านี้อยู่จริง โปรดตรวจสอบ Path อีกครั้ง
 import DispatchModal from './modals/DispatchModal'; 
 import LoginModal from './modals/LoginModal';
+
+// นำเข้า ToastContainer และถ้ามีการ export Type Toast มาด้วย ก็สามารถ import มาใช้ได้เลย
 import ToastContainer from '../path/to/ToastContainer'; 
 
-// นำเข้าฟังก์ชันระบบเสียง
 import { playSound } from '../utils/soundUtils';
 
 // ==========================================
-// 📌 Interfaces & Types (ประกาศโครงสร้างข้อมูล)
+// 0. Interfaces
 // ==========================================
 
 export interface User {
     username: string;
     role: string;
     token: string;
-    [key: string]: any; // เผื่อมีฟิลด์อื่นๆ เพิ่มเติม
+    [key: string]: any;
 }
 
 export interface ControllerData {
@@ -69,8 +70,9 @@ export interface Announcement {
     isActive: boolean;
 }
 
-export interface ToastMessage {
-    id: number;
+// เปลี่ยนจาก ToastMessage เป็น Toast เพื่อให้ตรงกับ Props ที่ ToastContainer ต้องการ
+export interface Toast {
+    id: number | string;
     type: 'success' | 'error' | 'info' | 'warning';
     message: string;
 }
@@ -106,10 +108,17 @@ const toLocalISOString = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
-const getEventStyles = (evt: EventData): { border: string, bg: string, text: string, dot: string } => {
+interface EventStyle {
+    border: string;
+    bg: string;
+    text: string;
+    dot: string;
+}
+
+const getEventStyles = (evt: EventData): EventStyle => {
     if (evt.type === 'meeting') return { border: 'border-l-teal-400', bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-400' };
     
-    const colorMap: Record<string, { border: string, bg: string, text: string, dot: string }> = {
+    const colorMap: Record<string, EventStyle> = {
         'bg-red-500': { border: 'border-l-rose-400', bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-400' },
         'bg-blue-500': { border: 'border-l-blue-400', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-400' },
         'bg-green-500': { border: 'border-l-emerald-400', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400' },
@@ -351,6 +360,7 @@ const Footer: React.FC = () => {
 // ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
+
 const DispatchCalendarDashboard: React.FC = () => {
     const [events, setEvents] = useState<EventData[]>([]);
     const [user, setUser] = useState<User | null>(null);
@@ -366,12 +376,13 @@ const DispatchCalendarDashboard: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-    if (!audioRef.current) {
-        audioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'); 
-        audioRef.current.loop = true;
-    }
-    audioRef.current.volume = volume;
-}, [volume]);
+        if (!audioRef.current) {
+            audioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'); 
+            audioRef.current.loop = true;
+        }
+        audioRef.current.volume = volume;
+    }, [volume]);
+
     const togglePlay = () => {
         if (audioRef.current) {
             if (isPlaying) {
@@ -676,13 +687,15 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState<boolean>(false);
     const [viewingDispatch, setViewingDispatch] = useState<EventData | null>(null);
-    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+    
+    // State ใช้ Type เป็น Toast ตาม Interface ที่อัปเดตใหม่
+    const [toasts, setToasts] = useState<Toast[]>([]);
 
     const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, type, message }]);
     };
-    const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
+    const removeToast = (id: number | string) => setToasts(prev => prev.filter(t => t.id !== id));
 
     useEffect(() => {
         const storedUser = localStorage.getItem('vet_user');
@@ -710,7 +723,9 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const scrollToForm = () => {
         setTimeout(() => {
-            (formRef.current as HTMLElement)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (formRef.current) {
+                formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }, 100);
     };
 
@@ -743,7 +758,7 @@ const DispatchCalendarDashboard: React.FC = () => {
             
             if (res.ok) {
                 playSound('success');
-                addToast('success', isUpdate ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
+                addToast('success', isUpdate ? 'แก้ไขแผนงานเรียบร้อย' : 'บันริกแผนงานเรียบร้อย');
                 
                 if (shouldClose) {
                     setIsDispatchModalOpen(false);
@@ -915,26 +930,26 @@ const DispatchCalendarDashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-2 py-1.5 rounded-xl shadow-sm transition-all">
-        <button
-            onClick={togglePlay}
-            className={`p-1.5 rounded-lg transition-colors ${isPlaying ? 'text-indigo-600 bg-indigo-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'}`}
-            title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
-        >
-            {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-        </button>
-        {isPlaying && (
-            <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="w-16 sm:w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 animate-in fade-in slide-in-from-left-2"
-                title={`ระดับเสียง ${Math.round(volume * 100)}%`}
-            />
-        )}
-    </div>
+                        <button
+                            onClick={togglePlay}
+                            className={`p-1.5 rounded-lg transition-colors ${isPlaying ? 'text-indigo-600 bg-indigo-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'}`}
+                            title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
+                        >
+                            {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                        </button>
+                        {isPlaying && (
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={volume}
+                                onChange={handleVolumeChange}
+                                className="w-16 sm:w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 animate-in fade-in slide-in-from-left-2"
+                                title={`ระดับเสียง ${Math.round(volume * 100)}%`}
+                            />
+                        )}
+                    </div>
 
                     {canEdit && (
                         <>
@@ -1097,13 +1112,13 @@ const DispatchCalendarDashboard: React.FC = () => {
                                 {eventTypes.map(([type, count]) => {
                                     const isSelected = selectedType === type;
                                     const getIcon = (t: string) => {
-                                        if (t === 'ทุกประเภท') return ;
-                                        if (t.includes('วัคซีน')) return ;
-                                        if (t.includes('ทำหมัน')) return ;
-                                        if (t.includes('ตรวจสุขภาพ')) return ;
-                                        if (t.includes('รักษา')) return ;
-                                        if (t.includes('ประชุม')) return ;
-                                        return;
+                                        if (t === 'ทุกประเภท') return '';
+                                        if (t.includes('วัคซีน')) return '';
+                                        if (t.includes('ทำหมัน')) return '';
+                                        if (t.includes('ตรวจสุขภาพ')) return '';
+                                        if (t.includes('รักษา')) return '';
+                                        if (t.includes('ประชุม')) return '';
+                                        return '';
                                     };
                                     return (
                                         <button 
@@ -1413,7 +1428,6 @@ const DispatchCalendarDashboard: React.FC = () => {
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
 
-            {/* 🔥 เรียกใช้งาน DispatchModal และส่ง allEvents เข้าไปตรงนี้! */}
             <DispatchModal 
                 isOpen={isDispatchModalOpen} 
                 onClose={() => setIsDispatchModalOpen(false)} 

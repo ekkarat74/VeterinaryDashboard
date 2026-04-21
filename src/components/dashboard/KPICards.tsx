@@ -5,7 +5,6 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-// กำหนด Type ให้ฟังก์ชัน Helper
 const getPercentage = (part: number, total: number): number => 
     (total > 0 ? (part / total) * 100 : 0);
 

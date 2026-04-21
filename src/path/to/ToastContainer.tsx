@@ -2,14 +2,14 @@ import React from 'react';
 import { Check, AlertCircle, Info, X } from 'lucide-react';
 
 interface Toast {
-    id: string | number;
-    type: 'success' | 'error' | 'info';
+    id: number;
+    type: string;
     message: string;
 }
 
 interface ToastContainerProps {
-    toasts: Toast[];
-    removeToast: (id: string | number) => void;
+    toasts: any[];
+    removeToast: (id: any) => void;
 }
 
 const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) => {
@@ -24,6 +24,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) 
                         ${toast.type === 'success' ? 'bg-emerald-600 text-white' : ''}
                         ${toast.type === 'error' ? 'bg-red-600 text-white' : ''}
                         ${toast.type === 'info' ? 'bg-blue-600 text-white' : ''}
+                        ${toast.type === 'warning' ? 'bg-amber-500 text-white' : ''}
                     `}
                 >
                     <div className="shrink-0">
