@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import html2canvas from 'html2canvas'; // เพิ่ม import นี้
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer,
-    Download, Share2 // เพิ่มไอคอน Download และ Share2
+    Download, Share2
 } from 'lucide-react';
 
 export interface ItemStats {
@@ -38,8 +37,8 @@ interface MainDataTableProps {
 const MainDataTable: React.FC<MainDataTableProps> = ({ 
     data: incomingData, 
     canEdit = false, 
-    isSuperAdmin = false, 
-    onClearAll, 
+    // isSuperAdmin = false, // คอมเมนต์ไว้เพื่อไม่ให้ติด Error Unused Variable
+    // onClearAll,           
     onEdit, 
     onDelete, 
     onViewImage 
@@ -47,7 +46,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     const data = incomingData || [];
 
     const [currentPage, setCurrentPage] = useState(1);
-    const [isGeneratingDocument, setIsGeneratingDocument] = useState(false); // ป้องกันการกดซ้ำตอนระบบกำลังรัน
+    const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
     const itemsPerPage = 25;
 
     const totalPages = Math.ceil(data.length / itemsPerPage);
@@ -76,7 +75,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
-    // --- แยก CSS และ HTML ออกมาเพื่อให้ใช้ซ้ำได้ ---
+    // --- HTML / CSS สำหรับสร้างหน้าเอกสาร ---
     const getDocumentStyle = () => `
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
         .report-doc {
@@ -307,29 +306,57 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         }
     };
 
-    // --- Helper: สร้าง Canvas จาก HTML เพื่อไปทำรูป ---
-    const generateImageCanvas = async (item: DataItem) => {
-        // สร้าง Div ซ่อนไว้หลังฉากเพื่อจำลองกระดาษ A4
-        const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        container.style.top = '0';
-        container.style.width = '210mm'; // ความกว้างกระดาษ A4 โดยประมาณ
-        container.innerHTML = `<style>${getDocumentStyle()}</style>${getDocumentHTML(item)}`;
-        document.body.appendChild(container);
+    // --- Helper: สร้าง Canvas จาก HTML ล้วนๆ ไม่พึ่ง Library ---
+    const generateImageCanvas = async (item: DataItem): Promise<HTMLCanvasElement> => {
+        const width = 800;
+        const height = 1130;
 
-        // รอให้ฟอนต์โหลดให้เสร็จก่อนถ่ายรูป
-        await document.fonts.ready;
-        await new Promise(res => setTimeout(res, 500));
+        const htmlContent = `
+            <div xmlns="http://www.w3.org/1999/xhtml" style="width: ${width}px; height: ${height}px; background: white;">
+                <style>${getDocumentStyle()}</style>
+                ${getDocumentHTML(item)}
+            </div>
+        `;
 
-        const canvas = await html2canvas(container, {
-            scale: 2, // เพิ่มความคมชัด (Retina)
-            useCORS: true,
-            backgroundColor: '#ffffff'
+        const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+                <foreignObject width="100%" height="100%">
+                    ${htmlContent}
+                </foreignObject>
+            </svg>
+        `;
+
+        const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                if (ctx) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                }
+                
+                URL.revokeObjectURL(url);
+                resolve(canvas);
+            };
+            
+            img.onerror = (err) => {
+                URL.revokeObjectURL(url);
+                console.error("SVG to Image rendering failed:", err);
+                reject(new Error("ไม่สามารถสร้างรูปภาพได้"));
+            };
+            
+            img.src = url;
         });
-
-        document.body.removeChild(container);
-        return canvas;
     };
 
     // 2. ฟังก์ชัน ดาวน์โหลด JPG
@@ -357,31 +384,38 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         try {
             const canvas = await generateImageCanvas(item);
             
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
-                const file = new File([blob], `รายงาน_${item.location}.jpg`, { type: 'image/jpeg' });
+            await new Promise<void>((resolve) => {
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        resolve();
+                        return;
+                    }
+                    const file = new File([blob], `รายงาน_${item.location}.jpg`, { type: 'image/jpeg' });
 
-                // เช็คว่าเบราว์เซอร์รองรับการแชร์ไฟล์ไหม (ส่วนใหญ่ใช้งานได้ดีบนมือถือ)
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'รายงานสรุปผล',
-                        text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location}`
-                    });
-                } else {
-                    alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์ภาพโดยตรง แนะนำให้กด "ดาวน์โหลดรูป" แล้วส่งเข้า LINE ด้วยตัวเองครับ');
-                }
-            }, 'image/jpeg', 0.9);
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: 'รายงานสรุปผล',
+                                text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location}`
+                            });
+                        } catch (shareError) {
+                            console.log('ผู้ใช้ยกเลิกการแชร์ หรือแชร์ไม่สำเร็จ:', shareError);
+                        }
+                    } else {
+                        alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์ภาพโดยตรง แนะนำให้กด "ดาวน์โหลดรูป" แล้วส่งเข้า LINE ด้วยตัวเองครับ');
+                    }
+                    resolve();
+                }, 'image/jpeg', 0.9);
+            });
         } catch (error) {
             console.error('Error sharing file:', error);
-            // บางครั้ง User กดยกเลิกการ Share ระบบจะโยน Error กลับมา ไม่ต้อง Alert ให้รำคาญ
         } finally {
             setIsGeneratingDocument(false);
         }
     };
 
     const renderPagination = (isTop: boolean) => {
-        // (โค้ด renderPagination เหมือนเดิม ไม่มีการเปลี่ยนแปลง)
         if (data.length === 0) return null;
         
         return (
@@ -486,7 +520,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <th className="px-6 py-4 text-center w-24">ไมโครชิป</th>
                             <th className="px-6 py-4 text-center w-24">รักษา</th>
                             <th className="px-6 py-4 text-center w-32">ผู้บันทึก</th>
-                            {/* ขยายความกว้างของคอลัมน์จัดการเพื่อรองรับปุ่มที่เพิ่มขึ้น */}
                             {canEdit && <th className="px-6 py-4 text-center w-56">จัดการเอกสาร / ข้อมูล</th>}
                         </tr>
                     </thead>
