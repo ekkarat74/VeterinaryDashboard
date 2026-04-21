@@ -1591,6 +1591,7 @@ export default function VeterinaryDashboard() {
                                     <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
                                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
                                         {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
+                                        {searchDate && <span className="inline-flex items-center gap-1 bg-pink-50 text-pink-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-pink-100">วันที่: {searchDate}</span>}
                                         {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear as string) + 543}</span>}
                                         {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth as string) - 1]}</span>}
                                         {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
@@ -1621,6 +1622,22 @@ export default function VeterinaryDashboard() {
                                         {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>}
                                     </div>
                                 </div>
+                                <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่ (Date)</label>
+            <input 
+                type="date" 
+                className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer text-slate-600" 
+                value={searchDate} 
+                onChange={(e) => {
+                    setSearchDate(e.target.value);
+                    // อัปเดต UX: ถ้าเจาะจงวัน ให้เคลียร์ปี/เดือนทิ้ง ป้องกันผู้ใช้สับสน
+                    if (e.target.value) {
+                        setSelectedYear('ทั้งหมด');
+                        setSelectedMonth('ทั้งหมด');
+                    }
+                }} 
+            />
+        </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ปี (Year)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
