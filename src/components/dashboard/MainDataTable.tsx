@@ -154,8 +154,10 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </div>
                 
                 <div class="form-line">
-                    <span>ชื่อโครงการ หน่วยเชิงรุกฉีดไมโครชิปและจดทะเบียนสุนัขและแมว สถานที่</span>
-                    <span class="dotted-text flex-1" style="margin-left: 10px;">${item.location || ''}</span>
+                    <span>ชื่อโครงการ</span>
+                    <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
+                    <span>สถานที่</span>
+                    <span class="dotted-text" style="width: 35%; margin-left: 10px;">${item.location || ''}</span>
                 </div>
                 
                 <div class="form-line">
@@ -307,7 +309,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
 
                 <div class="form-line" style="margin-top: 60px; padding-left: 20px;">
                     <span>ผู้รายงาน</span>
-                    <span class="dotted-text" style="width: 250px; margin: 0 15px;">${item.createdBy || ''}</span>
+                    <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
                     <span>สังกัด</span>
                     <span class="dotted-text flex-1" style="margin-left: 15px;">สำนักอนามัย</span>
                 </div>
