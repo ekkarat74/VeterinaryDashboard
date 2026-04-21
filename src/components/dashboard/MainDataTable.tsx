@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
-    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText
+    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer
 } from 'lucide-react';
 
 export interface ItemStats {
@@ -42,18 +42,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     onDelete, 
     onViewImage 
 }) => {
-    // --- State สำหรับ Pagination ---
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 25;
 
-    // คำนวณจำนวนหน้าทั้งหมด
     const totalPages = Math.ceil(data.length / itemsPerPage);
-
-    // ดึงข้อมูลเฉพาะหน้าปัจจุบัน
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentData = data.slice(startIndex, startIndex + itemsPerPage);
 
-    // ฟังก์ชันจัดการการเปลี่ยนหน้า
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
     };
@@ -73,94 +68,339 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         if (totalPages <= 5) {
             return Array.from({ length: totalPages }, (_, i) => i + 1);
         }
-        
         if (currentPage <= 3) {
             return [1, 2, 3, 4, 5, '...', totalPages];
         }
-        
         if (currentPage >= totalPages - 2) {
             return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
         }
-        
         return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
-    const renderPagination = (isTop: boolean) => {
-        if (data.length === 0) return null;
-        
-        return (
-            <div className={`px-4 sm:px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-3 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
-                <span className="text-[10px] sm:text-[11px] text-gray-500 font-medium text-center sm:text-left">
-                    แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
-                </span>
-                
-                {totalPages > 1 && (
-                    <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 custom-scrollbar flex justify-start sm:justify-end">
-                        <div className="inline-flex -space-x-px rounded-md shadow-sm min-w-max">
-                            <button
-                                onClick={() => handlePageChange(1)}
-                                disabled={currentPage === 1}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-l-md border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                First
-                            </button>
-                            
-                            <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                &laquo;
-                            </button>
-                            
-                            {getPageNumbers().map((number, index) => {
-                                if (number === '...') {
-                                    return (
-                                        <span key={`ellipsis-${index}${isTop ? '-top' : '-bottom'}`} className="px-2 sm:px-2.5 py-1 sm:py-1.5 border-y border-gray-200 bg-gray-50 text-[10px] sm:text-xs font-medium text-gray-400">
-                                            ...
-                                        </span>
-                                    );
-                                }
-                                return (
-                                    <button
-                                        key={`${number}${isTop ? '-top' : '-bottom'}`}
-                                        onClick={() => handlePageChange(number as number)}
-                                        className={`min-w-[28px] sm:min-w-[32px] px-2 sm:px-2.5 py-1 sm:py-1.5 border text-[10px] sm:text-xs font-medium transition-colors ${
-                                            currentPage === number
-                                                ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
-                                                : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
-                                        }`}
-                                    >
-                                        {number}
-                                    </button>
-                                );
-                            })}
+    // --- ฟังก์ชันจัดรูปแบบและสั่งปริ้นหน้าเอกสาร ---
+    const handlePrint = (item: DataItem) => {
+        const printContent = `
+            <!DOCTYPE html>
+            <html lang="th">
+            <head>
+                <meta charset="UTF-8">
+                <title>พิมพ์เอกสารสรุปผล - ${item.location || 'ไม่ระบุสถานที่'}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+                <style>
+                    @page { size: A4; margin: 20mm; }
+                    body {
+                        font-family: 'Sarabun', sans-serif;
+                        color: #000;
+                        font-size: 16px;
+                        line-height: 1.6;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    .text-center { text-align: center; }
+                    .font-bold { font-weight: 600; }
+                    .underline { text-decoration: underline; }
+                    
+                    .header-group { margin-bottom: 25px; }
+                    .header-title { font-size: 18px; margin-bottom: 5px; }
+                    
+                    .form-line { 
+                        display: flex; 
+                        align-items: flex-end; 
+                        margin-bottom: 12px; 
+                        white-space: nowrap;
+                    }
+                    .dotted-text {
+                        border-bottom: 1.5px dotted #000;
+                        text-align: center;
+                        color: #0000FF; /* สีน้ำเงินเหมือนหมึกปากกา */
+                        min-height: 24px;
+                        display: inline-block;
+                        line-height: 1.2;
+                    }
+                    .flex-1 { flex: 1; }
+                    
+                    /* จัดรูปแบบตารางข้อมูลให้ตรงกับในแบบฟอร์ม */
+                    .data-grid {
+                        width: 90%;
+                        margin: 30px auto;
+                        border-collapse: collapse;
+                    }
+                    .data-grid td {
+                        padding: 6px 0;
+                        vertical-align: bottom;
+                    }
+                    .col-main { width: 45%; }
+                    .col-sub { width: 25%; padding-left: 20px; }
+                    .col-val { width: 20%; text-align: center; }
+                    .col-unit { width: 10%; text-align: left; padding-left: 10px; }
+                    
+                    .val-dots {
+                        display: inline-block;
+                        width: 80%;
+                        border-bottom: 1.5px dotted #000;
+                        min-height: 22px;
+                        text-align: center;
+                        color: #0000FF; /* สีน้ำเงินเหมือนหมึกปากกา */
+                        line-height: 1.2;
+                    }
 
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                &raquo;
-                            </button>
-                            
-                            <button
-                                onClick={() => handlePageChange(totalPages)}
-                                disabled={currentPage === totalPages}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-r-md border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                Last
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
+                    .section-gap { padding-top: 25px; }
+                </style>
+            </head>
+            <body>
+                <div class="header-group text-center font-bold">
+                    <div class="header-title underline">สรุปผลการปฏิบัติงานสัตวแพทย์ กลุ่มควบคุมโรคพิษสุนัขบ้า</div>
+                    <div class="header-title underline">สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย</div>
+                </div>
+                
+                <div class="form-line">
+                    <span>ชื่อโครงการ หน่วยเชิงรุกฉีดไมโครชิปและจดทะเบียนสุนัขและแมว สถานที่</span>
+                    <span class="dotted-text flex-1" style="margin-left: 10px;">${item.location || ''}</span>
+                </div>
+                
+                <div class="form-line">
+                    <span>วันที่</span>
+                    <span class="dotted-text" style="width: 250px; margin: 0 10px;">${item.date || ''}</span>
+                    <span>เขต</span>
+                    <span class="dotted-text flex-1" style="margin-left: 10px;">${item.district || ''}</span>
+                </div>
+                
+                <div class="form-line">
+                    <span>นสพ.ควบคุมหน่วย</span>
+                    <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
+                    <span>สังกัด</span>
+                    <span class="dotted-text" style="width: 200px; margin-left: 10px;">สำนักอนามัย</span>
+                </div>
+
+                <table class="data-grid">
+                    <tr>
+                        <td class="col-main">จำนวนวัคซีนที่เบิก</td>
+                        <td class="col-sub"></td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">โด๊ส</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main">จำนวนสัตว์ที่ฉีดวัคซีน</td>
+                        <td class="col-sub">สุนัข</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">แมว</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">อื่นๆ</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">รวม</td>
+                        <td class="col-val"><span class="val-dots">${item.stats?.vaccine || ''}</span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main" style="padding-top: 15px;">คงเหลือวัคซีน</td>
+                        <td class="col-sub" style="padding-top: 15px;"></td>
+                        <td class="col-val" style="padding-top: 15px;"><span class="val-dots"></span></td>
+                        <td class="col-unit" style="padding-top: 15px;">โด๊ส</td>
+                    </tr>
+
+                    <tr>
+                        <td class="col-main section-gap">จำนวนสุนัข / แมวทำหมัน</td>
+                        <td class="col-sub section-gap">สุนัขเพศผู้</td>
+                        <td class="col-val section-gap"><span class="val-dots"></span></td>
+                        <td class="col-unit section-gap">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">สุนัขเพศเมีย</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">แมวเพศผู้</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">แมวเพศเมีย</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">รวม</td>
+                        <td class="col-val"><span class="val-dots">${item.stats?.sterilize || ''}</span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+
+                    <tr>
+                        <td class="col-main section-gap">จำนวนสุนัข / แมวที่ฉีดไมโครชิป</td>
+                        <td class="col-sub section-gap">สุนัขมีเจ้าของ</td>
+                        <td class="col-val section-gap"><span class="val-dots"></span></td>
+                        <td class="col-unit section-gap">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">แมวมีเจ้าของ</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">รวม</td>
+                        <td class="col-val"><span class="val-dots">${item.stats?.microchip || ''}</span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+
+                    <tr>
+                        <td class="col-main section-gap">จำนวนสุนัข / แมว ขึ้นทะเบียน</td>
+                        <td class="col-sub section-gap">ขึ้นทะเบียน สุนัข</td>
+                        <td class="col-val section-gap"><span class="val-dots"></span></td>
+                        <td class="col-unit section-gap">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">ขึ้นทะเบียน แมว</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">รวม</td>
+                        <td class="col-val"><span class="val-dots">${item.stats?.register || ''}</span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+
+                    <tr>
+                        <td class="col-main section-gap">รักษาสัตว์</td>
+                        <td class="col-sub section-gap">สุนัข</td>
+                        <td class="col-val section-gap"><span class="val-dots"></span></td>
+                        <td class="col-unit section-gap">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">แมว</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">อื่นๆ</td>
+                        <td class="col-val"><span class="val-dots"></span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                    <tr>
+                        <td class="col-main"></td>
+                        <td class="col-sub">รวม</td>
+                        <td class="col-val"><span class="val-dots">${item.stats?.medical || ''}</span></td>
+                        <td class="col-unit">ตัว</td>
+                    </tr>
+                </table>
+
+                <div class="form-line" style="margin-top: 60px; padding-left: 20px;">
+                    <span>ผู้รายงาน</span>
+                    <span class="dotted-text" style="width: 250px; margin: 0 15px;">${item.createdBy || ''}</span>
+                    <span>สังกัด</span>
+                    <span class="dotted-text flex-1" style="margin-left: 15px;">สำนักอนามัย</span>
+                </div>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            // หน่วงเวลาให้ Font Sarabun โหลดเสร็จก่อน
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+    };
+
+    const renderPagination = (isTop: boolean) => {
+        if (data.length === 0) return null;
+        
+        return (
+            <div className={`px-4 sm:px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-3 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
+                <span className="text-[10px] sm:text-[11px] text-gray-500 font-medium text-center sm:text-left">
+                    แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
+                </span>
+                
+                {totalPages > 1 && (
+                    <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 custom-scrollbar flex justify-start sm:justify-end">
+                        <div className="inline-flex -space-x-px rounded-md shadow-sm min-w-max">
+                            <button
+                                onClick={() => handlePageChange(1)}
+                                disabled={currentPage === 1}
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-l-md border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                First
+                            </button>
+                            
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                &laquo;
+                            </button>
+                            
+                            {getPageNumbers().map((number, index) => {
+                                if (number === '...') {
+                                    return (
+                                        <span key={`ellipsis-${index}${isTop ? '-top' : '-bottom'}`} className="px-2 sm:px-2.5 py-1 sm:py-1.5 border-y border-gray-200 bg-gray-50 text-[10px] sm:text-xs font-medium text-gray-400">
+                                            ...
+                                        </span>
+                                    );
+                                }
+                                return (
+                                    <button
+                                        key={`${number}${isTop ? '-top' : '-bottom'}`}
+                                        onClick={() => handlePageChange(number as number)}
+                                        className={`min-w-[28px] sm:min-w-[32px] px-2 sm:px-2.5 py-1 sm:py-1.5 border text-[10px] sm:text-xs font-medium transition-colors ${
+                                            currentPage === number
+                                                ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
+                                                : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
+                                        }`}
+                                    >
+                                        {number}
+                                    </button>
+                                );
+                            })}
+
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                &raquo;
+                            </button>
+                            
+                            <button
+                                onClick={() => handlePageChange(totalPages)}
+                                disabled={currentPage === totalPages}
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-r-md border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Last
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden w-full">
-            {/* Header Section */}
             <div className="px-6 py-5 border-b border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
@@ -176,10 +416,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </div>
             </div>
 
-            {/* Pagination Section (Top) */}
             {renderPagination(true)}
 
-            {/* Table Section */}
             <div className="overflow-x-auto custom-scrollbar border-b border-gray-100 w-full">
                 <table className="min-w-full text-xs text-left relative">
                     <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
@@ -193,7 +431,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <th className="px-6 py-4 text-center w-24">ไมโครชิป</th>
                             <th className="px-6 py-4 text-center w-24">รักษา</th>
                             <th className="px-6 py-4 text-center w-32">ผู้บันทึก</th>
-                            {canEdit && <th className="px-6 py-4 text-center w-28">จัดการ</th>}
+                            {canEdit && <th className="px-6 py-4 text-center w-36">จัดการ</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -291,6 +529,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                         <td className="px-6 py-4 align-middle text-center">
                                             <div className="flex justify-center items-center gap-1">
                                                 <button 
+                                                    onClick={() => handlePrint(item)} 
+                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                                    title="พิมพ์"
+                                                >
+                                                    <Printer className="w-4 h-4"/>
+                                                </button>
+                                                <button 
                                                     onClick={() => onEdit(item)} 
                                                     className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all duration-200"
                                                     title="แก้ไข"
@@ -339,7 +584,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </table>
             </div>
             
-            {/* Pagination Section (Bottom) */}
             {renderPagination(false)}
         </div>
     );
