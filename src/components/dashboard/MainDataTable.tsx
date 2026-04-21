@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import html2canvas from 'html2canvas'; // เพิ่ม import นี้
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
-    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer
+    ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer,
+    Download, Share2 // เพิ่มไอคอน Download และ Share2
 } from 'lucide-react';
 
 export interface ItemStats {
@@ -42,10 +44,10 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     onDelete, 
     onViewImage 
 }) => {
-    // บังคับให้เป็น Array เสมอ ป้องกัน Error .length หรือ .slice จากค่า null
     const data = incomingData || [];
 
     const [currentPage, setCurrentPage] = useState(1);
+    const [isGeneratingDocument, setIsGeneratingDocument] = useState(false); // ป้องกันการกดซ้ำตอนระบบกำลังรัน
     const itemsPerPage = 25;
 
     const totalPages = Math.ceil(data.length / itemsPerPage);
@@ -68,19 +70,215 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
 
     const getPageNumbers = (): (number | string)[] => {
-        if (totalPages <= 5) {
-            return Array.from({ length: totalPages }, (_, i) => i + 1);
-        }
-        if (currentPage <= 3) {
-            return [1, 2, 3, 4, 5, '...', totalPages];
-        }
-        if (currentPage >= totalPages - 2) {
-            return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-        }
+        if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+        if (currentPage <= 3) return [1, 2, 3, 4, 5, '...', totalPages];
+        if (currentPage >= totalPages - 2) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
         return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
-    // --- ฟังก์ชันจัดรูปแบบและสั่งปริ้นหน้าเอกสาร ---
+    // --- แยก CSS และ HTML ออกมาเพื่อให้ใช้ซ้ำได้ ---
+    const getDocumentStyle = () => `
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
+        .report-doc {
+            font-family: 'Sarabun', sans-serif;
+            color: #000;
+            font-size: 14px;
+            line-height: 1.3;
+            margin: 0;
+            padding: 20px;
+            background: #fff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .report-doc .text-center { text-align: center; }
+        .report-doc .font-bold { font-weight: 600; }
+        .report-doc .underline { text-decoration: underline; }
+        .report-doc .header-group { margin-bottom: 10px; }
+        .report-doc .header-title { font-size: 16px; margin-bottom: 2px; }
+        .report-doc .form-line { display: flex; align-items: flex-end; margin-bottom: 6px; white-space: nowrap; }
+        .report-doc .dotted-text { border-bottom: 1px dotted #000; text-align: center; color: #0000FF; min-height: 18px; display: inline-block; line-height: 1.1; }
+        .report-doc .flex-1 { flex: 1; }
+        .report-doc .data-grid { width: 95%; margin: 10px auto; border-collapse: collapse; }
+        .report-doc .data-grid td { padding: 3px 0; vertical-align: bottom; }
+        .report-doc .col-main { width: 45%; }
+        .report-doc .col-sub { width: 25%; padding-left: 15px; }
+        .report-doc .col-val { width: 20%; text-align: center; }
+        .report-doc .col-unit { width: 10%; text-align: left; padding-left: 5px; }
+        .report-doc .val-dots { display: inline-block; width: 80%; border-bottom: 1px dotted #000; min-height: 16px; text-align: center; color: #0000FF; line-height: 1.1; }
+        .report-doc .section-gap { padding-top: 8px; }
+    `;
+
+    const getDocumentHTML = (item: DataItem) => `
+        <div class="report-doc">
+            <div class="header-group text-center font-bold">
+                <div class="header-title underline">สรุปผลการปฏิบัติงานสัตวแพทย์ กลุ่มควบคุมโรคพิษสุนัขบ้า</div>
+                <div class="header-title underline">สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย</div>
+            </div>
+            
+            <div class="form-line">
+                <span>ชื่อโครงการ</span>
+                <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
+                <span>สถานที่</span>
+                <span class="dotted-text" style="width: 35%; margin-left: 10px;">${item.location || ''}</span>
+            </div>
+            
+            <div class="form-line">
+                <span>วันที่</span>
+                <span class="dotted-text" style="width: 250px; margin: 0 10px;">${item.date || ''}</span>
+                <span>เขต</span>
+                <span class="dotted-text flex-1" style="margin-left: 10px;">${item.district || ''}</span>
+            </div>
+            
+            <div class="form-line">
+                <span>นสพ.ควบคุมหน่วย</span>
+                <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
+                <span>สังกัด</span>
+                <span class="dotted-text" style="width: 200px; margin-left: 10px;">สำนักอนามัย</span>
+            </div>
+
+            <table class="data-grid">
+                <tr>
+                    <td class="col-main">จำนวนวัคซีนที่เบิก</td>
+                    <td class="col-sub"></td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">โด๊ส</td>
+                </tr>
+                <tr>
+                    <td class="col-main">จำนวนสัตว์ที่ฉีดวัคซีน</td>
+                    <td class="col-sub">สุนัข</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">แมว</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">อื่นๆ</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">รวม</td>
+                    <td class="col-val"><span class="val-dots">${item.stats?.vaccine || ''}</span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main" style="padding-top: 6px;">คงเหลือวัคซีน</td>
+                    <td class="col-sub" style="padding-top: 6px;"></td>
+                    <td class="col-val" style="padding-top: 6px;"><span class="val-dots"></span></td>
+                    <td class="col-unit" style="padding-top: 6px;">โด๊ส</td>
+                </tr>
+
+                <tr>
+                    <td class="col-main section-gap">จำนวนสุนัข / แมวทำหมัน</td>
+                    <td class="col-sub section-gap">สุนัขเพศผู้</td>
+                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-unit section-gap">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">สุนัขเพศเมีย</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">แมวเพศผู้</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">แมวเพศเมีย</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">รวม</td>
+                    <td class="col-val"><span class="val-dots">${item.stats?.sterilize || ''}</span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+
+                <tr>
+                    <td class="col-main section-gap">จำนวนสุนัข / แมวที่ฉีดไมโครชิป</td>
+                    <td class="col-sub section-gap">สุนัขมีเจ้าของ</td>
+                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-unit section-gap">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">แมวมีเจ้าของ</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">รวม</td>
+                    <td class="col-val"><span class="val-dots">${item.stats?.microchip || ''}</span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+
+                <tr>
+                    <td class="col-main section-gap">จำนวนสุนัข / แมว ขึ้นทะเบียน</td>
+                    <td class="col-sub section-gap">ขึ้นทะเบียน สุนัข</td>
+                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-unit section-gap">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">ขึ้นทะเบียน แมว</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">รวม</td>
+                    <td class="col-val"><span class="val-dots">${item.stats?.register || ''}</span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+
+                <tr>
+                    <td class="col-main section-gap">รักษาสัตว์</td>
+                    <td class="col-sub section-gap">สุนัข</td>
+                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-unit section-gap">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">แมว</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">อื่นๆ</td>
+                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+                <tr>
+                    <td class="col-main"></td>
+                    <td class="col-sub">รวม</td>
+                    <td class="col-val"><span class="val-dots">${item.stats?.medical || ''}</span></td>
+                    <td class="col-unit">ตัว</td>
+                </tr>
+            </table>
+
+            <div class="form-line" style="margin-top: 15px; padding-left: 20px;">
+                <span>ผู้รายงาน</span>
+                <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
+                <span>สังกัด</span>
+                <span class="dotted-text flex-1" style="margin-left: 15px;">สำนักอนามัย</span>
+            </div>
+        </div>
+    `;
+
+    // 1. ฟังก์ชัน ปริ้น
     const handlePrint = (item: DataItem) => {
         const printContent = `
             <!DOCTYPE html>
@@ -88,236 +286,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             <head>
                 <meta charset="UTF-8">
                 <title>พิมพ์เอกสารสรุปผล - ${item.location || 'ไม่ระบุสถานที่'}</title>
-                <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
                 <style>
-                    /* รีดขอบกระดาษให้เหลือน้อยที่สุด (5mm) ป้องกันเบราว์เซอร์มือถือดันเนื้อหา */
                     @page { size: A4; margin: 5mm; }
-                    
-                    body {
-                        font-family: 'Sarabun', sans-serif;
-                        color: #000;
-                        font-size: 14px; /* ลดฟอนต์ลงอีก 1 เบอร์ */
-                        line-height: 1.3; /* บีบระยะบรรทัด */
-                        margin: 0;
-                        padding: 5mm; /* ใช้ padding ช่วยคุมขอบเขตเนื้อหาด้านใน */
-                    }
-                    .text-center { text-align: center; }
-                    .font-bold { font-weight: 600; }
-                    .underline { text-decoration: underline; }
-                    
-                    .header-group { margin-bottom: 10px; } /* ลดช่องว่างใต้หัวกระดาษ */
-                    .header-title { font-size: 16px; margin-bottom: 2px; }
-                    
-                    .form-line { 
-                        display: flex; 
-                        align-items: flex-end; 
-                        margin-bottom: 6px; /* ลดช่องว่างบรรทัดฟอร์ม */
-                        white-space: nowrap;
-                    }
-                    .dotted-text {
-                        border-bottom: 1px dotted #000;
-                        text-align: center;
-                        color: #0000FF; 
-                        min-height: 18px; /* บีบความสูงช่องเติมคำ */
-                        display: inline-block;
-                        line-height: 1.1;
-                    }
-                    .flex-1 { flex: 1; }
-                    
-                    /* ตารางบีบช่องว่างให้แน่นขึ้น */
-                    .data-grid {
-                        width: 95%; 
-                        margin: 10px auto; 
-                        border-collapse: collapse;
-                    }
-                    .data-grid td {
-                        padding: 3px 0; /* ลด padding เซลล์ตาราง */
-                        vertical-align: bottom;
-                    }
-                    .col-main { width: 45%; }
-                    .col-sub { width: 25%; padding-left: 15px; }
-                    .col-val { width: 20%; text-align: center; }
-                    .col-unit { width: 10%; text-align: left; padding-left: 5px; }
-                    
-                    .val-dots {
-                        display: inline-block;
-                        width: 80%;
-                        border-bottom: 1px dotted #000;
-                        min-height: 16px;
-                        text-align: center;
-                        color: #0000FF; 
-                        line-height: 1.1;
-                    }
-
-                    .section-gap { padding-top: 8px; } /* ลดช่องว่างระหว่างหมวด */
+                    ${getDocumentStyle()}
                 </style>
             </head>
             <body>
-                <div class="header-group text-center font-bold">
-                    <div class="header-title underline">สรุปผลการปฏิบัติงานสัตวแพทย์ กลุ่มควบคุมโรคพิษสุนัขบ้า</div>
-                    <div class="header-title underline">สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย</div>
-                </div>
-                
-                <div class="form-line">
-                    <span>ชื่อโครงการ</span>
-                    <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
-                    <span>สถานที่</span>
-                    <span class="dotted-text" style="width: 35%; margin-left: 10px;">${item.location || ''}</span>
-                </div>
-                
-                <div class="form-line">
-                    <span>วันที่</span>
-                    <span class="dotted-text" style="width: 250px; margin: 0 10px;">${item.date || ''}</span>
-                    <span>เขต</span>
-                    <span class="dotted-text flex-1" style="margin-left: 10px;">${item.district || ''}</span>
-                </div>
-                
-                <div class="form-line">
-                    <span>นสพ.ควบคุมหน่วย</span>
-                    <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
-                    <span>สังกัด</span>
-                    <span class="dotted-text" style="width: 200px; margin-left: 10px;">สำนักอนามัย</span>
-                </div>
-
-                <table class="data-grid">
-                    <tr>
-                        <td class="col-main">จำนวนวัคซีนที่เบิก</td>
-                        <td class="col-sub"></td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">โด๊ส</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main">จำนวนสัตว์ที่ฉีดวัคซีน</td>
-                        <td class="col-sub">สุนัข</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">แมว</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">อื่นๆ</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">รวม</td>
-                        <td class="col-val"><span class="val-dots">${item.stats?.vaccine || ''}</span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main" style="padding-top: 6px;">คงเหลือวัคซีน</td>
-                        <td class="col-sub" style="padding-top: 6px;"></td>
-                        <td class="col-val" style="padding-top: 6px;"><span class="val-dots"></span></td>
-                        <td class="col-unit" style="padding-top: 6px;">โด๊ส</td>
-                    </tr>
-
-                    <tr>
-                        <td class="col-main section-gap">จำนวนสุนัข / แมวทำหมัน</td>
-                        <td class="col-sub section-gap">สุนัขเพศผู้</td>
-                        <td class="col-val section-gap"><span class="val-dots"></span></td>
-                        <td class="col-unit section-gap">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">สุนัขเพศเมีย</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">แมวเพศผู้</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">แมวเพศเมีย</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">รวม</td>
-                        <td class="col-val"><span class="val-dots">${item.stats?.sterilize || ''}</span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-
-                    <tr>
-                        <td class="col-main section-gap">จำนวนสุนัข / แมวที่ฉีดไมโครชิป</td>
-                        <td class="col-sub section-gap">สุนัขมีเจ้าของ</td>
-                        <td class="col-val section-gap"><span class="val-dots"></span></td>
-                        <td class="col-unit section-gap">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">แมวมีเจ้าของ</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">รวม</td>
-                        <td class="col-val"><span class="val-dots">${item.stats?.microchip || ''}</span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-
-                    <tr>
-                        <td class="col-main section-gap">จำนวนสุนัข / แมว ขึ้นทะเบียน</td>
-                        <td class="col-sub section-gap">ขึ้นทะเบียน สุนัข</td>
-                        <td class="col-val section-gap"><span class="val-dots"></span></td>
-                        <td class="col-unit section-gap">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">ขึ้นทะเบียน แมว</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">รวม</td>
-                        <td class="col-val"><span class="val-dots">${item.stats?.register || ''}</span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-
-                    <tr>
-                        <td class="col-main section-gap">รักษาสัตว์</td>
-                        <td class="col-sub section-gap">สุนัข</td>
-                        <td class="col-val section-gap"><span class="val-dots"></span></td>
-                        <td class="col-unit section-gap">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">แมว</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">อื่นๆ</td>
-                        <td class="col-val"><span class="val-dots"></span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                    <tr>
-                        <td class="col-main"></td>
-                        <td class="col-sub">รวม</td>
-                        <td class="col-val"><span class="val-dots">${item.stats?.medical || ''}</span></td>
-                        <td class="col-unit">ตัว</td>
-                    </tr>
-                </table>
-
-                <div class="form-line" style="margin-top: 15px; padding-left: 20px;">
-                    <span>ผู้รายงาน</span>
-                    <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
-                    <span>สังกัด</span>
-                    <span class="dotted-text flex-1" style="margin-left: 15px;">สำนักอนามัย</span>
-                </div>
+                ${getDocumentHTML(item)}
             </body>
             </html>
         `;
@@ -326,14 +301,87 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         if (printWindow) {
             printWindow.document.write(printContent);
             printWindow.document.close();
-            // หน่วงเวลาให้ Font Sarabun โหลดเสร็จก่อน
             setTimeout(() => {
                 printWindow.print();
             }, 500);
         }
     };
 
+    // --- Helper: สร้าง Canvas จาก HTML เพื่อไปทำรูป ---
+    const generateImageCanvas = async (item: DataItem) => {
+        // สร้าง Div ซ่อนไว้หลังฉากเพื่อจำลองกระดาษ A4
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '210mm'; // ความกว้างกระดาษ A4 โดยประมาณ
+        container.innerHTML = `<style>${getDocumentStyle()}</style>${getDocumentHTML(item)}`;
+        document.body.appendChild(container);
+
+        // รอให้ฟอนต์โหลดให้เสร็จก่อนถ่ายรูป
+        await document.fonts.ready;
+        await new Promise(res => setTimeout(res, 500));
+
+        const canvas = await html2canvas(container, {
+            scale: 2, // เพิ่มความคมชัด (Retina)
+            useCORS: true,
+            backgroundColor: '#ffffff'
+        });
+
+        document.body.removeChild(container);
+        return canvas;
+    };
+
+    // 2. ฟังก์ชัน ดาวน์โหลด JPG
+    const handleDownloadJpg = async (item: DataItem) => {
+        if (isGeneratingDocument) return;
+        setIsGeneratingDocument(true);
+        try {
+            const canvas = await generateImageCanvas(item);
+            const link = document.createElement('a');
+            link.download = `รายงาน_${item.location || 'เอกสาร'}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        } catch (error) {
+            console.error('Error generating image:', error);
+            alert('เกิดข้อผิดพลาดในการสร้างไฟล์รูปภาพ');
+        } finally {
+            setIsGeneratingDocument(false);
+        }
+    };
+
+    // 3. ฟังก์ชัน แชร์เข้า LINE (ผ่าน Web Share API)
+    const handleShareLine = async (item: DataItem) => {
+        if (isGeneratingDocument) return;
+        setIsGeneratingDocument(true);
+        try {
+            const canvas = await generateImageCanvas(item);
+            
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                const file = new File([blob], `รายงาน_${item.location}.jpg`, { type: 'image/jpeg' });
+
+                // เช็คว่าเบราว์เซอร์รองรับการแชร์ไฟล์ไหม (ส่วนใหญ่ใช้งานได้ดีบนมือถือ)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'รายงานสรุปผล',
+                        text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location}`
+                    });
+                } else {
+                    alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์ภาพโดยตรง แนะนำให้กด "ดาวน์โหลดรูป" แล้วส่งเข้า LINE ด้วยตัวเองครับ');
+                }
+            }, 'image/jpeg', 0.9);
+        } catch (error) {
+            console.error('Error sharing file:', error);
+            // บางครั้ง User กดยกเลิกการ Share ระบบจะโยน Error กลับมา ไม่ต้อง Alert ให้รำคาญ
+        } finally {
+            setIsGeneratingDocument(false);
+        }
+    };
+
     const renderPagination = (isTop: boolean) => {
+        // (โค้ด renderPagination เหมือนเดิม ไม่มีการเปลี่ยนแปลง)
         if (data.length === 0) return null;
         
         return (
@@ -438,7 +486,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <th className="px-6 py-4 text-center w-24">ไมโครชิป</th>
                             <th className="px-6 py-4 text-center w-24">รักษา</th>
                             <th className="px-6 py-4 text-center w-32">ผู้บันทึก</th>
-                            {canEdit && <th className="px-6 py-4 text-center w-36">จัดการ</th>}
+                            {/* ขยายความกว้างของคอลัมน์จัดการเพื่อรองรับปุ่มที่เพิ่มขึ้น */}
+                            {canEdit && <th className="px-6 py-4 text-center w-56">จัดการเอกสาร / ข้อมูล</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -534,25 +583,42 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
 
                                     {canEdit && (
                                         <td className="px-6 py-4 align-middle text-center">
-                                            <div className="flex justify-center items-center gap-1">
+                                            <div className="flex flex-wrap justify-center items-center gap-1 max-w-[150px] mx-auto">
                                                 <button 
                                                     onClick={() => handlePrint(item)} 
-                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                                                    title="พิมพ์"
+                                                    className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-all duration-200"
+                                                    title="พิมพ์เอกสาร"
                                                 >
                                                     <Printer className="w-4 h-4"/>
                                                 </button>
                                                 <button 
+                                                    onClick={() => handleDownloadJpg(item)} 
+                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all duration-200"
+                                                    title="ดาวน์โหลดรูปภาพ .jpg"
+                                                >
+                                                    <Download className="w-4 h-4"/>
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleShareLine(item)} 
+                                                    className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-all duration-200"
+                                                    title="แชร์เอกสาร (LINE)"
+                                                >
+                                                    <Share2 className="w-4 h-4"/>
+                                                </button>
+                                                
+                                                <div className="w-[1px] h-4 bg-gray-300 mx-1"></div>
+                                                
+                                                <button 
                                                     onClick={() => onEdit(item)} 
-                                                    className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all duration-200"
-                                                    title="แก้ไข"
+                                                    className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-all duration-200"
+                                                    title="แก้ไขข้อมูล"
                                                 >
                                                     <Pencil className="w-4 h-4"/>
                                                 </button>
                                                 <button 
                                                     onClick={() => onDelete(item._id)} 
-                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-                                                    title="ลบ"
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all duration-200"
+                                                    title="ลบข้อมูล"
                                                 >
                                                     <X className="w-4 h-4"/>
                                                 </button>
