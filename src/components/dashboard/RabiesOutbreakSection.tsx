@@ -1,108 +1,21 @@
 import React, { useMemo } from 'react';
-import { 
-    Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, 
+import { Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, 
     EyeOff, Edit, Trash2, TrendingUp, Search, PieChart as PieChartIcon, BarChart3
 } from 'lucide-react';
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-    ResponsiveContainer, Cell, Legend, PieChart, Pie, AreaChart, Area, TooltipProps
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+    ResponsiveContainer, Cell, Legend, PieChart, Pie, Sector, AreaChart, Area
 } from 'recharts';
-import OutbreakMap from '../modals/OutbreakMap'; // เช็ค path ให้ตรงกับโปรเจกต์ของคุณ
-
-// --------------------------------------------------------
-// TYPES & INTERFACES
-// --------------------------------------------------------
-
-interface AnimalDetail {
-    male?: string | number;
-    female?: string | number;
-}
-
-interface OutbreakInsight {
-    spcc?: string;
-    testNo?: string;
-    animalType?: string;
-    breed?: string;
-    color?: string;
-    gender?: string;
-    age?: string;
-}
-
-export interface OutbreakItem {
-    _id: string;
-    date: string | Date;
-    location: string;
-    district: string;
-    insight?: OutbreakInsight;
-    stats?: {
-        owned?: { dog?: AnimalDetail; cat?: AnimalDetail };
-        unowned?: { dog?: AnimalDetail; cat?: AnimalDetail };
-        feeder?: { dog?: AnimalDetail; cat?: AnimalDetail };
-        dog?: AnimalDetail;
-        cat?: AnimalDetail;
-        dogs?: string | number;
-        cats?: string | number;
-    };
-    dog?: AnimalDetail;
-    cat?: AnimalDetail;
-    dogMale?: string | number;
-    dogFemale?: string | number;
-    catMale?: string | number;
-    catFemale?: string | number;
-    dogs?: string | number;
-    cats?: string | number;
-    lat?: string | number; // เพิ่ม lat long ไว้เผื่อใช้งานใน Map
-    long?: string | number;
-}
-
-interface DistrictStat {
-    name: string;
-    count: number;
-}
-
-interface AnimalChartStat {
-    name: string;
-    dogMale: number;
-    dogFemale: number;
-    catMale: number;
-    catFemale: number;
-}
-
-export interface OutbreakStats {
-    total: number;
-    topDistricts: DistrictStat[];
-    animalChartData?: AnimalChartStat[];
-}
-
-interface RabiesOutbreakSectionProps {
-    outbreakData: OutbreakItem[];
-    filterYear: string;
-    setFilterYear: (year: string) => void;
-    years: string[];
-    stats: OutbreakStats;
-    filteredOutbreaks: OutbreakItem[];
-    yearlyTrend?: any;
-    hiddenIds: string[];
-    toggleVisibility: (id: string) => void;
-    onEdit: (item: OutbreakItem) => void;
-    onDelete: (id: string) => void;
-    canEdit: boolean;
-}
-
-// --------------------------------------------------------
-// CONSTANTS & HELPERS
-// --------------------------------------------------------
+import OutbreakMap from '../modals/OutbreakMap';
 
 const BAR_COLORS = ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
-const PIE_COLORS = ['#3b82f6', '#f97316', '#10b981']; 
+const PIE_COLORS = ['#3b82f6', '#f97316', '#10b981']; // Blue (Owned), Orange (Unowned), Emerald (Feeder)
 
-// แก้ไข Type ตรงนี้เพื่อหลีกเลี่ยง Error payload
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
             <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-slate-100 ring-1 ring-slate-100/50">
                 <p className="font-bold text-slate-800 mb-1 text-xs">{label}</p>
-                {payload.map((entry: any, index: number) => (
+                {payload.map((entry, index) => (
                     <div key={index} className="flex items-center justify-between gap-4 text-xs text-slate-600 mt-1">
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}></span>
@@ -117,16 +30,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-const calculateAnimalCounts = (item: OutbreakItem) => {
+// Helper Function ลดความซ้ำซ้อนในการนับจำนวนสัตว์
+const calculateAnimalCounts = (item) => {
     let dog = 0, cat = 0;
-    const getNum = (val: string | number | undefined) => typeof val === 'string' ? parseInt(val, 10) || 0 : val || 0;
+    const getNum = (val) => parseInt(val, 10) || 0;
 
     if (item.stats) {
-        (['owned', 'unowned', 'feeder'] as const).forEach(type => {
-            const statType = item.stats?.[type];
-            if (statType) {
-                dog += getNum(statType.dog?.male) + getNum(statType.dog?.female);
-                cat += getNum(statType.cat?.male) + getNum(statType.cat?.female);
+        ['owned', 'unowned', 'feeder'].forEach(type => {
+            if (item.stats[type]) {
+                dog += getNum(item.stats[type].dog?.male) + getNum(item.stats[type].dog?.female);
+                cat += getNum(item.stats[type].cat?.male) + getNum(item.stats[type].cat?.female);
             }
         });
         dog += getNum(item.stats.dog?.male) + getNum(item.stats.dog?.female) + getNum(item.stats.dogs);
@@ -138,18 +51,14 @@ const calculateAnimalCounts = (item: OutbreakItem) => {
     return { dog, cat };
 };
 
-// --------------------------------------------------------
-// MAIN COMPONENT
-// --------------------------------------------------------
-
-const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({ 
+const RabiesOutbreakSection = ({ 
     outbreakData, filterYear, setFilterYear, years, stats, 
     filteredOutbreaks, yearlyTrend, hiddenIds, toggleVisibility, 
     onEdit, onDelete, canEdit 
 }) => {
     
     // --------------------------------------------------------
-    // DATA ANALYTICS
+    // DATA ANALYTICS: คำนวณข้อมูลใหม่สำหรับกราฟรายเดือนและสัดส่วนสัตว์
     // --------------------------------------------------------
     const { monthlyData, ownershipData } = useMemo(() => {
         const monthsThai = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -158,18 +67,18 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
         let owned = 0, unowned = 0, feeder = 0;
 
         filteredOutbreaks.forEach(item => {
+            // คำนวณรายเดือน
             const d = new Date(item.date);
-            if (!isNaN(d.getTime())) {
+            if (!isNaN(d)) {
                 monthly[d.getMonth()].count += 1;
             }
 
-            const getNum = (val: string | number | undefined) => typeof val === 'string' ? parseInt(val, 10) || 0 : val || 0;
-            
+            // คำนวณสัดส่วนสถานะสัตว์
+            const getNum = (val) => parseInt(val, 10) || 0;
             if (item.stats) {
-                (['owned', 'unowned', 'feeder'] as const).forEach(type => {
-                    const statType = item.stats?.[type];
-                    const total = getNum(statType?.dog?.male) + getNum(statType?.dog?.female) +
-                                  getNum(statType?.cat?.male) + getNum(statType?.cat?.female);
+                ['owned', 'unowned', 'feeder'].forEach(type => {
+                    const total = getNum(item.stats[type]?.dog?.male) + getNum(item.stats[type]?.dog?.female) +
+                                  getNum(item.stats[type]?.cat?.male) + getNum(item.stats[type]?.cat?.female);
                     if (type === 'owned') owned += total;
                     if (type === 'unowned') unowned += total;
                     if (type === 'feeder') feeder += total;
@@ -181,7 +90,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
             { name: 'มีเจ้าของ', value: owned },
             { name: 'ไม่มีเจ้าของ', value: unowned },
             { name: 'มีผู้ให้อาหาร', value: feeder }
-        ].filter(d => d.value > 0);
+        ].filter(d => d.value > 0); // ซ่อนกลุ่มที่เป็น 0
 
         return { monthlyData: monthly, ownershipData: ownership };
     }, [filteredOutbreaks]);
@@ -394,8 +303,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                                         <XAxis type="number" hide />
                                         <YAxis dataKey="name" type="category" width={100} tick={{fontSize:11, fontWeight: 600, fill: '#64748b'}} axisLine={false} tickLine={false}/>
                                         <RechartsTooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                                        {/* แก้ไข Type ของ radius ตรงนี้ด้วย as any */}
-                                        <Bar dataKey="count" name="จำนวนเคส" radius={[0, 8, 8, 0] as any} background={{ fill: '#f8fafc', radius: [0, 8, 8, 0] as any }}>
+                                        <Bar dataKey="count" name="จำนวนเคส" radius={[0, 8, 8, 0]} background={{ fill: '#f8fafc', radius: [0, 8, 8, 0] }}>
                                             {(stats?.topDistricts || []).map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
                                             ))}
@@ -411,10 +319,10 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                         </div>
                     </div>
                     
-                    {/* Two-Column Grid for Analytics */}
+                    {/* Two-Column Grid for Analytics: Monthly Trend & Ownership Donut */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
                         
-                        {/* Monthly Trend */}
+                        {/* Monthly Trend Heatmap/Area Chart */}
                         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
                             <div className="flex justify-between items-center mb-6">
                                 <div>
@@ -451,7 +359,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                             </div>
                         </div>
 
-                        {/* Ownership */}
+                        {/* Ownership Pie Chart */}
                         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
                             <div className="flex justify-between items-center mb-6">
                                 <div>
@@ -486,6 +394,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                                         <span className="text-xs">ไม่มีข้อมูลสัดส่วนสัตว์</span>
                                     </div>
                                 )}
+                                {/* Label ตรงกลาง Donut */}
                                 {ownershipData.length > 0 && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
                                         <span className="text-xl font-black text-slate-800">{ownershipData.reduce((acc, curr) => acc + curr.value, 0)}</span>
@@ -498,7 +407,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                     </div>
                 </div>
 
-                {/* Bottom Row */}
+                {/* Bottom Row: สถิติแยกตามชนิดสัตว์ (Bar Chart) */}
                 <div className="lg:col-span-12 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 mt-2">
                     <div className="flex justify-between items-center mb-6">
                         <div>
@@ -515,10 +424,10 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                                     <RechartsTooltip cursor={{ fill: '#f8fafc' }} content={<CustomTooltip />} />
                                     <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }} />
-                                    <Bar dataKey="dogMale" name="หมา (ตัวผู้)" fill="#3b82f6" radius={[4, 4, 0, 0] as any} />
-                                    <Bar dataKey="dogFemale" name="หมา (ตัวเมีย)" fill="#93c5fd" radius={[4, 4, 0, 0] as any} />
-                                    <Bar dataKey="catMale" name="แมว (ตัวผู้)" fill="#f97316" radius={[4, 4, 0, 0] as any} />
-                                    <Bar dataKey="catFemale" name="แมว (ตัวเมีย)" fill="#fdba74" radius={[4, 4, 0, 0] as any} />
+                                    <Bar dataKey="dogMale" name="หมา (ตัวผู้)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="dogFemale" name="หมา (ตัวเมีย)" fill="#93c5fd" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="catMale" name="แมว (ตัวผู้)" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="catFemale" name="แมว (ตัวเมีย)" fill="#fdba74" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (

@@ -1,46 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, X, Link as LinkIcon, Share2, Trash2, List, 
+  Users, X, Link, Share2, Trash2, List, 
   Calendar, Clock, AlignLeft, QrCode, ExternalLink, ChevronRight, Maximize2
 } from 'lucide-react';
 
-// --- Interfaces ---
-
-export interface MeetingData {
-  _id?: string;
-  title: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  link: string;
-  details: string;
-}
-
-interface InputGroupProps {
-  label: string;
-  icon?: React.ElementType; // ใช้สำหรับรับ Icon component จาก lucide-react
-  children: React.ReactNode;
-}
-
-export interface MeetingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: MeetingData) => void;
-  onDelete?: (id: string) => void;
-  initialData?: MeetingData | null;
-  onToast?: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
-}
-
-export interface MeetingListModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  meetings: MeetingData[];
-  onEdit: (meeting: MeetingData) => void;
-}
-
-// --- Components ---
-
-const InputGroup: React.FC<InputGroupProps> = ({ label, icon: Icon, children }) => (
+const InputGroup = ({ label, icon: Icon, children }) => (
   <div className="space-y-1.5">
     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
       {Icon && <Icon className="w-3.5 h-3.5" />} {label}
@@ -49,8 +13,8 @@ const InputGroup: React.FC<InputGroupProps> = ({ label, icon: Icon, children }) 
   </div>
 );
 
-export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onSave, onDelete, initialData, onToast }) => {
-  const [formData, setFormData] = useState<MeetingData>({
+export const MeetingModal = ({ isOpen, onClose, onSave, onDelete, initialData, onToast }) => {
+  const [formData, setFormData] = useState({
     title: '',
     date: new Date().toISOString().split('T')[0],
     startTime: '09:00',
@@ -58,7 +22,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
     link: '',
     details: ''
   });
-  const [isQrZoomed, setIsQrZoomed] = useState<boolean>(false);
+  const [isQrZoomed, setIsQrZoomed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -88,7 +52,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
 
   const qrCodeUrl = formData.link 
     ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(formData.link)}` 
-    : undefined;
+    : null;
 
   const handleSendLine = () => {
     if (!formData.title || !formData.link) {
@@ -116,11 +80,6 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
     }
     onSave({ ...formData, _id: initialData?._id });
     onClose();
-  };
-
-  // Helper สำหรับจัดการ Event ของ Input เพื่อลดความซ้ำซ้อน
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: keyof MeetingData) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
   // Style classes
@@ -152,7 +111,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
               type="text" 
               className={`${inputClass} font-medium`}
               value={formData.title} 
-              onChange={e => handleChange(e, 'title')} 
+              onChange={e => setFormData({...formData, title: e.target.value})} 
               placeholder="เช่น Daily Standup, ประชุมวางแผน..." 
               autoFocus 
             />
@@ -164,7 +123,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
                 type="date" 
                 className={inputClass}
                 value={formData.date} 
-                onChange={e => handleChange(e, 'date')} 
+                onChange={e => setFormData({...formData, date: e.target.value})} 
               />
             </InputGroup>
             <div className="flex gap-2">
@@ -174,7 +133,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
                     type="time" 
                     className={`${inputClass} text-center`}
                     value={formData.startTime} 
-                    onChange={e => handleChange(e, 'startTime')} 
+                    onChange={e => setFormData({...formData, startTime: e.target.value})} 
                   />
                 </InputGroup>
               </div>
@@ -184,34 +143,37 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
                     type="time" 
                     className={`${inputClass} text-center`}
                     value={formData.endTime} 
-                    onChange={e => handleChange(e, 'endTime')} 
+                    onChange={e => setFormData({...formData, endTime: e.target.value})} 
                   />
                 </InputGroup>
               </div>
             </div>
           </div>
 
-          <InputGroup label="ลิงก์การประชุม (URL)" icon={LinkIcon}>
+          <InputGroup label="ลิงก์การประชุม (URL)" icon={Link}>
             <div className="relative">
               <input 
                 type="url" 
                 className={`${inputClass} pl-10 text-blue-600 font-mono text-xs`}
                 value={formData.link} 
-                onChange={e => handleChange(e, 'link')} 
+                onChange={e => setFormData({...formData, link: e.target.value})} 
                 placeholder="https://meet.google.com/..." 
               />
-              <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <Link className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             </div>
           </InputGroup>
 
-          {formData.link && qrCodeUrl && (
+          {formData.link && (
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-100 flex items-center gap-4 group">
+              {/* กรอบรูป QR Code คลิกได้ */}
               <div 
                 className="bg-white p-1.5 rounded-lg shadow-sm border border-indigo-100 shrink-0 cursor-pointer relative overflow-hidden group/qr"
                 onClick={() => setIsQrZoomed(true)}
                 title="คลิกเพื่อขยาย"
               >
                 <img src={qrCodeUrl} alt="Meeting QR" className="w-16 h-16 object-contain" />
+                
+                {/* Overlay ไอคอนขยายเมื่อ Hover */}
                 <div className="absolute inset-0 bg-slate-900/10 flex items-center justify-center opacity-0 group-hover/qr:opacity-100 transition-opacity">
                   <Maximize2 className="w-5 h-5 text-indigo-600 drop-shadow-sm bg-white/80 rounded p-0.5" />
                 </div>
@@ -230,10 +192,10 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
 
           <InputGroup label="รายละเอียดเพิ่มเติม" icon={AlignLeft}>
             <textarea 
-              rows={3} 
+              rows="3" 
               className={`${inputClass} resize-none`}
               value={formData.details} 
-              onChange={e => handleChange(e, 'details')}
+              onChange={e => setFormData({...formData, details: e.target.value})}
               placeholder="วาระการประชุม, หมายเหตุ..."
             />
           </InputGroup>
@@ -248,11 +210,11 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
           </button>
           
           <div className="flex flex-col sm:flex-row gap-3">
-            {initialData && onDelete && initialData._id && (
+            {initialData && onDelete && (
               <button 
                 onClick={() => { 
                   if(window.confirm('ยืนยันลบนัดหมายนี้?')) { 
-                    onDelete(initialData._id!); 
+                    onDelete(initialData._id); 
                     onClose(); 
                   } 
                 }} 
@@ -285,7 +247,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
           >
             <div 
               className="bg-white p-6 rounded-3xl shadow-2xl relative animate-in zoom-in-95 flex flex-col items-center gap-4 max-w-sm w-full mx-4"
-              onClick={(e: React.MouseEvent) => e.stopPropagation()} 
+              onClick={e => e.stopPropagation()} 
             >
               <button 
                 onClick={() => setIsQrZoomed(false)} 
@@ -317,7 +279,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({ isOpen, onClose, onS
   );
 };
 
-export const MeetingListModal: React.FC<MeetingListModalProps> = ({ isOpen, onClose, meetings, onEdit }) => {
+export const MeetingListModal = ({ isOpen, onClose, meetings, onEdit }) => {
   if (!isOpen) return null;
 
   return (
@@ -381,7 +343,7 @@ export const MeetingListModal: React.FC<MeetingListModalProps> = ({ isOpen, onCl
                           <div className="text-xs text-slate-500 line-clamp-1">{m.details}</div>
                         )}
                       </td>
-                      <td className="p-4 align-top" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                      <td className="p-4 align-top" onClick={e => e.stopPropagation() /* กันไม่ให้กดลิงก์แล้วไปเผลอกดแถวเพื่อแก้ไข */}>
                         {m.link ? (
                           <a 
                             href={m.link} 
@@ -397,7 +359,7 @@ export const MeetingListModal: React.FC<MeetingListModalProps> = ({ isOpen, onCl
                       </td>
                       <td className="p-4 align-middle text-right">
                         <button 
-                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(m); }} 
+                          onClick={(e) => { e.stopPropagation(); onEdit(m); }} 
                           className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                         >
                           <ChevronRight className="w-5 h-5" />

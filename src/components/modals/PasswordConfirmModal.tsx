@@ -1,30 +1,13 @@
-// src/components/modals/PasswordConfirmModal.tsx
 import React, { useState } from 'react';
 import { X, Trash2, Key, Loader2 } from 'lucide-react';
 
-// กำหนด Type สำหรับ Props
-interface PasswordConfirmModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: (password: string) => Promise<void> | void; // รองรับทั้งฟังก์ชันที่เป็น async และ sync
-    title: string;
-    message: string | React.ReactNode; // เผื่อกรณีที่ส่งข้อความมาเป็น Element HTML
-}
-
-const PasswordConfirmModal: React.FC<PasswordConfirmModalProps> = ({ 
-    isOpen, 
-    onClose, 
-    onConfirm, 
-    title, 
-    message 
-}) => {
-    const [password, setPassword] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+const PasswordConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+    const [password, setPassword] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     if (!isOpen) return null;
 
-    // กำหนด Type ให้ Event ของ Form
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         await onConfirm(password);
@@ -70,7 +53,7 @@ const PasswordConfirmModal: React.FC<PasswordConfirmModalProps> = ({
                                 className="block w-full pl-11 pr-4 py-3 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all sm:text-sm"
                                 placeholder="กรอกรหัสผ่านของคุณเพื่อยืนยัน" 
                                 value={password} 
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
+                                onChange={(e) => setPassword(e.target.value)} 
                                 required 
                                 autoFocus 
                             />

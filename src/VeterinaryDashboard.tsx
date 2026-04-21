@@ -59,7 +59,6 @@ interface AnnouncementModalProps {
 }
 
 export interface User {
-    username: string;
     role: string;
     token: string;
     [key: string]: any;
@@ -332,17 +331,17 @@ export default function VeterinaryDashboard() {
 
     // จัดการสิทธิ์การแสดงผลใหม่
     const isSystemDeveloper = user?.role === 'Developer';
-    const isTopAdmin = !!(user && ['Developer', 'MagaAdmin'].includes(user.role));
-    const isMagaAdmin = !!(user && ['Developer', 'MagaAdmin'].includes(user.role));
+    const isTopAdmin = user && ['Developer', 'MagaAdmin'].includes(user.role);
+    const isMagaAdmin = user && ['Developer', 'MagaAdmin'].includes(user.role);
 
     // Admin, MagaAdmin, Developer แก้ไขข้อมูลได้ | (User, executive, superadmin ห้ามแก้)
-    const canEdit = !!(user && ['Developer', 'MagaAdmin', 'admin'].includes(user.role) && !isReadOnlyMode);
+    const canEdit = user && ['Developer', 'MagaAdmin', 'admin'].includes(user.role) && !isReadOnlyMode;
     
     // User สามารถเพิ่มข้อมูลได้ด้วย
-    const canAdd = !!(user && ['Developer', 'MagaAdmin', 'admin', 'user'].includes(user.role) && !isReadOnlyMode);
+    const canAdd = user && ['Developer', 'MagaAdmin', 'admin', 'user'].includes(user.role) && !isReadOnlyMode;
 
     // สิทธิ์การมองเห็นหน่วยที่ถูกซ่อน (Executive มองเห็นได้ แต่แก้ไม่ได้ถ้าไม่มี canEdit)
-    const canViewHiddenDispatches = !!(user && ['Developer', 'MagaAdmin', 'admin', 'executive'].includes(user.role));
+    const canViewHiddenDispatches = user && ['Developer', 'MagaAdmin', 'admin', 'executive'].includes(user.role);
 
     const handleNotifySystemUpdate = async () => {
         if (!window.confirm("⚠️ ยืนยันการสั่งแจ้งเตือนอัปเดตระบบ?\nหน้าเว็บของผู้ใช้งานทุกคนในขณะนี้จะถูกบังคับรีเฟรชทันที!")) return;
@@ -891,7 +890,7 @@ export default function VeterinaryDashboard() {
 
     const generateMockData = (count: number) => {
         if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
-        const newMockData: any[] = [];
+        const newMockData = [];
         const endDate = new Date();
         const startDate = new Date();
         startDate.setFullYear(endDate.getFullYear() - 1);
@@ -941,6 +940,7 @@ export default function VeterinaryDashboard() {
         const reader = new FileReader();
         reader.onload = async (event: any) => {
             try {
+                // เรียกใช้ Business Logic จากไฟล์แยก
                 const { bulkData, failCount, totalRows } = parseReportCSV(event.target.result);
                 
                 if (totalRows === 0) { alert("ไฟล์ไม่มีข้อมูล"); return; }
@@ -953,6 +953,7 @@ export default function VeterinaryDashboard() {
                     return;
                 }
 
+                // เรียก API
                 const response = await fetch(`${BASE_URL}/api/reports/bulk`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
@@ -1010,9 +1011,11 @@ export default function VeterinaryDashboard() {
             try {
                 if (!item) return false;
 
+                // 1. กรองวันที่เจาะจง
                 if (searchDate) {
                     if (item.date !== searchDate) return false;
                 } 
+                // 2. กรอง ปี/เดือน
                 else if (!isYearAll || !isMonthAll) {
                     if (!item.date) return false;
                     const dateParts = String(item.date).split('-');
@@ -1022,18 +1025,22 @@ export default function VeterinaryDashboard() {
                     if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(deferredMonth, 10)) return false;
                 }
 
+                // จัดการปัญหา Whitespace ใน DB ด้วย .trim() ก่อนเปรียบเทียบ
                 const itemUnit = item.unit ? String(item.unit).trim() : '';
                 const itemDistrict = item.district ? String(item.district).trim() : '';
 
+                // 3. กรอง หน่วยงาน และ เขต
                 if (!isUnitAll && itemUnit !== String(deferredUnit).trim()) return false;
                 if (!isDistrictAll && itemDistrict !== String(deferredDistrict).trim()) return false;
 
+                // 4. กรองด้วยคำค้นหา (Text Search) - เพิ่ม Unit, Team และ Details เข้าไปเพื่อให้หาครอบคลุมขึ้น
                 if (lowerSearch) {
                     const itemLocation = item.location ? String(item.location).toLowerCase() : '';
                     const itemDistrictLower = itemDistrict.toLowerCase();
                     const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
                     const itemUnitLower = itemUnit.toLowerCase();
                     const itemTeam = item.team ? String(item.team).toLowerCase() : '';
+                    // นำ detail มา stringify เผื่อค้นหาจาก Note หรือรายละเอียดเชิงลึก
                     const itemDetails = item.details ? JSON.stringify(item.details).toLowerCase() : ''; 
 
                     if (!itemLocation.includes(lowerSearch) && 
@@ -1077,6 +1084,7 @@ export default function VeterinaryDashboard() {
                     if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(filters.month, 10)) return false;
                 }
 
+                // จัดการ Whitespace แบบเดียวกับตารางหลัก
                 const itemUnit = item.unit ? String(item.unit).trim() : '';
                 const itemDistrict = item.district ? String(item.district).trim() : '';
 
@@ -1118,6 +1126,7 @@ export default function VeterinaryDashboard() {
             return { mapDisplayData: [], totals: newTotals, unitStats: [], unitByDistrictPieData: [], unitByUnitTypePieData: [], unitByWorkTypePieData: [] };
         }
 
+        // ย้ายฟังก์ชันนี้ออกมานอกลูป ช่วยลด Memory Allocation มหาศาลเมื่อข้อมูลเยอะ
         const toNum = (val: any) => parseInt(val, 10) || 0;
 
         for (let i = 0; i < filteredData.length; i++) {
@@ -1256,17 +1265,19 @@ export default function VeterinaryDashboard() {
     const dispatchStats = useMemo(() => {
         const initStats = () => ({ count: 0, sterilization: 0, vaccine_microchip: 0, governor: 0, cat_cage: 0, other: 0 });
 
-        const baseYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
-        const baseMonth = String(chartBaseMonth) === 'ทั้งหมด' ? (new Date().getMonth() + 1) : Number(chartBaseMonth);
+        const baseYear = chartBaseYear === 'ทั้งหมด' ? new Date().getFullYear() : chartBaseYear;
+        const baseMonth = chartBaseMonth === 'ทั้งหมด' ? (new Date().getMonth() + 1) : chartBaseMonth;
 
         const monthMap: any = {};
         const dayMap: any = {};
 
+        // รวมการทำงานของ 2 ลูปเข้าด้วยกันเพื่อความเร็ว
         filteredData.forEach(item => {
             const day = item.date;
             const m = item.date.substring(0, 7);
             const uKey = getUnitKey(item.unit);
             
+            // ประมวลผลสำหรับรายเดือน (monthMap)
             if (!monthMap[m]) monthMap[m] = initStats();
             monthMap[m].count += 1;
             if (monthMap[m][uKey] !== undefined) {
@@ -1275,6 +1286,7 @@ export default function VeterinaryDashboard() {
                 monthMap[m]['other'] += 1;
             }
 
+            // ประมวลผลสำหรับรายวัน (dayMap)
             if (!dayMap[day]) dayMap[day] = initStats();
             dayMap[day].count += 1;
             if (dayMap[day][uKey] !== undefined) {
@@ -1323,8 +1335,8 @@ export default function VeterinaryDashboard() {
     }, [filteredData, freqMonthlyOffset, freqDailyOffset, chartBaseYear, chartBaseMonth]);
 
     const trendData = useMemo(() => {
-        const baseYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
-        const baseMonth = String(chartBaseMonth) === 'ทั้งหมด' ? (new Date().getMonth() + 1) : Number(chartBaseMonth);
+        const baseYear = chartBaseYear === 'ทั้งหมด' ? new Date().getFullYear() : chartBaseYear;
+        const baseMonth = chartBaseMonth === 'ทั้งหมด' ? (new Date().getMonth() + 1) : chartBaseMonth;
 
         const dataMap = filteredData.reduce((acc: any, curr) => {
             const month = curr.date.substring(0, 7);
@@ -1446,29 +1458,29 @@ export default function VeterinaryDashboard() {
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <Suspense fallback={<div className="hidden">Loading...</div>}>
-                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem as any} onToast={addToast} />
-                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak as any} onToast={addToast} breeds={breeds} colors={colors}/>
-                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
+                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem} onToast={addToast} />
+                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak} onToast={addToast} breeds={breeds} colors={colors}/>
+                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
 
-                <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
-                <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
+                <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+                <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
             </Suspense>
 
             <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={UNIT_TYPES} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
-            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token as any} apiBaseUrl={BASE_URL} />
+            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
-            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token as any} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
+            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
             <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
-            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
-            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token as any} apiBaseUrl={BASE_URL} />
-            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent as any} onDelete={handleDeleteDispatch} initialData={viewingDispatch as any} />
+            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token} onToast={addToast} />
+            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token} apiBaseUrl={BASE_URL} />
+            <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent} onDelete={handleDeleteDispatch} initialData={viewingDispatch} />
             <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={() => setIsMeetingCalendarOpen(false)} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
-            <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting as any} onDelete={handleDeleteMeeting} initialData={viewingMeeting as any} onToast={addToast} />
-            <MeetingListModal isOpen={isMeetingListOpen} onClose={() => setIsMeetingListOpen(false)} meetings={meetings as any} onEdit={editMeetingFromList as any} />
-            
+            <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting} onDelete={handleDeleteMeeting} initialData={viewingMeeting} onToast={addToast} />
+            <MeetingListModal isOpen={isMeetingListOpen} onClose={() => setIsMeetingListOpen(false)} meetings={meetings} onEdit={editMeetingFromList} />
+
             <Sidebar 
-                user={user} canEdit={canEdit} canAdd={canAdd} 
+                user={user} isSuperAdmin={isTopAdmin} canEdit={canEdit} canAdd={canAdd} 
                 isSystemDeveloper={isSystemDeveloper}
                 isDevOrSuper={isTopAdmin}
                 activeTab={activeTab} setActiveTab={setActiveTab}
@@ -1485,6 +1497,7 @@ export default function VeterinaryDashboard() {
                 onOpenMeetingList={() => setIsMeetingListOpen(true)} 
                 onOpenCalendar={() => setIsCalendarOpen(true)} 
                 onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
+                onOpenMeetingModal={() => setIsMeetingModalOpen(true)} 
                 onOpenAddOutbreak={openAddOutbreakModal} 
                 onOpenAddData={openAddModal}
                 onOpenBreedMgmt={() => setIsBreedModalOpen(true)}
@@ -1509,9 +1522,14 @@ export default function VeterinaryDashboard() {
 
                 <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
                     <div className="flex items-center gap-3">
+            
+                        {/* 👇 ปุ่มเปิด Mobile Menu อยู่ตรงนี้ครับ 👇 */}
                         <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                             <List className="w-6 h-6" />
                         </button>
+
+                        {/* 👆 ปุ่มเปิด Mobile Menu อยู่ตรงนี้ครับ 👆 */}
+
                         <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
                         <h1 className="text-sm font-bold text-slate-800">ระบบรายงานออกหน่วยเคลื่อนที่สัตวแพทย์</h1>
                     </div>
@@ -1660,16 +1678,16 @@ export default function VeterinaryDashboard() {
                                             freqMonthlyOffset={freqMonthlyOffset}
                                             setFreqMonthlyOffset={setFreqMonthlyOffset}
                                             chartBaseYear={chartBaseYear}
-                                            setChartBaseYear={setChartBaseYear as any}
+                                            setChartBaseYear={setChartBaseYear}
                                             chartBaseMonth={chartBaseMonth}
-                                            setChartBaseMonth={setChartBaseMonth as any}
+                                            setChartBaseMonth={setChartBaseMonth}
                                             availableYears={availableYears}
                                         />
                                         <PieChartsSection 
-                                            unitByDistrictPieData={unitByDistrictPieData as any[]}
-                                            unitByUnitTypePieData={unitByUnitTypePieData as any[]}
-                                            unitByWorkTypePieData={unitByWorkTypePieData as any[]}
-                                            outbreakPieData={outbreakPieData as any[]}
+                                            unitByDistrictPieData={unitByDistrictPieData}
+                                            unitByUnitTypePieData={unitByUnitTypePieData}
+                                            unitByWorkTypePieData={unitByWorkTypePieData}
+                                            outbreakPieData={outbreakPieData}
                                         />
                                     </div>
                                 )}
@@ -1695,7 +1713,7 @@ export default function VeterinaryDashboard() {
 
                                 {activeTab === 'database' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
-                                        <MainDataTable data={filteredData} canEdit={canEdit} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
+                                        <MainDataTable data={filteredData} canEdit={canEdit} isSuperAdmin={isTopAdmin} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
                                     </div>
                                 )}
                             </>

@@ -3,51 +3,10 @@ import {
     Filter, Activity, CheckCircle, Trophy, Medal, ChevronDown,
     Building2, LayoutDashboard,
     Syringe, Scissors, FileText, Cpu, Stethoscope,
-    Star,
-    LucideIcon
+    Star
 } from 'lucide-react';
 
-interface ServiceStats {
-    vaccine?: number;
-    sterilize?: number;
-    register?: number;
-    microchip?: number;
-    medical?: number;
-    [key: string]: number | undefined;
-}
-
-interface UnitStat {
-    name: string;
-    total: number;
-    trend?: number;
-}
-
-interface DistrictStat {
-    name: string;
-    total: number;
-    stats?: ServiceStats;
-}
-
-interface NestedStat {
-    name: string;
-    totalWork: number;
-    stats?: ServiceStats;
-    topDistricts?: DistrictStat[];
-}
-
-interface RankingSectionProps {
-    type?: string;
-    rankingYear: string | number;
-    setRankingYear: (year: string) => void;
-    rankingMonth: string | number;
-    setRankingMonth: (month: string) => void;
-    availableYears?: (string | number)[];
-    thaiMonths?: string[];
-    rankingUnitStats?: UnitStat[];
-    rankingNestedStats?: NestedStat[];
-}
-
-const RankingSection: React.FC<RankingSectionProps> = ({
+const RankingSection = ({
     type = "all",
     rankingYear,
     setRankingYear,
@@ -58,7 +17,7 @@ const RankingSection: React.FC<RankingSectionProps> = ({
     rankingUnitStats = [],
     rankingNestedStats = []
 }) => {
-    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [sortOrder, setSortOrder] = useState('desc');
 
     const sortedUnitStats = useMemo(() => {
         if (!rankingUnitStats) return [];
@@ -73,22 +32,14 @@ const RankingSection: React.FC<RankingSectionProps> = ({
 
     const totalAllServices = rankingUnitStats?.reduce((sum, item) => sum + (item.total || 0), 0) || 0;
 
-    const RankBadge = ({ rank }: { rank: number }) => {
+    const RankBadge = ({ rank }) => {
         if (rank === 1) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 shadow-sm border border-yellow-200"><Trophy className="w-4 h-4" /></div>;
         if (rank === 2) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 shadow-sm border border-slate-200"><Medal className="w-4 h-4" /></div>;
         if (rank === 3) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600 shadow-sm border border-orange-200"><Medal className="w-4 h-4" /></div>;
         return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 text-slate-400 font-semibold text-[10px] border border-slate-100">{rank}</div>;
     };
 
-    interface ServiceStatProps {
-        icon: LucideIcon;
-        color: string;
-        label: string;
-        value: number;
-        isHighest: boolean;
-    }
-    
-    const ServiceStat = ({ icon: Icon, color, label, value, isHighest }: ServiceStatProps) => (
+    const ServiceStat = ({ icon: Icon, color, label, value, isHighest }) => (
         <div className={`flex flex-col items-center p-2 rounded-lg border transition-colors relative h-full ${
             isHighest ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-slate-50 border-slate-100'
         }`}>
@@ -241,7 +192,7 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={4} className="p-8 text-center text-slate-400">ไม่พบข้อมูล</td>
+                                            <td colSpan="4" className="p-8 text-center text-slate-400">ไม่พบข้อมูล</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -296,7 +247,7 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                                     {(() => {
                                         const statsEntries = Object.entries(unit.stats || {});
                                         const topServiceKey = statsEntries.length > 0 
-                                            ? statsEntries.reduce((max, curr) => (curr[1] as number) > (max[1] as number) ? curr : max)[0] 
+                                            ? statsEntries.reduce((max, curr) => curr[1] > max[1] ? curr : max)[0] 
                                             : null;
 
                                         return (
@@ -339,29 +290,29 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                                                         </div>
 
                                                         <div className="relative z-10 flex flex-wrap gap-x-2 gap-y-0.5 pl-4.5">
-                                                            {(dist.stats?.vaccine ?? 0) > 0 && (
+                                                            {dist.stats?.vaccine > 0 && (
                                                                 <span className="text-[8px] text-slate-500 flex items-center gap-1">
-                                                                    <div className="w-1 h-1 rounded-full bg-blue-400"></div> วัคซีน: {dist.stats?.vaccine}
+                                                                    <div className="w-1 h-1 rounded-full bg-blue-400"></div> วัคซีน: {dist.stats.vaccine}
                                                                 </span>
                                                             )}
-                                                            {(dist.stats?.sterilize ?? 0) > 0 && (
+                                                            {dist.stats?.sterilize > 0 && (
                                                                 <span className="text-[8px] text-slate-500 flex items-center gap-1">
-                                                                    <div className="w-1 h-1 rounded-full bg-red-400"></div> ทำหมัน: {dist.stats?.sterilize}
+                                                                    <div className="w-1 h-1 rounded-full bg-red-400"></div> ทำหมัน: {dist.stats.sterilize}
                                                                 </span>
                                                             )}
-                                                            {(dist.stats?.microchip ?? 0) > 0 && (
+                                                            {dist.stats?.microchip > 0 && (
                                                                 <span className="text-[8px] text-slate-500 flex items-center gap-1">
-                                                                    <div className="w-1 h-1 rounded-full bg-purple-400"></div> ชิป: {dist.stats?.microchip}
+                                                                    <div className="w-1 h-1 rounded-full bg-purple-400"></div> ชิป: {dist.stats.microchip}
                                                                 </span>
                                                             )}
-                                                            {(dist.stats?.register ?? 0) > 0 && (
+                                                            {dist.stats?.register > 0 && (
                                                                 <span className="text-[8px] text-slate-500 flex items-center gap-1">
-                                                                    <div className="w-1 h-1 rounded-full bg-yellow-400"></div> ทะเบียน: {dist.stats?.register}
+                                                                    <div className="w-1 h-1 rounded-full bg-yellow-400"></div> ทะเบียน: {dist.stats.register}
                                                                 </span>
                                                             )}
-                                                            {(dist.stats?.medical ?? 0) > 0 && (
+                                                            {dist.stats?.medical > 0 && (
                                                                 <span className="text-[8px] text-slate-500 flex items-center gap-1">
-                                                                    <div className="w-1 h-1 rounded-full bg-green-400"></div> รักษา: {dist.stats?.medical}
+                                                                    <div className="w-1 h-1 rounded-full bg-green-400"></div> รักษา: {dist.stats.medical}
                                                                 </span>
                                                             )}
                                                         </div>

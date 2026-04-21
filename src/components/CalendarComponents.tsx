@@ -5,50 +5,10 @@ import {
 } from 'lucide-react';
 
 // ==========================================
-// Interfaces & Types
-// ==========================================
-
-export interface CalendarEvent {
-    date: string;           // รูปแบบ YYYY-MM-DD
-    time: string;           // รูปแบบ HH:mm หรือ HH:mm-HH:mm
-    closingTime?: string;   // รูปแบบ HH:mm
-    location?: string;
-    title?: string;
-    team?: string;
-    type?: 'meeting' | string;
-    unitColor?: string;
-    unitLetter?: string;
-}
-
-interface StatCardProps {
-    label: string;
-    value: number | string;
-    colorClass: string;
-    icon?: React.ElementType;
-}
-
-interface MeetingCalendarDashboardProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onOpenForm: () => void;
-    events?: CalendarEvent[];
-    onEventClick?: (event: CalendarEvent) => void;
-}
-
-interface DispatchCalendarDashboardProps {
-    isOpen?: boolean;
-    onClose?: () => void;
-    onOpenForm: () => void;
-    events?: CalendarEvent[];
-    onEventClick?: (event: CalendarEvent) => void;
-    isInline?: boolean;
-}
-
-// ==========================================
 // Shared Components (คอมโพเนนต์ใช้ร่วมกัน)
 // ==========================================
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, colorClass, icon: Icon }) => (
+const StatCard = ({ label, value, colorClass, icon: Icon }) => (
     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:shadow-md transition-all">
         <div>
             <div className="text-slate-400 text-xs font-medium mb-1">{label}</div>
@@ -63,29 +23,23 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, colorClass, icon: Ico
 // ----------------------------------------------------
 // 1. MeetingCalendarDashboard (ปฏิทินนัดหมายประชุม)
 // ----------------------------------------------------
-const MeetingCalendarDashboard: React.FC<MeetingCalendarDashboardProps> = ({ 
-    isOpen, 
-    onClose, 
-    onOpenForm, 
-    events = [], 
-    onEventClick 
-}) => {
-    const [currentDate, setCurrentDate] = useState<Date>(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+const MeetingCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     if (!isOpen) return null;
 
     // --- Helpers ---
-    const toLocalISOString = (date: Date): string => {
+    const toLocalISOString = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
 
-    const getDaysInMonth = (date: Date): number => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const getFirstDayOfMonth = (date: Date): number => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    const changeMonth = (offset: number) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
+    const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    const changeMonth = (offset) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
 
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -258,7 +212,7 @@ const MeetingCalendarDashboard: React.FC<MeetingCalendarDashboardProps> = ({
 };
 
 // --- ฟังก์ชันคำนวณสถานะออกแบบ Real-time ---
-const getDispatchStatus = (dateStr: string, timeStr: string, closeTimeStr?: string): { text: string; badge: string; } | null => {
+const getDispatchStatus = (dateStr, timeStr, closeTimeStr) => {
     if (!dateStr || !timeStr) return null;
     const closeTime = closeTimeStr || '16:00'; 
 
@@ -282,29 +236,22 @@ const getDispatchStatus = (dateStr: string, timeStr: string, closeTimeStr?: stri
 // ----------------------------------------------------
 // 2. DispatchCalendarDashboard (ปฏิทินแผนงานออกหน่วย)
 // ----------------------------------------------------
-const DispatchCalendarDashboard: React.FC<DispatchCalendarDashboardProps> = ({ 
-    isOpen, 
-    onClose, 
-    onOpenForm, 
-    events = [], 
-    onEventClick, 
-    isInline = false 
-}) => {
-    const [currentDate, setCurrentDate] = useState<Date>(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+const DispatchCalendarDashboard = ({ isOpen, onClose, onOpenForm, events = [], onEventClick, isInline = false }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     if (!isInline && !isOpen) return null;
 
-    const toLocalISOString = (date: Date): string => {
+    const toLocalISOString = (date) => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
 
-    const getDaysInMonth = (date: Date): number => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const getFirstDayOfMonth = (date: Date): number => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    const changeMonth = (offset: number) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
+    const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    const changeMonth = (offset) => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + offset)));
 
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
@@ -323,12 +270,12 @@ const DispatchCalendarDashboard: React.FC<DispatchCalendarDashboardProps> = ({
     };
 
     // จัดการสีของกล่องกิจกรรม
-    const getEventStyles = (evt: CalendarEvent) => {
+    const getEventStyles = (evt) => {
         if (evt.type === 'meeting') {
             return { border: 'border-l-teal-500', bg: 'bg-teal-50', text: 'text-teal-700' };
         }
         
-        const colorMap: Record<string, { border: string; bg: string; text: string }> = {
+        const colorMap = {
             'bg-red-500': { border: 'border-l-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' },
             'bg-blue-500': { border: 'border-l-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
             'bg-green-500': { border: 'border-l-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
@@ -340,7 +287,7 @@ const DispatchCalendarDashboard: React.FC<DispatchCalendarDashboardProps> = ({
             'default': { border: 'border-l-[#545BE8]', bg: 'bg-indigo-50', text: 'text-indigo-600' }
         };
 
-        return colorMap[evt.unitColor || 'default'] || colorMap['default'];
+        return colorMap[evt.unitColor] || colorMap['default'];
     };
 
     return (
@@ -358,7 +305,7 @@ const DispatchCalendarDashboard: React.FC<DispatchCalendarDashboardProps> = ({
                             <p className="text-[10px] sm:text-xs text-slate-500 font-medium hidden sm:block">Dispatch Dashboard & Planning</p>
                         </div>
                     </div>
-                    {!isInline && onClose && (
+                    {!isInline && (
                         <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
                             <X className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
@@ -402,7 +349,7 @@ const DispatchCalendarDashboard: React.FC<DispatchCalendarDashboardProps> = ({
                                     ) : (
                                         selectedDateEvents.map((evt, idx) => {
                                             const styles = getEventStyles(evt); 
-                                            const status = getDispatchStatus(evt.date, evt.time, evt.closingTime); 
+                                            const status = typeof getDispatchStatus === 'function' ? getDispatchStatus(evt.date, evt.time, evt.closingTime) : null; 
 
                                             return (
                                             <div key={idx} onClick={() => onEventClick && onEventClick(evt)}

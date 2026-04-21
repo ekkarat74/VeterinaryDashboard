@@ -5,82 +5,19 @@ import {
 } from 'recharts';
 import { Calendar, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// --- กำหนด Type สำหรับข้อมูลต่างๆ ---
-
-interface TrendData {
-    name: string;
-    total?: number;
-    vaccine?: number;
-    sterilize?: number;
-    medical?: number;
-    register?: number;
-    [key: string]: any;
-}
-
-interface DispatchStatData {
-    name: string;
-    sterilization?: number;
-    vaccine_microchip?: number;
-    governor?: number;
-    cat_cage?: number;
-    other?: number;
-    [key: string]: any;
-}
-
-interface DispatchStats {
-    monthly?: DispatchStatData[];
-    daily?: DispatchStatData[];
-}
-
-interface StatisticsChartsProps {
-    trendData: TrendData[];
-    unitStats: any[]; 
-    dispatchStats: DispatchStats;
-    trendOffset: number;
-    setTrendOffset: React.Dispatch<React.SetStateAction<number>>;
-    freqDailyOffset: number;
-    setFreqDailyOffset: React.Dispatch<React.SetStateAction<number>>;
-    freqMonthlyOffset: number;
-    setFreqMonthlyOffset: React.Dispatch<React.SetStateAction<number>>;
-    chartBaseYear: string | number;
-    setChartBaseYear: (val: string | number) => void;
-    chartBaseMonth: string | number;
-    setChartBaseMonth: (val: string | number) => void;
-    availableYears?: (string | number)[];
-}
-
-interface TooltipPayload {
-    color?: string;
-    name?: string;
-    value?: number;
-    [key: string]: any;
-}
-
-interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    // แก้ไขตรงนี้: เพิ่ม number เข้าไปเพื่อให้รองรับค่าจาก Recharts
-    label?: string | number; 
-}
-
-// --- เริ่ม Component ---
-
-const THAI_MONTHS: string[] = [
+const THAI_MONTHS = [
     "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", 
     "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
 ];
 
-const formatCompactNumber = (value: any): string => {
-    const num = Number(value);
-    if (isNaN(num)) return String(value);
-
-    if (num >= 1000) {
-        return (num / 1000).toFixed(num % 1000 !== 0 ? 1 : 0) + 'k';
+const formatCompactNumber = (number) => {
+    if (number >= 1000) {
+        return (number / 1000).toFixed(number % 1000 !== 0 ? 1 : 0) + 'k';
     }
-    return num.toString(); 
+    return number;
 };
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
             <div className="bg-white/95 backdrop-blur-sm p-3 border border-slate-100 shadow-xl rounded-lg z-50">
@@ -102,12 +39,12 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
     return null;
 };
 
-const StatisticsCharts: React.FC<StatisticsChartsProps> = ({ 
+const StatisticsCharts = ({ 
     trendData, unitStats, dispatchStats, trendOffset, setTrendOffset,
     freqDailyOffset, setFreqDailyOffset, freqMonthlyOffset, setFreqMonthlyOffset,
     chartBaseYear, setChartBaseYear, chartBaseMonth, setChartBaseMonth, availableYears
 }) => {
-    const [freqFilter, setFreqFilter] = useState<'monthly' | 'daily'>('monthly'); 
+    const [freqFilter, setFreqFilter] = useState('monthly'); 
     const currentFreqData = freqFilter === 'monthly' ? (dispatchStats?.monthly || []) : (dispatchStats?.daily || []);
 
     const handleFreqPrev = () => {
@@ -170,8 +107,8 @@ const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
                 }}
             >
                 <option value="ทั้งหมด">ทุกปี</option>
-                {(availableYears?.length ? availableYears : [new Date().getFullYear()]).map(y => (
-                    <option key={y} value={y}>{parseInt(y as string) + 543}</option>
+                {(availableYears?.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
+                    <option key={y} value={y}>{parseInt(y) + 543}</option>
                 ))}
             </select>
         </div>
@@ -258,7 +195,7 @@ const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
                             </button>
                         </div>
                         <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
-                            {(['daily', 'monthly'] as const).map((type) => (
+                            {['daily', 'monthly'].map((type) => (
                                 <button 
                                     key={type}
                                     onClick={() => setFreqFilter(type)}
@@ -286,7 +223,7 @@ const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
                             />
                             <YAxis tick={{fontSize:10, fill:'#94a3b8'}} axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip cursor={{fill: '#f8fafc'}} content={(props) => {
-                                const filteredPayload = props.payload?.filter(item => (item.value as number) > 0);
+                                const filteredPayload = props.payload?.filter(item => item.value > 0);
                                 return <CustomTooltip {...props} payload={filteredPayload} />;
                                 }} 
                             />

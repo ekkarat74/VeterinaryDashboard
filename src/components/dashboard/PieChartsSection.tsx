@@ -1,35 +1,17 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
-export interface PieData {
-    name?: string;
-    value?: number;
-    [key: string]: any;
-}
-
-interface PieChartsSectionProps {
-    unitByDistrictPieData?: PieData[];
-    unitByUnitTypePieData?: PieData[];
-    unitByWorkTypePieData?: PieData[];
-    outbreakPieData?: PieData[];
-}
-
-const PIE_COLORS: string[] = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#84cc16', '#64748b'];
+const PIE_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#84cc16', '#64748b'];
 
 export default function PieChartsSection({
     unitByDistrictPieData = [], 
     unitByUnitTypePieData = [], 
     unitByWorkTypePieData = [], 
     outbreakPieData = [] 
-}: PieChartsSectionProps) {
-    
-    const safeFormatTooltip = (
-        value: any, 
-        name: any, 
-        unit: string
-    ): [string, string] => {
-        const safeValue = Number(value) || 0;
-        return [`${safeValue.toLocaleString()} ${unit}`, String(name || 'ไม่ระบุ')];
+}) {
+    const safeFormatTooltip = (value, name, unit) => {
+        const safeValue = value ?? 0;
+        return [`${safeValue.toLocaleString()} ${unit}`, name || 'ไม่ระบุ'];
     };
 
     return (
@@ -46,11 +28,11 @@ export default function PieChartsSection({
                                     data={unitByDistrictPieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
                                     style={{ fontSize: '10px' }}
-                                    label={({ name, percent }: { name?: string, percent?: number }) => (percent ?? 0) > 0.05 ? `${name || 'ไม่ระบุ'} ${((percent ?? 0) * 100).toFixed(0)}%` : ""}
+                                    label={({ name, percent }) => percent > 0.05 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {unitByDistrictPieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
                                 </Pie>
-                                <Tooltip formatter={(value: any, name: any) => safeFormatTooltip(value, name, 'รายการ')} />
+                                <Tooltip formatter={(value, name) => safeFormatTooltip(value, name, 'รายการ')} />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
@@ -70,11 +52,11 @@ export default function PieChartsSection({
                                     data={unitByUnitTypePieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
                                     style={{ fontSize: '10px' }}
-                                    label={({ name, percent }: { name?: string, percent?: number }) => (percent ?? 0) > 0.05 ? `${name || 'ไม่ระบุ'} ${((percent ?? 0) * 100).toFixed(0)}%` : ""}
+                                    label={({ name, percent }) => percent > 0.05 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {unitByUnitTypePieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
                                 </Pie>
-                                <Tooltip formatter={(value: any, name: any) => safeFormatTooltip(value, name, 'รายการ')} />
+                                <Tooltip formatter={(value, name) => safeFormatTooltip(value, name, 'รายการ')} />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
@@ -94,11 +76,11 @@ export default function PieChartsSection({
                                     data={unitByWorkTypePieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#8884d8" dataKey="value"
                                     style={{ fontSize: '10px' }}
-                                    label={({ name, percent }: { name?: string, percent?: number }) => (percent ?? 0) > 0 ? `${name || 'ไม่ระบุ'} ${((percent ?? 0) * 100).toFixed(0)}%` : ""}
+                                    label={({ name, percent }) => percent > 0 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {unitByWorkTypePieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
                                 </Pie>
-                                <Tooltip formatter={(value: any, name: any) => safeFormatTooltip(value, name, 'ตัว')} />
+                                <Tooltip formatter={(value, name) => safeFormatTooltip(value, name, 'ตัว')} />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
@@ -118,11 +100,11 @@ export default function PieChartsSection({
                                     data={outbreakPieData} 
                                     cx="50%" cy="50%" labelLine={true} outerRadius={55} fill="#82ca9d" dataKey="value"
                                     style={{ fontSize: '10px' }}
-                                    label={({ name, percent }: { name?: string, percent?: number }) => (percent ?? 0) > 0.05 ? `${name || 'ไม่ระบุ'} ${((percent ?? 0) * 100).toFixed(0)}%` : ""}
+                                    label={({ name, percent }) => percent > 0.05 ? `${name || 'ไม่ระบุ'} ${(percent * 100).toFixed(0)}%` : ""}
                                 >
                                     {outbreakPieData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
                                 </Pie>
-                                <Tooltip formatter={(value: any, name: any) => safeFormatTooltip(value, name, 'จุด')} />
+                                <Tooltip formatter={(value, name) => safeFormatTooltip(value, name, 'จุด')} />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (

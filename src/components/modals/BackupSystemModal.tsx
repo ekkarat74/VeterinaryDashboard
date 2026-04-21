@@ -1,27 +1,11 @@
 import React from 'react';
 import { Database, X, Download, Upload, AlertCircle } from 'lucide-react';
 
-// 1. สร้าง Interface สำหรับ Props
-interface BackupSystemModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onRestoreSuccess: () => void;
-    token: string;
-    apiBaseUrl?: string; // ใส่ ? เพราะอาจจะไม่มีการส่งค่ามา (Optional)
-}
-
-// 2. กำหนด Type ให้กับ Component
-const BackupSystemModal: React.FC<BackupSystemModalProps> = ({ 
-    isOpen, 
-    onClose, 
-    onRestoreSuccess, 
-    token, 
-    apiBaseUrl 
-}) => {
+const BackupSystemModal = ({ isOpen, onClose, onRestoreSuccess, token, apiBaseUrl }) => {
     if (!isOpen) return null;
     const TARGET_URL = apiBaseUrl || 'http://localhost:5000';
 
-    const handleDownloadBackup = async (): Promise<void> => {
+    const handleDownloadBackup = async () => {
         try {
             const response = await fetch(`${TARGET_URL}/api/system/backup`, {
                 method: 'GET',
@@ -30,15 +14,12 @@ const BackupSystemModal: React.FC<BackupSystemModalProps> = ({
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
             if (!response.ok) throw new Error('Backup failed');
-            
             const data = await response.json();
             const jsonString = JSON.stringify(data, null, 2);
             const blob = new Blob([jsonString], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            
             link.href = url;
             link.download = `VET_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
@@ -51,48 +32,34 @@ const BackupSystemModal: React.FC<BackupSystemModalProps> = ({
         }
     };
 
-    // 3. กำหนด Type ให้กับ Event ของ Input File
-    const handleRestoreBackup = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        // ใช้ Optional Chaining เผื่อในกรณีที่ files เป็น null
-        const file = e.target.files?.[0];
+    const handleRestoreBackup = (e) => {
+        const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
-        
-        // 4. กำหนด Type ให้กับ Event ของ FileReader
-        reader.onload = async (event: ProgressEvent<FileReader>) => {
+        reader.onload = async (event) => {
             try {
                 if (!window.confirm("⚠️ คำเตือน: การกู้คืนข้อมูลจะ 'ลบข้อมูลปัจจุบันทั้งหมด' และแทนที่ด้วยไฟล์ Backup\n\nคุณแน่ใจหรือไม่?")) return;
-                
-                // แปลงค่า result ให้เป็น string อย่างชัดเจน
-                const resultText = event.target?.result as string;
-                if (!resultText) throw new Error('Cannot read file content');
-
                 const response = await fetch(`${TARGET_URL}/api/system/restore`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: resultText 
+                    body: event.target.result 
                 });
-                
-                // กำหนด Type คร่าวๆ ให้กับผลลัพธ์ที่ตอบกลับมา (สามารถสร้าง Interface แยกได้หากต้องการความเป๊ะ)
-                const result: { reportCount?: number; outbreakCount?: number; message?: string } = await response.json();
-                
+                const result = await response.json();
                 if (response.ok) {
-                    alert(`✅ กู้คืนข้อมูลสำเร็จ!\n- รายงาน: ${result.reportCount ?? 0} รายการ\n- จุดระบาด: ${result.outbreakCount ?? 0} รายการ`);
+                    alert(`✅ กู้คืนข้อมูลสำเร็จ!\n- รายงาน: ${result.reportCount} รายการ\n- จุดระบาด: ${result.outbreakCount} รายการ`);
                     onRestoreSuccess(); 
                     onClose();
                 } else {
-                    alert("❌ กู้คืนข้อมูลล้มเหลว: " + (result.message || 'Unknown error'));
+                    alert("❌ กู้คืนข้อมูลล้มเหลว: " + result.message);
                 }
             } catch (error) {
                 alert("❌ ไฟล์ Backup ไม่ถูกต้อง หรือไม่มีสิทธิ์เข้าถึง");
                 console.error(error);
             }
         };
-        
         reader.readAsText(file);
     };
 

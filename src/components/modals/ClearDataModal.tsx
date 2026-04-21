@@ -1,36 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, X, Trash2 } from 'lucide-react';
 
-// 1. กำหนด Type สำหรับเงื่อนไขการลบข้อมูล
-export interface ClearDataConditions {
-    year: string;
-    month: string;
-    unit: string;
-}
-
-// 2. กำหนด Type สำหรับ Props ของ Component
-export interface ClearDataModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: (password: string, conditions: ClearDataConditions) => void;
-    availableYears: string[]; // หรือ (string | number)[] หากมีข้อมูลเป็นตัวเลขด้วย
-    units: string[];
-    thaiMonths: string[];
-}
-
-export default function ClearDataModal({ 
-    isOpen, 
-    onClose, 
-    onConfirm, 
-    availableYears, 
-    units, 
-    thaiMonths 
-}: ClearDataModalProps) {
-    // 3. ระบุ Type ให้กับ State 
-    const [password, setPassword] = useState<string>('');
-    const [selectedYear, setSelectedYear] = useState<string>('ทั้งหมด');
-    const [selectedMonth, setSelectedMonth] = useState<string>('ทั้งหมด');
-    const [selectedUnit, setSelectedUnit] = useState<string>('ทั้งหมด');
+export default function ClearDataModal({ isOpen, onClose, onConfirm, availableYears, units, thaiMonths }) {
+    const [password, setPassword] = useState('');
+    const [selectedYear, setSelectedYear] = useState('ทั้งหมด');
+    const [selectedMonth, setSelectedMonth] = useState('ทั้งหมด');
+    const [selectedUnit, setSelectedUnit] = useState('ทั้งหมด');
 
     useEffect(() => {
         if (isOpen) {
@@ -43,8 +18,7 @@ export default function ClearDataModal({
 
     if (!isOpen) return null;
 
-    // 4. ระบุ Type ให้กับ Form Event
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    const handleSubmit = (e) => {
         e.preventDefault();
         onConfirm(password, { 
             year: selectedYear, 
@@ -56,8 +30,6 @@ export default function ClearDataModal({
     return (
         <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                
-                {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-red-50/50">
                     <div className="flex items-center gap-2 text-red-600">
                         <AlertTriangle className="w-5 h-5" />
@@ -68,7 +40,6 @@ export default function ClearDataModal({
                     </button>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm">
                     <p className="text-slate-600 mb-4">
                         กรุณาเลือกเงื่อนไขข้อมูลที่ต้องการลบ หากเลือก <b>"ทั้งหมด"</b> ข้อมูลในส่วนนั้นจะถูกลบทั้งหมด (การกระทำนี้ไม่สามารถกู้คืนได้)
@@ -80,15 +51,10 @@ export default function ClearDataModal({
                             <label className="block text-xs font-bold text-slate-500 mb-1">ปี (Year)</label>
                             <select 
                                 className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                                value={selectedYear} 
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedYear(e.target.value)}
+                                value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}
                             >
                                 <option value="ทั้งหมด">ทั้งหมด</option>
-                                {availableYears.map(y => (
-                                    <option key={y} value={y}>
-                                        {parseInt(y.toString()) + 543}
-                                    </option>
-                                ))}
+                                {availableYears.map(y => <option key={y} value={y}>{parseInt(y) + 543}</option>)}
                             </select>
                         </div>
 
@@ -97,15 +63,10 @@ export default function ClearDataModal({
                             <label className="block text-xs font-bold text-slate-500 mb-1">เดือน (Month)</label>
                             <select 
                                 className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                                value={selectedMonth} 
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedMonth(e.target.value)}
+                                value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
                             >
                                 <option value="ทั้งหมด">ทั้งหมด</option>
-                                {thaiMonths.map((m, i) => (
-                                    <option key={i} value={String(i + 1).padStart(2, '0')}>
-                                        {m}
-                                    </option>
-                                ))}
+                                {thaiMonths.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
                             </select>
                         </div>
 
@@ -114,15 +75,10 @@ export default function ClearDataModal({
                             <label className="block text-xs font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
                             <select 
                                 className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                                value={selectedUnit} 
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedUnit(e.target.value)}
+                                value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}
                             >
                                 <option value="ทั้งหมด">ทั้งหมด</option>
-                                {units.map((u, i) => (
-                                    <option key={i} value={u}>
-                                        {u}
-                                    </option>
-                                ))}
+                                {units.map((u, i) => <option key={i} value={u}>{u}</option>)}
                             </select>
                         </div>
                     </div>
@@ -135,12 +91,10 @@ export default function ClearDataModal({
                             required 
                             placeholder="ใส่รหัสผ่านเพื่อยืนยันการลบ" 
                             className="w-full p-2.5 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-red-50/30"
-                            value={password} 
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} 
+                            value={password} onChange={(e) => setPassword(e.target.value)} 
                         />
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex justify-end gap-3 pt-4">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold transition-colors">
                             ยกเลิก

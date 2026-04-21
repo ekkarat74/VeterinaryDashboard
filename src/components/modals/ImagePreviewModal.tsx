@@ -1,16 +1,9 @@
-// src/components/modals/ImagePreviewModal.tsx
+// src/components/modals/ImagePreviewModal.jsx
 import React from 'react';
 import { X } from 'lucide-react';
 
-// กำหนด Type สำหรับ Props ที่คอมโพเนนต์นี้รับเข้ามา
-interface ImagePreviewModalProps {
-    imageUrl: string | null | undefined; 
-    onClose: () => void;
-}
-
-const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose }) => {
+const ImagePreviewModal = ({ imageUrl, onClose }) => {
     if (!imageUrl) return null;
-
     return (
         <div 
             className="fixed inset-0 z-[3000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" 
@@ -27,8 +20,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose
                     src={imageUrl} 
                     alt="Full Preview" 
                     className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10" 
-                    // ระบุ Type ของ Event ให้เป็น MouseEvent ที่เกิดกับ HTMLImageElement
-                    onClick={(e: React.MouseEvent<HTMLImageElement>) => e.stopPropagation()} 
+                    onClick={(e) => e.stopPropagation()} 
                 />
             </div>
         </div>

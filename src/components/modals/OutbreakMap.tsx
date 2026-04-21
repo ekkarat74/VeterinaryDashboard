@@ -1,28 +1,21 @@
+// components/modals/OutbreakMap.jsx
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, GeoJSON, LayersControl } from 'react-leaflet';
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
-import L, { LatLngExpression } from 'leaflet';
+import L from 'leaflet';
 import { AlertTriangle, Trash2, ChevronUp, MapPin, Eye, EyeOff, Navigation } from 'lucide-react';
-import { OutbreakItem } from '../dashboard/RabiesOutbreakSection'; 
 
 const { BaseLayer } = LayersControl;
 
-// กำหนด Interface สำหรับ Props
-interface OutbreakMapProps {
-    outbreaks?: OutbreakItem[];
-    onDeleteOutbreak?: (id: string) => void;
-}
+const OutbreakMap = ({ outbreaks = [], onDeleteOutbreak }) => {
+    const mapRef = useRef(null);
+    const centerPosition = [13.7563, 100.5018];
+    const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [hiddenMapIds, setHiddenMapIds] = useState([]);
 
-const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbreak }) => {
-    const mapRef = useRef<any>(null); 
-    
-    const centerPosition: LatLngExpression = [13.7563, 100.5018];
-    
-    const [activeRadii, setActiveRadii] = useState<number[]>([1000, 3000]); 
-    const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-    const [hiddenMapIds, setHiddenMapIds] = useState<string[]>([]);
-
+    // --- แก้ปัญหาบั๊กพื้นที่สีเทาเมื่อแผนที่โหลดไม่เต็มกรอบ ---
     useEffect(() => {
         if (!mapRef.current) return;
 
@@ -42,11 +35,11 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
         };
     }, []);
 
-    const toggleMapVisibility = (id: string) => {
+    const toggleMapVisibility = (id) => {
         setHiddenMapIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    const handleFlyTo = (lat: number, long: number) => {
+    const handleFlyTo = (lat, long) => {
         if (mapRef.current && lat && long) {
             mapRef.current.flyTo([lat, long], 15, { duration: 1.5 });
         }
@@ -65,14 +58,14 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
     };
 
     const recentOutbreaks = useMemo(() => {
-        return [...outbreaks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return [...outbreaks].sort((a, b) => new Date(b.date) - new Date(a.date));
     }, [outbreaks]);
 
-    const toggleRadius = (radius: number) => {
+    const toggleRadius = (radius) => {
         setActiveRadii(prev => prev.includes(radius) ? prev.filter(r => r !== radius) : [...prev, radius]);
     };
 
-    const createDangerIcon = useCallback((): L.DivIcon => {
+    const createDangerIcon = useCallback(() => {
         return L.divIcon({
             className: 'custom-danger-marker',
             html: `
@@ -99,6 +92,7 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
                 .leaflet-container .leaflet-control-layers { border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 6px; }
             `}</style>
 
+            {/* --- เปลี่ยน z-[400] เป็น z-[1000] --- */}
             <button 
                 onClick={handleLocateMe}
                 className="absolute bottom-6 right-4 z-[1000] w-12 h-12 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
@@ -107,6 +101,7 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
                 <Navigation className="w-6 h-6" />
             </button>
 
+            {/* --- เปลี่ยน z-[400] เป็น z-[1000] --- */}
             <div className={`absolute top-4 right-4 z-[1000] flex flex-col bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-12 h-12 p-0 items-center justify-center' : 'w-[280px] p-0'}`}> 
                 <div 
                     className={`flex items-center justify-between cursor-pointer ${isCollapsed ? 'w-full h-full justify-center' : 'p-4'}`}
@@ -125,6 +120,7 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
 
                 {!isCollapsed && (
                     <div className="p-3 bg-slate-50/80 border-t border-slate-100 rounded-b-2xl backdrop-blur-sm flex flex-col gap-3">
+                        {/* ส่วนรัศมีแจ้งเตือน */}
                         <div>
                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">แสดงรัศมีแจ้งเตือน</div>
                             <div className="flex bg-slate-200/50 p-1 rounded-lg">
@@ -144,6 +140,7 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
                             </div>
                         </div>
 
+                        {/* การแจ้งเตือนล่าสุด */}
                         <div className="border-t border-slate-200/60 pt-3">
                             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
@@ -154,8 +151,8 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
                                 {recentOutbreaks.length > 0 ? (
                                     recentOutbreaks.map((item, idx) => {
                                         const isHidden = hiddenMapIds.includes(item._id);
-                                        const lat = parseFloat(item.lat as string);
-                                        const long = parseFloat(item.long as string);
+                                        const lat = parseFloat(item.lat);
+                                        const long = parseFloat(item.long);
                                         
                                         return (
                                             <div 
@@ -200,7 +197,9 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
                 )}
             </div>
 
+            {/* --- MAP --- */}
             <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100" ref={mapRef}>
+                
                 <LayersControl position="topleft">
                     <BaseLayer checked name="แผนที่ถนน (Street)">
                         <TileLayer 
@@ -218,25 +217,25 @@ const OutbreakMap: React.FC<OutbreakMapProps> = ({ outbreaks = [], onDeleteOutbr
 
                 {bangkokGeoJSON && (
                     <GeoJSON 
-                        data={bangkokGeoJSON as any} 
+                        data={bangkokGeoJSON} 
                         style={{ fillColor: '#cbd5e1', fillOpacity: 0.4, color: '#334155', weight: 2, opacity: 1 }}
                     />
                 )}
                 
                 {outbreaks.filter(item => !hiddenMapIds.includes(item._id)).map((item, index) => {
-                    const lat = parseFloat(item.lat as string);
-                    const long = parseFloat(item.long as string);
+                    const lat = parseFloat(item.lat);
+                    const long = parseFloat(item.long);
                     if (isNaN(lat) || isNaN(long)) return null;
 
-                    const getNum = (val: any) => parseInt(val, 10) || 0;
+                    const getNum = (val) => parseInt(val, 10) || 0;
                     let dogCount = 0;
                     let catCount = 0;
 
                     if (item.stats) {
-                        (['owned', 'unowned', 'feeder'] as const).forEach(type => {
-                            if (item.stats?.[type]) {
-                                dogCount += getNum(item.stats[type]?.dog?.male) + getNum(item.stats[type]?.dog?.female);
-                                catCount += getNum(item.stats[type]?.cat?.male) + getNum(item.stats[type]?.cat?.female);
+                        ['owned', 'unowned', 'feeder'].forEach(type => {
+                            if (item.stats[type]) {
+                                dogCount += getNum(item.stats[type].dog?.male) + getNum(item.stats[type].dog?.female);
+                                catCount += getNum(item.stats[type].cat?.male) + getNum(item.stats[type].cat?.female);
                             }
                         });
                     }
