@@ -1,40 +1,109 @@
+// src/components/map/LeafletMap.tsx
 import React, { useState, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, GeoJSON, LayersControl } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import L from 'leaflet';
+import { 
+    Filter, AlertTriangle, ChevronDown, ChevronUp, 
+    Map as MapIcon, PawPrint, MapPin, Layers, Activity, Eye, EyeOff, Edit2
+} from 'lucide-react';
 
 import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
-import { 
-    Filter, AlertTriangle, ChevronDown, ChevronUp, 
-    Map as MapIcon, PawPrint, MapPin, Trash2, Layers, Activity, Eye, EyeOff, Edit2
-} from 'lucide-react';
-
 import { UNIT_TYPES } from '../../constants/locations'; 
 
 const { BaseLayer } = LayersControl;
 
-const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit }) => {
-    const centerPosition = [13.7563, 100.5018];
-    const [activeLayers, setActiveLayers] = useState(UNIT_TYPES);
-    const [activeRadii, setActiveRadii] = useState([1000, 3000]); 
-    const [expandedUnit, setExpandedUnit] = useState(null);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+// --- Interfaces สำหรับ Props และ Data ---
+interface AnimalCount {
+    male?: number | string;
+    female?: number | string;
+}
+
+interface StatsCategory {
+    dog?: AnimalCount;
+    cat?: AnimalCount;
+}
+
+interface DataStats {
+    vaccine?: number;
+    sterilize?: number;
+    register?: number;
+    microchip?: number;
+    medical?: number;
+}
+
+interface DataItem {
+    _id: string;
+    unit: string;
+    lat: string | number;
+    long: string | number;
+    location: string;
+    district?: string;
+    imageUrl?: string;
+    stats?: DataStats;
+}
+
+interface OutbreakItem {
+    _id: string;
+    date: string | Date;
+    location: string;
+    district: string;
+    lat: string | number;
+    long: string | number;
+    stats?: {
+        owned?: StatsCategory;
+        unowned?: StatsCategory;
+        feeder?: StatsCategory;
+        dog?: AnimalCount;
+        cat?: AnimalCount;
+        dogs?: number | string;
+        cats?: number | string;
+    };
+    dog?: AnimalCount;
+    cat?: AnimalCount;
+    dogMale?: number | string;
+    dogFemale?: number | string;
+    dogs?: number | string;
+    catMale?: number | string;
+    catFemale?: number | string;
+    cats?: number | string;
+}
+
+interface LeafletMapProps {
+    data?: DataItem[];
+    outbreaks?: OutbreakItem[];
+    onEdit?: (item: DataItem) => void;
+    onEditOutbreak?: (item: OutbreakItem) => void;
+    canEdit?: boolean;
+}
+
+interface ColorSet {
+    bg: string;
+    ring: string;
+}
+
+const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit }) => {
+    const centerPosition: [number, number] = [13.7563, 100.5018];
+    const [activeLayers, setActiveLayers] = useState<string[]>(UNIT_TYPES);
+    const [activeRadii, setActiveRadii] = useState<number[]>([1000, 3000]); 
+    const [expandedUnit, setExpandedUnit] = useState<string | null>(null);
+    const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
     
     // --- State สำหรับ Outbreak ---
-    const [hiddenMapIds, setHiddenMapIds] = useState([]);
+    const [hiddenMapIds, setHiddenMapIds] = useState<string[]>([]);
 
-    const toggleLayer = (unit) => {
+    const toggleLayer = (unit: string) => {
         setActiveLayers(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit]);
     };
 
-    const toggleRadius = (radius) => {
+    const toggleRadius = (radius: number) => {
         setActiveRadii(prev => prev.includes(radius) ? prev.filter(r => r !== radius) : [...prev, radius]);
     };
 
-    const toggleMapVisibility = (id) => {
+    const toggleMapVisibility = (id: string) => {
         setHiddenMapIds(prev => 
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
@@ -42,22 +111,22 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
 
     // กรองและเรียงข้อมูลจุดระบาดให้แสดงตัวล่าสุดขึ้นก่อน
     const recentOutbreaks = useMemo(() => {
-        return [...(outbreaks || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+        return [...(outbreaks || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [outbreaks]);
 
     // --- Stats Logic ---
-    const getUnitStats = (unitName) => {
+    const getUnitStats = (unitName: string) => {
         const unitData = (data || []).filter(d => d.unit === unitName);
         const totalTimes = unitData.length;
         const totalAnimals = unitData.reduce((sum, item) => {
             const s = item.stats || {};
-            return sum + (s.vaccine||0) + (s.sterilize||0) + (s.register||0) + (s.microchip||0) + (s.medical||0);
+            return sum + (s.vaccine || 0) + (s.sterilize || 0) + (s.register || 0) + (s.microchip || 0) + (s.medical || 0);
         }, 0);
         return { totalTimes, totalAnimals };
     };
 
     // --- Styles & Colors ---
-    const getMarkerColor = (unit) => {
+    const getMarkerColor = (unit: string): ColorSet => {
         switch (unit) {
             case 'หน่วยผู้ว่า': return { bg: '#8b5cf6', ring: '#ddd6fe' };
             case 'หน่วยสัตวแพทย์': return { bg: '#3b82f6', ring: '#dbeafe' };
@@ -85,7 +154,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
         });
     }, []);
 
-    const createNumberIcon = (total, colorSet) => {
+    const createNumberIcon = (total: number, colorSet: ColorSet) => {
         const size = total > 999 ? 44 : (total > 99 ? 38 : 34);
         return L.divIcon({
             className: 'custom-marker-wrapper', 
@@ -104,6 +173,12 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
     const displayData = useMemo(() => {
         return (data || []).filter(item => activeLayers.includes(item.unit));
     }, [data, activeLayers]);
+
+    const getNum = (val: string | number | undefined): number => {
+        if (!val) return 0;
+        const parsed = typeof val === 'string' ? parseInt(val, 10) : val;
+        return isNaN(parsed) ? 0 : parsed;
+    };
 
     return (
         <div className="w-full h-full relative z-0 rounded-2xl overflow-hidden border border-slate-200 shadow-xl bg-slate-50 font-sans">
@@ -179,7 +254,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                 </button>
 
                                                 <button 
-                                                    onClick={(e) => { e.stopPropagation(); setExpandedUnit(isExpanded ? null : unit); }} 
+                                                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); setExpandedUnit(isExpanded ? null : unit); }} 
                                                     className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isExpanded ? 'bg-slate-100 text-slate-800' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-600'}`}
                                                 >
                                                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -254,12 +329,12 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                             {new Date(item.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'short'})}
                                                         </span>
                                                         <div 
-                                                            onClick={(e) => { 
+                                                            onClick={(e: React.MouseEvent) => { 
                                                                 e.preventDefault(); 
                                                                 e.stopPropagation(); 
                                                                 toggleMapVisibility(item._id); 
                                                             }}
-                                                            onPointerDown={(e) => { e.stopPropagation(); }}
+                                                            onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); }}
                                                             className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors bg-white rounded-md shadow-sm border border-slate-100 cursor-pointer z-50 relative"
                                                             title={isHidden ? "แสดงจุดนี้บนแผนที่" : "ซ่อนจุดนี้จากแผนที่"}
                                                         >
@@ -303,7 +378,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                 {/* ขอบเขตกรุงเทพมหานคร */}
                 {bangkokGeoJSON && (
                     <GeoJSON 
-                        data={bangkokGeoJSON} 
+                        data={bangkokGeoJSON as any} 
                         style={{
                             fillColor: '#cbd5e1',
                             fillOpacity: 0.4, 
@@ -323,12 +398,12 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                     polygonOptions={{ fillColor: '#94a3b8', color: '#64748b', weight: 1, opacity: 0.5, fillOpacity: 0.2 }}
                 >
                     {displayData.map((item) => {
-                        const lat = parseFloat(item.lat);
-                        const long = parseFloat(item.long);
+                        const lat = typeof item.lat === 'string' ? parseFloat(item.lat) : item.lat;
+                        const long = typeof item.long === 'string' ? parseFloat(item.long) : item.long;
                         if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
                         
                         const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
-                        const totalActivity = stats.vaccine + stats.sterilize + stats.register + stats.microchip + (stats.medical || 0);
+                        const totalActivity = (stats.vaccine || 0) + (stats.sterilize || 0) + (stats.register || 0) + (stats.microchip || 0) + (stats.medical || 0);
                         const colorSet = getMarkerColor(item.unit);
 
                         return (
@@ -362,25 +437,25 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-2">
-                                                {stats.vaccine > 0 && (
+                                                {(stats.vaccine ?? 0) > 0 && (
                                                     <div className="bg-emerald-50 rounded-lg p-2 flex flex-col items-center justify-center border border-emerald-100">
                                                         <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">วัคซีน</span>
                                                         <span className="text-base font-black text-emerald-700">{stats.vaccine}</span>
                                                     </div>
                                                 )}
-                                                {stats.sterilize > 0 && (
+                                                {(stats.sterilize ?? 0) > 0 && (
                                                     <div className="bg-pink-50 rounded-lg p-2 flex flex-col items-center justify-center border border-pink-100">
                                                         <span className="text-[9px] text-pink-600 font-bold uppercase tracking-wider">ทำหมัน</span>
                                                         <span className="text-base font-black text-pink-700">{stats.sterilize}</span>
                                                     </div>
                                                 )}
-                                                {stats.microchip > 0 && (
+                                                {(stats.microchip ?? 0) > 0 && (
                                                     <div className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center border border-blue-100">
                                                         <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">ไมโครชิป</span>
                                                         <span className="text-base font-black text-blue-700">{stats.microchip}</span>
                                                     </div>
                                                 )}
-                                                {stats.medical > 0 && (
+                                                {(stats.medical ?? 0) > 0 && (
                                                     <div className="bg-orange-50 rounded-lg p-2 flex flex-col items-center justify-center border border-orange-100">
                                                         <span className="text-[9px] text-orange-600 font-bold uppercase tracking-wider">รักษา</span>
                                                         <span className="text-base font-black text-orange-700">{stats.medical}</span>
@@ -393,10 +468,10 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                                 <div className="text-xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
                                             </div>
 
-                                            {canEdit && (
+                                            {canEdit && onEdit && (
                                                 <div className="mt-3 w-full border-t border-slate-100 pt-3">
                                                     <button 
-                                                        onClick={(e) => { 
+                                                        onClick={(e: React.MouseEvent) => { 
                                                             e.stopPropagation(); 
                                                             onEdit(item); 
                                                         }}
@@ -416,18 +491,17 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
 
                 {/* 2. Outbreak Markers & Circles (จุดระบาดและรัศมี แจ้งเตือน) */}
                 {(outbreaks || []).filter(item => !hiddenMapIds.includes(item._id)).map((item, index) => {
-                    const lat = parseFloat(item.lat);
-                    const long = parseFloat(item.long);
+                    const lat = typeof item.lat === 'string' ? parseFloat(item.lat) : item.lat;
+                    const long = typeof item.long === 'string' ? parseFloat(item.long) : item.long;
                     if (isNaN(lat) || isNaN(long)) return null;
 
-                    const getNum = (val) => parseInt(val, 10) || 0;
                     let dogCount = 0; let catCount = 0;
 
                     if (item.stats) {
-                        ['owned', 'unowned', 'feeder'].forEach(type => {
-                            if (item.stats[type]) {
-                                dogCount += getNum(item.stats[type].dog?.male) + getNum(item.stats[type].dog?.female);
-                                catCount += getNum(item.stats[type].cat?.male) + getNum(item.stats[type].cat?.female);
+                        (['owned', 'unowned', 'feeder'] as const).forEach(type => {
+                            if (item.stats?.[type]) {
+                                dogCount += getNum(item.stats[type]?.dog?.male) + getNum(item.stats[type]?.dog?.female);
+                                catCount += getNum(item.stats[type]?.cat?.male) + getNum(item.stats[type]?.cat?.female);
                             }
                         });
                     }
@@ -469,7 +543,7 @@ const LeafletMap = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit
                                         {canEdit && (
                                             <div className="mt-2 w-full">
                                                 <button 
-                                                    onClick={(e) => { 
+                                                    onClick={(e: React.MouseEvent) => { 
                                                         e.stopPropagation(); 
                                                         if (onEditOutbreak) onEditOutbreak(item); 
                                                     }}

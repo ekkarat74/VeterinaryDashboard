@@ -4,11 +4,40 @@ import {
     Search, RotateCw, Edit, Trash2, Key, ChevronDown, Save, UserCog
 } from 'lucide-react';
 
+// --- Types & Interfaces ---
+
+export interface User {
+    _id: string;
+    username: string;
+    role: string;
+    status?: string;
+}
+
+interface EditUserModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    user: User | null;
+    onUpdate: (userId: string, data: Partial<User>) => void;
+    onResetPassword: (userId: string, newPassword: string) => void;
+    currentUserRole?: string;
+}
+
+interface UserManagementModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    token: string;
+    apiBaseUrl: string;
+    onToast?: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+    currentUserRole?: string;
+}
+
+type TabType = 'info' | 'password';
+
 // --- Sub-Component: Edit User Modal ---
-const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, currentUserRole }) => {
+const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, onUpdate, onResetPassword, currentUserRole }) => {
     const [formData, setFormData] = useState({ username: '', role: 'user', status: 'active' });
-    const [newPassword, setNewPassword] = useState('');
-    const [activeTab, setActiveTab] = useState('info'); // 'info' | 'password'
+    const [newPassword, setNewPassword] = useState<string>('');
+    const [activeTab, setActiveTab] = useState<TabType>('info');
 
     useEffect(() => {
         if (user) {
@@ -24,12 +53,12 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, curre
 
     if (!isOpen || !user) return null;
 
-    const handleInfoSubmit = (e) => {
+    const handleInfoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         onUpdate(user._id, formData);
     };
 
-    const handlePasswordSubmit = (e) => {
+    const handlePasswordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         onResetPassword(user._id, newPassword);
         setNewPassword('');
@@ -162,18 +191,19 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate, onResetPassword, curre
 };
 
 // --- Main Component: User Management Modal ---
-const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, currentUserRole }) => {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [role, setRole] = useState("admin");
-    const [userList, setUserList] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClose, token, apiBaseUrl, onToast, currentUserRole }) => {
+    const [username, setUsername] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [role, setRole] = useState<string>("admin");
+    const [userList, setUserList] = useState<User[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [editingUser, setEditingUser] = useState(null);
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [editingUser, setEditingUser] = useState<User | null>(null);
 
     useEffect(() => {
         if (isOpen) fetchUsers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const fetchUsers = async () => {
@@ -183,7 +213,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                const data = await res.json();
+                const data: User[] = await res.json();
                 setUserList(data);
             }
         } catch (error) {
@@ -194,7 +224,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
         }
     };
 
-    const handleCreateUser = async (e) => {
+    const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
             const res = await fetch(`${apiBaseUrl}/api/users`, {
@@ -217,7 +247,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
         }
     };
 
-    const handleUpdateUser = async (userId, updateData) => {
+    const handleUpdateUser = async (userId: string, updateData: Partial<User>) => {
         try {
             const res = await fetch(`${apiBaseUrl}/api/users/${userId}`, {
                 method: 'PUT',
@@ -240,7 +270,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
         }
     };
 
-    const handleDeleteUser = async (userId) => {
+    const handleDeleteUser = async (userId: string) => {
         if(!window.confirm("ยืนยันการลบผู้ใช้งานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) return;
         
         try {
@@ -260,7 +290,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
         }
     };
 
-    const handleAdminResetPassword = async (userId, newPassword) => {
+    const handleAdminResetPassword = async (userId: string, newPassword: string) => {
         if(!window.confirm("ยืนยันการเปลี่ยนรหัสผ่านให้ผู้ใช้นี้?")) return;
         try {
             const res = await fetch(`${apiBaseUrl}/api/users/${userId}/reset-password`, {
@@ -288,7 +318,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
     });
 
     // Helper: Badge Style
-    const getRoleBadgeStyle = (r) => {
+    const getRoleBadgeStyle = (r: string) => {
         switch(r) {
             case 'Developer': return 'bg-sky-100 text-sky-800 border-sky-300'; 
             case 'MagaAdmin': return 'bg-rose-100 text-rose-700 border-rose-200';
@@ -351,16 +381,15 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        {/* แก้ไข formData ตรงนี้ออกเป็น value={role} และ onChange */}
                                         <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
                                                 value={role} onChange={e => setRole(e.target.value)}>
-                                                
-                                                {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
-                                                
-                                                <option value="MagaAdmin">MagaAdmin</option>
-                                                <option value="executive">Executive</option>
-                                                <option value="admin">Admin</option>
-                                                <option value="user">User</option>
+                                            
+                                            {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
+                                            
+                                            <option value="MagaAdmin">MagaAdmin</option>
+                                            <option value="executive">Executive</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="user">User</option>
                                         </select>
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
                                     </div>
@@ -420,7 +449,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                 <tbody className="divide-y divide-slate-100">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan="4" className="p-12 text-center">
+                                            <td colSpan={4} className="p-12 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
                                                     <RotateCw className="w-6 h-6 animate-spin text-blue-500" />
                                                     <span className="text-sm font-medium">กำลังโหลดข้อมูล...</span>
@@ -429,7 +458,7 @@ const UserManagementModal = ({ isOpen, onClose, token, apiBaseUrl, onToast, curr
                                         </tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan="4" className="p-12 text-center">
+                                            <td colSpan={4} className="p-12 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
                                                     <Users className="w-8 h-8 opacity-20" />
                                                     <span className="text-sm">ไม่พบข้อมูลผู้ใช้งาน</span>

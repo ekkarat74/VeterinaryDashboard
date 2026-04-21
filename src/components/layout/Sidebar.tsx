@@ -4,23 +4,95 @@ import {
     Database, Download, Zap, List, CalendarDays, AlertTriangle, 
     Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X,
     RefreshCw, Building2, Trash2, Sparkles, PaintBucket, Bell,
-    PawPrint, ShieldCheck, Dog, Palette
+    PawPrint, ShieldCheck, Dog, Palette, LucideIcon
 } from 'lucide-react';
 
-const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColor = 'indigo' }) => {
-    const colorStyles = {
+// --- Types & Interfaces ---
+
+type ActiveColor = 'indigo' | 'rose' | 'emerald';
+
+interface NavItemProps {
+    icon: LucideIcon;
+    label: string;
+    isActive?: boolean;
+    onClick?: () => void;
+    isCollapsed: boolean;
+    activeColor?: ActiveColor;
+}
+
+interface User {
+    username: string;
+    role: string;
+    [key: string]: any;
+}
+
+interface SidebarProps {
+    user: User | null;
+    canEdit?: boolean;
+    isSuperAdmin?: boolean;
+    isMagaAdmin?: boolean;
+    canAdd?: boolean;
+    isSystemDeveloper?: boolean;
+    isSystemMenuOpen: boolean;
+    setIsSystemMenuOpen: (isOpen: boolean) => void;
+    isDevOrSuper?: boolean;
+    
+    // Actions
+    onLogin: () => void;
+    onLogout: () => void;
+    onChangePassword: () => void;
+    onOpenLog: () => void;
+    onOpenUserMgmt: () => void;
+    onOpenBackup: () => void;
+    onOpenCsvOutbreak: () => void;
+    onOpenCsvReport: () => void;
+    onGenerateMock: () => void;
+    onOpenMeetingList: () => void;
+    onOpenMeetingCalendar: () => void;
+    onOpenAddOutbreak: () => void;
+    onOpenAddData: () => void;
+    onNotifyUpdate: () => void;
+    onOpenCustomUnits: () => void;
+    onClearData: () => void;
+    onOpenBreedMgmt: () => void;
+    onOpenColorMgmt: () => void;
+    onOpenThemeSettings?: () => void;
+    onOpenCalendar?: () => void;
+    
+    // Tabs & State Management
+    tabsConfig?: Record<string, boolean>;
+    toggleTab: (tabId: string) => void;
+    activeTab: string;
+    setActiveTab: (tab: string) => void;
+    isSidebarCollapsed: boolean;
+    setIsSidebarCollapsed: (isCollapsed: boolean) => void;
+    isMobileMenuOpen: boolean;
+    setIsMobileMenuOpen: (isOpen: boolean) => void;
+}
+
+// --- Components ---
+
+const NavItem: React.FC<NavItemProps> = ({ 
+    icon: Icon, 
+    label, 
+    isActive = false, 
+    onClick, 
+    isCollapsed, 
+    activeColor = 'indigo' 
+}) => {
+    const colorStyles: Record<ActiveColor, string> = {
         indigo: isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100/50' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
         rose: isActive ? 'bg-rose-50 text-rose-700 shadow-sm ring-1 ring-rose-100/50' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
         emerald: isActive ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100/50' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
     };
 
-    const iconColors = {
+    const iconColors: Record<ActiveColor, string> = {
         indigo: isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500',
         rose: isActive ? 'text-rose-600' : 'text-slate-400 group-hover:text-rose-500',
         emerald: isActive ? 'text-emerald-600' : 'text-slate-400 group-hover:text-emerald-500',
     };
 
-    const indicatorColors = {
+    const indicatorColors: Record<ActiveColor, string> = {
         indigo: 'bg-indigo-600',
         rose: 'bg-rose-600',
         emerald: 'bg-emerald-600',
@@ -42,7 +114,7 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, isCollapsed, activeColo
     );
 };
 
-const Sidebar = ({ 
+const Sidebar: React.FC<SidebarProps> = ({ 
     user, canAdd, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen, isDevOrSuper,
     onLogin, onLogout, onChangePassword, onOpenLog, onOpenUserMgmt,
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
@@ -56,12 +128,12 @@ const Sidebar = ({
     
     const isCollapsed = isSidebarCollapsed && !isMobileMenuOpen;
 
-    const handleAction = (callback) => {
+    const handleAction = (callback?: () => void) => {
         if (callback) callback();
         setIsMobileMenuOpen(false); 
     };
 
-    const renderSectionHeader = (title) => (
+    const renderSectionHeader = (title: string) => (
         !isCollapsed && (
             <p className="px-3 mt-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                 {title}
@@ -69,7 +141,7 @@ const Sidebar = ({
         )
     );
 
-    const checkTabVisibility = (tabName) => {
+    const checkTabVisibility = (tabName: string): boolean => {
         if (!user) return tabsConfig?.[`public_${tabName}`] ?? false; 
         if (['executive', 'superadmin'].includes(user.role)) return tabsConfig?.[`sa_${tabName}`] ?? false; 
         

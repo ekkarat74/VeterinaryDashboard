@@ -1,10 +1,38 @@
+// src/components/modals/RolePermissionsModal.tsx
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, CheckCircle2, Lock, Save, Loader2, AlertTriangle } from 'lucide-react';
 
-const RolePermissionsModal = ({ isOpen, onClose, apiBaseUrl, token, onToast, userRole }) => {
-    const [permissions, setPermissions] = useState({ strictHierarchy: true, allowSuperAdminToClearData: false });
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
+// 1. กำหนด Type สำหรับ Props
+interface RolePermissionsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    apiBaseUrl: string;
+    token: string;
+    onToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+    userRole: string; // หรือจะระบุเป็น Type แบบเจาะจงก็ได้ เช่น 'Developer' | 'MagaAdmin' | 'SuperAdmin' | 'Admin'
+}
+
+// 2. กำหนด Type สำหรับ State ของ Permissions
+interface PermissionsState {
+    strictHierarchy: boolean;
+    allowSuperAdminToClearData: boolean;
+}
+
+const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ 
+    isOpen, 
+    onClose, 
+    apiBaseUrl, 
+    token, 
+    onToast, 
+    userRole 
+}) => {
+    // 3. ใส่ Type ให้กับ useState
+    const [permissions, setPermissions] = useState<PermissionsState>({ 
+        strictHierarchy: true, 
+        allowSuperAdminToClearData: false 
+    });
+    const [loading, setLoading] = useState<boolean>(false);
+    const [saving, setSaving] = useState<boolean>(false);
 
     const isAuthorized = userRole === 'Developer' || userRole === 'MagaAdmin';
 

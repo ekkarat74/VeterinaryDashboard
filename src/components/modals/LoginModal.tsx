@@ -1,14 +1,27 @@
+// src/components/modals/LoginModal.tsx
 import React, { useState } from 'react';
 import { Lock, User, KeyRound, ChevronRight, X, Loader2, ShieldCheck } from 'lucide-react';
 
-const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+// กำหนด Type สำหรับ Props
+interface LoginModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    // onLogin สามารถเปลี่ยนจาก any เป็น Interface ของข้อมูล User ที่ Backend ส่งกลับมาได้ครับ
+    onLogin: (data: any) => void; 
+    apiBaseUrl: string;
+    // กำหนด Type ให้ onToast (ทำให้เป็น Optional เผื่อไม่ได้ส่งค่ามา)
+    onToast?: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+}
+
+const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
+    const [username, setUsername] = useState<string>("");
+    const [password, setPassword] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e) => {
+    // ระบุ Type ให้กับ Form Event
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
         
@@ -22,13 +35,13 @@ const LoginModal = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
             
             if (res.ok) {
                 onLogin(data);
-                if(onToast) onToast('success', 'เข้าสู่ระบบสำเร็จ');
+                if (onToast) onToast('success', 'เข้าสู่ระบบสำเร็จ');
                 onClose();
             } else {
-                if(onToast) onToast('error', data.message || 'ข้อมูลเข้าสู่ระบบไม่ถูกต้อง');
+                if (onToast) onToast('error', data.message || 'ข้อมูลเข้าสู่ระบบไม่ถูกต้อง');
             }
         } catch (error) {
-            if(onToast) onToast('error', `ไม่สามารถเชื่อมต่อ Server ได้`);
+            if (onToast) onToast('error', `ไม่สามารถเชื่อมต่อ Server ได้`);
         } finally {
             setIsLoading(false);
         }

@@ -8,7 +8,7 @@ import {
 // @ts-ignore (ใส่ไว้ชั่วคราวหากไฟล์เหล่านี้ยังไม่ใช่ TS)
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
 // @ts-ignore
-import { playSound } from '../../utils/soundUtils.js';
+import { playSound as defaultPlaySound, SoundType } from '../../utils/soundUtils';
 
 // ==========================================
 // 0. Interfaces & Types (กำหนดรูปร่างของข้อมูล)
@@ -256,10 +256,11 @@ interface DispatchModalProps {
   initialData?: EventData | null;
   savedStaffList?: StaffMember[];
   allEvents?: EventData[];
+  playSound?: (type: SoundType) => void;
 }
 
 const DispatchModal: React.FC<DispatchModalProps> = ({ 
-  isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList = [], allEvents = [] 
+  isOpen, onClose, onToast, onSave, onDelete, initialData, savedStaffList = [], allEvents = [], playSound = defaultPlaySound 
 }) => {
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
