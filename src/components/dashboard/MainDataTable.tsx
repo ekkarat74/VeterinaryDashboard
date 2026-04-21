@@ -34,7 +34,7 @@ interface MainDataTableProps {
 }
 
 const MainDataTable: React.FC<MainDataTableProps> = ({ 
-    data = [], 
+    data: incomingData, // เปลี่ยนการรับค่าเพื่อป้องกันค่า null
     canEdit = false, 
     isSuperAdmin = false, 
     onClearAll, 
@@ -42,6 +42,9 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     onDelete, 
     onViewImage 
 }) => {
+    // บังคับให้เป็น Array เสมอ ป้องกัน Error .length หรือ .slice จากค่า null
+    const data = incomingData || [];
+
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 25;
 
