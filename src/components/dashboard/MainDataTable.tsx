@@ -106,10 +106,10 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </span>
                 
                 {totalPages > 1 && (
-                    // เพิ่ม wrapper จัดการ overflow สำหรับจอมือถือ
-                    <div className="max-w-full overflow-x-auto pb-2 sm:pb-0 custom-scrollbar text-center">
-                        {/* เพิ่ม min-w-max เพื่อป้องกันปุ่มโดนบีบจนเสียทรง */}
-                        <div className="inline-flex -space-x-px rounded-md shadow-sm min-w-max mx-auto">
+                    // แก้ไข: ใช้ flex justify-start ในมือถือ และ justify-center ในจอใหญ่
+                    <div className="w-full overflow-x-auto pb-2 sm:pb-0 custom-scrollbar flex justify-start sm:justify-center">
+                        {/* แก้ไข: ลบ mx-auto ออก */}
+                        <div className="inline-flex -space-x-px rounded-md shadow-sm min-w-max">
                             {/* ปุ่ม First */}
                             <button
                                 onClick={() => handlePageChange(1)}
