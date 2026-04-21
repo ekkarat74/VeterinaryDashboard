@@ -87,33 +87,37 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <title>พิมพ์เอกสารสรุปผล - ${item.location || 'ไม่ระบุสถานที่'}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
                 <style>
-                    @page { size: A4; margin: 20mm; }
+                    /* กำหนดหน้ากระดาษเป็น A4 และลดขอบเหลือ 10mm */
+                    @page { size: A4; margin: 10mm; }
+                    
                     body {
                         font-family: 'Sarabun', sans-serif;
                         color: #000;
-                        font-size: 16px;
-                        line-height: 1.6;
+                        font-size: 15px; /* ลดขนาดฟอนต์ลงเล็กน้อยจาก 16px เป็น 15px */
+                        line-height: 1.4; /* ปรับระยะบรรทัดให้กระชับขึ้น */
                         margin: 0;
                         padding: 0;
+                        /* พยายามบังคับไม่ให้เนื้อหาถูกตัดขึ้นหน้าใหม่ */
+                        page-break-inside: avoid;
                     }
                     .text-center { text-align: center; }
                     .font-bold { font-weight: 600; }
                     .underline { text-decoration: underline; }
                     
-                    .header-group { margin-bottom: 25px; }
+                    .header-group { margin-bottom: 15px; } /* ลดระยะห่างหัวกระดาษ */
                     .header-title { font-size: 18px; margin-bottom: 5px; }
                     
                     .form-line { 
                         display: flex; 
                         align-items: flex-end; 
-                        margin-bottom: 12px; 
+                        margin-bottom: 8px; /* ลดระยะห่างระหว่างบรรทัดฟอร์ม */
                         white-space: nowrap;
                     }
                     .dotted-text {
                         border-bottom: 1.5px dotted #000;
                         text-align: center;
                         color: #0000FF; /* สีน้ำเงินเหมือนหมึกปากกา */
-                        min-height: 24px;
+                        min-height: 22px;
                         display: inline-block;
                         line-height: 1.2;
                     }
@@ -121,12 +125,12 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     
                     /* จัดรูปแบบตารางข้อมูลให้ตรงกับในแบบฟอร์ม */
                     .data-grid {
-                        width: 90%;
-                        margin: 30px auto;
+                        width: 95%; /* ขยายตารางให้เต็มขึ้นเล็กน้อย */
+                        margin: 15px auto; /* ลดระยะห่างบนล่างของตาราง */
                         border-collapse: collapse;
                     }
                     .data-grid td {
-                        padding: 6px 0;
+                        padding: 4px 0; /* ลด padding ในเซลล์ตาราง */
                         vertical-align: bottom;
                     }
                     .col-main { width: 45%; }
@@ -138,13 +142,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                         display: inline-block;
                         width: 80%;
                         border-bottom: 1.5px dotted #000;
-                        min-height: 22px;
+                        min-height: 20px;
                         text-align: center;
                         color: #0000FF; /* สีน้ำเงินเหมือนหมึกปากกา */
                         line-height: 1.2;
                     }
 
-                    .section-gap { padding-top: 25px; }
+                    .section-gap { padding-top: 15px; } /* ลดระยะห่างระหว่างหมวดหมู่ข้อมูล */
                 </style>
             </head>
             <body>
@@ -206,10 +210,10 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                         <td class="col-unit">ตัว</td>
                     </tr>
                     <tr>
-                        <td class="col-main" style="padding-top: 15px;">คงเหลือวัคซีน</td>
-                        <td class="col-sub" style="padding-top: 15px;"></td>
-                        <td class="col-val" style="padding-top: 15px;"><span class="val-dots"></span></td>
-                        <td class="col-unit" style="padding-top: 15px;">โด๊ส</td>
+                        <td class="col-main" style="padding-top: 10px;">คงเหลือวัคซีน</td>
+                        <td class="col-sub" style="padding-top: 10px;"></td>
+                        <td class="col-val" style="padding-top: 10px;"><span class="val-dots"></span></td>
+                        <td class="col-unit" style="padding-top: 10px;">โด๊ส</td>
                     </tr>
 
                     <tr>
@@ -307,7 +311,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     </tr>
                 </table>
 
-                <div class="form-line" style="margin-top: 60px; padding-left: 20px;">
+                <div class="form-line" style="margin-top: 30px; padding-left: 20px;">
                     <span>ผู้รายงาน</span>
                     <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
                     <span>สังกัด</span>
