@@ -34,7 +34,7 @@ interface MainDataTableProps {
 }
 
 const MainDataTable: React.FC<MainDataTableProps> = ({ 
-    data: incomingData, // เปลี่ยนการรับค่าเพื่อป้องกันค่า null
+    data: incomingData, 
     canEdit = false, 
     isSuperAdmin = false, 
     onClearAll, 
@@ -90,68 +90,66 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <title>พิมพ์เอกสารสรุปผล - ${item.location || 'ไม่ระบุสถานที่'}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
                 <style>
-                    /* กำหนดหน้ากระดาษเป็น A4 และลดขอบเหลือ 10mm */
-                    @page { size: A4; margin: 10mm; }
+                    /* รีดขอบกระดาษให้เหลือน้อยที่สุด (5mm) ป้องกันเบราว์เซอร์มือถือดันเนื้อหา */
+                    @page { size: A4; margin: 5mm; }
                     
                     body {
                         font-family: 'Sarabun', sans-serif;
                         color: #000;
-                        font-size: 15px; /* ลดขนาดฟอนต์ลงเล็กน้อยจาก 16px เป็น 15px */
-                        line-height: 1.4; /* ปรับระยะบรรทัดให้กระชับขึ้น */
+                        font-size: 14px; /* ลดฟอนต์ลงอีก 1 เบอร์ */
+                        line-height: 1.3; /* บีบระยะบรรทัด */
                         margin: 0;
-                        padding: 0;
-                        /* พยายามบังคับไม่ให้เนื้อหาถูกตัดขึ้นหน้าใหม่ */
-                        page-break-inside: avoid;
+                        padding: 5mm; /* ใช้ padding ช่วยคุมขอบเขตเนื้อหาด้านใน */
                     }
                     .text-center { text-align: center; }
                     .font-bold { font-weight: 600; }
                     .underline { text-decoration: underline; }
                     
-                    .header-group { margin-bottom: 15px; } /* ลดระยะห่างหัวกระดาษ */
-                    .header-title { font-size: 18px; margin-bottom: 5px; }
+                    .header-group { margin-bottom: 10px; } /* ลดช่องว่างใต้หัวกระดาษ */
+                    .header-title { font-size: 16px; margin-bottom: 2px; }
                     
                     .form-line { 
                         display: flex; 
                         align-items: flex-end; 
-                        margin-bottom: 8px; /* ลดระยะห่างระหว่างบรรทัดฟอร์ม */
+                        margin-bottom: 6px; /* ลดช่องว่างบรรทัดฟอร์ม */
                         white-space: nowrap;
                     }
                     .dotted-text {
-                        border-bottom: 1.5px dotted #000;
+                        border-bottom: 1px dotted #000;
                         text-align: center;
-                        color: #0000FF; /* สีน้ำเงินเหมือนหมึกปากกา */
-                        min-height: 22px;
+                        color: #0000FF; 
+                        min-height: 18px; /* บีบความสูงช่องเติมคำ */
                         display: inline-block;
-                        line-height: 1.2;
+                        line-height: 1.1;
                     }
                     .flex-1 { flex: 1; }
                     
-                    /* จัดรูปแบบตารางข้อมูลให้ตรงกับในแบบฟอร์ม */
+                    /* ตารางบีบช่องว่างให้แน่นขึ้น */
                     .data-grid {
-                        width: 95%; /* ขยายตารางให้เต็มขึ้นเล็กน้อย */
-                        margin: 15px auto; /* ลดระยะห่างบนล่างของตาราง */
+                        width: 95%; 
+                        margin: 10px auto; 
                         border-collapse: collapse;
                     }
                     .data-grid td {
-                        padding: 4px 0; /* ลด padding ในเซลล์ตาราง */
+                        padding: 3px 0; /* ลด padding เซลล์ตาราง */
                         vertical-align: bottom;
                     }
                     .col-main { width: 45%; }
-                    .col-sub { width: 25%; padding-left: 20px; }
+                    .col-sub { width: 25%; padding-left: 15px; }
                     .col-val { width: 20%; text-align: center; }
-                    .col-unit { width: 10%; text-align: left; padding-left: 10px; }
+                    .col-unit { width: 10%; text-align: left; padding-left: 5px; }
                     
                     .val-dots {
                         display: inline-block;
                         width: 80%;
-                        border-bottom: 1.5px dotted #000;
-                        min-height: 20px;
+                        border-bottom: 1px dotted #000;
+                        min-height: 16px;
                         text-align: center;
-                        color: #0000FF; /* สีน้ำเงินเหมือนหมึกปากกา */
-                        line-height: 1.2;
+                        color: #0000FF; 
+                        line-height: 1.1;
                     }
 
-                    .section-gap { padding-top: 15px; } /* ลดระยะห่างระหว่างหมวดหมู่ข้อมูล */
+                    .section-gap { padding-top: 8px; } /* ลดช่องว่างระหว่างหมวด */
                 </style>
             </head>
             <body>
@@ -213,10 +211,10 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                         <td class="col-unit">ตัว</td>
                     </tr>
                     <tr>
-                        <td class="col-main" style="padding-top: 10px;">คงเหลือวัคซีน</td>
-                        <td class="col-sub" style="padding-top: 10px;"></td>
-                        <td class="col-val" style="padding-top: 10px;"><span class="val-dots"></span></td>
-                        <td class="col-unit" style="padding-top: 10px;">โด๊ส</td>
+                        <td class="col-main" style="padding-top: 6px;">คงเหลือวัคซีน</td>
+                        <td class="col-sub" style="padding-top: 6px;"></td>
+                        <td class="col-val" style="padding-top: 6px;"><span class="val-dots"></span></td>
+                        <td class="col-unit" style="padding-top: 6px;">โด๊ส</td>
                     </tr>
 
                     <tr>
@@ -314,7 +312,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     </tr>
                 </table>
 
-                <div class="form-line" style="margin-top: 30px; padding-left: 20px;">
+                <div class="form-line" style="margin-top: 15px; padding-left: 20px;">
                     <span>ผู้รายงาน</span>
                     <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
                     <span>สังกัด</span>
