@@ -1,8 +1,81 @@
-// src/utils/dataProcessors.js
-import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../constants/locations.js';
+import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../constants/locations';
 
-export const parseCSVDate = (dateStr) => {
-    const getLocalDateString = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// ==========================================
+// Interfaces
+// ==========================================
+export interface AnimalDetails {
+    vaccine: number;
+    maleSterilize?: number;
+    femaleSterilize?: number;
+    microchip?: number;
+    register?: number;
+    medical: number;
+}
+
+export interface OtherAnimalDetails {
+    vaccine: number;
+    medical: number;
+}
+
+export interface VetRecord {
+    _id?: string;
+    date: string;
+    location: string;
+    district: string;
+    subdistrict?: string;
+    unit?: string;
+    lat: number;
+    long: number;
+    imageUrl?: string;
+    stats: {
+        vaccine: number;
+        sterilize: number;
+        microchip: number;
+        register: number;
+        medical: number;
+    };
+    details: {
+        dog: AnimalDetails;
+        cat: AnimalDetails;
+        other: OtherAnimalDetails;
+    };
+}
+
+export interface OutbreakAnimalStats {
+    male: number;
+    female: number;
+}
+
+export interface OutbreakRecord {
+    date: string;
+    location: string;
+    district: string;
+    lat: number;
+    long: number;
+    stats: {
+        dog: OutbreakAnimalStats;
+        cat: OutbreakAnimalStats;
+    };
+}
+
+export interface ParseReportResult {
+    bulkData: VetRecord[];
+    failCount: number;
+    totalRows: number;
+}
+
+export interface ParseOutbreakResult {
+    bulkData: OutbreakRecord[];
+    totalRows: number;
+}
+
+// ==========================================
+// Functions
+// ==========================================
+
+export const parseCSVDate = (dateStr?: string | null): string => {
+    const getLocalDateString = (d: Date): string => 
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     
     if (!dateStr) return getLocalDateString(new Date());
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
@@ -11,8 +84,8 @@ export const parseCSVDate = (dateStr) => {
     if (parts) {
         let day = parts[1].padStart(2, '0');
         let month = parts[2].padStart(2, '0');
-        let year = parseInt(parts[3]);
-        if (year > 2400) year -= 543;
+        let year = parseInt(parts[3], 10);
+        if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
         return `${year}-${month}-${day}`;
     }
     
@@ -20,14 +93,17 @@ export const parseCSVDate = (dateStr) => {
     return !isNaN(d.getTime()) ? getLocalDateString(d) : getLocalDateString(new Date());
 };
 
-export const generateMockDataRecords = (count) => {
-    const newMockData = [];
+export const generateMockDataRecords = (count: number): VetRecord[] => {
+    const newMockData: VetRecord[] = [];
     const endDate = new Date();
     const startDate = new Date();
     startDate.setFullYear(endDate.getFullYear() - 1);
     
-    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-    const randCoord = () => ({ lat: 13.6 + Math.random() * 0.35, long: 100.35 + Math.random() * 0.4 });
+    const randInt = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randCoord = (): { lat: number; long: number } => ({ 
+        lat: 13.6 + Math.random() * 0.35, 
+        long: 100.35 + Math.random() * 0.4 
+    });
 
     for (let i = 0; i < count; i++) {
         const date = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
@@ -35,15 +111,42 @@ export const generateMockDataRecords = (count) => {
         const district = BANGKOK_DISTRICTS[Math.floor(Math.random() * BANGKOK_DISTRICTS.length)];
         const unit = UNIT_TYPES[Math.floor(Math.random() * UNIT_TYPES.length)];
         const coords = randCoord();
-        const stats = { vaccine: randInt(0, 50), sterilize: randInt(0, 20), register: randInt(0, 30), microchip: randInt(0, 15), medical: randInt(0, 10) };
+        const stats = { 
+            vaccine: randInt(0, 50), 
+            sterilize: randInt(0, 20), 
+            register: randInt(0, 30), 
+            microchip: randInt(0, 15), 
+            medical: randInt(0, 10) 
+        };
 
         newMockData.push({
             _id: `mock-${Date.now()}-${i}`,
-            date: dateStr, location: `จุดบริการจำลอง ${district} #${i+1}`, district: district, subdistrict: "แขวงจำลอง", unit: unit,
-            lat: coords.lat, long: coords.long, stats: stats, imageUrl: "",
+            date: dateStr, 
+            location: `จุดบริการจำลอง ${district} #${i+1}`, 
+            district: district, 
+            subdistrict: "แขวงจำลอง", 
+            unit: unit,
+            lat: coords.lat, 
+            long: coords.long, 
+            stats: stats, 
+            imageUrl: "",
             details: {
-                dog: { vaccine: Math.floor(stats.vaccine * 0.6), maleSterilize: Math.floor(stats.sterilize * 0.3), femaleSterilize: Math.floor(stats.sterilize * 0.3), microchip: Math.floor(stats.microchip * 0.7), register: Math.floor(stats.register * 0.6), medical: Math.floor(stats.medical * 0.7) },
-                cat: { vaccine: Math.floor(stats.vaccine * 0.4), maleSterilize: Math.floor(stats.sterilize * 0.2), femaleSterilize: Math.floor(stats.sterilize * 0.2), microchip: Math.floor(stats.microchip * 0.3), register: Math.floor(stats.register * 0.4), medical: Math.floor(stats.medical * 0.3) },
+                dog: { 
+                    vaccine: Math.floor(stats.vaccine * 0.6), 
+                    maleSterilize: Math.floor(stats.sterilize * 0.3), 
+                    femaleSterilize: Math.floor(stats.sterilize * 0.3), 
+                    microchip: Math.floor(stats.microchip * 0.7), 
+                    register: Math.floor(stats.register * 0.6), 
+                    medical: Math.floor(stats.medical * 0.7) 
+                },
+                cat: { 
+                    vaccine: Math.floor(stats.vaccine * 0.4), 
+                    maleSterilize: Math.floor(stats.sterilize * 0.2), 
+                    femaleSterilize: Math.floor(stats.sterilize * 0.2), 
+                    microchip: Math.floor(stats.microchip * 0.3), 
+                    register: Math.floor(stats.register * 0.4), 
+                    medical: Math.floor(stats.medical * 0.3) 
+                },
                 other: { vaccine: 0, medical: 0 }
             }
         });
@@ -51,9 +154,9 @@ export const generateMockDataRecords = (count) => {
     return newMockData;
 };
 
-export const parseReportCSV = (csvText) => {
+export const parseReportCSV = (csvText: string): ParseReportResult => {
     const lines = csvText.split('\n');
-    const bulkData = [];
+    const bulkData: VetRecord[] = [];
     let failCount = 0;
     
     for (let i = 1; i < lines.length; i++) {
@@ -65,7 +168,9 @@ export const parseReportCSV = (csvText) => {
 
         if (cleanCols.length < 6) { failCount++; continue; }
 
-        let lat = 0; let long = 0;
+        let lat = 0; 
+        let long = 0;
+        
         if (cleanCols[5]) {
             if(cleanCols[5].includes(',')){
                 const coords = cleanCols[5].split(',');
@@ -76,7 +181,7 @@ export const parseReportCSV = (csvText) => {
             }
         }
 
-        const newRecord = {
+        const newRecord: VetRecord = {
             date: parseCSVDate(cleanCols[0]),
             location: cleanCols[1],
             district: cleanCols[2],
@@ -85,32 +190,32 @@ export const parseReportCSV = (csvText) => {
             lat: lat,
             long: long,
             stats: { 
-                vaccine: parseInt(cleanCols[9]) || 0,
-                sterilize: parseInt(cleanCols[14]) || 0,
-                microchip: parseInt(cleanCols[17]) || 0,
-                register: parseInt(cleanCols[20]) || 0,
-                medical: parseInt(cleanCols[24]) || 0
+                vaccine: parseInt(cleanCols[9], 10) || 0,
+                sterilize: parseInt(cleanCols[14], 10) || 0,
+                microchip: parseInt(cleanCols[17], 10) || 0,
+                register: parseInt(cleanCols[20], 10) || 0,
+                medical: parseInt(cleanCols[24], 10) || 0
             },
             details: { 
                 dog: { 
-                    vaccine: parseInt(cleanCols[6]) || 0, 
-                    maleSterilize: parseInt(cleanCols[10]) || 0, 
-                    femaleSterilize: parseInt(cleanCols[11]) || 0, 
-                    microchip: parseInt(cleanCols[15]) || 0,
-                    register: parseInt(cleanCols[18]) || 0,
-                    medical: parseInt(cleanCols[21]) || 0 
+                    vaccine: parseInt(cleanCols[6], 10) || 0, 
+                    maleSterilize: parseInt(cleanCols[10], 10) || 0, 
+                    femaleSterilize: parseInt(cleanCols[11], 10) || 0, 
+                    microchip: parseInt(cleanCols[15], 10) || 0,
+                    register: parseInt(cleanCols[18], 10) || 0,
+                    medical: parseInt(cleanCols[21], 10) || 0 
                 },
                 cat: { 
-                    vaccine: parseInt(cleanCols[7]) || 0, 
-                    maleSterilize: parseInt(cleanCols[12]) || 0, 
-                    femaleSterilize: parseInt(cleanCols[13]) || 0, 
-                    microchip: parseInt(cleanCols[16]) || 0,
-                    register: parseInt(cleanCols[19]) || 0,
-                    medical: parseInt(cleanCols[22]) || 0 
+                    vaccine: parseInt(cleanCols[7], 10) || 0, 
+                    maleSterilize: parseInt(cleanCols[12], 10) || 0, 
+                    femaleSterilize: parseInt(cleanCols[13], 10) || 0, 
+                    microchip: parseInt(cleanCols[16], 10) || 0,
+                    register: parseInt(cleanCols[19], 10) || 0,
+                    medical: parseInt(cleanCols[22], 10) || 0 
                 },
                 other: { 
-                    vaccine: parseInt(cleanCols[8]) || 0, 
-                    medical: parseInt(cleanCols[23]) || 0 
+                    vaccine: parseInt(cleanCols[8], 10) || 0, 
+                    medical: parseInt(cleanCols[23], 10) || 0 
                 }
             }
         };
@@ -124,9 +229,9 @@ export const parseReportCSV = (csvText) => {
     return { bulkData, failCount, totalRows: lines.length > 1 ? lines.length - 1 : 0 };
 };
 
-export const parseOutbreakCSV = (csvText) => {
+export const parseOutbreakCSV = (csvText: string): ParseOutbreakResult => {
     const lines = csvText.split(/\r?\n/);
-    const bulkData = [];
+    const bulkData: OutbreakRecord[] = [];
     
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -137,12 +242,12 @@ export const parseOutbreakCSV = (csvText) => {
 
         if (cleanCols.length < 5) continue;
 
-        const parseNum = (val) => {
-            const num = parseInt(val);
+        const parseNum = (val: string | undefined): number => {
+            const num = parseInt(val || '0', 10);
             return isNaN(num) ? 0 : num;
         };
 
-        const newRecord = {
+        const newRecord: OutbreakRecord = {
             date: parseCSVDate(cleanCols[0]),
             location: cleanCols[1],
             district: cleanCols[2],

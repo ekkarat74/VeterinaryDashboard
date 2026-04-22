@@ -1,4 +1,64 @@
-export const exportToCSV = (data) => {
+export interface AnimalDetails {
+    vaccine?: number;
+    maleSterilize?: number;
+    femaleSterilize?: number;
+    microchip?: number;
+    register?: number;
+    medical?: number;
+}
+
+export interface OtherAnimalDetails {
+    vaccine?: number;
+    medical?: number;
+}
+
+export interface VetReportData {
+    date: string | Date;
+    location: string;
+    district: string;
+    subdistrict?: string;
+    unit: string;
+    lat: number | string;
+    long: number | string;
+    details?: {
+        dog?: AnimalDetails;
+        cat?: AnimalDetails;
+        other?: OtherAnimalDetails;
+    };
+    stats: {
+        vaccine?: number;
+        sterilize?: number;
+        microchip?: number;
+        register?: number;
+        medical?: number;
+    };
+}
+
+// ==========================================
+// Interfaces สำหรับ exportOutbreaksToCSV
+// ==========================================
+export interface OutbreakAnimalStats {
+    male?: number;
+    female?: number;
+}
+
+export interface OutbreakData {
+    date: string | Date;
+    location: string;
+    district?: string;
+    lat: number | string;
+    long: number | string;
+    stats?: {
+        dog?: OutbreakAnimalStats;
+        cat?: OutbreakAnimalStats;
+    };
+}
+
+// ==========================================
+// Functions
+// ==========================================
+
+export const exportToCSV = (data: VetReportData[]): void => {
     if (!data || data.length === 0) {
         alert("ไม่มีข้อมูลสำหรับส่งออก (Export)");
         return;
@@ -13,23 +73,23 @@ export const exportToCSV = (data) => {
         "สุนัข_รักษา", "แมว_รักษา", "อื่นๆ_รักษา", "รวมรักษา"
     ];
 
-    const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedData = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const csvRows = sortedData.map(item => {
         const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
         const combinedCoords = `"${item.lat}, ${item.long}"`; 
-        const d = item.details || { dog: {}, cat: {}, other: {} };
+        const d = item.details || {};
         const dog = d.dog || {};
         const cat = d.cat || {};
         const other = d.other || {};
 
         return [
             item.date, safeLocation, item.district, item.subdistrict || "", item.unit, combinedCoords,
-            dog.vaccine || 0, cat.vaccine || 0, other.vaccine || 0, item.stats.vaccine || 0,
-            dog.maleSterilize || 0, dog.femaleSterilize || 0, cat.maleSterilize || 0, cat.femaleSterilize || 0, item.stats.sterilize || 0,
-            dog.microchip || 0, cat.microchip || 0, item.stats.microchip || 0,
-            dog.register || 0, cat.register || 0, item.stats.register || 0,
-            dog.medical || 0, cat.medical || 0, other.medical || 0, item.stats.medical || 0
+            dog.vaccine || 0, cat.vaccine || 0, other.vaccine || 0, item.stats?.vaccine || 0,
+            dog.maleSterilize || 0, dog.femaleSterilize || 0, cat.maleSterilize || 0, cat.femaleSterilize || 0, item.stats?.sterilize || 0,
+            dog.microchip || 0, cat.microchip || 0, item.stats?.microchip || 0,
+            dog.register || 0, cat.register || 0, item.stats?.register || 0,
+            dog.medical || 0, cat.medical || 0, other.medical || 0, item.stats?.medical || 0
         ].join(",");
     });
 
@@ -42,9 +102,10 @@ export const exportToCSV = (data) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 };
 
-export const exportOutbreaksToCSV = (data) => {
+export const exportOutbreaksToCSV = (data: OutbreakData[]): void => {
     if (!data || data.length === 0) {
         alert("ไม่มีข้อมูลจุดแจ้งเหตุสำหรับส่งออก");
         return;
@@ -55,7 +116,7 @@ export const exportOutbreaksToCSV = (data) => {
         "สุนัข(ผู้)", "สุนัข(เมีย)", "แมว(ผู้)", "แมว(เมีย)"
     ];
 
-    const sortedData = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedData = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const csvRows = sortedData.map(item => {
         const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
@@ -88,4 +149,5 @@ export const exportOutbreaksToCSV = (data) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url); // ปล่อย Memory คืนหลังจากโหลดเสร็จ
 };

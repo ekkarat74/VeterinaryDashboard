@@ -496,7 +496,11 @@ const handleDeleteDispatch = async (id: string) => {
 
                 const response = await fetch(`${BASE_URL}/api/outbreaks/bulk`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        // 📌 เปลี่ยนจากการใช้ user?.token เป็น getCurrentToken()
+                        'Authorization': `Bearer ${getCurrentToken()}` 
+                    },
                     body: JSON.stringify(bulkData)
                 });
 
@@ -941,38 +945,6 @@ const handleDeleteDispatch = async (id: string) => {
         } catch (error) { alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server"); }
     };
 
-    const generateMockData = (count: number) => {
-        if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
-        const newMockData: any[] = [];
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setFullYear(endDate.getFullYear() - 1);
-        const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
-        const randCoord = () => ({ lat: 13.6 + Math.random() * 0.35, long: 100.35 + Math.random() * 0.4 });
-
-        for (let i = 0; i < count; i++) {
-            const date = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
-            const dateStr = date.toISOString().split('T')[0];
-            const district = BANGKOK_DISTRICTS[Math.floor(Math.random() * BANGKOK_DISTRICTS.length)];
-            const unit = UNIT_TYPES[Math.floor(Math.random() * UNIT_TYPES.length)];
-            const coords = randCoord();
-            const stats = { vaccine: randInt(0, 50), sterilize: randInt(0, 20), register: randInt(0, 30), microchip: randInt(0, 15), medical: randInt(0, 10) };
-
-            newMockData.push({
-                _id: `mock-${Date.now()}-${i}`,
-                date: dateStr, location: `จุดบริการจำลอง ${district} #${i+1}`, district: district, subdistrict: "แขวงจำลอง", unit: unit,
-                lat: coords.lat, long: coords.long, stats: stats, imageUrl: "",
-                details: {
-                    dog: { vaccine: Math.floor(stats.vaccine * 0.6), maleSterilize: Math.floor(stats.sterilize * 0.3), femaleSterilize: Math.floor(stats.sterilize * 0.3), microchip: Math.floor(stats.microchip * 0.7), register: Math.floor(stats.register * 0.6), medical: Math.floor(stats.medical * 0.7) },
-                    cat: { vaccine: Math.floor(stats.vaccine * 0.4), maleSterilize: Math.floor(stats.sterilize * 0.2), femaleSterilize: Math.floor(stats.sterilize * 0.2), microchip: Math.floor(stats.microchip * 0.3), register: Math.floor(stats.register * 0.4), medical: Math.floor(stats.medical * 0.3) },
-                    other: { vaccine: 0, medical: 0 }
-                }
-            });
-        }
-        setReportData((prev: any[]) => [...newMockData, ...prev]);
-        alert(`✅ สร้างข้อมูลจำลอง ${count} เคสเรียบร้อยแล้ว!\n(ข้อมูลจะหายไปเมื่อรีเฟรชหน้าเว็บ)`);
-    };
-
     const handleGenerateMockData = () => {
         const count = 500;
         if (!window.confirm(`⚠️ ยืนยันการจำลองข้อมูล ${count} เคส?\n(ข้อมูลนี้จะแสดงผลทันทีแต่ 'ยังไม่ถูกบันทึก' ลงฐานข้อมูลจริง)`)) return;
@@ -1007,7 +979,10 @@ const handleDeleteDispatch = async (id: string) => {
 
                 const response = await fetch(`${BASE_URL}/api/reports/bulk`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getCurrentToken()}` 
+                    },
                     body: JSON.stringify(bulkData)
                 });
 
