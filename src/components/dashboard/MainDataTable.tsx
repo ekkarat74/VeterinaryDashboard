@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import html2canvas from 'html2canvas'; // เพิ่ม import นี้
+import html2canvas from 'html2canvas';
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer,
-    Download, Share2 // เพิ่มไอคอน Download และ Share2
+    Download, Share2 
 } from 'lucide-react';
 
 export interface ItemStats {
@@ -17,10 +17,12 @@ export interface ItemStats {
 export interface DataItem {
     _id: string;
     date: string;
+    unit?: string;
     location: string;
     district: string;
     imageUrl?: string | null;
     stats?: ItemStats;
+    details?: any;
     createdBy?: string;
     updatedBy?: string;
 }
@@ -37,9 +39,7 @@ interface MainDataTableProps {
 
 const MainDataTable: React.FC<MainDataTableProps> = ({ 
     data: incomingData, 
-    canEdit = false, 
-    isSuperAdmin = false, 
-    onClearAll, 
+    canEdit = false,
     onEdit, 
     onDelete, 
     onViewImage 
@@ -47,7 +47,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     const data = incomingData || [];
 
     const [currentPage, setCurrentPage] = useState(1);
-    const [isGeneratingDocument, setIsGeneratingDocument] = useState(false); // ป้องกันการกดซ้ำตอนระบบกำลังรัน
+    const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
     const itemsPerPage = 25;
 
     const totalPages = Math.ceil(data.length / itemsPerPage);
@@ -76,36 +76,76 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
-    // --- แยก CSS และ HTML ออกมาเพื่อให้ใช้ซ้ำได้ ---
     const getDocumentStyle = () => `
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
         .report-doc {
             font-family: 'Sarabun', sans-serif;
             color: #000;
-            font-size: 14px;
-            line-height: 1.3;
-            margin: 0;
-            padding: 20px;
+            font-size: 15px;
+            line-height: 1.4;
+            margin: 0 auto;
+            padding: 40px 50px;
             background: #fff;
-            width: 100%;
+            width: 794px;
+            min-height: 1123px;
             box-sizing: border-box;
         }
         .report-doc .text-center { text-align: center; }
         .report-doc .font-bold { font-weight: 600; }
         .report-doc .underline { text-decoration: underline; }
-        .report-doc .header-group { margin-bottom: 10px; }
-        .report-doc .header-title { font-size: 16px; margin-bottom: 2px; }
-        .report-doc .form-line { display: flex; align-items: flex-end; margin-bottom: 6px; white-space: nowrap; }
-        .report-doc .dotted-text { border-bottom: 1px dotted #000; text-align: center; color: #0000FF; min-height: 18px; display: inline-block; line-height: 1.1; }
+        
+        .report-doc .header-group { margin-bottom: 25px; }
+        .report-doc .header-title { font-size: 18px; margin-bottom: 4px; }
+        
+        .report-doc .form-line { 
+            display: flex; 
+            align-items: flex-end; 
+            margin-bottom: 12px;
+            white-space: nowrap; 
+        }
+        
+        .report-doc .dotted-text { 
+            border-bottom: 1px dotted #000; 
+            text-align: center; 
+            color: #0000FF; 
+            padding-bottom: 4px;
+            line-height: 1.2; 
+        }
         .report-doc .flex-1 { flex: 1; }
-        .report-doc .data-grid { width: 95%; margin: 10px auto; border-collapse: collapse; }
-        .report-doc .data-grid td { padding: 3px 0; vertical-align: bottom; }
+        
+        .report-doc .data-grid { 
+            width: 95%; 
+            margin: 20px auto; 
+            border-collapse: collapse; 
+        }
+        .report-doc .data-grid td { 
+            padding: 6px 0;
+            vertical-align: bottom; 
+        }
         .report-doc .col-main { width: 45%; }
         .report-doc .col-sub { width: 25%; padding-left: 15px; }
         .report-doc .col-val { width: 20%; text-align: center; }
         .report-doc .col-unit { width: 10%; text-align: left; padding-left: 5px; }
-        .report-doc .val-dots { display: inline-block; width: 80%; border-bottom: 1px dotted #000; min-height: 16px; text-align: center; color: #0000FF; line-height: 1.1; }
-        .report-doc .section-gap { padding-top: 8px; }
+        
+        .report-doc .val-dots { 
+            display: inline-block; 
+            width: 80%; 
+            border-bottom: 1px dotted #000; 
+            text-align: center; 
+            color: #000; 
+            padding-bottom: 4px;
+            line-height: 1.2; 
+        }
+        .report-doc .section-gap { padding-top: 15px; }
+
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            .report-doc {
+                width: auto;
+                min-height: auto;
+                padding: 0;
+            }
+        }
     `;
 
     const getDocumentHTML = (item: DataItem) => `
@@ -117,7 +157,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             
             <div class="form-line">
                 <span>ชื่อโครงการ</span>
-                <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
+                <span class="dotted-text flex-1" style="margin: 0 10px;">${item.unit || ''}</span>
                 <span>สถานที่</span>
                 <span class="dotted-text" style="width: 35%; margin-left: 10px;">${item.location || ''}</span>
             </div>
@@ -146,19 +186,19 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main">จำนวนสัตว์ที่ฉีดวัคซีน</td>
                     <td class="col-sub">สุนัข</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.dog?.vaccine || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">แมว</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.cat?.vaccine || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">อื่นๆ</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.other?.vaccine || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
@@ -177,25 +217,25 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main section-gap">จำนวนสุนัข / แมวทำหมัน</td>
                     <td class="col-sub section-gap">สุนัขเพศผู้</td>
-                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.maleSterilize || ''}</span></td>
                     <td class="col-unit section-gap">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">สุนัขเพศเมีย</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.dog?.femaleSterilize || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">แมวเพศผู้</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.cat?.maleSterilize || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">แมวเพศเมีย</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.cat?.femaleSterilize || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
@@ -208,13 +248,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main section-gap">จำนวนสุนัข / แมวที่ฉีดไมโครชิป</td>
                     <td class="col-sub section-gap">สุนัขมีเจ้าของ</td>
-                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.microchip || ''}</span></td>
                     <td class="col-unit section-gap">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">แมวมีเจ้าของ</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.cat?.microchip || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
@@ -227,13 +267,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main section-gap">จำนวนสุนัข / แมว ขึ้นทะเบียน</td>
                     <td class="col-sub section-gap">ขึ้นทะเบียน สุนัข</td>
-                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.register || ''}</span></td>
                     <td class="col-unit section-gap">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">ขึ้นทะเบียน แมว</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.cat?.register || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
@@ -246,19 +286,19 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main section-gap">รักษาสัตว์</td>
                     <td class="col-sub section-gap">สุนัข</td>
-                    <td class="col-val section-gap"><span class="val-dots"></span></td>
+                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.medical || ''}</span></td>
                     <td class="col-unit section-gap">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">แมว</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.cat?.medical || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
                     <td class="col-main"></td>
                     <td class="col-sub">อื่นๆ</td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.other?.medical || ''}</span></td>
                     <td class="col-unit">ตัว</td>
                 </tr>
                 <tr>
@@ -269,7 +309,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 </tr>
             </table>
 
-            <div class="form-line" style="margin-top: 15px; padding-left: 20px;">
+            <div class="form-line" style="margin-top: 30px; padding-left: 20px;">
                 <span>ผู้รายงาน</span>
                 <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
                 <span>สังกัด</span>
@@ -287,7 +327,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <meta charset="UTF-8">
                 <title>พิมพ์เอกสารสรุปผล - ${item.location || 'ไม่ระบุสถานที่'}</title>
                 <style>
-                    @page { size: A4; margin: 5mm; }
                     ${getDocumentStyle()}
                 </style>
             </head>
@@ -307,23 +346,22 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         }
     };
 
-    // --- Helper: สร้าง Canvas จาก HTML เพื่อไปทำรูป ---
     const generateImageCanvas = async (item: DataItem) => {
-        // สร้าง Div ซ่อนไว้หลังฉากเพื่อจำลองกระดาษ A4
         const container = document.createElement('div');
         container.style.position = 'absolute';
         container.style.left = '-9999px';
         container.style.top = '0';
-        container.style.width = '210mm'; // ความกว้างกระดาษ A4 โดยประมาณ
+        
         container.innerHTML = `<style>${getDocumentStyle()}</style>${getDocumentHTML(item)}`;
         document.body.appendChild(container);
 
-        // รอให้ฟอนต์โหลดให้เสร็จก่อนถ่ายรูป
+        const reportDocNode = container.querySelector('.report-doc') as HTMLElement;
+
         await document.fonts.ready;
         await new Promise(res => setTimeout(res, 500));
 
-        const canvas = await html2canvas(container, {
-            scale: 2, // เพิ่มความคมชัด (Retina)
+        const canvas = await html2canvas(reportDocNode, {
+            scale: 2, 
             useCORS: true,
             backgroundColor: '#ffffff'
         });
@@ -357,31 +395,38 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         try {
             const canvas = await generateImageCanvas(item);
             
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
-                const file = new File([blob], `รายงาน_${item.location}.jpg`, { type: 'image/jpeg' });
+            await new Promise<void>((resolve) => {
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        resolve();
+                        return;
+                    }
+                    const file = new File([blob], `รายงาน_${item.location}.jpg`, { type: 'image/jpeg' });
 
-                // เช็คว่าเบราว์เซอร์รองรับการแชร์ไฟล์ไหม (ส่วนใหญ่ใช้งานได้ดีบนมือถือ)
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'รายงานสรุปผล',
-                        text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location}`
-                    });
-                } else {
-                    alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์ภาพโดยตรง แนะนำให้กด "ดาวน์โหลดรูป" แล้วส่งเข้า LINE ด้วยตัวเองครับ');
-                }
-            }, 'image/jpeg', 0.9);
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: 'รายงานสรุปผล',
+                                text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location}`
+                            });
+                        } catch (shareError) {
+                            console.log('ผู้ใช้ยกเลิกการแชร์ หรือแชร์ไม่สำเร็จ:', shareError);
+                        }
+                    } else {
+                        alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์ภาพโดยตรง แนะนำให้กด "ดาวน์โหลดรูป" แล้วส่งเข้า LINE ด้วยตัวเองครับ');
+                    }
+                    resolve();
+                }, 'image/jpeg', 0.9);
+            });
         } catch (error) {
             console.error('Error sharing file:', error);
-            // บางครั้ง User กดยกเลิกการ Share ระบบจะโยน Error กลับมา ไม่ต้อง Alert ให้รำคาญ
         } finally {
             setIsGeneratingDocument(false);
         }
     };
 
     const renderPagination = (isTop: boolean) => {
-        // (โค้ด renderPagination เหมือนเดิม ไม่มีการเปลี่ยนแปลง)
         if (data.length === 0) return null;
         
         return (
@@ -478,6 +523,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
                         <tr>
                             <th className="px-6 py-4 whitespace-nowrap w-32">วันที่</th>
+                            <th className="px-6 py-4 whitespace-nowrap w-40">หน่วยงาน</th>
                             <th className="px-6 py-4 whitespace-nowrap min-w-[200px]">สถานที่</th>
                             <th className="px-6 py-4 text-center w-24">รูปภาพ</th>
                             <th className="px-6 py-4 text-center w-24">วัคซีน</th>
@@ -486,7 +532,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <th className="px-6 py-4 text-center w-24">ไมโครชิป</th>
                             <th className="px-6 py-4 text-center w-24">รักษา</th>
                             <th className="px-6 py-4 text-center w-32">ผู้บันทึก</th>
-                            {/* ขยายความกว้างของคอลัมน์จัดการเพื่อรองรับปุ่มที่เพิ่มขึ้น */}
                             {canEdit && <th className="px-6 py-4 text-center w-56">จัดการเอกสาร / ข้อมูล</th>}
                         </tr>
                     </thead>
@@ -498,6 +543,12 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4 text-gray-400" />
                                             <span className="font-mono text-xs">{item.date}</span>
+                                        </div>
+                                    </td>
+
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 whitespace-nowrap">
+                                            {item.unit || '-'}
                                         </div>
                                     </td>
 
@@ -629,7 +680,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={canEdit ? 10 : 9} className="px-6 py-12 text-center">
+                                <td colSpan={canEdit ? 11 : 10} className="px-6 py-12 text-center"> 
                                     <div className="flex flex-col items-center justify-center text-gray-400">
                                         <div className="p-4 bg-gray-50 rounded-full mb-3">
                                             <Database className="w-8 h-8 text-gray-300" />
@@ -644,7 +695,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     {data.length > 0 && (
                         <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
                             <tr>
-                                <td colSpan={3} className="px-6 py-4 text-right text-xs">รวมทั้งหมด (จากทุกหน้า):</td>
+                                <td colSpan={4} className="px-6 py-4 text-right text-xs">รวมทั้งหมด (จากทุกหน้า):</td>
                                 <td className="px-6 py-4 text-center text-blue-700 text-xs">{formatNumber(totals.vaccine)}</td>
                                 <td className="px-6 py-4 text-center text-orange-700 text-xs">{formatNumber(totals.sterilize)}</td>
                                 <td className="px-6 py-4 text-center text-teal-700 text-xs">{formatNumber(totals.register)}</td>

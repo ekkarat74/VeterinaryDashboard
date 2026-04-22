@@ -744,61 +744,86 @@ const DispatchCalendarDashboard: React.FC = () => {
         }
     };
 
-    const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
+    const getCurrentToken = () => {
+    const storedUser = localStorage.getItem('vet_user');
+    if (storedUser) {
         try {
-            const isUpdate = !Array.isArray(payload) && payload._id;
-            const method = isUpdate ? 'PUT' : 'POST';
-            const url = isUpdate ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
+            return JSON.parse(storedUser).token;
+        } catch (e) {
+            return user?.token || '';
+        }
+    }
+    return user?.token || '';
+};
+
+    const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
+    try {
+        const isUpdate = !Array.isArray(payload) && payload._id;
+        const method = isUpdate ? 'PUT' : 'POST';
+        const url = isUpdate ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
+        
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+            body: JSON.stringify(payload)
+        });
+        
+        if (res.ok) {
+            playSound('success');
+            addToast('success', isUpdate ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
             
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify(payload)
-            });
-            
-            if (res.ok) {
-                playSound('success');
-                addToast('success', isUpdate ? 'แก้ไขแผนงานเรียบร้อย' : 'บันริกแผนงานเรียบร้อย');
-                
-                if (shouldClose) {
-                    setIsDispatchModalOpen(false);
-                }
-                
-                const fetchRes = await fetch(`${BASE_URL}/api/dispatches`);
-                const data: EventData[] = await fetchRes.json();
-                const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
-                setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
-                
-                return true; 
-            } else {
-                const err = await res.json();
-                addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
-                return false;
+            if (shouldClose) {
+                setIsDispatchModalOpen(false);
             }
-        } catch (error) {
-            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            
+            const fetchRes = await fetch(`${BASE_URL}/api/dispatches`);
+            const data: EventData[] = await fetchRes.json();
+            const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
+            setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
+            
+            return true; 
+        } else if (res.status === 401 || res.status === 403) {
+            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+            setUser(null);
+            localStorage.removeItem('vet_user');
+            setIsLoginModalOpen(true);
+            return false;
+        } else {
+            const err = await res.json();
+            addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
             return false;
         }
-    };
+    } catch (error) {
+        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        return false;
+    }
+};
 
     const handleDeleteDispatch = async (id?: string) => {
-        if(!id) return;
-        if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
-        try {
-            const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${user?.token}` }
-            });
-            if (res.ok) {
-                playSound('delete');
-                addToast('success', 'ลบแผนงานเรียบร้อย');
-                setIsDispatchModalOpen(false);
-                setEvents(prev => prev.filter(e => e._id !== id));
-            }
-        } catch (error) {
+    if(!id) return;
+    if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
+    try {
+        const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getCurrentToken()}` }
+        });
+        if (res.ok) {
+            playSound('delete');
+            addToast('success', 'ลบแผนงานเรียบร้อย');
+            setIsDispatchModalOpen(false);
+            setEvents(prev => prev.filter(e => e._id !== id));
+        } else if (res.status === 401 || res.status === 403) {
+            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+            setUser(null);
+            localStorage.removeItem('vet_user');
+            setIsLoginModalOpen(true);
+        } else {
             addToast('error', 'ลบไม่สำเร็จ');
         }
-    };
+    } catch (error) {
+        addToast('error', 'ลบไม่สำเร็จ');
+    }
+};
 
     const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
@@ -824,47 +849,53 @@ const DispatchCalendarDashboard: React.FC = () => {
     };
 
     const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetDateStr: string) => {
-        e.preventDefault();
-        setDragOverDate(null);
+    e.preventDefault();
+    setDragOverDate(null);
 
-        if (!canEdit) return;
+    if (!canEdit) return;
 
-        const eventId = e.dataTransfer.getData('eventId');
-        if (!eventId) return;
+    const eventId = e.dataTransfer.getData('eventId');
+    if (!eventId) return;
 
-        const draggedEvent = events.find(ev => ev._id === eventId);
-        if (!draggedEvent || draggedEvent.date === targetDateStr) return;
+    const draggedEvent = events.find(ev => ev._id === eventId);
+    if (!draggedEvent || draggedEvent.date === targetDateStr) return;
 
-        const targetDateObj = new Date(targetDateStr);
-        const formattedDate = targetDateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-        
-        if (!window.confirm(`ยืนยันการเลื่อนงาน "${draggedEvent.title || 'ออกหน่วย'}" \nไปยังวันที่ ${formattedDate} หรือไม่?`)) {
-            return;
-        }
+    const targetDateObj = new Date(targetDateStr);
+    const formattedDate = targetDateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    if (!window.confirm(`ยืนยันการเลื่อนงาน "${draggedEvent.title || 'ออกหน่วย'}" \nไปยังวันที่ ${formattedDate} หรือไม่?`)) {
+        return;
+    }
 
-        const previousEvents = [...events];
-        setEvents(prev => prev.map(ev => ev._id === eventId ? { ...ev, date: targetDateStr } : ev));
+    const previousEvents = [...events];
+    setEvents(prev => prev.map(ev => ev._id === eventId ? { ...ev, date: targetDateStr } : ev));
 
-        try {
-            const payload = { ...draggedEvent.originalData, date: targetDateStr };
-            const res = await fetch(`${BASE_URL}/api/dispatches/${eventId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify(payload)
-            });
+    try {
+        const payload = { ...draggedEvent.originalData, date: targetDateStr };
+        const res = await fetch(`${BASE_URL}/api/dispatches/${eventId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+            body: JSON.stringify(payload)
+        });
 
-            if (res.ok) {
-                addToast('success', 'ย้ายวันปฏิบัติงานเรียบร้อยแล้ว');
-            } else {
-                const err = await res.json();
-                addToast('error', `ไม่สามารถย้ายได้: ${err.message}`);
-                setEvents(previousEvents);
-            }
-        } catch (error) {
-            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        if (res.ok) {
+            addToast('success', 'ย้ายวันปฏิบัติงานเรียบร้อยแล้ว');
+        } else if (res.status === 401 || res.status === 403) {
+            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+            setUser(null);
+            localStorage.removeItem('vet_user');
+            setIsLoginModalOpen(true);
+            setEvents(previousEvents);
+        } else {
+            const err = await res.json();
+            addToast('error', `ไม่สามารถย้ายได้: ${err.message}`);
             setEvents(previousEvents);
         }
-    };
+    } catch (error) {
+        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        setEvents(previousEvents);
+    }
+};
 
     const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();

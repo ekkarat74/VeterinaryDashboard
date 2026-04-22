@@ -374,63 +374,92 @@ export default function VeterinaryDashboard() {
         }));
     }, [dispatchEvents, canViewHiddenDispatches]);
 
-    const handleToggleDispatchVisibility = async (id: string, currentStatus: boolean) => {
+    const getCurrentToken = () => {
+    const storedUser = localStorage.getItem('vet_user');
+    if (storedUser) {
         try {
-            const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify({ isVisibleToPublic: !currentStatus })
-            });
-            if (res.ok) {
-                addToast('success', currentStatus ? 'ซ่อนหน่วยงานจากประชาชนแล้ว' : 'เปิดหน่วยงานให้ประชาชนเห็นแล้ว');
-            } else {
-                addToast('error', 'ปรับสถานะไม่สำเร็จ');
-            }
-        } catch (error) {
-            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            return JSON.parse(storedUser).token;
+        } catch (e) {
+            return user?.token || '';
         }
+    }
+    return user?.token || '';
     };
+
+    const handleToggleDispatchVisibility = async (id: string, currentStatus: boolean) => {
+    try {
+        const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+            body: JSON.stringify({ isVisibleToPublic: !currentStatus })
+        });
+        if (res.ok) {
+            addToast('success', currentStatus ? 'ซ่อนหน่วยงานจากประชาชนแล้ว' : 'เปิดหน่วยงานให้ประชาชนเห็นแล้ว');
+        } else if (res.status === 401 || res.status === 403) {
+            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+            setUser(null);
+            localStorage.removeItem('vet_user');
+            setIsLoginModalOpen(true);
+        } else {
+            addToast('error', 'ปรับสถานะไม่สำเร็จ');
+        }
+    } catch (error) {
+        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+};
 
     const meetingEventsOnly = useMemo(() => meetings.map((m: any) => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
     })), [meetings]);
 
     const handleSaveDispatchEvent = async (payload: any) => {
-        try {
-            const method = payload._id ? 'PUT' : 'POST';
-            const url = payload._id ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
-                setIsDispatchModalOpen(false);
-            } else {
-                const err = await res.json();
-                addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
-            }
-        } catch (error) {
-            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    try {
+        const method = payload._id ? 'PUT' : 'POST';
+        const url = payload._id ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
+            setIsDispatchModalOpen(false);
+        } else if (res.status === 401 || res.status === 403) {
+            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+            setUser(null);
+            localStorage.removeItem('vet_user');
+            setIsLoginModalOpen(true);
+        } else {
+            const err = await res.json();
+            addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
         }
-    };
+    } catch (error) {
+        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
+};
 
-    const handleDeleteDispatch = async (id: string) => {
-        if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
-        try {
-            const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${user?.token}` }
-            });
-            if (res.ok) {
-                addToast('success', 'ลบแผนงานเรียบร้อย');
-                setIsDispatchModalOpen(false);
-            }
-        } catch (error) {
+const handleDeleteDispatch = async (id: string) => {
+    if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
+    try {
+        const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getCurrentToken()}` }
+        });
+        if (res.ok) {
+            addToast('success', 'ลบแผนงานเรียบร้อย');
+            setIsDispatchModalOpen(false);
+        } else if (res.status === 401 || res.status === 403) {
+            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+            setUser(null);
+            localStorage.removeItem('vet_user');
+            setIsLoginModalOpen(true);
+        } else {
             addToast('error', 'ลบไม่สำเร็จ');
         }
-    };
+    } catch (error) {
+        addToast('error', 'ลบไม่สำเร็จ');
+    }
+};
 
     useEffect(() => {
         const fetchDispatches = async () => {
@@ -775,20 +804,6 @@ export default function VeterinaryDashboard() {
     const openEditOutbreakModal = (item: any) => { setEditingOutbreak(item); setIsOutbreakModalOpen(true); };
     const openAddOutbreakModal = () => { setEditingOutbreak(null); setIsOutbreakModalOpen(true); };
 
-    // 1. เพิ่มฟังก์ชันสำหรับดึง Token ปัจจุบัน เพื่อป้องกันปัญหา State ไม่อัปเดต (ใส่ไว้ก่อนถึงฟังก์ชัน handleAddNewData)
-    const getCurrentToken = () => {
-        const storedUser = localStorage.getItem('vet_user');
-        if (storedUser) {
-            try {
-                return JSON.parse(storedUser).token;
-            } catch (e) {
-                return user?.token || '';
-            }
-        }
-        return user?.token || '';
-    };
-
-    // 2. แก้ไขฟังก์ชัน handleAddNewData
     const handleAddNewData = async (newRecord: any) => {
         try {
             const response = await fetch(API_URL, {

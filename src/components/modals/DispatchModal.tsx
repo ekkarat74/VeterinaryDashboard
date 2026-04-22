@@ -265,6 +265,19 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
+  // 1. นำฟังก์ชันดึง Token มาไว้ด้านบนๆ ในคอมโพเนนต์ (ใต้ const BASE_URL = ...)
+  const getCurrentToken = () => {
+    const storedUser = localStorage.getItem('vet_user');
+    if (storedUser) {
+        try {
+            return JSON.parse(storedUser).token;
+        } catch (e) {
+            return '';
+        }
+    }
+    return '';
+  };
+
   const formatDateLocal = (date: Date): string => {
     return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   };
@@ -366,12 +379,27 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
     return Array.from(busy);
   }, [generalInfo.date, generalInfo.departureTime, generalInfo.closingTime, allEvents, initialData]);
 
+  // 2. แก้ไข useEffect นี้
   useEffect(() => {
     if (isOpen) {
-        fetch(`${BASE_URL}/api/controllers`)
-            .then(res => res.json())
-            .then((data: StaffMember[]) => setSavedControllers(data))
-            .catch(err => console.error(err));
+        fetch(`${BASE_URL}/api/controllers`, {
+            headers: {
+                'Authorization': `Bearer ${getCurrentToken()}`
+            }
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            // ป้องกันแอปพัง หากเซิร์ฟเวอร์คืนค่าเป็น Object แจ้งเตือน Error
+            if (res.ok && Array.isArray(data)) {
+                setSavedControllers(data);
+            } else {
+                setSavedControllers([]); 
+            }
+        })
+        .catch(err => {
+            console.error("Fetch Controllers Error:", err);
+            setSavedControllers([]); // กันแอปพังกรณีเน็ตหลุด
+        });
     }
   }, [isOpen]);
 
