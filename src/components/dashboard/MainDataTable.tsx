@@ -20,6 +20,8 @@ export interface DataItem {
     unit?: string;
     location: string;
     district: string;
+    lat?: number | string;
+    long?: number | string;
     imageUrl?: string | null;
     stats?: ItemStats;
     details?: any;
@@ -44,7 +46,15 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     onDelete, 
     onViewImage 
 }) => {
-    const data = incomingData || [];
+    const baseData = incomingData || [];
+    const [coordinateFilter, setCoordinateFilter] = useState<'all' | 'with' | 'without'>('all');
+
+    // กรองข้อมูลตามพิกัดก่อนนำไปให้ตารางและ Pagination ใช้
+    const data = baseData.filter(item => {
+        if (coordinateFilter === 'all') return true;
+        const hasCoords = item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0;
+        return coordinateFilter === 'with' ? hasCoords : !hasCoords;
+    });
 
     const [currentPage, setCurrentPage] = useState(1);
     const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
@@ -81,7 +91,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         .report-doc {
             font-family: 'Sarabun', sans-serif;
             color: #000;
-            font-size: 15px;
+            font-size: 14px; /* ปรับลดจาก 15px */
             line-height: 1.4;
             margin: 0 auto;
             padding: 40px 50px;
@@ -95,7 +105,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         .report-doc .underline { text-decoration: underline; }
         
         .report-doc .header-group { margin-bottom: 25px; }
-        .report-doc .header-title { font-size: 18px; margin-bottom: 4px; }
+        .report-doc .header-title { font-size: 16px; margin-bottom: 4px; }
         
         .report-doc .form-line { 
             display: flex; 
@@ -107,7 +117,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         .report-doc .dotted-text { 
             border-bottom: 1px dotted #000; 
             text-align: center; 
-            color: #0000FF; 
+            color: #000000; 
             padding-bottom: 4px;
             line-height: 1.2; 
         }
@@ -431,7 +441,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         
         return (
             <div className={`px-4 sm:px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-3 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
-                <span className="text-[10px] sm:text-[11px] text-gray-500 font-medium text-center sm:text-left">
+                <span className="text-[9px] sm:text-[10px] text-gray-500 font-medium text-center sm:text-left">
                     แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
                 </span>
                 
@@ -441,7 +451,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <button
                                 onClick={() => handlePageChange(1)}
                                 disabled={currentPage === 1}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-l-md border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-l-md border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 First
                             </button>
@@ -449,7 +459,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <button
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 &laquo;
                             </button>
@@ -457,7 +467,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             {getPageNumbers().map((number, index) => {
                                 if (number === '...') {
                                     return (
-                                        <span key={`ellipsis-${index}${isTop ? '-top' : '-bottom'}`} className="px-2 sm:px-2.5 py-1 sm:py-1.5 border-y border-gray-200 bg-gray-50 text-[10px] sm:text-xs font-medium text-gray-400">
+                                        <span key={`ellipsis-${index}${isTop ? '-top' : '-bottom'}`} className="px-2 sm:px-2.5 py-1 sm:py-1.5 border-y border-gray-200 bg-gray-50 text-[9px] sm:text-[11px] font-medium text-gray-400">
                                             ...
                                         </span>
                                     );
@@ -466,7 +476,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     <button
                                         key={`${number}${isTop ? '-top' : '-bottom'}`}
                                         onClick={() => handlePageChange(number as number)}
-                                        className={`min-w-[28px] sm:min-w-[32px] px-2 sm:px-2.5 py-1 sm:py-1.5 border text-[10px] sm:text-xs font-medium transition-colors ${
+                                        className={`min-w-[28px] sm:min-w-[32px] px-2 sm:px-2.5 py-1 sm:py-1.5 border text-[9px] sm:text-[11px] font-medium transition-colors ${
                                             currentPage === number
                                                 ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
                                                 : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
@@ -480,7 +490,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <button
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 &raquo;
                             </button>
@@ -488,7 +498,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             <button
                                 onClick={() => handlePageChange(totalPages)}
                                 disabled={currentPage === totalPages}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-r-md border border-gray-200 bg-white text-[10px] sm:text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-r-md border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Last
                             </button>
@@ -503,23 +513,40 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden w-full">
             <div className="px-6 py-5 border-b border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                         <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
                             <Database className="w-5 h-5" />
                         </div>
                         ฐานข้อมูลทั้งหมด
-                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-medium border border-gray-200">
+                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[9px] font-medium border border-gray-200">
                             {data.length} รายการ
                         </span>
                     </h2>
-                    <p className="text-xs text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
+                    <p className="text-[11px] text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
+                </div>
+
+                {/* Dropdown สำหรับกรองพิกัด */}
+                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    <span className="text-[11px] text-gray-500 font-medium">ตัวกรอง:</span>
+                    <select
+                        value={coordinateFilter}
+                        onChange={(e) => {
+                            setCoordinateFilter(e.target.value as 'all' | 'with' | 'without');
+                            setCurrentPage(1); // รีเซ็ตหน้ากลับไปที่หน้าแรกเมื่อเปลี่ยนตัวกรอง
+                        }}
+                        className="w-full sm:w-auto text-[11px] border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer transition-colors"
+                    >
+                        <option value="all">แสดงทั้งหมด</option>
+                        <option value="with">📍 มีพิกัดแล้ว</option>
+                        <option value="without">ไม่มีพิกัด</option>
+                    </select>
                 </div>
             </div>
 
             {renderPagination(true)}
 
             <div className="overflow-x-auto custom-scrollbar border-b border-gray-100 w-full">
-                <table className="min-w-full text-xs text-left relative">
+                <table className="min-w-full text-[11px] text-left relative">
                     <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
                         <tr>
                             <th className="px-6 py-4 whitespace-nowrap w-32">วันที่</th>
@@ -542,12 +569,12 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     <td className="px-6 py-4 text-gray-500 align-middle">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4 text-gray-400" />
-                                            <span className="font-mono text-xs">{item.date}</span>
+                                            <span className="font-mono text-[11px]">{item.date}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle">
-                                        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 whitespace-nowrap">
+                                        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-100 whitespace-nowrap">
                                             {item.unit || '-'}
                                         </div>
                                     </td>
@@ -558,9 +585,21 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                                 <MapPin className="w-4 h-4 text-indigo-500" />
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-gray-800 text-sm">{item.location}</div>
-                                                <div className="text-[10px] text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded mt-1">
-                                                    {item.district}
+                                                <div className="font-semibold text-gray-800 text-xs">{item.location}</div>
+                                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                    <div className="text-[9px] text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">
+                                                        {item.district}
+                                                    </div>
+                                                    {/* เช็คพิกัด: ต้องมีค่าและไม่เท่ากับ 0 */}
+                                                    {(item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0) ? (
+                                                        <div className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 inline-block px-2 py-0.5 rounded">
+                                                            📍 มีพิกัดแล้ว
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-[9px] text-rose-600 bg-rose-50 border border-rose-100 inline-block px-2 py-0.5 rounded">
+                                                             ไม่มีพิกัด
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -586,46 +625,46 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
                                             <Syringe className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-xs">{formatNumber(item.stats?.vaccine)}</span>
+                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.vaccine)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-700">
                                             <Scissors className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-xs">{formatNumber(item.stats?.sterilize)}</span>
+                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.sterilize)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
                                             <FileText className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-xs">{formatNumber(item.stats?.register)}</span>
+                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.register)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-700">
                                             <QrCode className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-xs">{formatNumber(item.stats?.microchip)}</span>
+                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.microchip)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700">
                                             <Stethoscope className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-xs">{formatNumber(item.stats?.medical)}</span>
+                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.medical)}</span>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
                                         <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-[10px] font-medium border border-gray-200">
+                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-[9px] font-medium border border-gray-200">
                                                 <Users className="w-3 h-3 text-gray-400"/>
                                                 {item.createdBy || 'Unknown'}
                                             </div>
                                             {item.updatedBy && item.updatedBy !== item.createdBy && (
-                                                <span className="text-[9px] text-gray-400 mt-1 italic">
+                                                <span className="text-[8px] text-gray-400 mt-1 italic">
                                                     แก้ไขโดย: {item.updatedBy}
                                                 </span>
                                             )}
@@ -685,8 +724,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                         <div className="p-4 bg-gray-50 rounded-full mb-3">
                                             <Database className="w-8 h-8 text-gray-300" />
                                         </div>
-                                        <p className="text-sm text-gray-500 font-medium">ไม่พบข้อมูลในระบบ</p>
-                                        <p className="text-[10px] text-gray-400 mt-1">เริ่มบันทึกข้อมูลใหม่ได้เลย</p>
+                                        <p className="text-xs text-gray-500 font-medium">ไม่พบข้อมูลในระบบ</p>
+                                        <p className="text-[9px] text-gray-400 mt-1">เริ่มบันทึกข้อมูลใหม่ได้เลย</p>
                                     </div>
                                 </td>
                             </tr>
@@ -695,12 +734,12 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     {data.length > 0 && (
                         <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
                             <tr>
-                                <td colSpan={4} className="px-6 py-4 text-right text-xs">รวมทั้งหมด (จากทุกหน้า):</td>
-                                <td className="px-6 py-4 text-center text-blue-700 text-xs">{formatNumber(totals.vaccine)}</td>
-                                <td className="px-6 py-4 text-center text-orange-700 text-xs">{formatNumber(totals.sterilize)}</td>
-                                <td className="px-6 py-4 text-center text-teal-700 text-xs">{formatNumber(totals.register)}</td>
-                                <td className="px-6 py-4 text-center text-purple-700 text-xs">{formatNumber(totals.microchip)}</td>
-                                <td className="px-6 py-4 text-center text-emerald-700 text-xs">{formatNumber(totals.medical)}</td>
+                                <td colSpan={4} className="px-6 py-4 text-right text-[11px]">รวมทั้งหมด (จากทุกหน้า):</td>
+                                <td className="px-6 py-4 text-center text-blue-700 text-[11px]">{formatNumber(totals.vaccine)}</td>
+                                <td className="px-6 py-4 text-center text-orange-700 text-[11px]">{formatNumber(totals.sterilize)}</td>
+                                <td className="px-6 py-4 text-center text-teal-700 text-[11px]">{formatNumber(totals.register)}</td>
+                                <td className="px-6 py-4 text-center text-purple-700 text-[11px]">{formatNumber(totals.microchip)}</td>
+                                <td className="px-6 py-4 text-center text-emerald-700 text-[11px]">{formatNumber(totals.medical)}</td>
                                 <td colSpan={canEdit ? 2 : 1}></td>
                             </tr>
                         </tfoot>

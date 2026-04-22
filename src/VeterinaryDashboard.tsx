@@ -1118,9 +1118,9 @@ const handleDeleteDispatch = async (id: string) => {
         }
 
         if (csvMode === 'outbreak') {
-            exportOutbreaksToCSV(dataToExport);
+            exportOutbreaksToCSV(dataToExport as any[]);
         } else {
-            exportToCSV(dataToExport);
+            exportToCSV(dataToExport as any[]);
         }
     }, [csvMode, outbreakData, reportData]);
 
@@ -1674,7 +1674,7 @@ const handleDeleteDispatch = async (id: string) => {
                             <>
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
-                                        <KPISection totals={totals} unitStats={unitStats} />
+                                        <KPISection totals={totals} unitStats={unitStats as any[]} />
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
                                             <div className="lg:col-span-5 flex flex-col gap-8">
@@ -1688,7 +1688,7 @@ const handleDeleteDispatch = async (id: string) => {
                                                 </div>
                 
                                                 <div className="h-full">
-                                                    <UnitComparisonChart unitStats={unitStats} />
+                                                    <UnitComparisonChart unitStats={unitStats as any[]} />
                                                 </div>
                                             </div>
                                         </div>
