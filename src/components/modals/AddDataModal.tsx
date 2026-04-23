@@ -92,7 +92,7 @@ const defaultFormData: FormDataState = {
 const defaultBreakdown: Breakdown = {
   dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
   cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
-  other: { vaccine: '', medical: '' }
+  other: { vaccine: '', medical: '' },
   vaccineRequisitioned: '',
   vaccineRemaining: ''
 };
