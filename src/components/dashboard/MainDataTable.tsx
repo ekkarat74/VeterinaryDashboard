@@ -399,42 +399,51 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     };
 
     // 3. ฟังก์ชัน แชร์เข้า LINE (ผ่าน Web Share API)
-    const handleShareLine = async (item: DataItem) => {
-        if (isGeneratingDocument) return;
-        setIsGeneratingDocument(true);
-        try {
-            const canvas = await generateImageCanvas(item);
-            
-            await new Promise<void>((resolve) => {
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        resolve();
-                        return;
-                    }
-                    const file = new File([blob], `รายงาน_${item.location}.jpg`, { type: 'image/jpeg' });
+    const handleShareLine = async (item: DataItem) => {
+        if (isGeneratingDocument) return;
+        setIsGeneratingDocument(true);
+        try {
+            const canvas = await generateImageCanvas(item);
+            
+            // เปลี่ยนรูปแบบ Callback เป็น Promise เพื่อรักษา User Gesture Context ไว้
+            const blob = await new Promise<Blob | null>((resolve) => {
+                canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
+            });
 
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: 'รายงานสรุปผล',
-                                text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location}`
-                            });
-                        } catch (shareError) {
-                            console.log('ผู้ใช้ยกเลิกการแชร์ หรือแชร์ไม่สำเร็จ:', shareError);
-                        }
-                    } else {
-                        alert('เบราว์เซอร์หรืออุปกรณ์ของคุณไม่รองรับการแชร์ไฟล์ภาพโดยตรง แนะนำให้กด "ดาวน์โหลดรูป" แล้วส่งเข้า LINE ด้วยตัวเองครับ');
-                    }
-                    resolve();
-                }, 'image/jpeg', 0.9);
-            });
-        } catch (error) {
-            console.error('Error sharing file:', error);
-        } finally {
-            setIsGeneratingDocument(false);
-        }
-    };
+            if (!blob) {
+                alert('ไม่สามารถสร้างไฟล์รูปภาพได้');
+                return;
+            }
+
+            const fileName = `รายงาน_${item.location || 'เอกสาร'}.jpg`;
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'รายงานสรุปผล',
+                    text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location || ''}`
+                });
+            } else {
+                // Fallback: กรณีแชร์ไฟล์ตรงๆ ไม่ได้ (เช่น เล่นบน PC หรือเปิดผ่านหน้าต่าง In-App ของ LINE)
+                alert('อุปกรณ์ไม่รองรับการแชร์รูปโดยตรง ระบบจะทำการดาวน์โหลดภาพให้แทน จากนั้นสามารถส่งเข้า LINE ได้เลยครับ');
+                
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+            }
+        } catch (error: any) {
+            console.error('Error sharing file:', error);
+            // ข้ามการแจ้งเตือน Error หากเป็นกรณีที่ผู้ใช้กดยกเลิก (Cancel) ด้วยตัวเอง
+            if (error.name !== 'AbortError') {
+                alert('เกิดข้อผิดพลาดในการแชร์ หรือเบราว์เซอร์บล็อกการทำงาน (แนะนำให้ใช้ฟังก์ชันดาวน์โหลดรูปแทน)');
+            }
+        } finally {
+            setIsGeneratingDocument(false);
+        }
+    };
 
     const renderPagination = (isTop: boolean) => {
         if (data.length === 0) return null;
