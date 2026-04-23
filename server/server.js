@@ -457,7 +457,7 @@ app.get('/api/reports', async (req, res) => {
 
     const [reports, totalRecords] = await Promise.all([
       Report.find(query)
-        .select('_id date location district subdistrict unit lat long stats details createdBy')
+        .select('_id date location district subdistrict unit lat long stats details createdBy imageUrl') // ✅ เพิ่ม imageUrl เข้าไปแล้ว
         .sort({ date: -1 })
         .skip(skip)
         .limit(limitNumber)
