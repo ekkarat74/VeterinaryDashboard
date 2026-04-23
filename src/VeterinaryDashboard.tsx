@@ -1157,7 +1157,7 @@ const handleDeleteDispatch = async (id: string) => {
             const med = toNum(curr.stats?.medical);
             const workTotal = v + s + r + m + med;
 
-            if (curr.lat && curr.long && !isNaN(parseFloat(curr.lat)) && !isNaN(parseFloat(curr.long)) && (parseFloat(curr.lat) !== 0 || parseFloat(curr.long) !== 0)) {
+            if (curr.lat && curr.long && !isNaN(parseFloat(curr.lat as string)) && !isNaN(parseFloat(curr.long as string)) && (parseFloat(curr.lat as string) !== 0 || parseFloat(curr.long as string) !== 0)) {
                 newMapDisplayData.push(curr);
             }
 
@@ -1486,7 +1486,7 @@ const handleDeleteDispatch = async (id: string) => {
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
             <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token as any} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
-            <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
+            <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears as any} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token as any} apiBaseUrl={BASE_URL} />
             <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent as any} onDelete={handleDeleteDispatch} initialData={viewingDispatch as any} />
@@ -1613,26 +1613,26 @@ const handleDeleteDispatch = async (id: string) => {
                                     </div>
                                 </div>
                                 <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่ (Date)</label>
-            <input 
-                type="date" 
-                className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer text-slate-600" 
-                value={searchDate} 
-                onChange={(e) => {
-                    setSearchDate(e.target.value);
-                    // อัปเดต UX: ถ้าเจาะจงวัน ให้เคลียร์ปี/เดือนทิ้ง ป้องกันผู้ใช้สับสน
-                    if (e.target.value) {
-                        setSelectedYear('ทั้งหมด');
-                        setSelectedMonth('ทั้งหมด');
-                    }
-                }} 
-            />
-        </div>
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">วันที่ (Date)</label>
+                                    <input 
+                                        type="date" 
+                                        className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer text-slate-600" 
+                                        value={searchDate} 
+                                        onChange={(e) => {
+                                        setSearchDate(e.target.value);
+                                        // อัปเดต UX: ถ้าเจาะจงวัน ให้เคลียร์ปี/เดือนทิ้ง ป้องกันผู้ใช้สับสน
+                                        if (e.target.value) {
+                                            setSelectedYear('ทั้งหมด');
+                                            setSelectedMonth('ทั้งหมด');
+                                        }
+                                    }} 
+                                />
+                                </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ปี (Year)</label>
                                     <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                                         <option value="ทั้งหมด">-- เลือกปี --</option>
-                                        {availableYears.map(y => <option key={y} value={y}>{parseInt(y as string) + 543}</option>)}
+                                            {availableYears.map(y => <option key={y as string} value={y as string}>{parseInt(y as string) + 543}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -1678,13 +1678,13 @@ const handleDeleteDispatch = async (id: string) => {
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
                                             <div className="lg:col-span-5 flex flex-col gap-8">
-                                                <RankingSection type="table" rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats} />
+                                                <RankingSection type="table" rankingYear={rankingYear} setRankingYear={setRankingYear} rankingMonth={rankingMonth} setRankingMonth={setRankingMonth} availableYears={availableYears  as any[]} thaiMonths={THAI_MONTHS} rankingUnitStats={rankingUnitStats as any[]} />
                                                 <RankingSection type="deepdive" rankingNestedStats={rankingNestedStats} />
                                             </div>
             
                                             <div className="lg:col-span-7 flex flex-col gap-8">
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
-                                                    <LeafletMap data={mapDisplayData} outbreaks={outbreakData} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
+                                                    <LeafletMap data={mapDisplayData} outbreaks={outbreakData as any[]} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
                                                 </div>
                 
                                                 <div className="h-full">
@@ -1707,7 +1707,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             setChartBaseYear={setChartBaseYear as any}
                                             chartBaseMonth={chartBaseMonth}
                                             setChartBaseMonth={setChartBaseMonth as any}
-                                            availableYears={availableYears}
+                                            availableYears={availableYears as any[]}
                                         />
                                         <PieChartsSection 
                                             unitByDistrictPieData={unitByDistrictPieData as any[]}
@@ -1721,12 +1721,12 @@ const handleDeleteDispatch = async (id: string) => {
                                 {activeTab === 'outbreak' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
                                         <RabiesOutbreakSection 
-                                            outbreakData={outbreakData} 
+                                            outbreakData={outbreakData as any} 
                                             filterYear={outbreakFilterYear} 
                                             setFilterYear={setOutbreakFilterYear} 
                                             years={availableOutbreakYears} 
                                             stats={outbreakStats} 
-                                            filteredOutbreaks={filteredOutbreaks} 
+                                            filteredOutbreaks={filteredOutbreaks as any} 
                                             yearlyTrend={outbreakYearlyTrend} 
                                             hiddenIds={hiddenOutbreakIds} 
                                             toggleVisibility={toggleOutbreakVisibility} 
@@ -1739,7 +1739,14 @@ const handleDeleteDispatch = async (id: string) => {
 
                                 {activeTab === 'database' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
-                                        <MainDataTable data={filteredData} canEdit={canEdit} onClearAll={handleClearAllData} onEdit={openEditModal} onDelete={handleDeleteData} onViewImage={setViewImage} />
+                                        <MainDataTable 
+                                            data={filteredData as any} 
+                                            canEdit={canEdit} 
+                                            onClearAll={handleClearAllData} 
+                                            onEdit={openEditModal} 
+                                            onDelete={handleDeleteData} 
+                                            onViewImage={setViewImage} 
+                                        />
                                     </div>
                                 )}
                             </>

@@ -2,16 +2,34 @@ import { useState, useDeferredValue, useCallback } from 'react';
 
 // --- Types & Interfaces ---
 
-// TODO: นำ Interface เหล่านี้ไปปรับให้ตรงกับข้อมูลจริงของระบบ
 export interface ReportItem {
     _id?: string;
     id?: string;
+    date: string;
+    location: string;
+    district: string;
+    subdistrict?: string;
+    unit?: string;
+    team?: string;
+    lat?: number | string;
+    long?: number | string;
+    imageUrl?: string;
+    stats?: any;
+    details?: any;
     [key: string]: any;
 }
 
 export interface OutbreakItem {
     _id?: string;
     id?: string;
+    date: string;
+    location: string;
+    district: string;
+    subdistrict?: string;
+    lat?: number | string;
+    long?: number | string;
+    stats?: any;
+    imageUrl?: string;
     [key: string]: any;
 }
 

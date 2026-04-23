@@ -4,8 +4,6 @@ import {
   Syringe, Scissors, Database, Stethoscope, 
   Activity, Save, MapPin, Edit2, Check, Settings2, Search, Loader2, CalendarDays
 } from 'lucide-react';
-
-// สมมติว่าไฟล์นี้มีการ export ตัวแปรเหล่านี้เป็น string[] และ Record<string, string[]>
 import { UNIT_TYPES, BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
 
 // ==============================
@@ -727,6 +725,35 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     ))}
                   </div>
                 </div>
+              </div>
+
+              <div className="md:col-span-12 mt-4">
+                <label className={labelClass}>แนบรูปภาพผลการปฏิบัติงาน</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  disabled={isSubmitting}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }} 
+                />
+                  {imagePreview && (
+                    <div className="mt-2 relative inline-block">
+                      <img src={imagePreview} alt="Preview" className="h-32 rounded-lg object-cover border border-slate-200" />
+                      <button 
+                        type="button" 
+                        onClick={() => { setImageFile(null); setImagePreview(null); }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* สรุปยอดรวม (Summary Bar) */}

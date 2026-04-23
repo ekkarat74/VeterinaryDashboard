@@ -37,10 +37,10 @@ interface NestedStat {
 
 interface RankingSectionProps {
     type?: string;
-    rankingYear: string | number;
-    setRankingYear: (year: string) => void;
-    rankingMonth: string | number;
-    setRankingMonth: (month: string) => void;
+    rankingYear?: string | number;
+    setRankingYear?: (year: string) => void;
+    rankingMonth?: string | number;
+    setRankingMonth?: (month: string) => void;
     availableYears?: (string | number)[];
     thaiMonths?: string[];
     rankingUnitStats?: UnitStat[];
@@ -149,8 +149,8 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                             <div className="flex items-center gap-2">
                                 <div className="relative group">
                                     <select 
-                                        value={rankingYear} 
-                                        onChange={(e) => setRankingYear(e.target.value)} 
+                                        value={rankingYear || 'ทั้งหมด'} 
+                                        onChange={(e) => setRankingYear && setRankingYear(e.target.value)} 
                                         className="appearance-none bg-white border border-slate-200 text-slate-600 text-[10px] font-bold rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer hover:border-indigo-300 transition-colors"
                                     >
                                         <option value="ทั้งหมด">ทุกปี</option>
@@ -160,8 +160,8 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                                 </div>
                                 <div className="relative group">
                                     <select 
-                                        value={rankingMonth} 
-                                        onChange={(e) => setRankingMonth(e.target.value)} 
+                                        value={rankingMonth || 'ทั้งหมด'} 
+                                        onChange={(e) => setRankingMonth && setRankingMonth(e.target.value)} 
                                         className="appearance-none bg-white border border-slate-200 text-slate-600 text-[10px] font-bold rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer hover:border-indigo-300 transition-colors"
                                     >
                                         <option value="ทั้งหมด">ทุกเดือน</option>
