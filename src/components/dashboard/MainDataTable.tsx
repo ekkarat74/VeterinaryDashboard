@@ -190,7 +190,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main">จำนวนวัคซีนที่เบิก</td>
                     <td class="col-sub"></td>
-                    <td class="col-val"><span class="val-dots"></span></td>
+                    <td class="col-val"><span class="val-dots">${item.details?.vaccineRequisitioned || ''}</span></td>
                     <td class="col-unit">โด๊ส</td>
                 </tr>
                 <tr>
@@ -220,7 +220,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 <tr>
                     <td class="col-main" style="padding-top: 6px;">คงเหลือวัคซีน</td>
                     <td class="col-sub" style="padding-top: 6px;"></td>
-                    <td class="col-val" style="padding-top: 6px;"><span class="val-dots"></span></td>
+                    <td class="col-val" style="padding-top: 6px;"><span class="val-dots">${item.details?.vaccineRemaining || ''}</span></td>
                     <td class="col-unit" style="padding-top: 6px;">โด๊ส</td>
                 </tr>
 
