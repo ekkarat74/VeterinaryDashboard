@@ -23,6 +23,8 @@ interface Breakdown {
   dog: BreakdownStats;
   cat: BreakdownStats;
   other: BreakdownStats;
+  vaccineRequisitioned?: string | number;
+  vaccineRemaining?: string | number;
 }
 
 interface FormDataState {
@@ -91,6 +93,8 @@ const defaultBreakdown: Breakdown = {
   dog: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
   cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
   other: { vaccine: '', medical: '' }
+  vaccineRequisitioned: '',
+  vaccineRemaining: ''
 };
 
 // ==============================
@@ -641,7 +645,18 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 flex items-center gap-2">
                     <Syringe className="w-4 h-4" /> ฉีดวัคซีน
                   </div>
-                  <div className="p-4 grid grid-cols-3 gap-3">
+                  {/* แก้ไข grid จาก grid-cols-3 เป็น sm:grid-cols-5 เพื่อให้แสดงเรียง 5 ช่องพอดี */}
+                  <div className="p-4 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    
+                    {/* 1. จำนวนวัคซีนที่เบิก (เอาไว้ก่อนสุนัข) */}
+                    <div>
+                      <label className="text-[10px] text-blue-600 uppercase font-bold mb-1 block">วัคซีนที่เบิก</label>
+                      <input type="number" min="0" placeholder="0" className="w-full p-2 border border-blue-100 bg-blue-50/30 rounded-lg text-center" value={breakdown.vaccineRequisitioned} 
+                        disabled={isSubmitting}
+                        onChange={e => setBreakdown({...breakdown, vaccineRequisitioned: e.target.value})} />
+                    </div>
+
+                    {/* 2,3,4 สุนัข, แมว, อื่นๆ */}
                     {(['dog', 'cat', 'other'] as const).map(t => (
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">{t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}</label>
@@ -650,6 +665,14 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                           onChange={e => setBreakdown({...breakdown, [t]: {...breakdown[t], vaccine: e.target.value}})} />
                       </div>
                     ))}
+
+                    {/* 5. คงเหลือวัคซีน (เอาไว้หลังอื่นๆ) */}
+                    <div>
+                      <label className="text-[10px] text-rose-500 uppercase font-bold mb-1 block">คงเหลือ</label>
+                      <input type="number" min="0" placeholder="0" className="w-full p-2 border border-rose-100 bg-rose-50/30 rounded-lg text-center" value={breakdown.vaccineRemaining} 
+                        disabled={isSubmitting}
+                        onChange={e => setBreakdown({...breakdown, vaccineRemaining: e.target.value})} />
+                    </div>
                   </div>
                 </div>
 
