@@ -758,12 +758,19 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   disabled={isSubmitting}
                   className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setImageFile(file);
-                      setImagePreview(URL.createObjectURL(file));
-                    }
-                  }} 
+  const file = e.target.files?.[0];
+  if (file) {
+    setImageFile(file);
+    
+    // 📌 แปลงไฟล์รูปภาพเป็น Base64 Data URL เพื่อให้สามารถนำไปบันทึกลง Database ได้จริง
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // เมื่อแปลงเสร็จ จะได้ string ยาวๆ (Base64) ไปเก็บใน State แทน blob url ชั่วคราว
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+}} 
                 />
                   {imagePreview && (
                     <div className="mt-2 relative inline-block">
