@@ -35,11 +35,34 @@ export interface VetReportData {
 }
 
 // ==========================================
-// Interfaces สำหรับ exportOutbreaksToCSV
+// Interfaces สำหรับ exportOutbreaksToCSV (อัปเดตใหม่)
 // ==========================================
-export interface OutbreakAnimalStats {
-    male?: number;
-    female?: number;
+export interface InsightData {
+    spcc?: string;
+    testNo?: string;
+    animalType?: string;
+    ownership?: string;
+    gender?: string;
+    breed?: string;
+    color?: string;
+    age?: string;
+    vaccineHistory?: string;
+}
+
+export interface GenderStats { 
+    male: number; 
+    female: number; 
+}
+
+export interface AnimalStats { 
+    dog: GenderStats; 
+    cat: GenderStats; 
+}
+
+export interface BaseStats { 
+    owned?: AnimalStats; 
+    unowned?: AnimalStats; 
+    feeder?: AnimalStats; 
 }
 
 export interface OutbreakData {
@@ -48,10 +71,8 @@ export interface OutbreakData {
     district?: string;
     lat: number | string;
     long: number | string;
-    stats?: {
-        dog?: OutbreakAnimalStats;
-        cat?: OutbreakAnimalStats;
-    };
+    stats?: BaseStats;
+    insight?: InsightData;
 }
 
 // ==========================================
@@ -113,7 +134,14 @@ export const exportOutbreaksToCSV = (data: OutbreakData[]): void => {
 
     const headers = [
         "วันที่", "สถานที่", "เขต", "ละติจูด", "ลองจิจูด",
-        "สุนัข(ผู้)", "สุนัข(เมีย)", "แมว(ผู้)", "แมว(เมีย)"
+        // ข้อมูลเชิงลึก (Insight)
+        "ศบส.", "เลขที่ตรวจ", "ชนิดสัตว์", "สถานะเจ้าของ", "เพศ", "สายพันธุ์", "สี", "อายุ", "ประวัติวัคซีน",
+        // สถิติ สัตว์มีเจ้าของ (Owned)
+        "มีเจ้าของ_สุนัข(ผู้)", "มีเจ้าของ_สุนัข(เมีย)", "มีเจ้าของ_แมว(ผู้)", "มีเจ้าของ_แมว(เมีย)",
+        // สถิติ สัตว์ไม่มีเจ้าของ (Unowned)
+        "ไม่มีเจ้าของ_สุนัข(ผู้)", "ไม่มีเจ้าของ_สุนัข(เมีย)", "ไม่มีเจ้าของ_แมว(ผู้)", "ไม่มีเจ้าของ_แมว(เมีย)",
+        // สถิติ สัตว์มีผู้ให้อาหาร (Feeder)
+        "มีผู้ให้อาหาร_สุนัข(ผู้)", "มีผู้ให้อาหาร_สุนัข(เมีย)", "มีผู้ให้อาหาร_แมว(ผู้)", "มีผู้ให้อาหาร_แมว(เมีย)"
     ];
 
     const sortedData = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -121,11 +149,11 @@ export const exportOutbreaksToCSV = (data: OutbreakData[]): void => {
     const csvRows = sortedData.map(item => {
         const safeLocation = item.location ? `"${item.location.replace(/"/g, '""')}"` : "";
         
-        // ดึงข้อมูลสัตว์ (ถ้าไม่มีให้เป็น 0)
-        const dogMale = item.stats?.dog?.male || 0;
-        const dogFemale = item.stats?.dog?.female || 0;
-        const catMale = item.stats?.cat?.male || 0;
-        const catFemale = item.stats?.cat?.female || 0;
+        const insight = item.insight || {};
+        const stats = item.stats || {};
+        const owned = stats.owned || { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } };
+        const unowned = stats.unowned || { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } };
+        const feeder = stats.feeder || { dog: { male: 0, female: 0 }, cat: { male: 0, female: 0 } };
 
         return [
             item.date, 
@@ -133,10 +161,25 @@ export const exportOutbreaksToCSV = (data: OutbreakData[]): void => {
             item.district || "", 
             item.lat, 
             item.long,
-            dogMale,
-            dogFemale,
-            catMale,
-            catFemale
+            // ข้อมูลเชิงลึก
+            insight.spcc || "",
+            insight.testNo || "",
+            insight.animalType || "",
+            insight.ownership || "",
+            insight.gender || "",
+            insight.breed || "",
+            insight.color || "",
+            insight.age || "",
+            insight.vaccineHistory || "",
+            // สถิติ มีเจ้าของ
+            owned.dog.male || 0, owned.dog.female || 0,
+            owned.cat.male || 0, owned.cat.female || 0,
+            // สถิติ ไม่มีเจ้าของ
+            unowned.dog.male || 0, unowned.dog.female || 0,
+            unowned.cat.male || 0, unowned.cat.female || 0,
+            // สถิติ มีผู้ให้อาหาร
+            feeder.dog.male || 0, feeder.dog.female || 0,
+            feeder.cat.male || 0, feeder.cat.female || 0
         ].join(",");
     });
 
@@ -149,5 +192,5 @@ export const exportOutbreaksToCSV = (data: OutbreakData[]): void => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url); // ปล่อย Memory คืนหลังจากโหลดเสร็จ
+    URL.revokeObjectURL(url);
 };
