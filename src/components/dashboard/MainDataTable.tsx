@@ -3,7 +3,7 @@ import html2canvas from 'html2canvas';
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer,
-    Download, Share2 
+    Download, Share2, Filter
 } from 'lucide-react';
 
 export interface ItemStats {
@@ -398,120 +398,84 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         }
     };
 
-    // 3. ฟังก์ชัน แชร์เข้า LINE (ผ่าน Web Share API)
-    const handleShareLine = async (item: DataItem) => {
-        if (isGeneratingDocument) return;
-        setIsGeneratingDocument(true);
-        try {
-            const canvas = await generateImageCanvas(item);
-            
-            // เปลี่ยนรูปแบบ Callback เป็น Promise เพื่อรักษา User Gesture Context ไว้
-            const blob = await new Promise<Blob | null>((resolve) => {
-                canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
-            });
+    // 3. ฟังก์ชัน แชร์เข้า LINE
+    const handleShareLine = async (item: DataItem) => {
+        if (isGeneratingDocument) return;
+        setIsGeneratingDocument(true);
+        try {
+            const canvas = await generateImageCanvas(item);
+            
+            const blob = await new Promise<Blob | null>((resolve) => {
+                canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
+            });
 
-            if (!blob) {
-                alert('ไม่สามารถสร้างไฟล์รูปภาพได้');
-                return;
-            }
+            if (!blob) {
+                alert('ไม่สามารถสร้างไฟล์รูปภาพได้');
+                return;
+            }
 
-            const fileName = `รายงาน_${item.location || 'เอกสาร'}.jpg`;
-            const file = new File([blob], fileName, { type: 'image/jpeg' });
+            const fileName = `รายงาน_${item.location || 'เอกสาร'}.jpg`;
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
 
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'รายงานสรุปผล',
-                    text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location || ''}`
-                });
-            } else {
-                // Fallback: กรณีแชร์ไฟล์ตรงๆ ไม่ได้ (เช่น เล่นบน PC หรือเปิดผ่านหน้าต่าง In-App ของ LINE)
-                alert('อุปกรณ์ไม่รองรับการแชร์รูปโดยตรง ระบบจะทำการดาวน์โหลดภาพให้แทน จากนั้นสามารถส่งเข้า LINE ได้เลยครับ');
-                
-                const link = document.createElement('a');
-                link.download = fileName;
-                link.href = URL.createObjectURL(blob);
-                link.click();
-                URL.revokeObjectURL(link.href);
-            }
-        } catch (error: any) {
-            console.error('Error sharing file:', error);
-            // ข้ามการแจ้งเตือน Error หากเป็นกรณีที่ผู้ใช้กดยกเลิก (Cancel) ด้วยตัวเอง
-            if (error.name !== 'AbortError') {
-                alert('เกิดข้อผิดพลาดในการแชร์ หรือเบราว์เซอร์บล็อกการทำงาน (แนะนำให้ใช้ฟังก์ชันดาวน์โหลดรูปแทน)');
-            }
-        } finally {
-            setIsGeneratingDocument(false);
-        }
-    };
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'รายงานสรุปผล',
+                    text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location || ''}`
+                });
+            } else {
+                alert('อุปกรณ์ไม่รองรับการแชร์รูปโดยตรง ระบบจะทำการดาวน์โหลดภาพให้แทน จากนั้นสามารถส่งเข้า LINE ได้เลยครับ');
+                
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+            }
+        } catch (error: any) {
+            console.error('Error sharing file:', error);
+            if (error.name !== 'AbortError') {
+                alert('เกิดข้อผิดพลาดในการแชร์ หรือเบราว์เซอร์บล็อกการทำงาน (แนะนำให้ใช้ฟังก์ชันดาวน์โหลดรูปแทน)');
+            }
+        } finally {
+            setIsGeneratingDocument(false);
+        }
+    };
 
     const renderPagination = (isTop: boolean) => {
         if (data.length === 0) return null;
-        
         return (
-            <div className={`px-4 sm:px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-3 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
-                <span className="text-[9px] sm:text-[10px] text-gray-500 font-medium text-center sm:text-left">
-                    แสดงข้อมูล {startIndex + 1} ถึง {Math.min(startIndex + itemsPerPage, data.length)} จากทั้งหมด {data.length} รายการ
+            <div className={`px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
+                <span className="text-xs text-gray-500 font-medium">
+                    แสดงข้อมูล <span className="text-gray-900">{startIndex + 1}</span> ถึง <span className="text-gray-900">{Math.min(startIndex + itemsPerPage, data.length)}</span> จาก <span className="text-gray-900">{data.length}</span> รายการ
                 </span>
                 
                 {totalPages > 1 && (
-                    <div className="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 custom-scrollbar flex justify-start sm:justify-end">
-                        <div className="inline-flex -space-x-px rounded-md shadow-sm min-w-max">
-                            <button
-                                onClick={() => handlePageChange(1)}
-                                disabled={currentPage === 1}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-l-md border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                First
-                            </button>
-                            
-                            <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                &laquo;
-                            </button>
-                            
-                            {getPageNumbers().map((number, index) => {
-                                if (number === '...') {
-                                    return (
-                                        <span key={`ellipsis-${index}${isTop ? '-top' : '-bottom'}`} className="px-2 sm:px-2.5 py-1 sm:py-1.5 border-y border-gray-200 bg-gray-50 text-[9px] sm:text-[11px] font-medium text-gray-400">
-                                            ...
-                                        </span>
-                                    );
-                                }
-                                return (
-                                    <button
-                                        key={`${number}${isTop ? '-top' : '-bottom'}`}
-                                        onClick={() => handlePageChange(number as number)}
-                                        className={`min-w-[28px] sm:min-w-[32px] px-2 sm:px-2.5 py-1 sm:py-1.5 border text-[9px] sm:text-[11px] font-medium transition-colors ${
-                                            currentPage === number
-                                                ? 'z-10 bg-indigo-500 border-indigo-500 text-white' 
-                                                : 'border-gray-200 bg-white text-indigo-600 hover:bg-indigo-50'
-                                        }`}
-                                    >
-                                        {number}
-                                    </button>
-                                );
-                            })}
+                    <div className="flex rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
+                            หน้าแรก
+                        </button>
+                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
+                            &laquo;
+                        </button>
+                        
+                        {getPageNumbers().map((number, index) => {
+                            if (number === '...') {
+                                return <span key={`ellipsis-${index}`} className="px-3 py-1.5 bg-gray-50 text-xs font-medium text-gray-400 border-r border-gray-200">...</span>;
+                            }
+                            return (
+                                <button key={number} onClick={() => handlePageChange(number as number)} className={`min-w-[36px] px-3 py-1.5 text-xs font-medium transition-colors border-r border-gray-200 ${currentPage === number ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 hover:bg-indigo-50'}`}>
+                                    {number}
+                                </button>
+                            );
+                        })}
 
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                &raquo;
-                            </button>
-                            
-                            <button
-                                onClick={() => handlePageChange(totalPages)}
-                                disabled={currentPage === totalPages}
-                                className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-r-md border border-gray-200 bg-white text-[9px] sm:text-[11px] font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                Last
-                            </button>
-                        </div>
+                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
+                            &raquo;
+                        </button>
+                        <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors">
+                            หน้าสุดท้าย
+                        </button>
                     </div>
                 )}
             </div>
@@ -519,162 +483,148 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mt-8 overflow-hidden w-full">
-            <div className="px-6 py-5 border-b border-gray-100 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                            <Database className="w-5 h-5" />
-                        </div>
-                        ฐานข้อมูลทั้งหมด
-                        <span className="ml-2 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[9px] font-medium border border-gray-200">
-                            {data.length} รายการ
-                        </span>
-                    </h2>
-                    <p className="text-[11px] text-gray-500 mt-1 pl-11">จัดการข้อมูลการลงพื้นที่และสถิติ</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mt-8 overflow-hidden w-full flex flex-col">
+            {/* Header Section */}
+            <div className="px-6 py-5 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 shadow-sm">
+                        <Database className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-base font-bold text-gray-900 flex items-center gap-3">
+                            ฐานข้อมูลการลงพื้นที่
+                            <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-100">
+                                {data.length} รายการ
+                            </span>
+                        </h2>
+                        <p className="text-xs text-gray-500 mt-1">จัดการข้อมูลสถิติและสร้างรายงานสรุปผล</p>
+                    </div>
                 </div>
 
-                {/* Dropdown สำหรับกรองพิกัด */}
-                <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                    <span className="text-[11px] text-gray-500 font-medium">ตัวกรอง:</span>
+                <div className="flex items-center gap-3 w-full sm:w-auto bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+                    <div className="pl-3 pr-1 text-gray-400">
+                        <Filter className="w-4 h-4" />
+                    </div>
                     <select
                         value={coordinateFilter}
                         onChange={(e) => {
                             setCoordinateFilter(e.target.value as 'all' | 'with' | 'without');
-                            setCurrentPage(1); // รีเซ็ตหน้ากลับไปที่หน้าแรกเมื่อเปลี่ยนตัวกรอง
+                            setCurrentPage(1);
                         }}
-                        className="w-full sm:w-auto text-[11px] border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer transition-colors"
+                        className="w-full sm:w-auto text-sm bg-transparent text-gray-700 font-medium focus:outline-none cursor-pointer py-1.5 pr-4 border-l border-gray-300 pl-3"
                     >
-                        <option value="all">แสดงทั้งหมด</option>
-                        <option value="with">📍 มีพิกัดแล้ว</option>
-                        <option value="without">ไม่มีพิกัด</option>
+                        <option value="all">แสดงพื้นที่ทั้งหมด</option>
+                        <option value="with">📍 เฉพาะพื้นที่ระบุพิกัด</option>
+                        <option value="without">⚠️ พื้นที่ขาดพิกัด</option>
                     </select>
                 </div>
             </div>
 
             {renderPagination(true)}
 
-            <div className="overflow-x-auto custom-scrollbar border-b border-gray-100 w-full">
-                <table className="min-w-full text-[11px] text-left relative">
-                    <thead className="sticky top-0 z-10 bg-gray-50 text-gray-500 font-medium border-b border-gray-100 shadow-sm">
+            {/* Table Section */}
+            <div className="overflow-x-auto w-full">
+                <table className="min-w-full text-sm text-left">
+                    <thead className="bg-gray-50/80 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-xs">
                         <tr>
-                            <th className="px-6 py-4 whitespace-nowrap w-32">วันที่</th>
-                            <th className="px-6 py-4 whitespace-nowrap w-40">หน่วยงาน</th>
-                            <th className="px-6 py-4 whitespace-nowrap min-w-[200px]">สถานที่</th>
-                            <th className="px-6 py-4 text-center w-24">รูปภาพ</th>
-                            <th className="px-6 py-4 text-center w-24">วัคซีน</th>
-                            <th className="px-6 py-4 text-center w-24">ทำหมัน</th>
-                            <th className="px-6 py-4 text-center w-24">ขึ้นทะเบียน</th>
-                            <th className="px-6 py-4 text-center w-24">ไมโครชิป</th>
-                            <th className="px-6 py-4 text-center w-24">รักษา</th>
-                            <th className="px-6 py-4 text-center w-32">ผู้บันทึก</th>
-                            {canEdit && <th className="px-6 py-4 text-center w-56">จัดการเอกสาร / ข้อมูล</th>}
+                            <th className="px-6 py-4 whitespace-nowrap">วันที่ / ข้อมูล</th>
+                            <th className="px-6 py-4 whitespace-nowrap min-w-[220px]">สถานที่</th>
+                            <th className="px-6 py-4 text-center">รูปภาพ</th>
+                            <th className="px-6 py-4 text-center">สถิติการดำเนินการ</th>
+                            <th className="px-6 py-4 text-center">ผู้บันทึก</th>
+                            {canEdit && <th className="px-6 py-4 text-center">จัดการ</th>}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-100">
                         {currentData.length > 0 ? (
                             currentData.map((item) => (
-                                <tr key={item._id} className="hover:bg-indigo-50/30 transition-colors group">
-                                    <td className="px-6 py-4 text-gray-500 align-middle">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-gray-400" />
-                                            <span className="font-mono text-[11px]">{item.date}</span>
-                                        </div>
-                                    </td>
-
-                                    <td className="px-6 py-4 align-middle">
-                                        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-100 whitespace-nowrap">
-                                            {item.unit || '-'}
-                                        </div>
-                                    </td>
-
-                                    <td className="px-6 py-4 align-middle">
-                                        <div className="flex items-start gap-3">
-                                            <div className="mt-1 min-w-[16px]">
-                                                <MapPin className="w-4 h-4 text-indigo-500" />
+                                <tr key={item._id} className="hover:bg-indigo-50/40 transition-colors group">
+                                    <td className="px-6 py-4 align-top">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 text-gray-600">
+                                                <Calendar className="w-4 h-4 text-indigo-400" />
+                                                <span className="font-medium text-xs">{item.date}</span>
                                             </div>
-                                            <div>
-                                                <div className="font-semibold text-gray-800 text-xs">{item.location}</div>
-                                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                                    <div className="text-[9px] text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">
+                                            <div className="inline-flex w-fit items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                                                {item.unit || '-'}
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td className="px-6 py-4 align-top">
+                                        <div className="flex items-start gap-2">
+                                            <MapPin className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className="font-semibold text-gray-900 leading-tight">{item.location}</span>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
                                                         {item.district}
-                                                    </div>
-                                                    {/* เช็คพิกัด: ต้องมีค่าและไม่เท่ากับ 0 */}
+                                                    </span>
                                                     {(item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0) ? (
-                                                        <div className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-100 inline-block px-2 py-0.5 rounded">
-                                                            📍 มีพิกัดแล้ว
-                                                        </div>
+                                                        <span className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> มีพิกัด
+                                                        </span>
                                                     ) : (
-                                                        <div className="text-[9px] text-rose-600 bg-rose-50 border border-rose-100 inline-block px-2 py-0.5 rounded">
-                                                             ไม่มีพิกัด
-                                                        </div>
+                                                        <span className="text-[10px] text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md font-medium flex items-center gap-1">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-rose-400"></div> ไม่มีพิกัด
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
 
-                                    <td className="px-6 py-4 align-middle text-center">
+                                    <td className="px-6 py-4 align-middle">
                                         {item.imageUrl ? (
-                                            <div className="relative w-12 h-12 mx-auto">
+                                            <div className="relative w-14 h-14 mx-auto group-hover:scale-105 transition-transform duration-300">
                                                 <img 
                                                     src={item.imageUrl} 
                                                     alt="preview" 
                                                     onClick={() => onViewImage(item.imageUrl!)}
-                                                    className="w-full h-full object-cover rounded-lg border border-gray-200 cursor-pointer shadow-sm hover:shadow-md transition-all hover:scale-105" 
+                                                    className="w-full h-full object-cover rounded-xl border border-gray-200 cursor-pointer shadow-sm hover:shadow-md" 
                                                 />
                                             </div>
                                         ) : (
-                                            <div className="w-12 h-12 mx-auto rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-300">
+                                            <div className="w-14 h-14 mx-auto rounded-xl bg-gray-50 border border-gray-200 dashed flex items-center justify-center text-gray-300">
                                                 <ImageIcon className="w-5 h-5" />
                                             </div>
                                         )}
                                     </td>
 
-                                    <td className="px-6 py-4 align-middle text-center">
-                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-700">
-                                            <Syringe className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.vaccine)}</span>
+                                    <td className="px-6 py-4 align-middle">
+                                        <div className="flex flex-wrap items-center justify-center gap-2 max-w-[280px] mx-auto">
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50/80 border border-blue-100/50" title="วัคซีน">
+                                                <Syringe className="w-3.5 h-3.5 text-blue-500" />
+                                                <span className="font-bold text-blue-700 text-xs">{formatNumber(item.stats?.vaccine)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50/80 border border-orange-100/50" title="ทำหมัน">
+                                                <Scissors className="w-3.5 h-3.5 text-orange-500" />
+                                                <span className="font-bold text-orange-700 text-xs">{formatNumber(item.stats?.sterilize)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-teal-50/80 border border-teal-100/50" title="ขึ้นทะเบียน">
+                                                <FileText className="w-3.5 h-3.5 text-teal-500" />
+                                                <span className="font-bold text-teal-700 text-xs">{formatNumber(item.stats?.register)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50/80 border border-purple-100/50" title="ไมโครชิป">
+                                                <QrCode className="w-3.5 h-3.5 text-purple-500" />
+                                                <span className="font-bold text-purple-700 text-xs">{formatNumber(item.stats?.microchip)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-100/50" title="รักษา">
+                                                <Stethoscope className="w-3.5 h-3.5 text-emerald-500" />
+                                                <span className="font-bold text-emerald-700 text-xs">{formatNumber(item.stats?.medical)}</span>
+                                            </div>
                                         </div>
                                     </td>
 
                                     <td className="px-6 py-4 align-middle text-center">
-                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-700">
-                                            <Scissors className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.sterilize)}</span>
-                                        </div>
-                                    </td>
-
-                                    <td className="px-6 py-4 align-middle text-center">
-                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700">
-                                            <FileText className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.register)}</span>
-                                        </div>
-                                    </td>
-
-                                    <td className="px-6 py-4 align-middle text-center">
-                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-700">
-                                            <QrCode className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.microchip)}</span>
-                                        </div>
-                                    </td>
-
-                                    <td className="px-6 py-4 align-middle text-center">
-                                        <div className="inline-flex flex-col items-center justify-center min-w-[60px] p-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700">
-                                            <Stethoscope className="w-3 h-3 mb-1 opacity-50" />
-                                            <span className="font-bold text-[11px]">{formatNumber(item.stats?.medical)}</span>
-                                        </div>
-                                    </td>
-
-                                    <td className="px-6 py-4 align-middle text-center">
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-[9px] font-medium border border-gray-200">
-                                                <Users className="w-3 h-3 text-gray-400"/>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <div className="flex items-center gap-1.5 text-gray-700 text-xs font-medium">
+                                                <Users className="w-3.5 h-3.5 text-gray-400"/>
                                                 {item.createdBy || 'Unknown'}
                                             </div>
                                             {item.updatedBy && item.updatedBy !== item.createdBy && (
-                                                <span className="text-[8px] text-gray-400 mt-1 italic">
-                                                    แก้ไขโดย: {item.updatedBy}
+                                                <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                                    แก้โดย: {item.updatedBy}
                                                 </span>
                                             )}
                                         </div>
@@ -682,45 +632,29 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
 
                                     {canEdit && (
                                         <td className="px-6 py-4 align-middle text-center">
-                                            <div className="flex flex-wrap justify-center items-center gap-1 max-w-[150px] mx-auto">
-                                                <button 
-                                                    onClick={() => handlePrint(item)} 
-                                                    className="p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-all duration-200"
-                                                    title="พิมพ์เอกสาร"
-                                                >
-                                                    <Printer className="w-4 h-4"/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDownloadJpg(item)} 
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all duration-200"
-                                                    title="ดาวน์โหลดรูปภาพ .jpg"
-                                                >
-                                                    <Download className="w-4 h-4"/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleShareLine(item)} 
-                                                    className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-all duration-200"
-                                                    title="แชร์เอกสาร (LINE)"
-                                                >
-                                                    <Share2 className="w-4 h-4"/>
-                                                </button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                {/* Document Actions */}
+                                                <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-0.5">
+                                                    <button onClick={() => handlePrint(item)} className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-md transition-colors" title="พิมพ์เอกสาร">
+                                                        <Printer className="w-4 h-4"/>
+                                                    </button>
+                                                    <button onClick={() => handleDownloadJpg(item)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="ดาวน์โหลด">
+                                                        <Download className="w-4 h-4"/>
+                                                    </button>
+                                                    <button onClick={() => handleShareLine(item)} className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors" title="แชร์ LINE">
+                                                        <Share2 className="w-4 h-4"/>
+                                                    </button>
+                                                </div>
                                                 
-                                                <div className="w-[1px] h-4 bg-gray-300 mx-1"></div>
-                                                
-                                                <button 
-                                                    onClick={() => onEdit(item)} 
-                                                    className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-all duration-200"
-                                                    title="แก้ไขข้อมูล"
-                                                >
-                                                    <Pencil className="w-4 h-4"/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => onDelete(item._id)} 
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all duration-200"
-                                                    title="ลบข้อมูล"
-                                                >
-                                                    <X className="w-4 h-4"/>
-                                                </button>
+                                                {/* Data Actions */}
+                                                <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-0.5">
+                                                    <button onClick={() => onEdit(item)} className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" title="แก้ไข">
+                                                        <Pencil className="w-4 h-4"/>
+                                                    </button>
+                                                    <button onClick={() => onDelete(item._id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="ลบ">
+                                                        <X className="w-4 h-4"/>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                     )}
@@ -728,27 +662,31 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={canEdit ? 11 : 10} className="px-6 py-12 text-center"> 
+                                <td colSpan={canEdit ? 6 : 5} className="px-6 py-16 text-center"> 
                                     <div className="flex flex-col items-center justify-center text-gray-400">
-                                        <div className="p-4 bg-gray-50 rounded-full mb-3">
-                                            <Database className="w-8 h-8 text-gray-300" />
+                                        <div className="p-5 bg-gray-50 rounded-full mb-4 border border-gray-100 shadow-inner">
+                                            <Database className="w-10 h-10 text-gray-300" />
                                         </div>
-                                        <p className="text-xs text-gray-500 font-medium">ไม่พบข้อมูลในระบบ</p>
-                                        <p className="text-[9px] text-gray-400 mt-1">เริ่มบันทึกข้อมูลใหม่ได้เลย</p>
+                                        <p className="text-sm text-gray-600 font-semibold">ไม่พบข้อมูลในระบบ</p>
+                                        <p className="text-xs text-gray-400 mt-1">ลองเปลี่ยนตัวกรองพื้นที่ หรือเริ่มบันทึกข้อมูลใหม่</p>
                                     </div>
                                 </td>
                             </tr>
                         )}
                     </tbody>
                     {data.length > 0 && (
-                        <tfoot className="bg-gray-50/80 border-t-2 border-gray-200 font-bold text-gray-700 sticky bottom-0 z-10">
+                        <tfoot className="bg-indigo-50/50 border-t-2 border-indigo-100 font-bold text-gray-800">
                             <tr>
-                                <td colSpan={4} className="px-6 py-4 text-right text-[11px]">รวมทั้งหมด (จากทุกหน้า):</td>
-                                <td className="px-6 py-4 text-center text-blue-700 text-[11px]">{formatNumber(totals.vaccine)}</td>
-                                <td className="px-6 py-4 text-center text-orange-700 text-[11px]">{formatNumber(totals.sterilize)}</td>
-                                <td className="px-6 py-4 text-center text-teal-700 text-[11px]">{formatNumber(totals.register)}</td>
-                                <td className="px-6 py-4 text-center text-purple-700 text-[11px]">{formatNumber(totals.microchip)}</td>
-                                <td className="px-6 py-4 text-center text-emerald-700 text-[11px]">{formatNumber(totals.medical)}</td>
+                                <td colSpan={3} className="px-6 py-4 text-right text-sm">ยอดรวมสถิติทุกหน้า:</td>
+                                <td className="px-6 py-4">
+                                    <div className="flex justify-center gap-4 text-xs">
+                                        <span className="text-blue-700 flex items-center gap-1"><Syringe className="w-3 h-3"/> {formatNumber(totals.vaccine)}</span>
+                                        <span className="text-orange-700 flex items-center gap-1"><Scissors className="w-3 h-3"/> {formatNumber(totals.sterilize)}</span>
+                                        <span className="text-teal-700 flex items-center gap-1"><FileText className="w-3 h-3"/> {formatNumber(totals.register)}</span>
+                                        <span className="text-purple-700 flex items-center gap-1"><QrCode className="w-3 h-3"/> {formatNumber(totals.microchip)}</span>
+                                        <span className="text-emerald-700 flex items-center gap-1"><Stethoscope className="w-3 h-3"/> {formatNumber(totals.medical)}</span>
+                                    </div>
+                                </td>
                                 <td colSpan={canEdit ? 2 : 1}></td>
                             </tr>
                         </tfoot>
