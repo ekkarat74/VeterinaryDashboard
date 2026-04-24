@@ -374,17 +374,50 @@ export default function VeterinaryDashboard() {
         }));
     }, [dispatchEvents, canViewHiddenDispatches]);
 
-    const getCurrentToken = () => {
-    const storedUser = localStorage.getItem('vet_user');
-    if (storedUser) {
-        try {
-            return JSON.parse(storedUser).token;
-        } catch (e) {
-            return user?.token || '';
+    // 1. แก้ไขให้ดึง Token ปลอดภัยขึ้น ไม่ให้เกิด "Bearer undefined"
+const getCurrentToken = () => {
+    try {
+        const storedUser = localStorage.getItem('vet_user');
+        if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            return parsed?.token || user?.token || '';
         }
+    } catch (e) {
+        console.error('Error parsing token', e);
     }
     return user?.token || '';
+};
+
+// 2. เพิ่มการดักจับเซสชันหมดอายุในตอนโหลดข้อมูล (GET)
+useEffect(() => {
+    const fetchDispatches = async () => {
+        try {
+            const token = getCurrentToken();
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`; // แนบเฉพาะตอนที่มี token
+            }
+
+            const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
+            
+            if (res.ok) {
+                const data = await res.json();
+                setDispatchEvents(data);
+            } else if (res.status === 401 || res.status === 403) {
+                // เคลียร์ session อัตโนมัติหาก Token หมดอายุ
+                addToast('error', "❌ เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
+            } else {
+                console.error("Fetch Dispatches Error:", res.status);
+            }
+        } catch (error) {
+            console.error("Fetch Dispatches Error", error);
+        }
     };
+    fetchDispatches();
+}, [BASE_URL, setDispatchEvents, setUser]); // อย่าลืมเพิ่ม setUser ใน Dependency
 
     const handleToggleDispatchVisibility = async (id: string, currentStatus: boolean) => {
     try {
@@ -464,9 +497,22 @@ const handleDeleteDispatch = async (id: string) => {
     useEffect(() => {
         const fetchDispatches = async () => {
             try {
-                const res = await fetch(`${BASE_URL}/api/dispatches`);
-                const data = await res.json();
-                setDispatchEvents(data);
+                // 1. ดึง Token และเตรียม Header
+                const token = getCurrentToken();
+                const headers: Record<string, string> = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                // 2. แนบ Header ไปกับคำขอ GET
+                const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    setDispatchEvents(data);
+                } else {
+                    console.error("Fetch Dispatches Error:", res.status);
+                }
             } catch (error) {
                 console.error("Fetch Dispatches Error", error);
             }

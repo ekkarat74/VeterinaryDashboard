@@ -266,17 +266,48 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
   // 1. นำฟังก์ชันดึง Token มาไว้ด้านบนๆ ในคอมโพเนนต์ (ใต้ const BASE_URL = ...)
-  const getCurrentToken = () => {
-    const storedUser = localStorage.getItem('vet_user');
-    if (storedUser) {
-        try {
-            return JSON.parse(storedUser).token;
-        } catch (e) {
-            return '';
+// 1. แก้ไขให้ดึง Token ปลอดภัย
+const getCurrentToken = () => {
+    try {
+        const storedUser = localStorage.getItem('vet_user');
+        if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            return parsed?.token || '';
         }
+    } catch (e) {
+        console.error('Error parsing token', e);
     }
     return '';
-  };
+};
+
+// 2. ดักจับกรณีดึง Controllers แล้วติด 401
+useEffect(() => {
+    if (isOpen) {
+        const token = getCurrentToken();
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        fetch(`${BASE_URL}/api/controllers`, { headers: headers })
+        .then(async (res) => {
+            if (res.status === 401 || res.status === 403) {
+                setSavedControllers([]); 
+                return;
+            }
+            const data = await res.json();
+            if (res.ok && Array.isArray(data)) {
+                setSavedControllers(data);
+            } else {
+                setSavedControllers([]); 
+            }
+        })
+        .catch(err => {
+            console.error("Fetch Controllers Error:", err);
+            setSavedControllers([]);
+        });
+    }
+}, [isOpen]);
 
   const formatDateLocal = (date: Date): string => {
     return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });

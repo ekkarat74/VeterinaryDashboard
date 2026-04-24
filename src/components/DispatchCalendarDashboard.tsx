@@ -708,12 +708,25 @@ const DispatchCalendarDashboard: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${BASE_URL}/api/dispatches`);
-                const data: EventData[] = await res.json();
+                // 1. เตรียม Header ให้กับ GET Request
+                const token = getCurrentToken();
+                const headers: Record<string, string> = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                // 2. แนบ Header
+                const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
                 
-                const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
-                const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
-                setEvents(mappedEvents);
+                if (res.ok) {
+                    const data: EventData[] = await res.json();
+                    
+                    const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
+                    const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
+                    setEvents(mappedEvents);
+                } else {
+                    console.error("Fetch Data Error:", res.status);
+                }
             } catch (error) {
                 console.error("Fetch Data Error", error);
             }
@@ -744,27 +757,70 @@ const DispatchCalendarDashboard: React.FC = () => {
         }
     };
 
-    const getCurrentToken = () => {
-    const storedUser = localStorage.getItem('vet_user');
-    if (storedUser) {
-        try {
-            return JSON.parse(storedUser).token;
-        } catch (e) {
-            return user?.token || '';
+    // 1. แก้ไขให้ดึง Token ปลอดภัยขึ้น
+const getCurrentToken = () => {
+    try {
+        const storedUser = localStorage.getItem('vet_user');
+        if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            return parsed?.token || user?.token || '';
         }
+    } catch (e) {
+        console.error('Error parsing token', e);
     }
     return user?.token || '';
 };
 
-    const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
+// 2. ดักจับ Session ตอนดึงข้อมูลโหลดปฏิทิน
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const token = getCurrentToken();
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
+            
+            if (res.ok) {
+                const data: EventData[] = await res.json();
+                const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
+                const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
+                setEvents(mappedEvents);
+            } else if (res.status === 401 || res.status === 403) {
+                // จัดการ Token หมดอายุ
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
+            } else {
+                console.error("Fetch Data Error:", res.status);
+            }
+        } catch (error) {
+            console.error("Fetch Data Error", error);
+        }
+    };
+    fetchData();
+}, [canViewHidden, BASE_URL, setUser]);
+
+
+// 3. แก้ไข Header ในการ Save/Edit (POST/PUT Request ที่ Error ในภาพ)
+const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
     try {
         const isUpdate = !Array.isArray(payload) && payload._id;
         const method = isUpdate ? 'PUT' : 'POST';
         const url = isUpdate ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
-        
+
+        const token = getCurrentToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const res = await fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+            headers: headers,
             body: JSON.stringify(payload)
         });
         
@@ -775,13 +831,21 @@ const DispatchCalendarDashboard: React.FC = () => {
             if (shouldClose) {
                 setIsDispatchModalOpen(false);
             }
+
+            // โหลดข้อมูลใหม่ โดยป้องกัน Header ผิดพลาดเช่นกัน
+            const fetchHeaders: Record<string, string> = {};
+            if (token) {
+                fetchHeaders['Authorization'] = `Bearer ${token}`;
+            }
+            const fetchRes = await fetch(`${BASE_URL}/api/dispatches`, { headers: fetchHeaders });
             
-            const fetchRes = await fetch(`${BASE_URL}/api/dispatches`);
-            const data: EventData[] = await fetchRes.json();
-            const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
-            setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
+            if (fetchRes.ok) {
+                const data: EventData[] = await fetchRes.json();
+                const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
+                setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
+            }
             
-            return true; 
+            return true;
         } else if (res.status === 401 || res.status === 403) {
             addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
             setUser(null);
