@@ -39,6 +39,23 @@ interface MainDataTableProps {
     onViewImage: (url: string) => void;
 }
 
+const formatThaiDate = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        // ตรวจสอบว่าเป็น Invalid Date หรือไม่
+        if (isNaN(date.getTime())) return dateString; 
+        
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear(); // หากต้องการปี พ.ศ. ให้ใช้ date.getFullYear() + 543
+        
+        return `${day}/${month}/${year}`;
+    } catch {
+        return dateString;
+    }
+};
+
 const MainDataTable: React.FC<MainDataTableProps> = ({ 
     data: incomingData, 
     canEdit = false,
@@ -174,7 +191,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             
             <div class="form-line">
                 <span>วันที่</span>
-                <span class="dotted-text" style="width: 250px; margin: 0 10px;">${item.date || ''}</span>
+                <span class="dotted-text" style="width: 250px; margin: 0 10px;">${formatThaiDate(item.date)}</span>
                 <span>เขต</span>
                 <span class="dotted-text flex-1" style="margin-left: 10px;">${item.district || ''}</span>
             </div>
@@ -543,7 +560,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                         <div className="flex flex-col gap-2">
                                             <div className="flex items-center gap-2 text-gray-600">
                                                 <Calendar className="w-4 h-4 text-indigo-400" />
-                                                <span className="font-medium text-xs">{item.date}</span>
+                                                <span className="font-medium text-xs">{formatThaiDate(item.date)}</span>
                                             </div>
                                             <div className="inline-flex w-fit items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
                                                 {item.unit || '-'}
@@ -592,24 +609,24 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     </td>
 
                                     <td className="px-6 py-4 align-middle">
-                                        <div className="flex flex-wrap items-center justify-center gap-2 max-w-[280px] mx-auto">
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50/80 border border-blue-100/50" title="วัคซีน">
+                                        <div className="flex flex-nowrap items-center justify-center gap-1.5 w-full mx-auto">
+                                            <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-50/80 border border-blue-100/50" title="วัคซีน">
                                                 <Syringe className="w-3.5 h-3.5 text-blue-500" />
                                                 <span className="font-bold text-blue-700 text-xs">{formatNumber(item.stats?.vaccine)}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50/80 border border-orange-100/50" title="ทำหมัน">
+                                            <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-orange-50/80 border border-orange-100/50" title="ทำหมัน">
                                                 <Scissors className="w-3.5 h-3.5 text-orange-500" />
                                                 <span className="font-bold text-orange-700 text-xs">{formatNumber(item.stats?.sterilize)}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-teal-50/80 border border-teal-100/50" title="ขึ้นทะเบียน">
+                                            <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-teal-50/80 border border-teal-100/50" title="ขึ้นทะเบียน">
                                                 <FileText className="w-3.5 h-3.5 text-teal-500" />
                                                 <span className="font-bold text-teal-700 text-xs">{formatNumber(item.stats?.register)}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50/80 border border-purple-100/50" title="ไมโครชิป">
+                                            <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-purple-50/80 border border-purple-100/50" title="ไมโครชิป">
                                                 <QrCode className="w-3.5 h-3.5 text-purple-500" />
                                                 <span className="font-bold text-purple-700 text-xs">{formatNumber(item.stats?.microchip)}</span>
                                             </div>
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-100/50" title="รักษา">
+                                            <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-100/50" title="รักษา">
                                                 <Stethoscope className="w-3.5 h-3.5 text-emerald-500" />
                                                 <span className="font-bold text-emerald-700 text-xs">{formatNumber(item.stats?.medical)}</span>
                                             </div>

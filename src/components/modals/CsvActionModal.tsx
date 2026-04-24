@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
-import { X, FileSpreadsheet, UploadCloud, Download, Filter } from 'lucide-react';
+import { 
+    X, 
+    FileSpreadsheet, 
+    UploadCloud, 
+    Download, 
+    Filter, 
+    FileText, 
+    Table 
+} from 'lucide-react';
 
-// กำหนด Interface สำหรับข้อมูลที่จะถูกส่งออกไปตอน Export
+// กำหนด Interface สำหรับข้อมูลที่จะถูกส่งออกไปตอน Export (เพิ่ม format)
 export interface ExportFilters {
     year: string;
     month: string;
     unit: string;
     district: string;
+    format: 'csv' | 'excel';
 }
 
 // กำหนด Interface สำหรับ Props ของ Component นี้
@@ -15,7 +24,7 @@ export interface CsvActionModalProps {
     onClose: () => void;
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onExport: (filters: ExportFilters) => void;
-    availableYears?: string[]; // กำหนดเป็น Optional (?) เนื่องจากในโค้ดเดิมมี Default Value เป็น []
+    availableYears?: string[]; 
     thaiMonths?: string[];
     units?: string[];
     districts?: string[];
@@ -33,11 +42,14 @@ const CsvActionModal: React.FC<CsvActionModalProps> = ({
     districts = [], 
     csvMode 
 }) => {
-    // กำหนด Type ของ State เป็น string
+    // State สำหรับตัวกรองต่างๆ
     const [exportYear, setExportYear] = useState<string>('ทั้งหมด');
     const [exportMonth, setExportMonth] = useState<string>('ทั้งหมด');
     const [exportUnit, setExportUnit] = useState<string>('ทั้งหมด');
     const [exportDistrict, setExportDistrict] = useState<string>('ทั้งหมด');
+    
+    // State ใหม่สำหรับเก็บรูปแบบไฟล์
+    const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('csv');
 
     if (!isOpen) return null;
 
@@ -46,7 +58,8 @@ const CsvActionModal: React.FC<CsvActionModalProps> = ({
             year: exportYear, 
             month: exportMonth, 
             unit: exportUnit, 
-            district: exportDistrict 
+            district: exportDistrict,
+            format: exportFormat // ส่งรูปแบบไฟล์กลับไปให้ฟังก์ชันแม่
         });
         onClose();
     };
@@ -68,7 +81,7 @@ const CsvActionModal: React.FC<CsvActionModalProps> = ({
                         <FileSpreadsheet className="w-8 h-8" />
                     </div>
                     
-                    <h3 className="text-xl font-bold text-slate-800">จัดการข้อมูล CSV</h3>
+                    <h3 className="text-xl font-bold text-slate-800">จัดการข้อมูล</h3>
                     <p className="text-sm text-slate-500 mt-1">นำเข้าหรือส่งออกข้อมูลเพื่อใช้งานในระบบ</p>
                 </div>
                 
@@ -102,6 +115,7 @@ const CsvActionModal: React.FC<CsvActionModalProps> = ({
                         <div className="flex-grow border-t border-slate-200"></div>
                     </div>
                     
+                    {/* ส่วนของการ Export */}
                     <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                         <div className="flex items-center gap-2 text-slate-700 font-bold text-sm mb-1">
                             <Filter className="w-4 h-4 text-emerald-500" />
@@ -172,6 +186,33 @@ const CsvActionModal: React.FC<CsvActionModalProps> = ({
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                        </div>
+
+                        {/* 🟢 ส่วนที่เพิ่มใหม่: ตัวเลือก Format */}
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2">รูปแบบไฟล์ (Format)</label>
+                            <div className="flex gap-3">
+                                <label className={`flex-1 flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-all ${exportFormat === 'csv' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-bold shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                    <input 
+                                        type="radio" 
+                                        value="csv" 
+                                        checked={exportFormat === 'csv'} 
+                                        onChange={() => setExportFormat('csv')} 
+                                        className="hidden" 
+                                    />
+                                    <FileText className="w-4 h-4" /> CSV
+                                </label>
+                                <label className={`flex-1 flex items-center justify-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-all ${exportFormat === 'excel' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-bold shadow-sm' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                    <input 
+                                        type="radio" 
+                                        value="excel" 
+                                        checked={exportFormat === 'excel'} 
+                                        onChange={() => setExportFormat('excel')} 
+                                        className="hidden" 
+                                    />
+                                    <Table className="w-4 h-4" /> Excel
+                                </label>
                             </div>
                         </div>
 

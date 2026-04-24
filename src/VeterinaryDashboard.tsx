@@ -13,7 +13,7 @@ import { UNIT_TYPES, BANGKOK_DISTRICTS } from './constants/locations';
 const AddDataModal = lazy(() => import('./components/modals/AddDataModal'));
 const RabiesOutbreakSection = lazy(() => import('./components/dashboard/RabiesOutbreakSection'));
 const MainDataTable = lazy(() => import('./components/dashboard/MainDataTable'));
-import { exportToCSV, exportOutbreaksToCSV } from './utils/csvUtils';
+import { exportToCSV, exportOutbreaksToCSV, exportToExcel, exportOutbreaksToExcel } from './utils/csvUtils';
 import ChangePasswordModal from './components/modals/ChangePasswordModal';
 import Sidebar from './components/layout/Sidebar';
 const StatisticsCharts = React.lazy(() => import('./components/dashboard/StatisticsCharts'));
@@ -37,6 +37,7 @@ const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal')
 const BreedModal = lazy(() => import('./components/modals/BreedModal'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal'));
 import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors';
+
 
 export interface Announcement {
     id: number;
@@ -1164,9 +1165,17 @@ const handleDeleteDispatch = async (id: string) => {
         }
 
         if (csvMode === 'outbreak') {
-            exportOutbreaksToCSV(dataToExport as any[]);
+            if (filters?.format === 'excel') {
+                exportOutbreaksToExcel(dataToExport as any[]);
+            } else {
+                exportOutbreaksToCSV(dataToExport as any[]);
+            }
         } else {
-            exportToCSV(dataToExport as any[]);
+            if (filters?.format === 'excel') {
+                exportToExcel(dataToExport as any[]);
+            } else {
+                exportToCSV(dataToExport as any[]);
+            }
         }
     }, [csvMode, outbreakData, reportData]);
 
