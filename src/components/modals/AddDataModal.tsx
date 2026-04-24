@@ -97,6 +97,39 @@ const defaultBreakdown: Breakdown = {
   vaccineRemaining: ''
 };
 
+// เพิ่ม helper function นี้ไว้นอก Component (บนสุดของไฟล์)
+const compressImage = (file: File, maxWidth = 1200, quality = 0.75): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        
+        // คำนวณขนาดใหม่ตามสัดส่วนเดิม
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // แปลงเป็น JPEG และบีบอัด
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
+
 // ==============================
 // 3. Component
 // ==============================
@@ -757,20 +790,32 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   accept="image/*" 
                   disabled={isSubmitting}
                   className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  onChange={(e) => {
+                  onChange={async (e) => {
   const file = e.target.files?.[0];
-  if (file) {
-    setImageFile(file);
+  if (!file) return;
+
+  try {
+    // แสดง preview ชั่วคราวก่อน (UX ดีขึ้น)
+    const tempUrl = URL.createObjectURL(file);
+    setImagePreview(tempUrl);
+
+    // บีบอัดรูป: maxWidth 1200px, quality 75%
+    const compressed = await compressImage(file, 1200, 0.75);
     
-    // 📌 แปลงไฟล์รูปภาพเป็น Base64 Data URL เพื่อให้สามารถนำไปบันทึกลง Database ได้จริง
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // เมื่อแปลงเสร็จ จะได้ string ยาวๆ (Base64) ไปเก็บใน State แทน blob url ชั่วคราว
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // คำนวณขนาดเพื่อแสดงให้ผู้ใช้เห็น
+    const originalKB = Math.round(file.size / 1024);
+    const compressedKB = Math.round((compressed.length * 3) / 4 / 1024);
+    
+    setImagePreview(compressed);
+    URL.revokeObjectURL(tempUrl); // คืน memory
+    
+    if (onToast) {
+      onToast('success', `✅ บีบอัดรูปสำเร็จ: ${originalKB}KB → ${compressedKB}KB`);
+    }
+  } catch (err) {
+    if (onToast) onToast('error', '❌ ไม่สามารถประมวลผลรูปภาพได้');
   }
-}} 
+}}
                 />
                   {imagePreview && (
                     <div className="mt-2 relative inline-block">
