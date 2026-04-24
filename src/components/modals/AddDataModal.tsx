@@ -705,7 +705,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                                       : 'bg-slate-100 text-slate-500'
                                   }`}>
                                     {isRecorded ? <Check className="w-2.5 h-2.5" /> : null}
-                                    {isRecorded ? 'บันทึกแล้ว' : 'ยังไม่บันทึก'}
+                                    {isRecorded ? 'บันทึกข้อมูลแล้ว' : 'ยังไม่บันทึกข้อมูล'}
                                   </span>
                                 </div>
                                 <span className="text-[10px] text-slate-500 flex items-center gap-1 shrink-0">
