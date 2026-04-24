@@ -322,6 +322,19 @@ app.get('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']
   }
 });
 
+app.delete('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
+  try {
+    const result = await SystemLog.deleteMany({});
+    
+    // สร้าง Log ทิ้งไว้ 1 รายการเพื่อบันทึกว่าใครเป็นคนสั่งล้างข้อมูล
+    createLog(req, 'CLEAR_SYSTEM_LOG', `ล้างประวัติการใช้งานระบบทั้งหมด (${result.deletedCount} รายการ)`);
+    
+    res.json({ message: "ล้างข้อมูลประวัติการใช้งานระบบเรียบร้อยแล้ว", deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // =======================
 // B. USER MANAGEMENT
 // =======================

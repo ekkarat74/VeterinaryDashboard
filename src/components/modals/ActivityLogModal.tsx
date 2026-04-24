@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Database, X, FileText, Search, RefreshCw, Terminal, Clock, 
-    User, Info, Activity 
+    User, Info, Activity, Trash2
 } from 'lucide-react';
 
 // --- Types & Interfaces ---
@@ -30,6 +30,7 @@ interface ActivityLogModalProps {
     onClose: () => void;
     token: string;
     apiBaseUrl: string;
+    currentUserRole?: string;
 }
 
 // --- Components ---
@@ -70,12 +71,37 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }
     );
 };
 
-const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onClose, token, apiBaseUrl }) => {
+const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onClose, token, apiBaseUrl, currentUserRole }) => {
     // กำหนด Type ให้กับ State
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [selectedLogData, setSelectedLogData] = useState<Record<string, any> | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
+
+    const handleClearLogs = async () => {
+        if (!window.confirm("⚠️ ยืนยันการล้างประวัติการใช้งานระบบทั้งหมด?\nการกระทำนี้ไม่สามารถกู้คืนได้!")) return;
+        
+        try {
+            setIsLoading(true);
+            const res = await fetch(`${apiBaseUrl}/api/logs`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.ok) {
+                alert("✅ ล้างประวัติการใช้งานระบบเรียบร้อยแล้ว");
+                fetchLogs(); // โหลดข้อมูลใหม่ (จะเหลือแค่ log ของการ clear)
+            } else {
+                const err = await res.json();
+                alert(`❌ ลบไม่สำเร็จ: ${err.message}`);
+            }
+        } catch (error) {
+            console.error("Clear Logs Error", error);
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -172,14 +198,26 @@ const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onClose, to
                                 </button>
                             )}
                         </div>
-                        <button 
-                            onClick={fetchLogs} 
-                            disabled={isLoading}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-sm font-semibold rounded-xl transition-all shadow-sm disabled:opacity-50"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
-                            รีเฟรชข้อมูล
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {(currentUserRole === 'Developer' || currentUserRole === 'MagaAdmin') && (
+                                <button 
+                                    onClick={handleClearLogs} 
+                                    disabled={isLoading || logs.length === 0}
+                                    className="flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 text-sm font-semibold rounded-xl transition-all shadow-sm disabled:opacity-50"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    ล้างประวัติทั้งหมด
+                                </button>
+                            )}
+                            <button 
+                                onClick={fetchLogs} 
+                                disabled={isLoading}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 text-sm font-semibold rounded-xl transition-all shadow-sm disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
+                                รีเฟรชข้อมูล
+                            </button>
+                        </div>
                     </div>
 
                     {/* Table Content */}
