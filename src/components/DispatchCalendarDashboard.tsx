@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
-    Volume2, VolumeX
+    Volume2, VolumeX,
+    FileText
 } from 'lucide-react';
 // สมมติว่ามี Component เหล่านี้อยู่จริง โปรดตรวจสอบ Path อีกครั้ง
 import DispatchModal from './modals/DispatchModal'; 
@@ -363,6 +364,7 @@ const Footer: React.FC = () => {
 
 const DispatchCalendarDashboard: React.FC = () => {
     const [events, setEvents] = useState<EventData[]>([]);
+    const [reports, setReports] = useState<any[]>([]);
     const [user, setUser] = useState<User | null>(null);
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -706,33 +708,44 @@ const DispatchCalendarDashboard: React.FC = () => {
     const canViewHidden = user && ['Developer', 'MagaAdmin', 'admin', 'executive'].includes(user.role);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. เตรียม Header ให้กับ GET Request
-                const token = getCurrentToken();
-                const headers: Record<string, string> = {};
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
-                // 2. แนบ Header
-                const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
-                
-                if (res.ok) {
-                    const data: EventData[] = await res.json();
-                    
-                    const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
-                    const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
-                    setEvents(mappedEvents);
-                } else {
-                    console.error("Fetch Data Error:", res.status);
-                }
-            } catch (error) {
-                console.error("Fetch Data Error", error);
+    const fetchData = async () => {
+        try {
+            const token = getCurrentToken();
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
             }
-        };
-        fetchData();
-    }, [canViewHidden, BASE_URL]);
+
+            // ✨ ดึงข้อมูล Dispatches และ Reports พร้อมกัน
+            const [res, reportsRes] = await Promise.all([
+                fetch(`${BASE_URL}/api/dispatches`, { headers }),
+                fetch(`${BASE_URL}/api/reports?limit=5000`, { headers })
+            ]);
+            
+            if (res.ok) {
+                const data: EventData[] = await res.json();
+                const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
+                const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
+                setEvents(mappedEvents);
+            } else if (res.status === 401 || res.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
+            }
+
+            // ✨ เก็บข้อมูล Reports เพื่อเอาไปเช็คสถานะการบันทึกยอด
+            if (reportsRes.ok) {
+                const rData = await reportsRes.json();
+                setReports(Array.isArray(rData) ? rData : (rData.data || []));
+            }
+
+        } catch (error) {
+            console.error("Fetch Data Error", error);
+        }
+    };
+    fetchData();
+}, [canViewHidden, BASE_URL, setUser]);
 
     const scrollToForm = () => {
         setTimeout(() => {
@@ -1259,6 +1272,7 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
 
                                     const uniqueId = evt._id || idx;
                                     const isExpanded = expandedEventId === uniqueId;
+                                    const isRecorded = reports.some(r => r.date === evt.date && r.location === evt.location);
 
                                     return (
                                         <div key={idx} 
@@ -1326,6 +1340,15 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                                                     {status && (
                                                         <span className={`inline-flex items-center text-[10px] sm:text-[11px] px-2 py-1 rounded-md font-bold border ${status.badge}`}>
                                                             {status.text}
+                                                        </span>
+                                                    )}
+                                                    {isRecorded ? (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-md font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                            <CheckCircle className="w-3 h-3" /> บันทึกผลแล้ว
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] px-2 py-1 rounded-md font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                                            <FileText className="w-3 h-3" /> ยังไม่บันทึก
                                                         </span>
                                                     )}
                                                     
