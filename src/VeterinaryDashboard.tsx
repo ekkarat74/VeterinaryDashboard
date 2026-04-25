@@ -1574,6 +1574,9 @@ const handleDeleteDispatch = async (id: string) => {
                 .animate-slide-left {
                     animation: slideLeft 8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                 }
+                @keyframes shimmer {
+                    100% { transform: translateX(100%); }
+                }
             `}</style>
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
