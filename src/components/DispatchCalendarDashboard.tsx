@@ -5,11 +5,8 @@ import {
     Volume2, VolumeX,
     FileText
 } from 'lucide-react';
-// สมมติว่ามี Component เหล่านี้อยู่จริง โปรดตรวจสอบ Path อีกครั้ง
 import DispatchModal from './modals/DispatchModal'; 
 import LoginModal from './modals/LoginModal';
-
-// นำเข้า ToastContainer และถ้ามีการ export Type Toast มาด้วย ก็สามารถ import มาใช้ได้เลย
 import ToastContainer from '../path/to/ToastContainer'; 
 
 import { playSound } from '../utils/soundUtils';
@@ -38,6 +35,10 @@ export interface StaffData {
     controllers?: string[];
 }
 
+// ==========================================
+// 0. Interfaces
+// ==========================================
+
 export interface EventData {
     _id?: string;
     title?: string;
@@ -47,8 +48,8 @@ export interface EventData {
     closingTime?: string; // HH:mm
     location?: string;
     district?: string;
-    lat?: number | string;
-    lng?: number | string;
+    lat?: number | string | null;
+    lng?: number | string | null;
     team?: string;
     status?: 'cancelled' | 'postponed' | 'completed' | string;
     isVisibleToPublic?: boolean;
@@ -59,10 +60,11 @@ export interface EventData {
     details?: string;
     description?: string;
     mapLink?: string;
-    staff?: StaffData;
-    originalData?: any;
+    staff?: any;
+    originalData?: Record<string, unknown>;
     unit?: string;
     unitName?: string;
+    [key: string]: any;
 }
 
 export interface Announcement {
@@ -72,7 +74,6 @@ export interface Announcement {
     isActive: boolean;
 }
 
-// เปลี่ยนจาก ToastMessage เป็น Toast เพื่อให้ตรงกับ Props ที่ ToastContainer ต้องการ
 export interface Toast {
     id: number | string;
     type: 'success' | 'error' | 'info' | 'warning';
@@ -696,7 +697,6 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState<boolean>(false);
     const [viewingDispatch, setViewingDispatch] = useState<EventData | null>(null);
     
-    // State ใช้ Type เป็น Toast ตาม Interface ที่อัปเดตใหม่
     const [toasts, setToasts] = useState<Toast[]>([]);
 
     const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
@@ -722,7 +722,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // ✨ ดึงข้อมูล Dispatches และ Reports พร้อมกัน
             const [res, reportsRes] = await Promise.all([
                 fetch(`${BASE_URL}/api/dispatches`, { headers }),
                 fetch(`${BASE_URL}/api/reports?limit=5000`, { headers })
@@ -740,7 +739,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                 setIsLoginModalOpen(true);
             }
 
-            // ✨ เก็บข้อมูล Reports เพื่อเอาไปเช็คสถานะการบันทึกยอด
             if (reportsRes.ok) {
                 const rData = await reportsRes.json();
                 setReports(Array.isArray(rData) ? rData : (rData.data || []));
@@ -768,10 +766,10 @@ const DispatchCalendarDashboard: React.FC = () => {
         scrollToForm(); 
     };
     
-    const openDispatchEvent = (evt: EventData) => { 
+    const openDispatchEvent = (evt: EventData) => { 
         if (canEdit) {
-            setViewingDispatch(evt.originalData || evt); 
-            setIsDispatchModalOpen(true); 
+            setViewingDispatch((evt.originalData as EventData) || evt);
+            setIsDispatchModalOpen(true); 
             scrollToForm();
         }
     };

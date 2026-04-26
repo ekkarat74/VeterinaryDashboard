@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
-  Activity, X, Bell, MapPin, Link as LinkIcon, Users, 
+  Activity, X, MapPin, Link as LinkIcon, Users, 
   Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown, Copy, Edit3, Calendar
 } from 'lucide-react';
 
-// ตรวจสอบ path ของ constants และ utils ให้ตรงกับโปรเจกต์ของคุณ
-// @ts-ignore (ใส่ไว้ชั่วคราวหากไฟล์เหล่านี้ยังไม่ใช่ TS)
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
-// @ts-ignore
 import { playSound as defaultPlaySound, SoundType } from '../../utils/soundUtils';
 
 // ==========================================
@@ -56,7 +53,7 @@ export interface EventData {
   locationName?: string;
   district?: string;
   mapLink?: string;
-  originalData?: any;
+  originalData?: Record<string, unknown>; 
   unitType?: string;
   customUnitName?: string;
   unitLetter?: string;
@@ -64,7 +61,12 @@ export interface EventData {
   controllerName?: string;
   controllerPhone?: string;
   status?: string;
-  [key: string]: any; // สำหรับฟิลด์อื่นๆ ที่อาจมีในระบบ
+  title?: string;         
+  lat?: number | string | null;
+  lng?: number | string | null;
+  team?: string;          
+  note?: string;          
+  [key: string]: unknown; 
 }
 
 export interface StaffMember {
@@ -199,9 +201,7 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
                     return (
                       <option 
                           key={i} 
-                          value={staffMember.name} 
-                          // ลบ disabled={isBusy} ออก หรือคอมเมนต์ไว้เพื่อให้ยังกดเลือกได้
-                          // disabled={isBusy} 
+                          value={staffMember.name}
                           className={isBusy ? 'text-slate-300' : ''}
                       >
                           {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
@@ -245,6 +245,7 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
   </div>
 );
 
+
 // ==========================================
 // 3. Main Component: DispatchModal
 // ==========================================
@@ -252,7 +253,7 @@ interface DispatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onToast?: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
-  onSave?: (data: any, closeAfter?: boolean) => Promise<boolean> | boolean;
+  onSave?: (data: EventData | EventData[], closeAfter?: boolean) => Promise<boolean> | boolean; // แก้จาก data: any
   onDelete?: (id: string) => void;
   initialData?: EventData | null;
   savedStaffList?: StaffMember[];
@@ -266,11 +267,11 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
-  const getCurrentToken = () => {
+  const getCurrentToken = (): string => {
     try {
         const storedUser = localStorage.getItem('vet_user');
         if (storedUser) {
-            const parsed = JSON.parse(storedUser);
+            const parsed = JSON.parse(storedUser) as { token?: string }; 
             return parsed?.token || '';
         }
     } catch (e) {
@@ -279,7 +280,6 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
     return '';
   };
 
-  // 2. ดักจับกรณีดึง Controllers แล้วติด 401
   useEffect(() => {
     if (isOpen) {
         const token = getCurrentToken();
@@ -294,7 +294,7 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
                 setSavedControllers([]); 
                 return;
             }
-            const data = await res.json();
+            const data = (await res.json()) as StaffMember[]; 
             if (res.ok && Array.isArray(data)) {
                 setSavedControllers(data);
             } else {
@@ -308,6 +308,8 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
     }
   }, [isOpen]);
 
+  
+
   const formatDateLocal = (date: Date): string => {
     return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   };
@@ -318,12 +320,14 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
   const locationHistory = useMemo(() => {
     const locMap = new Map<string, { name: string, district: string, mapLink: string }>();
     allEvents.forEach(evt => {
-        const locName = evt.location || evt.locationName || evt.originalData?.location; 
+        const origData = evt.originalData as Record<string, string> | undefined;
+        
+        const locName = evt.location || evt.locationName || origData?.location; 
         if (locName && !locMap.has(locName)) {
             locMap.set(locName, {
                 name: locName,
-                district: evt.district || evt.originalData?.district || '',
-                mapLink: evt.mapLink || evt.originalData?.mapLink || ''
+                district: evt.district || origData?.district || '',
+                mapLink: evt.mapLink || origData?.mapLink || ''
             });
         }
     });
@@ -686,7 +690,7 @@ ${staffDetails}
     const coordsA = extractLatLng(generalInfo.mapLink);
     const coordsB = extractLatLng(generalInfo.mapLinkB);
 
-    const payloadsToSave: any[] = [];
+    const payloadsToSave: EventData[] = [];
 
     datesToSave.forEach(targetDate => {
         if (isSplitTeam) {
