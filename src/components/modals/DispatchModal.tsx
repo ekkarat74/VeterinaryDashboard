@@ -4,10 +4,7 @@ import {
   Share2, Trash2, Clock, Plus, UserPlus, FileText, ChevronDown, Copy, Edit3, Calendar
 } from 'lucide-react';
 
-// ตรวจสอบ path ของ constants และ utils ให้ตรงกับโปรเจกต์ของคุณ
-// @ts-ignore (ใส่ไว้ชั่วคราวหากไฟล์เหล่านี้ยังไม่ใช่ TS)
 import { UNIT_TYPES, BANGKOK_DISTRICTS } from '../../constants/locations';
-// @ts-ignore
 import { playSound as defaultPlaySound, SoundType } from '../../utils/soundUtils';
 
 // ==========================================
@@ -64,12 +61,13 @@ export interface EventData {
   controllerName?: string;
   controllerPhone?: string;
   status?: string;
-  [key: string]: any; // สำหรับฟิลด์อื่นๆ ที่อาจมีในระบบ
+  [key: string]: any;
 }
 
 export interface StaffMember {
   name: string;
   phone?: string;
+  role?: string;
 }
 
 // ==========================================
@@ -199,9 +197,7 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
                     return (
                       <option 
                           key={i} 
-                          value={staffMember.name} 
-                          // ลบ disabled={isBusy} ออก หรือคอมเมนต์ไว้เพื่อให้ยังกดเลือกได้
-                          // disabled={isBusy} 
+                          value={staffMember.name}
                           className={isBusy ? 'text-slate-300' : ''}
                       >
                           {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
@@ -749,8 +745,8 @@ ${staffDetails}
   const commonProps = { 
     onAdd: addStaffField, 
     onRemove: removeStaffField, 
-    onChange: handleStaffChange, 
-    savedStaffList: savedStaffList, 
+    onChange: handleStaffChange,
+    savedStaffList: savedStaffList.filter(s => s.role !== 'vet'), 
     conflictNames: conflictNames,
     allSelectedStaff: allSelectedStaff,
     busyStaff: busyStaff 
@@ -1239,7 +1235,7 @@ ${staffDetails}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <StaffInputGroup roleKey="vets" label="สัตวแพทย์" icon={UserPlus} staffList={staff.vets} {...commonProps} />
+              <StaffInputGroup roleKey="vets" label="สัตวแพทย์" icon={UserPlus} staffList={staff.vets} {...commonProps} savedStaffList={savedStaffList.filter(s => s.role === 'vet')} />
               <StaffInputGroup roleKey="drivers" label="คนขับรถ" icon={Activity} staffList={staff.drivers} {...commonProps} />
               
               {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( 
@@ -1336,7 +1332,6 @@ ${staffDetails}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

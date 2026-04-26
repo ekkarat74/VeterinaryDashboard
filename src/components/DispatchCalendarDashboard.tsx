@@ -5,13 +5,9 @@ import {
     Volume2, VolumeX,
     FileText
 } from 'lucide-react';
-// สมมติว่ามี Component เหล่านี้อยู่จริง โปรดตรวจสอบ Path อีกครั้ง
 import DispatchModal from './modals/DispatchModal'; 
 import LoginModal from './modals/LoginModal';
-
-// นำเข้า ToastContainer และถ้ามีการ export Type Toast มาด้วย ก็สามารถ import มาใช้ได้เลย
 import ToastContainer from '../path/to/ToastContainer'; 
-
 import { playSound } from '../utils/soundUtils';
 
 // ==========================================
@@ -63,6 +59,7 @@ export interface EventData {
     originalData?: any;
     unit?: string;
     unitName?: string;
+    distanceToUser?: number;
 }
 
 export interface Announcement {
@@ -72,7 +69,6 @@ export interface Announcement {
     isActive: boolean;
 }
 
-// เปลี่ยนจาก ToastMessage เป็น Toast เพื่อให้ตรงกับ Props ที่ ToastContainer ต้องการ
 export interface Toast {
     id: number | string;
     type: 'success' | 'error' | 'info' | 'warning';
@@ -359,6 +355,19 @@ const Footer: React.FC = () => {
     );
 };
 
+const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+    const R = 6371; // รัศมีโลก (กิโลเมตร)
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
 // ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
@@ -371,6 +380,46 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedType, setSelectedType] = useState<string>('ทุกประเภท');
+
+    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+    const [isNearMeActive, setIsNearMeActive] = useState<boolean>(false);
+    const [isLocating, setIsLocating] = useState<boolean>(false);
+
+    const handleNearMeClick = () => {
+        if (isNearMeActive) {
+            setIsNearMeActive(false);
+            setUserLocation(null);
+            playSound('pop');
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            addToast('error', 'เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง');
+            return;
+        }
+
+        setIsLocating(true);
+        playSound('pop');
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                });
+                setIsNearMeActive(true);
+                setIsLocating(false);
+                addToast('success', '📍 พบตำแหน่งของคุณแล้ว กำลังแสดงหน่วยใกล้เคียง');
+            },
+            (error) => {
+                setIsLocating(false);
+                let errMsg = 'ไม่สามารถเข้าถึงตำแหน่งได้';
+                if (error.code === 1) errMsg = 'กรุณาอนุญาตการเข้าถึงตำแหน่ง (Location/GPS) ในเบราว์เซอร์';
+                addToast('error', errMsg);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
 
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
@@ -407,7 +456,7 @@ const DispatchCalendarDashboard: React.FC = () => {
     const TIMELINE_TOTAL_MINS = (TIMELINE_END_HOUR - TIMELINE_START_HOUR) * 60;
 
     const displayEvents = useMemo(() => {
-        return events.filter(e => {
+        let filtered = events.filter(e => {
             const matchSearch = !searchTerm || 
                 e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                 e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -415,9 +464,32 @@ const DispatchCalendarDashboard: React.FC = () => {
             
             const baseType = getBaseType(e.title, e.type);
             const matchType = selectedType === 'ทุกประเภท' || baseType === selectedType;
-            return matchSearch && matchType;
+            
+            // --- เพิ่มเงื่อนไข Near Me กรองเฉพาะระยะไม่เกิน 15 กม. ---
+            let matchLocation = true;
+            if (isNearMeActive && userLocation) {
+                const dist = getDistanceFromLatLonInKm(
+                    userLocation.lat, 
+                    userLocation.lng, 
+                    Number(e.lat), 
+                    Number(e.lng)
+                );
+                e.distanceToUser = dist; // แอบเก็บค่าระยะทางไว้ใน object
+                matchLocation = dist <= 15; // ระยะทำการ 15 กิโลเมตร (ปรับแก้ตัวเลขได้)
+            } else {
+                e.distanceToUser = undefined; // ล้างค่าทิ้งถ้าปิดโหมดนี้
+            }
+
+            return matchSearch && matchType && matchLocation;
         });
-    }, [events, searchTerm, selectedType]);
+
+        // --- ถ้าเปิดโหมด Near Me ให้เรียงลำดับจากสถานที่ที่ใกล้ที่สุดขึ้นก่อน ---
+        if (isNearMeActive && userLocation) {
+            filtered.sort((a, b) => (a.distanceToUser || Infinity) - (b.distanceToUser || Infinity));
+        }
+
+        return filtered;
+    }, [events, searchTerm, selectedType, isNearMeActive, userLocation]);
 
     const stats = useMemo(() => {
         const todayStr = toLocalISOString(new Date());
@@ -695,10 +767,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState<boolean>(false);
     const [viewingDispatch, setViewingDispatch] = useState<EventData | null>(null);
-    
-    // State ใช้ Type เป็น Toast ตาม Interface ที่อัปเดตใหม่
     const [toasts, setToasts] = useState<Toast[]>([]);
-
     const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, type, message }]);
@@ -721,8 +790,7 @@ const DispatchCalendarDashboard: React.FC = () => {
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
-
-            // ✨ ดึงข้อมูล Dispatches และ Reports พร้อมกัน
+            
             const [res, reportsRes] = await Promise.all([
                 fetch(`${BASE_URL}/api/dispatches`, { headers }),
                 fetch(`${BASE_URL}/api/reports?limit=5000`, { headers })
@@ -739,13 +807,10 @@ const DispatchCalendarDashboard: React.FC = () => {
                 localStorage.removeItem('vet_user');
                 setIsLoginModalOpen(true);
             }
-
-            // ✨ เก็บข้อมูล Reports เพื่อเอาไปเช็คสถานะการบันทึกยอด
             if (reportsRes.ok) {
                 const rData = await reportsRes.json();
                 setReports(Array.isArray(rData) ? rData : (rData.data || []));
             }
-
         } catch (error) {
             console.error("Fetch Data Error", error);
         }
@@ -776,7 +841,6 @@ const DispatchCalendarDashboard: React.FC = () => {
         }
     };
 
-    // 1. แก้ไขให้ดึง Token ปลอดภัยขึ้น
 const getCurrentToken = () => {
     try {
         const storedUser = localStorage.getItem('vet_user');
@@ -790,7 +854,6 @@ const getCurrentToken = () => {
     return user?.token || '';
 };
 
-// 2. ดักจับ Session ตอนดึงข้อมูลโหลดปฏิทิน
 useEffect(() => {
     const fetchData = async () => {
         try {
@@ -808,7 +871,6 @@ useEffect(() => {
                 const mappedEvents = filtered.map(d => ({ ...d, type: 'dispatch', originalData: d }));
                 setEvents(mappedEvents);
             } else if (res.status === 401 || res.status === 403) {
-                // จัดการ Token หมดอายุ
                 addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
                 setUser(null);
                 localStorage.removeItem('vet_user');
@@ -823,8 +885,6 @@ useEffect(() => {
     fetchData();
 }, [canViewHidden, BASE_URL, setUser]);
 
-
-// 3. แก้ไข Header ในการ Save/Edit (POST/PUT Request ที่ Error ในภาพ)
 const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
     try {
         const isUpdate = !Array.isArray(payload) && payload._id;
@@ -851,7 +911,6 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                 setIsDispatchModalOpen(false);
             }
 
-            // โหลดข้อมูลใหม่ โดยป้องกัน Header ผิดพลาดเช่นกัน
             const fetchHeaders: Record<string, string> = {};
             if (token) {
                 fetchHeaders['Authorization'] = `Bearer ${token}`;
@@ -1005,8 +1064,13 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
         const grouped: Record<string, EventData[]> = {};
         selectedDateEvents.forEach(evt => {
             const teamName = evt.team || 'ไม่ได้ระบุทีม';
-            if (!grouped[teamName]) grouped[teamName] = [];
-            grouped[teamName].push(evt);
+            const unitName = evt.unit || evt.unitName || evt.title || 'ไม่ระบุหน่วย';
+            const locationName = evt.location || 'ไม่ระบุสถานที่';
+            
+            const groupKey = `${teamName}|||${unitName}|||${locationName}`;
+            
+            if (!grouped[groupKey]) grouped[groupKey] = [];
+            grouped[groupKey].push(evt);
         });
         return grouped;
     }, [selectedDateEvents]);
@@ -1205,21 +1269,41 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                             </div>
                         </div>
 
+                        {/* นำโค้ดชุดนี้ไปวางแทนที่ส่วนช่องค้นหาและปุ่ม Filter เดิม */}
                         <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input 
-                                    type="text" 
-                                    placeholder="ค้นหางาน โลเคชัน ทีม เบอร์โทร..." 
-                                    value={searchTerm} 
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-9 pr-10 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-xs font-medium text-slate-700 shadow-sm" 
-                                />
-                                {searchTerm && (
-                                    <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 p-1 rounded-full transition-colors">
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                )}
+                            <div className="flex gap-2 w-full">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="ค้นหางาน โลเคชัน ทีม เบอร์โทร..." 
+                                        value={searchTerm} 
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-9 pr-10 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-xs font-medium text-slate-700 shadow-sm" 
+                                    />
+                                    {searchTerm && (
+                                        <button onClick={() => setSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-100 p-1 rounded-full transition-colors">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {/* ปุ่ม Near Me */}
+                                <button 
+                                    onClick={handleNearMeClick}
+                                    disabled={isLocating}
+                                    className={`px-3 py-2 shrink-0 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border shadow-sm whitespace-nowrap
+                                        ${isNearMeActive 
+                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/20' 
+                                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                >
+                                    {isLocating ? (
+                                        <span className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
+                                    ) : (
+                                        <MapPin className={`w-4 h-4 ${isNearMeActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                    )}
+                                    <span className="hidden sm:inline">{isNearMeActive ? 'ยกเลิกโหมดใกล้ฉัน' : 'ใกล้ฉันที่สุด'}</span>
+                                </button>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
@@ -1318,6 +1402,14 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                                             <div className="font-bold text-slate-800 text-base sm:text-lg leading-snug mb-1.5">
                                                 {evt.location}
                                             </div>
+
+                                            {isNearMeActive && evt.distanceToUser !== undefined && evt.distanceToUser !== Infinity && (
+                                                <div className="mb-2">
+                                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full border border-indigo-100 shadow-sm">
+                                                        <MapPin className="w-3 h-3" /> ห่างจากคุณ {evt.distanceToUser.toFixed(1)} กม.
+                                                    </span>
+                                                </div>
+                                            )}
 
                                             {(evt.district || controllerName) && (
                                                 <div className="flex flex-col gap-1 mb-3 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
@@ -1478,27 +1570,31 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                                     </div>
                                 </div>
 
-                                {/* Body จำแนกตามทีม (Y-Axis) */}
+                                {/* Body จำแนกตามทีม/หน่วย/สถานที่ (Y-Axis) */}
                                 <div className="overflow-y-auto custom-scrollbar flex-1 relative">
                                     {Object.entries(eventsByTeam).length === 0 ? (
                                         <div className="p-10 text-center text-slate-400 text-sm font-medium">ไม่มีตารางงานในวันนี้</div>
                                     ) : (
-                                        Object.entries(eventsByTeam).map(([team, teamEvents], index) => {
-                                            const firstEvent = teamEvents[0] || {};
-                                            const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
+                                        Object.entries(eventsByTeam).map(([groupKey, teamEvents], index) => {
+                                            const [teamName, unitName, locationName] = groupKey.split('|||');
 
                                             return (
-                                                <div key={team} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
-                                                    
-                                                    {/* แกน Y (ชื่อทีม) */}
-                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                                                <div key={groupKey} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                                                            
+                                                    {/* แกน Y (ข้อมูลทีม/หน่วย/สถานที่) */}
+                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)] overflow-hidden">
                                                         <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
                                                             {unitName}
                                                         </span>
-                                                        <span className="text-xs font-bold text-slate-700 truncate" title={team}>{team}</span>
-                                                        <span className="text-[10px] text-slate-400 mt-0.5">{teamEvents.length} งาน</span>
+                                                        <span className="text-xs font-bold text-slate-700 truncate" title={teamName}>
+                                                            {teamName}
+                                                        </span>
+                                                        <span className="text-[10px] font-medium text-slate-500 mt-0.5 truncate" title={locationName}>
+                                                             {locationName}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 mt-1">{teamEvents.length} งาน</span>
                                                     </div>
-                                                    
+                                                            
                                                     {/* เลนเวลา (Time Lane) */}
                                                     <div className="flex-1 relative min-h-[60px] py-2">
                                                         {toLocalISOString(selectedDate) === toLocalISOString(new Date()) && (
@@ -1672,7 +1768,7 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                             )}
                         </div>
 
-                        {/* ✨ ส่วนที่แก้ไข: แบ่งกลุ่มแสดงผล สัตวแพทย์ และ บุคลากรทั่วไป */}
+                        {/* แบ่งกลุ่มแสดงผล สัตวแพทย์ และ บุคลากรทั่วไป */}
                         <div className="mt-5 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[150px]">
                             <h4 className="text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อในระบบ ({savedStaffList.length})</h4>
                             {savedStaffList.length === 0 ? (
