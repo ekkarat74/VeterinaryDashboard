@@ -1460,90 +1460,94 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                         </div>
                     ) : (
                         <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col mt-2">
-                                {/* Header แกนเวลา (X-Axis) */}
-                                <div className="flex border-b border-slate-200 bg-slate-50">
-                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex items-center justify-center font-bold text-xs text-slate-500">
-                                        ทีมปฏิบัติการ
-                                    </div>
-                                    <div className="flex-1 relative flex">
-                                        {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR + 1 }).map((_, i) => (
-                                            <div key={i} className="flex-1 border-l border-slate-200/50 relative h-10 first:border-l-0">
-                                                <span className="absolute -left-3 top-2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">
-                                                    {String(TIMELINE_START_HOUR + i).padStart(2, '0')}:00
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Body จำแนกตามทีม (Y-Axis) */}
-                                <div className="overflow-y-auto custom-scrollbar flex-1 relative">
-                                    {Object.entries(eventsByTeam).length === 0 ? (
-                                        <div className="p-10 text-center text-slate-400 text-sm font-medium">ไม่มีตารางงานในวันนี้</div>
-                                    ) : (
-                                        Object.entries(eventsByTeam).map(([team, teamEvents], index) => {
-                                            const firstEvent = teamEvents[0] || {};
-                                            const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
-
-                                            return (
-                                                <div key={team} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
-                                                    
-                                                    {/* แกน Y (ชื่อทีม) */}
-                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                                                        <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
-                                                            {unitName}
-                                                        </span>
-                                                        <span className="text-xs font-bold text-slate-700 truncate" title={team}>{team}</span>
-                                                        <span className="text-[10px] text-slate-400 mt-0.5">{teamEvents.length} งาน</span>
-                                                    </div>
-                                                    
-                                                    {/* เลนเวลา (Time Lane) */}
-                                                    <div className="flex-1 relative min-h-[60px] py-2">
-                                                        {toLocalISOString(selectedDate) === toLocalISOString(new Date()) && (
-                                                            <TimelineCurrentTimeLine startHour={TIMELINE_START_HOUR} endHour={TIMELINE_END_HOUR} />
-                                                        )}
-
-                                                        {/* เส้น Grid บางๆ */}
-                                                        <div className="absolute inset-0 flex pointer-events-none">
-                                                            {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR }).map((_, i) => (
-                                                                <div key={i} className="flex-1 border-l border-slate-100"></div>
-                                                            ))}
-                                                        </div>
-
-                                                        {/* แท่งงาน (Timeline Blocks) */}
-                                                        {teamEvents.map((evt, idx) => {
-                                                            const { left, width } = getTimelineStyle(evt.time, evt.closingTime);
-                                                            const styles = getEventStyles(evt);
-                                                            
-                                                            return (
-                                                                <div 
-                                                                    key={idx}
-                                                                    onClick={() => openDispatchEvent(evt)} 
-                                                                    className={`absolute top-2 bottom-2 rounded-lg border shadow-sm cursor-pointer overflow-hidden transition-all hover:scale-[1.02] hover:shadow-md hover:z-20 ${styles.bg} ${styles.border} border-l-[4px] opacity-90 hover:opacity-100 flex flex-col justify-center px-2 min-w-[20px]`}
-                                                                    style={{ left, width }}
-                                                                >
-                                                                    <div className={`text-[10px] font-bold truncate flex items-center gap-1 ${styles.text}`}>
-                                                                        {evt.time} - {evt.title || 'ออกหน่วย'}
-                                                                    </div>
-                                                                    {parseFloat(width) > 10 && ( 
-                                                                        <div className="text-[9px] text-slate-500 truncate mt-0.5 font-medium">
-                                                                            {evt.location}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
+                            {/* ✨ 1. แก้ไข: ครอบด้วย overflow-auto และกำหนด min-w-[800px] เพื่อให้เลื่อนแนวนอนได้และไม่ถูกบีบ */}
+                            <div className="overflow-auto custom-scrollbar flex-1 relative">
+                                <div className="min-w-[800px] flex flex-col min-h-full">
+                                    
+                                    {/* ✨ 2. แก้ไข: เพิ่ม sticky top-0 และ z-30 ให้ Header เวลาอยู่คงที่ตอนเลื่อนลง */}
+                                    <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-30">
+                                        {/* ✨ 3. แก้ไข: เพิ่ม sticky left-0 และ z-40 ให้หัวมุมซ้ายบนอยู่กับที่ */}
+                                        <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex items-center justify-center font-bold text-xs text-slate-500 bg-slate-50 sticky left-0 z-40">
+                                            ทีมปฏิบัติการ
+                                        </div>
+                                        <div className="flex-1 relative flex">
+                                            {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR + 1 }).map((_, i) => (
+                                                <div key={i} className="flex-1 border-l border-slate-200/50 relative h-10 first:border-l-0">
+                                                    <span className="absolute -left-3 top-2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">
+                                                        {String(TIMELINE_START_HOUR + i).padStart(2, '0')}:00
+                                                    </span>
                                                 </div>
-                                            );
-                                        })
-                                    )}
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Body จำแนกตามทีม (Y-Axis) */}
+                                    <div className="flex-1 relative">
+                                        {Object.entries(eventsByTeam).length === 0 ? (
+                                            <div className="p-10 text-center text-slate-400 text-sm font-medium sticky left-0">ไม่มีตารางงานในวันนี้</div>
+                                        ) : (
+                                            Object.entries(eventsByTeam).map(([team, teamEvents], index) => {
+                                                const firstEvent = teamEvents[0] || {};
+                                                const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
+
+                                                return (
+                                                    <div key={team} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                                                        
+                                                        {/* ✨ 4. แก้ไข: เพิ่ม sticky left-0, bg-white และ z-20 เพื่อตรึงชื่อทีมไว้ด้านซ้ายตอนเลื่อนดูเวลา */}
+                                                        <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white sticky left-0 z-20 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                                                            <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
+                                                                {unitName}
+                                                            </span>
+                                                            <span className="text-xs font-bold text-slate-700 truncate" title={team}>{team}</span>
+                                                            <span className="text-[10px] text-slate-400 mt-0.5">{teamEvents.length} งาน</span>
+                                                        </div>
+                                                        
+                                                        {/* เลนเวลา (Time Lane) - โค้ดส่วนนี้ใช้ของเดิมได้เลย */}
+                                                        <div className="flex-1 relative min-h-[60px] py-2">
+                                                            {toLocalISOString(selectedDate) === toLocalISOString(new Date()) && (
+                                                                <TimelineCurrentTimeLine startHour={TIMELINE_START_HOUR} endHour={TIMELINE_END_HOUR} />
+                                                            )}
+
+                                                            {/* เส้น Grid บางๆ */}
+                                                            <div className="absolute inset-0 flex pointer-events-none">
+                                                                {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR }).map((_, i) => (
+                                                                    <div key={i} className="flex-1 border-l border-slate-100"></div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* แท่งงาน (Timeline Blocks) */}
+                                                            {teamEvents.map((evt, idx) => {
+                                                                const { left, width } = getTimelineStyle(evt.time, evt.closingTime);
+                                                                const styles = getEventStyles(evt);
+                                                                
+                                                                return (
+                                                                    <div 
+                                                                        key={idx}
+                                                                        onClick={() => openDispatchEvent(evt)} 
+                                                                        className={`absolute top-2 bottom-2 rounded-lg border shadow-sm cursor-pointer overflow-hidden transition-all hover:scale-[1.02] hover:shadow-md hover:z-20 ${styles.bg} ${styles.border} border-l-[4px] opacity-90 hover:opacity-100 flex flex-col justify-center px-2 min-w-[20px]`}
+                                                                        style={{ left, width }}
+                                                                    >
+                                                                        <div className={`text-[10px] font-bold truncate flex items-center gap-1 ${styles.text}`}>
+                                                                            {evt.time} - {evt.title || 'ออกหน่วย'}
+                                                                        </div>
+                                                                        {parseFloat(width) > 10 && ( 
+                                                                            <div className="text-[9px] text-slate-500 truncate mt-0.5 font-medium">
+                                                                                {evt.location}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+                        </div>
+                    )}
 
             <Footer />
 
