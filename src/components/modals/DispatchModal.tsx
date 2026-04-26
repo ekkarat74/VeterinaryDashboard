@@ -200,7 +200,8 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
                       <option 
                           key={i} 
                           value={staffMember.name} 
-                          disabled={isBusy} 
+                          // ลบ disabled={isBusy} ออก หรือคอมเมนต์ไว้เพื่อให้ยังกดเลือกได้
+                          // disabled={isBusy} 
                           className={isBusy ? 'text-slate-300' : ''}
                       >
                           {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
@@ -250,7 +251,7 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
 interface DispatchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
+  onToast?: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
   onSave?: (data: any, closeAfter?: boolean) => Promise<boolean> | boolean;
   onDelete?: (id: string) => void;
   initialData?: EventData | null;
@@ -265,9 +266,7 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
-  // 1. นำฟังก์ชันดึง Token มาไว้ด้านบนๆ ในคอมโพเนนต์ (ใต้ const BASE_URL = ...)
-// 1. แก้ไขให้ดึง Token ปลอดภัย
-const getCurrentToken = () => {
+  const getCurrentToken = () => {
     try {
         const storedUser = localStorage.getItem('vet_user');
         if (storedUser) {
@@ -278,10 +277,10 @@ const getCurrentToken = () => {
         console.error('Error parsing token', e);
     }
     return '';
-};
+  };
 
-// 2. ดักจับกรณีดึง Controllers แล้วติด 401
-useEffect(() => {
+  // 2. ดักจับกรณีดึง Controllers แล้วติด 401
+  useEffect(() => {
     if (isOpen) {
         const token = getCurrentToken();
         const headers: Record<string, string> = {};
@@ -307,7 +306,7 @@ useEffect(() => {
             setSavedControllers([]);
         });
     }
-}, [isOpen]);
+  }, [isOpen]);
 
   const formatDateLocal = (date: Date): string => {
     return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
@@ -410,7 +409,6 @@ useEffect(() => {
     return Array.from(busy);
   }, [generalInfo.date, generalInfo.departureTime, generalInfo.closingTime, allEvents, initialData]);
 
-  // 2. แก้ไข useEffect นี้
   useEffect(() => {
     if (isOpen) {
         fetch(`${BASE_URL}/api/controllers`, {
@@ -420,7 +418,6 @@ useEffect(() => {
         })
         .then(async (res) => {
             const data = await res.json();
-            // ป้องกันแอปพัง หากเซิร์ฟเวอร์คืนค่าเป็น Object แจ้งเตือน Error
             if (res.ok && Array.isArray(data)) {
                 setSavedControllers(data);
             } else {
@@ -429,7 +426,7 @@ useEffect(() => {
         })
         .catch(err => {
             console.error("Fetch Controllers Error:", err);
-            setSavedControllers([]); // กันแอปพังกรณีเน็ตหลุด
+            setSavedControllers([]);
         });
     }
   }, [isOpen]);
@@ -657,11 +654,16 @@ ${staffDetails}
     }
 
     if (hasConflict) {
-        playSound('delete');
-        const conflictArray = Array.from(allConflicts);
-        setConflictNames(conflictArray);
+      playSound('delete');
+      const conflictArray = Array.from(allConflicts);
+      setConflictNames(conflictArray);
+        
+      if (!isCreatingNew) {
+        if (onToast) onToast('warning', `แจ้งเตือน: พบรายชื่อติดงานซ้ำซ้อน แต่ระบบอนุญาตให้บันทึก (โหมดแก้ไข)`);
+      } else {
         if (onToast) onToast('error', `พบรายชื่อซ้ำซ้อนเวลาเดียวกัน: ${conflictArray.join(', ')}`);
         return; 
+      }
     }
 
     setConflictNames([]);

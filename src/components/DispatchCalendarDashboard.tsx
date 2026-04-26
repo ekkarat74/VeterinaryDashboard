@@ -34,6 +34,7 @@ export interface ControllerData {
 export interface StaffData {
     _id?: string;
     name: string;
+    role?: 'vet' | 'general';
     controllers?: string[];
 }
 
@@ -484,6 +485,7 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [savedStaffList, setSavedStaffList] = useState<StaffData[]>([]);
     const [isManageStaffOpen, setIsManageStaffOpen] = useState<boolean>(false);
     const [staffNameInput, setStaffNameInput] = useState<string>('');
+    const [staffRoleInput, setStaffRoleInput] = useState<'vet' | 'general'>('general');
     const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
 
     const formRef = useRef<HTMLDivElement | HTMLFormElement | null>(null);
@@ -528,6 +530,7 @@ const DispatchCalendarDashboard: React.FC = () => {
         if (isManageStaffOpen) {
             fetchSavedStaffs();
             setStaffNameInput('');
+            setStaffRoleInput('general');
             setEditingStaffIndex(null);
         }
     }, [isManageStaffOpen]);
@@ -607,7 +610,10 @@ const DispatchCalendarDashboard: React.FC = () => {
             return;
         }
 
-        const payload = { name: staffNameInput.trim() };
+        const payload = { 
+            name: staffNameInput.trim(), 
+            role: staffRoleInput 
+        };
         const isEditing = editingStaffIndex !== null;
         const url = isEditing 
             ? `${BASE_URL}/api/staffs/${savedStaffList[editingStaffIndex]._id}`
@@ -1638,38 +1644,86 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                                 <Users className="w-4 h-4 text-blue-500" />
                                 <span className="text-xs font-bold text-blue-700">{editingStaffIndex !== null ? 'แก้ไขรายชื่อ' : 'เพิ่มรายชื่อใหม่'}</span>
                             </div>
-                            <div className="flex gap-2">
-                                <input type="text" className="flex-1 p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-xs bg-white" value={staffNameInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
-                                <button onClick={handleSaveStaff} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors flex items-center gap-1.5 shrink-0">
-                                    <Plus className="w-3.5 h-3.5"/> {editingStaffIndex !== null ? 'บันทึก' : 'เพิ่ม'}
-                                </button>
+                            <div className="flex flex-col gap-3">
+                                <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-xs bg-white" value={staffNameInput} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
+                                
+                                {/* ✨ ส่วนที่เพิ่ม: Radio Buttons สำหรับเลือกประเภท */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4 px-1">
+                                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                                            <input type="radio" name="staffRole" value="vet" checked={staffRoleInput === 'vet'} onChange={() => setStaffRoleInput('vet')} className="accent-blue-600 w-3.5 h-3.5" />
+                                            สัตวแพทย์
+                                        </label>
+                                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                                            <input type="radio" name="staffRole" value="general" checked={staffRoleInput === 'general'} onChange={() => setStaffRoleInput('general')} className="accent-blue-600 w-3.5 h-3.5" />
+                                            บุคลากรทั่วไป
+                                        </label>
+                                    </div>
+                                    <button onClick={handleSaveStaff} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors flex items-center gap-1.5 shrink-0">
+                                        <Plus className="w-3.5 h-3.5"/> {editingStaffIndex !== null ? 'บันทึก' : 'เพิ่ม'}
+                                    </button>
+                                </div>
                             </div>
+
                             {editingStaffIndex !== null && (
                                 <div className="flex justify-end mt-1">
-                                    <button onClick={() => { setStaffNameInput(''); setEditingStaffIndex(null); }} className="text-[10px] text-slate-500 hover:text-slate-700 underline">ยกเลิกการแก้ไข</button>
+                                    <button onClick={() => { setStaffNameInput(''); setStaffRoleInput('general'); setEditingStaffIndex(null); }} className="text-[10px] text-slate-500 hover:text-slate-700 underline">ยกเลิกการแก้ไข</button>
                                 </div>
                             )}
                         </div>
 
+                        {/* ✨ ส่วนที่แก้ไข: แบ่งกลุ่มแสดงผล สัตวแพทย์ และ บุคลากรทั่วไป */}
                         <div className="mt-5 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[150px]">
                             <h4 className="text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อในระบบ ({savedStaffList.length})</h4>
                             {savedStaffList.length === 0 ? (
                                 <div className="text-center text-slate-400 text-xs py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายชื่อทีมงาน</div>
                             ) : (
-                                <div className="space-y-2">
-                                    {savedStaffList.map((item, idx) => (
-                                        <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingStaffIndex === idx ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                                            <div className="text-xs font-bold text-slate-700">{item.name}</div>
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => { setStaffNameInput(item.name); setEditingStaffIndex(idx); }} className={`p-1.5 rounded-lg transition-colors ${editingStaffIndex === idx ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:bg-slate-100 hover:text-blue-500'}`} title="แก้ไข">
-                                                    <Edit3 className="w-4 h-4"/>
-                                                </button>
-                                                <button onClick={() => handleDeleteStaff(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ">
-                                                    <Trash2 className="w-4 h-4"/>
-                                                </button>
+                                <div className="space-y-4">
+                                    {/* กลุ่มสัตวแพทย์ */}
+                                    {savedStaffList.some(s => s.role === 'vet') && (
+                                        <div>
+                                            <div className="text-[11px] font-bold text-indigo-600 mb-2 flex items-center gap-1.5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> สัตวแพทย์
+                                            </div>
+                                            <div className="space-y-2">
+                                                {savedStaffList.map((item, idx) => {
+                                                    if (item.role !== 'vet') return null;
+                                                    return (
+                                                        <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingStaffIndex === idx ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+                                                            <div className="text-xs font-bold text-slate-700">{item.name}</div>
+                                                            <div className="flex items-center gap-1">
+                                                                <button onClick={() => { setStaffNameInput(item.name); setStaffRoleInput(item.role || 'vet'); setEditingStaffIndex(idx); }} className={`p-1.5 rounded-lg transition-colors ${editingStaffIndex === idx ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:bg-slate-100 hover:text-blue-500'}`} title="แก้ไข"><Edit3 className="w-4 h-4"/></button>
+                                                                <button onClick={() => handleDeleteStaff(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ"><Trash2 className="w-4 h-4"/></button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
-                                    ))}
+                                    )}
+
+                                    {/* กลุ่มบุคลากรทั่วไป */}
+                                    {savedStaffList.some(s => s.role !== 'vet') && (
+                                        <div>
+                                            <div className="text-[11px] font-bold text-slate-600 mb-2 flex items-center gap-1.5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> บุคลากรทั่วไป
+                                            </div>
+                                            <div className="space-y-2">
+                                                {savedStaffList.map((item, idx) => {
+                                                    if (item.role === 'vet') return null;
+                                                    return (
+                                                        <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingStaffIndex === idx ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
+                                                            <div className="text-xs font-bold text-slate-700">{item.name}</div>
+                                                            <div className="flex items-center gap-1">
+                                                                <button onClick={() => { setStaffNameInput(item.name); setStaffRoleInput(item.role || 'general'); setEditingStaffIndex(idx); }} className={`p-1.5 rounded-lg transition-colors ${editingStaffIndex === idx ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:bg-slate-100 hover:text-blue-500'}`} title="แก้ไข"><Edit3 className="w-4 h-4"/></button>
+                                                                <button onClick={() => handleDeleteStaff(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ"><Trash2 className="w-4 h-4"/></button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

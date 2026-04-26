@@ -211,6 +211,7 @@ const Color = mongoose.model('Color', colorSchema);
 // 12. Staff Schema
 const staffMemberSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  role: { type: String, enum: ['vet', 'general'], default: 'general' },
   createdBy: String
 }, { timestamps: true });
 const StaffMember = mongoose.model('StaffMember', staffMemberSchema);
@@ -1049,7 +1050,11 @@ app.post('/api/staffs', authenticateToken, authorizeRole(['Developer', 'MagaAdmi
 
 app.put('/api/staffs/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
-    const updatedStaff = await StaffMember.findByIdAndUpdate(req.params.id, { name: req.body.name }, { new: true });
+    const updatedStaff = await StaffMember.findByIdAndUpdate(
+      req.params.id, 
+      { name: req.body.name, role: req.body.role }, 
+      { new: true }
+    );
     cache.del('staffs');
     res.json(updatedStaff);
   } catch (err) {
