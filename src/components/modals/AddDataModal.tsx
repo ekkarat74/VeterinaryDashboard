@@ -37,6 +37,7 @@ interface FormDataState {
   lat: string | number;
   long: string | number;
   mapLink: string;
+  note: string;
 }
 
 interface CustomUnit {
@@ -85,7 +86,8 @@ const defaultFormData: FormDataState = {
   otherUnit: '',
   lat: '',
   long: '',
-  mapLink: ''
+  mapLink: '',
+  note: ''
 };
 
 const defaultBreakdown: Breakdown = {
@@ -672,6 +674,17 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       disabled={isSubmitting}
                     />
                   </div>
+                </div>
+
+                <div className="md:col-span-12">
+                  <label className={labelClass}>หมายเหตุ</label>
+                  <textarea
+                    placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)..."
+                    className={`${inputClass} min-h-[80px] resize-y`}
+                    value={formData.note}
+                    onChange={e => setFormData({ ...formData, note: e.target.value })}
+                    disabled={isSubmitting}
+                  />
                 </div>
 
                 {/* การ์ดรายการแผนออกหน่วยประจำวัน */}

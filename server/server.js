@@ -97,6 +97,7 @@ const reportSchema = new mongoose.Schema({
   long: { type: Number, default: 0 },
   mapLink: { type: String, default: "" },
   imageUrl: { type: String, default: "" },
+  note: { type: String, default: "" },
   stats: {
     vaccine: { type: Number, default: 0 },
     sterilize: { type: Number, default: 0 },

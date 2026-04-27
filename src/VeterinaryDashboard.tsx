@@ -913,6 +913,7 @@ const handleDeleteDispatch = async (id: string) => {
                 body: JSON.stringify({
                     date: newRecord.date, location: newRecord.location, lat: parseFloat(newRecord.lat), long: parseFloat(newRecord.long),
                     district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, team: newRecord.team, imageUrl: newRecord.imageUrl,
+                    note: newRecord.note,
                     stats: {
                         vaccine: newRecord.stats ? newRecord.stats.vaccine : newRecord.vaccine,
                         sterilize: newRecord.stats ? newRecord.stats.sterilize : newRecord.sterilize,
