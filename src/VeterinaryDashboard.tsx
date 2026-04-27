@@ -342,7 +342,7 @@ export default function VeterinaryDashboard() {
         isChangePasswordOpen, setIsChangePasswordOpen, isLogModalOpen, setIsLogModalOpen,
         isDispatchModalOpen, setIsDispatchModalOpen, isCalendarOpen, setIsCalendarOpen,
         isMeetingModalOpen, setIsMeetingModalOpen, isMeetingListOpen, setIsMeetingListOpen,
-        isMeetingCalendarOpen, setIsMeetingCalendarOpen, isConfirmPasswordOpen, setIsConfirmPasswordOpen,
+        isMeetingCalendarOpen, setIsMeetingCalendarOpen,
         isClearDataModalOpen, setIsClearDataModalOpen,
         user: rawUser, setUser, activeTab, setActiveTab, tabsConfig, setTabsConfig,
         isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
@@ -415,17 +415,7 @@ export default function VeterinaryDashboard() {
         }
     };
 
-    const dispatchEventsOnly = useMemo(() => {
-        const filteredEvents = canViewHiddenDispatches 
-            ? dispatchEvents 
-            : dispatchEvents.filter((d: any) => d.isVisibleToPublic !== false);
 
-        return filteredEvents.map((d: any) => ({
-            ...d, type: 'dispatch', originalData: d
-        }));
-    }, [dispatchEvents, canViewHiddenDispatches]);
-
-    // 1. แก้ไขให้ดึง Token ปลอดภัยขึ้น ไม่ให้เกิด "Bearer undefined"
 const getCurrentToken = () => {
     try {
         const storedUser = localStorage.getItem('vet_user');
@@ -439,7 +429,6 @@ const getCurrentToken = () => {
     return user?.token || '';
 };
 
-// 2. เพิ่มการดักจับเซสชันหมดอายุในตอนโหลดข้อมูล (GET)
 useEffect(() => {
     const fetchDispatches = async () => {
         try {
@@ -455,7 +444,6 @@ useEffect(() => {
                 const data = await res.json();
                 setDispatchEvents(data);
             } else if (res.status === 401 || res.status === 403) {
-                // เคลียร์ session อัตโนมัติหาก Token หมดอายุ
                 addToast('error', "❌ เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
                 setUser(null);
                 localStorage.removeItem('vet_user');
@@ -468,29 +456,7 @@ useEffect(() => {
         }
     };
     fetchDispatches();
-}, [BASE_URL, setDispatchEvents, setUser]); // อย่าลืมเพิ่ม setUser ใน Dependency
-
-    const handleToggleDispatchVisibility = async (id: string, currentStatus: boolean) => {
-    try {
-        const res = await fetch(`${BASE_URL}/api/dispatches/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
-            body: JSON.stringify({ isVisibleToPublic: !currentStatus })
-        });
-        if (res.ok) {
-            addToast('success', currentStatus ? 'ซ่อนหน่วยงานจากประชาชนแล้ว' : 'เปิดหน่วยงานให้ประชาชนเห็นแล้ว');
-        } else if (res.status === 401 || res.status === 403) {
-            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-            setUser(null);
-            localStorage.removeItem('vet_user');
-            setIsLoginModalOpen(true);
-        } else {
-            addToast('error', 'ปรับสถานะไม่สำเร็จ');
-        }
-    } catch (error) {
-        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    }
-};
+}, [BASE_URL, setDispatchEvents, setUser]);
 
     const meetingEventsOnly = useMemo(() => meetings.map((m: any) => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
@@ -1726,7 +1692,6 @@ const handleDeleteDispatch = async (id: string) => {
                                         value={searchDate} 
                                         onChange={(e) => {
                                         setSearchDate(e.target.value);
-                                        // อัปเดต UX: ถ้าเจาะจงวัน ให้เคลียร์ปี/เดือนทิ้ง ป้องกันผู้ใช้สับสน
                                         if (e.target.value) {
                                             setSelectedYear('ทั้งหมด');
                                             setSelectedMonth('ทั้งหมด');
