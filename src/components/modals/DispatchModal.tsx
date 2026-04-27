@@ -72,6 +72,7 @@ export interface EventData {
 export interface StaffMember {
   name: string;
   phone?: string;
+  role?: 'vet' | 'general' | string;
 }
 
 // ==========================================
@@ -157,11 +158,12 @@ interface StaffInputGroupProps {
   conflictNames?: string[];
   allSelectedStaff?: string[];
   busyStaff?: string[];
+  expectedRole?: 'vet' | 'general';
 }
 
 const StaffInputGroup: React.FC<StaffInputGroupProps> = ({ 
   roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, 
-  savedStaffList = [], conflictNames = [], allSelectedStaff = [], busyStaff = [] 
+  savedStaffList = [], conflictNames = [], allSelectedStaff = [], busyStaff = [], expectedRole 
 }) => (
   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:border-indigo-300 hover:shadow-md transition-all duration-200 group/card">
     <div className="bg-slate-50/80 px-3 py-2.5 border-b border-slate-100 flex justify-between items-center group-hover/card:bg-indigo-50/30 transition-colors">
@@ -192,21 +194,27 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
                   onChange={(e) => onChange(roleKey, idx, e.target.value)}
                 >
                   <option value="" disabled className="text-slate-400">-- เลือกรายชื่อ --</option>
-                  {savedStaffList.map((staffMember, i) => {
-                    const isAlreadySelected = allSelectedStaff.includes(staffMember.name) && staffMember.name !== person;
-                    const isBusy = busyStaff.includes(staffMember.name); 
-                    
-                    if (isAlreadySelected) return null;
+                  {savedStaffList
+                    .filter(staffMember => {
+                        // แก้ไขตรงนี้: ถ้าข้อมูลเก่าไม่มีฟิลด์ role ให้ยึดค่าเริ่มต้นเป็น 'general'
+                        const currentRole = staffMember.role || 'general';
+                        return !expectedRole || currentRole === expectedRole;
+                    })
+                    .map((staffMember, i) => {
+                      const isAlreadySelected = allSelectedStaff.includes(staffMember.name) && staffMember.name !== person;
+                      const isBusy = busyStaff.includes(staffMember.name); 
+                      
+                      if (isAlreadySelected) return null;
 
-                    return (
-                      <option 
-                          key={i} 
-                          value={staffMember.name}
-                          className={isBusy ? 'text-slate-300' : ''}
-                      >
-                          {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
-                      </option>
-                    );
+                      return (
+                        <option 
+                            key={i} 
+                            value={staffMember.name}
+                            className={isBusy ? 'text-slate-300' : ''}
+                        >
+                            {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
+                        </option>
+                      );
                   })}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
@@ -244,7 +252,6 @@ const StaffInputGroup: React.FC<StaffInputGroupProps> = ({
     </div>
   </div>
 );
-
 
 // ==========================================
 // 3. Main Component: DispatchModal
@@ -1243,29 +1250,30 @@ ${staffDetails}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <StaffInputGroup roleKey="vets" label="สัตวแพทย์" icon={UserPlus} staffList={staff.vets} {...commonProps} />
-              <StaffInputGroup roleKey="drivers" label="คนขับรถ" icon={Activity} staffList={staff.drivers} {...commonProps} />
+              {/* เปลี่ยนแปลง Props ตรงนี้ทั้งหมด */}
+              <StaffInputGroup expectedRole="vet" roleKey="vets" label="สัตวแพทย์" icon={UserPlus} staffList={staff.vets} {...commonProps} />
+              <StaffInputGroup expectedRole="general" roleKey="drivers" label="คนขับรถ" icon={Activity} staffList={staff.drivers} {...commonProps} />
               
               {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( 
                 <>
                   {(unitType === 'sterilization' || unitType === 'spay_neuter') && ( 
-                    <StaffInputGroup roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
+                    <StaffInputGroup expectedRole="general" roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
                   )}
-                  <StaffInputGroup roleKey="prep_catch" label="จับ/วางยา" staffList={staff.prep_catch} {...commonProps} />
-                  <StaffInputGroup roleKey="prep_shave" label="โกนขน" staffList={staff.prep_shave} {...commonProps} />
-                  <StaffInputGroup roleKey="prep_lift" label="ยกสัตว์" staffList={staff.prep_lift} {...commonProps} />
-                  <StaffInputGroup roleKey="vaccine_staff" label="ฉีดวัคซีน" staffList={staff.vaccine_staff} {...commonProps} />
+                  <StaffInputGroup expectedRole="general" roleKey="prep_catch" label="จับ/วางยา" staffList={staff.prep_catch} {...commonProps} />
+                  <StaffInputGroup expectedRole="general" roleKey="prep_shave" label="โกนขน" staffList={staff.prep_shave} {...commonProps} />
+                  <StaffInputGroup expectedRole="general" roleKey="prep_lift" label="ยกสัตว์" staffList={staff.prep_lift} {...commonProps} />
+                  <StaffInputGroup expectedRole="general" roleKey="vaccine_staff" label="ฉีดวัคซีน" staffList={staff.vaccine_staff} {...commonProps} />
                   
                   {unitType === 'cat_cage' && (
-                    <StaffInputGroup roleKey="tattoo" label="สักตัว" staffList={staff.tattoo} {...commonProps} />
+                    <StaffInputGroup expectedRole="general" roleKey="tattoo" label="สักตัว" staffList={staff.tattoo} {...commonProps} />
                   )}
                   
-                  <StaffInputGroup roleKey="surgery_assist" label="ผู้ช่วยผ่าตัด" staffList={staff.surgery_assist} {...commonProps} />
+                  <StaffInputGroup expectedRole="general" roleKey="surgery_assist" label="ผู้ช่วยผ่าตัด" staffList={staff.surgery_assist} {...commonProps} />
                 </>
               )}
 
               {(unitType !== 'sterilization' && unitType !== 'cat_cage' && unitType !== 'spay_neuter') && (
-                <StaffInputGroup roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={staff.assistants} {...commonProps} />
+                <StaffInputGroup expectedRole="general" roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={staff.assistants} {...commonProps} />
               )}
             </div>
           </div>
