@@ -992,10 +992,8 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     const file = e.target.files?.[0];
                     if (!file) return;
 
-                    // ✅ แก้: setImageFile ทันที
                     setImageFile(file);
 
-                    // ✅ แก้: try/finally เพื่อป้องกัน memory leak
                     const tempUrl = URL.createObjectURL(file);
                     try {
                       setImagePreview(tempUrl);
@@ -1009,7 +1007,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       setImageFile(null);
                       setImagePreview(null);
                     } finally {
-                      URL.revokeObjectURL(tempUrl); // ✅ คืน memory เสมอ
+                      URL.revokeObjectURL(tempUrl);
                     }
                   }}
                 />

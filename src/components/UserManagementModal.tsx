@@ -203,7 +203,6 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
 
     useEffect(() => {
         if (isOpen) fetchUsers();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const fetchUsers = async () => {

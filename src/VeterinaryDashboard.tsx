@@ -912,7 +912,7 @@ const handleDeleteDispatch = async (id: string) => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
                 body: JSON.stringify({
                     date: newRecord.date, location: newRecord.location, lat: parseFloat(newRecord.lat), long: parseFloat(newRecord.long),
-                    district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, team: newRecord.team, imageUrl: newRecord.imageUrl,
+                    district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, team: newRecord.team, imageUrl: newRecord.imageUrl, mapLink: newRecord.mapLink,
                     note: newRecord.note,
                     stats: {
                         vaccine: newRecord.stats ? newRecord.stats.vaccine : newRecord.vaccine,
@@ -928,7 +928,6 @@ const handleDeleteDispatch = async (id: string) => {
                 addToast('success', "✅ บันทึกข้อมูลสำเร็จ!"); 
                 setIsModalOpen(false);
             } else if (response.status === 401 || response.status === 403) {
-                // ดักจับ Token หมดอายุ หรือไม่มีสิทธิ์
                 addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
                 setUser(null);
                 localStorage.removeItem('vet_user');
@@ -939,7 +938,6 @@ const handleDeleteDispatch = async (id: string) => {
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
 
-    // 3. แก้ไขฟังก์ชัน handleUpdateData
     const handleUpdateData = async (id: string, updatedRecord: any) => {
         try {
             const response = await fetch(`${API_URL}/${id}`, {
@@ -950,7 +948,7 @@ const handleDeleteDispatch = async (id: string) => {
             if (response.ok) {
                 addToast('success', "✅ แก้ไขข้อมูลสำเร็จ!");
                 setEditingItem(null);
-                setIsModalOpen(false); // เพิ่มการปิด Modal หลังจากแก้ไขสำเร็จ
+                setIsModalOpen(false);
             } else if (response.status === 401 || response.status === 403) {
                 addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
                 setUser(null);
@@ -962,7 +960,6 @@ const handleDeleteDispatch = async (id: string) => {
         } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
     };
 
-    // 4. แก้ไขฟังก์ชัน handleDeleteData
     const handleDeleteData = async (id: string) => {
         if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?")) {
             try {
