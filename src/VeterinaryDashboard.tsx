@@ -160,7 +160,6 @@ const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }: Ann
     const currentItem = activeAnnouncements[safeIndex];
 
     return (
-        // เปลี่ยน text-sm เป็น text-xs
         <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-xs relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
             <div className="bg-[#6B4BFA] text-white px-3 py-1 rounded-full font-bold text-xs mr-3 shrink-0 z-10 flex items-center gap-2 shadow-sm">
                 <Megaphone className="w-3 h-3" /> PREVIEW
@@ -188,9 +187,8 @@ const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }: Ann
     );
 });
 
-// --- คอมโพเนนต์ Modal สำหรับแก้ไข (Announcement Modal) ---
 const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, onSave }: AnnouncementModalProps) => {
-    // 📌 ใส่ Type <Announcement[]> ให้ useState
+
     const [items, setItems] = useState<Announcement[]>([]);
 
     useEffect(() => {
@@ -199,7 +197,6 @@ const AnnouncementModal = React.memo(({ isOpen, onClose, initialAnnouncements, o
 
     if (!isOpen) return null;
 
-    // 📌 ใส่ Type กำกับให้พารามิเตอร์
     const handleToggle = (id: number) => {
         setItems(items.map(item => item.id === id ? { ...item, isActive: !item.isActive } : item));
     };
@@ -389,7 +386,7 @@ export default function VeterinaryDashboard() {
     // Admin, MagaAdmin, Developer แก้ไขข้อมูลได้ | (User, executive, superadmin ห้ามแก้)
     const canEdit = !!(user && ['Developer', 'MagaAdmin', 'admin'].includes(user.role) && !isReadOnlyMode);
     
-    // User สามารถเพิ่มข้อมูลได้ด้วย
+    // User สามารถเพิ่มข้อมูลได้ แต่ Executive ไม่สามารถเพิ่มได้ (แต่ Executive มองเห็นข้อมูลที่ซ่อนอยู่ได้)
     const canAdd = !!(user && ['Developer', 'MagaAdmin', 'admin', 'user'].includes(user.role) && !isReadOnlyMode);
 
     // สิทธิ์การมองเห็นหน่วยที่ถูกซ่อน (Executive มองเห็นได้ แต่แก้ไม่ได้ถ้าไม่มี canEdit)
@@ -435,7 +432,7 @@ useEffect(() => {
             const token = getCurrentToken();
             const headers: Record<string, string> = {};
             if (token) {
-                headers['Authorization'] = `Bearer ${token}`; // แนบเฉพาะตอนที่มี token
+                headers['Authorization'] = `Bearer ${token}`;
             }
 
             const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
@@ -514,14 +511,12 @@ const handleDeleteDispatch = async (id: string) => {
     useEffect(() => {
         const fetchDispatches = async () => {
             try {
-                // 1. ดึง Token และเตรียม Header
                 const token = getCurrentToken();
                 const headers: Record<string, string> = {};
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
 
-                // 2. แนบ Header ไปกับคำขอ GET
                 const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
                 
                 if (res.ok) {
@@ -544,7 +539,6 @@ const handleDeleteDispatch = async (id: string) => {
         const reader = new FileReader();
         reader.onload = async (event: any) => {
             try {
-                // เรียกใช้ Business Logic จากไฟล์แยก
                 const { bulkData, totalRows } = parseOutbreakCSV(event.target.result);
                 
                 if (totalRows === 0) { alert("ไฟล์ไม่มีข้อมูล"); return; }
@@ -560,8 +554,7 @@ const handleDeleteDispatch = async (id: string) => {
                 const response = await fetch(`${BASE_URL}/api/outbreaks/bulk`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json', 
-                        // 📌 เปลี่ยนจากการใช้ user?.token เป็น getCurrentToken()
+                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${getCurrentToken()}` 
                     },
                     body: JSON.stringify(bulkData)
@@ -640,7 +633,6 @@ const handleDeleteDispatch = async (id: string) => {
 
     useEffect(() => {
         const checkTabVisibility = (tabName: string) => {
-            // 📌 แก้ไข: แปลง type เช่นเดียวกันเพื่อหลีกเลี่ยง Error แบบเดียวกัน
             const config = tabsConfig as Record<string, any>;
 
             if (!user) return config?.[`public_${tabName}`] ?? true;
