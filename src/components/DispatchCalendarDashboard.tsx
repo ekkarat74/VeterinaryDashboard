@@ -1000,14 +1000,22 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
     }, [events]);
 
     const eventsByTeam = useMemo(() => {
-        const grouped: Record<string, EventData[]> = {};
-        selectedDateEvents.forEach(evt => {
-            const teamName = evt.team || 'ไม่ได้ระบุทีม';
-            if (!grouped[teamName]) grouped[teamName] = [];
-            grouped[teamName].push(evt);
-        });
-        return grouped;
-    }, [selectedDateEvents]);
+        const grouped: Record<string, EventData[]> = {};
+        selectedDateEvents.forEach(evt => {
+            const teamName = evt.team?.trim() || '';
+            const unitName = evt.unit || evt.unitName || evt.title || 'ไม่ระบุหน่วย';
+            const locationName = evt.location?.trim() || 'ไม่ระบุสถานที่';
+
+            // คีย์จัดกลุ่ม: แยกตาม "ทีม" -> ถ้าไม่มีให้แยกตาม "หน่วย" -> และต่อท้ายด้วย "สถานที่" เสมอ
+            const groupKey = teamName 
+                ? `team|${teamName}|${locationName}` 
+                : `unit|${unitName}|${locationName}`;
+
+            if (!grouped[groupKey]) grouped[groupKey] = [];
+            grouped[groupKey].push(evt);
+        });
+        return grouped;
+    }, [selectedDateEvents]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-slate-50 overflow-hidden font-sans">
@@ -1477,31 +1485,38 @@ const handleSaveDispatchEvent = async (payload: any, shouldClose = true) => {
                                 </div>
 
                                 {/* Body จำแนกตามทีม (Y-Axis) */}
-                                <div className="overflow-y-auto custom-scrollbar flex-1 relative">
-                                    {Object.entries(eventsByTeam).length === 0 ? (
-                                        <div className="p-10 text-center text-slate-400 text-sm font-medium">ไม่มีตารางงานในวันนี้</div>
-                                    ) : (
-                                        Object.entries(eventsByTeam).map(([team, teamEvents], index) => {
-                                            const firstEvent = teamEvents[0] || {};
-                                            const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
+                                <div className="overflow-y-auto custom-scrollbar flex-1 relative">
+                                    {Object.entries(eventsByTeam).length === 0 ? (
+                                        <div className="p-10 text-center text-slate-400 text-sm font-medium">ไม่มีตารางงานในวันนี้</div>
+                                    ) : (
+                                        Object.entries(eventsByTeam).map(([groupKey, teamEvents], index) => {
+                                            const firstEvent = teamEvents[0] || {};
+                                            const unitName = firstEvent.unit || firstEvent.unitName || firstEvent.title || 'ไม่ระบุหน่วย';
+                                            const teamName = firstEvent.team?.trim() || 'ไม่ได้ระบุทีม';
+                                            const locationName = firstEvent.location?.trim() || 'ไม่ระบุสถานที่';
 
-                                            return (
-                                                <div key={team} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
-                                                    
-                                                    {/* แกน Y (ชื่อทีม) */}
-                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                                                        <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
-                                                            {unitName}
-                                                        </span>
-                                                        <span className="text-xs font-bold text-slate-700 truncate" title={team}>{team}</span>
-                                                        <span className="text-[10px] text-slate-400 mt-0.5">{teamEvents.length} งาน</span>
-                                                    </div>
-                                                    
-                                                    {/* เลนเวลา (Time Lane) */}
-                                                    <div className="flex-1 relative min-h-[60px] py-2">
-                                                        {toLocalISOString(selectedDate) === toLocalISOString(new Date()) && (
-                                                            <TimelineCurrentTimeLine startHour={TIMELINE_START_HOUR} endHour={TIMELINE_END_HOUR} />
-                                                        )}
+                                            return (
+                                                <div key={groupKey} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                                                    
+                                                    {/* แกน Y (ชื่อทีม/หน่วย และ สถานที่) */}
+                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                                                        <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>
+                                                            {unitName}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-slate-700 line-clamp-2" title={teamName}>
+                                                            {teamName}
+                                                        </span>
+                                                        <span className="text-[10px] font-medium text-slate-500 mt-1 line-clamp-2 leading-tight" title={locationName}>
+                                                            📍 {locationName}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 mt-0.5">{teamEvents.length} งาน</span>
+                                                    </div>
+                                                    
+                                                    {/* เลนเวลา (Time Lane) */}
+                                                    <div className="flex-1 relative min-h-[60px] py-2">
+                                                        {toLocalISOString(selectedDate) === toLocalISOString(new Date()) && (
+                                                            <TimelineCurrentTimeLine startHour={TIMELINE_START_HOUR} endHour={TIMELINE_END_HOUR} />
+                                                        )}
 
                                                         {/* เส้น Grid บางๆ */}
                                                         <div className="absolute inset-0 flex pointer-events-none">
