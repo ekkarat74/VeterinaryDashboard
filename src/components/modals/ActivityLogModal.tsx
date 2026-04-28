@@ -35,10 +35,70 @@ interface ActivityLogModalProps {
 
 // --- Components ---
 
+// เพิ่มฟังก์ชันตัวช่วยสำหรับเปรียบเทียบและไฮไลต์ JSON
+const renderDiffJSON = (obj: any, compareObj: any, mode: 'before' | 'after', indentLevel = 1): React.ReactNode => {
+    // กรณีเป็นค่าทั่วไป (Primitive values)
+    if (typeof obj !== 'object' || obj === null) {
+        const isDiff = compareObj === undefined || obj !== compareObj;
+        const valStr = typeof obj === 'string' ? `"${obj}"` : String(obj);
+        
+        // ถ้าค่าต่างกัน ให้ Highlight
+        if (isDiff) {
+            return (
+                <span className={`font-bold px-1 rounded ${mode === 'before' ? 'bg-rose-500/40 text-rose-100' : 'bg-emerald-500/40 text-emerald-100'}`}>
+                    {valStr}
+                </span>
+            );
+        }
+        // ถ้าเหมือนเดิม ให้แสดงสีปกติแยกตาม Type
+        return <span className={typeof obj === 'string' ? 'text-amber-200' : 'text-sky-300'}>{valStr}</span>;
+    }
+
+    // กรณีเป็น Array หรือ Object
+    const isArray = Array.isArray(obj);
+    const keys = Object.keys(obj);
+    const indent = "  ".repeat(indentLevel);
+    const closeIndent = "  ".repeat(indentLevel - 1);
+
+    return (
+        <span>
+            <span className="text-slate-400">{isArray ? '[' : '{'}</span>
+            <br />
+            {keys.map((key, index) => {
+                const val = obj[key];
+                // ดึงค่าเทียบ (ถ้า object อีกฝั่งไม่มี key นี้เลย จะได้ undefined)
+                const compVal = compareObj && typeof compareObj === 'object' ? compareObj[key] : undefined;
+                
+                const isMissingInComp = compVal === undefined;
+                // ไฮไลต์ Key กรณีที่คีย์นี้ถูกเพิ่มมาใหม่ หรือโดนลบออกไป
+                const keyClass = isMissingInComp 
+                    ? `font-bold px-1 rounded ${mode === 'before' ? 'bg-rose-500/40 text-rose-100' : 'bg-emerald-500/40 text-emerald-100'}`
+                    : "text-slate-300";
+
+                return (
+                    <span key={key}>
+                        {indent}
+                        {!isArray && <span className={keyClass}>"{key}"</span>}
+                        {!isArray && <span className="text-slate-400">{": "}</span>}
+                        
+                        {/* เรียกตัวเองซ้ำสำหรับเช็คข้อมูลชั้นที่ลึกลงไป */}
+                        {renderDiffJSON(val, compVal, mode, indentLevel + 1)}
+                        
+                        {index < keys.length - 1 && <span className="text-slate-400">{","}</span>}
+                        <br />
+                    </span>
+                );
+            })}
+            {closeIndent}
+            <span className="text-slate-400">{isArray ? ']' : '}'}</span>
+        </span>
+    );
+};
+
+// อัปเดต Component LogDetailModal ให้เรียกใช้ตัว Helper ด้านบน
 const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }) => {
     if (!isOpen || !data) return null;
 
-    // เช็คว่ามีโครงสร้าง before/after หรือไม่
     const isDiffView = data.before && data.after;
 
     return (
@@ -51,7 +111,7 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }
                         </div>
                         <div>
                             <h3 className="font-bold text-slate-800">รายละเอียดข้อมูล</h3>
-                            <p className="text-xs text-slate-500">Data Payload (JSON)</p>
+                            <p className="text-xs text-slate-500">Data Payload (JSON Diff)</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
@@ -59,34 +119,36 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }
                     </button>
                 </div>
                 
-                {/* เนื้อหาการแสดงผล JSON */}
                 <div className="p-0 overflow-auto bg-[#1e1e1e] flex-1 custom-scrollbar">
                     {isDiffView ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-700 min-h-full">
-                            {/* ฝั่งซ้าย: ข้อมูลเก่า */}
+                            {/* ฝั่งซ้าย: ข้อมูลเก่า (เทียบกับใหม่ เพื่อไฮไลต์แดง) */}
                             <div className="p-6">
                                 <div className="flex items-center gap-2 mb-3 text-rose-400 font-bold text-sm bg-rose-500/10 px-3 py-1.5 rounded-lg w-fit">
                                     <div className="w-2 h-2 rounded-full bg-rose-500"></div> ข้อมูลก่อนแก้ไข
                                 </div>
-                                <pre className="text-[12px] font-mono text-rose-300 leading-relaxed whitespace-pre-wrap">
-                                    {JSON.stringify(data.before, null, 2)}
+                                <pre className="text-[13px] font-mono leading-relaxed whitespace-pre-wrap">
+                                    {renderDiffJSON(data.before, data.after, 'before')}
                                 </pre>
                             </div>
-                            {/* ฝั่งขวา: ข้อมูลใหม่ */}
+                            
+                            {/* ฝั่งขวา: ข้อมูลใหม่ (เทียบกับเก่า เพื่อไฮไลต์เขียว) */}
                             <div className="p-6 bg-[#252525]">
                                 <div className="flex items-center gap-2 mb-3 text-emerald-400 font-bold text-sm bg-emerald-500/10 px-3 py-1.5 rounded-lg w-fit">
                                     <div className="w-2 h-2 rounded-full bg-emerald-500"></div> ข้อมูลหลังแก้ไข
                                 </div>
-                                <pre className="text-[12px] font-mono text-emerald-300 leading-relaxed whitespace-pre-wrap">
-                                    {JSON.stringify(data.after, null, 2)}
+                                <pre className="text-[13px] font-mono leading-relaxed whitespace-pre-wrap">
+                                    {renderDiffJSON(data.after, data.before, 'after')}
                                 </pre>
                             </div>
                         </div>
                     ) : (
-                        /* กรณีไม่มี before/after (ข้อมูลจากการ Create) */
-                        <pre className="text-[13px] font-mono text-emerald-400 p-6 leading-relaxed">
-                            {JSON.stringify(data, null, 2)}
-                        </pre>
+                        <div className="p-6">
+                            <pre className="text-[13px] font-mono leading-relaxed whitespace-pre-wrap">
+                                {/* ใช้เปรียบเทียบกับตัวเองเพื่อให้แสดงสีแบบไม่มี highlight diff */}
+                                {renderDiffJSON(data, data, 'after')}
+                            </pre>
+                        </div>
                     )}
                 </div>
                 
@@ -100,8 +162,9 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }
     );
 };
 
+
 const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onClose, token, apiBaseUrl, currentUserRole }) => {
-    // กำหนด Type ให้กับ State
+
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [selectedLogData, setSelectedLogData] = useState<Record<string, any> | null>(null);

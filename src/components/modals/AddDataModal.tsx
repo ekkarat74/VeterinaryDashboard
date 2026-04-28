@@ -99,7 +99,7 @@ const defaultBreakdown: Breakdown = {
 };
 
 // ==============================
-// 3. Helper Functions (แก้ไขส่วนนี้)
+// 3. Helper Functions
 // ==============================
 
 const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<string> => {
@@ -212,7 +212,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       const [unitsRes, dispatchRes, reportsRes] = await Promise.all([
         fetch(`${BASE_URL}/api/custom-units`),
         fetch(`${BASE_URL}/api/dispatches`),
-        fetch(`${BASE_URL}/api/reports?limit=1000`) // <-- เพิ่ม: ดึงข้อมูลเก่ามาเตรียม Autocomplete
+        fetch(`${BASE_URL}/api/reports?limit=1000`)
       ]);
       if (unitsRes.ok) {
         const data = await unitsRes.json();
@@ -224,7 +224,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       }
       if (reportsRes.ok) {
         const rData = await reportsRes.json();
-        setPastLocations(Array.isArray(rData) ? rData : (rData.data || [])); // <-- เพิ่ม: เก็บข้อมูลเก่า
+        setPastLocations(Array.isArray(rData) ? rData : (rData.data || []));
       }
     } catch (error) {
       console.error("Fetch data error", error);
@@ -248,11 +248,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       setEditingUnitId(null);
       setEditingUnitName("");
       setExistingReports([]);
-      // ---------- เพิ่มบรรทัดด้านล่างนี้ ----------
       setLocationSuggestions([]);
       setShowLocationDropdown(false);
-      setPastLocations([]); 
-      // --------------------------------------
+      setPastLocations([]);
     }
   }, [isOpen]);
 
@@ -263,7 +261,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
         const res = await fetch(`${BASE_URL}/api/reports?startDate=${formData.date}&endDate=${formData.date}`);
         if (res.ok) {
           const data = await res.json();
-          // นำข้อมูลที่เคยบันทึกแล้วในวันนั้นมาเก็บใน State
           setExistingReports(Array.isArray(data) ? data : (data.data || []));
         }
       } catch (error) {
@@ -298,7 +295,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     let newLng = dispatch.lng || formData.long;
     let newMapLink = dispatch.mapLink || formData.mapLink;
 
-    // เพิ่มการตรวจสอบ: ถ้าลิงก์แผนที่เป็นแค่พิกัด (เช่น 13.xxx, 100.xxx) ให้ย้ายไปช่องพิกัด
     if (newMapLink && /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(newMapLink.trim())) {
         const parts = newMapLink.split(',');
         newLat = parseFloat(parts[0].trim());
