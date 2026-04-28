@@ -158,6 +158,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
   const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 
+  const [pastLocations, setPastLocations] = useState<any[]>([]); 
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [showLocationDropdown, setShowLocationDropdown] = useState<boolean>(false);
+
   const getUserToken = (): string => {
     const user = localStorage.getItem('vet_user');
     if (user) {
@@ -178,9 +182,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
   const fetchData = async () => {
     try {
-      const [unitsRes, dispatchRes] = await Promise.all([
+      const [unitsRes, dispatchRes, reportsRes] = await Promise.all([
         fetch(`${BASE_URL}/api/custom-units`),
-        fetch(`${BASE_URL}/api/dispatches`)
+        fetch(`${BASE_URL}/api/dispatches`),
+        fetch(`${BASE_URL}/api/reports?limit=1000`) // <-- เพิ่ม: ดึงข้อมูลเก่ามาเตรียม Autocomplete
       ]);
       if (unitsRes.ok) {
         const data = await unitsRes.json();
@@ -189,6 +194,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       if (dispatchRes.ok) {
         const dData = await dispatchRes.json();
         setAllDispatches(Array.isArray(dData) ? dData : []);
+      }
+      if (reportsRes.ok) {
+        const rData = await reportsRes.json();
+        setPastLocations(Array.isArray(rData) ? rData : (rData.data || [])); // <-- เพิ่ม: เก็บข้อมูลเก่า
       }
     } catch (error) {
       console.error("Fetch data error", error);
@@ -211,6 +220,11 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       setEditingUnitId(null);
       setEditingUnitName("");
       setExistingReports([]);
+      // ---------- เพิ่มบรรทัดด้านล่างนี้ ----------
+      setLocationSuggestions([]);
+      setShowLocationDropdown(false);
+      setPastLocations([]); 
+      // --------------------------------------
     }
   }, [isOpen]);
 
@@ -252,14 +266,23 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   }, [allDispatches, formData.date]);
 
   const handleUseDispatchData = (dispatch: DispatchType) => {
-    const newLat = dispatch.lat || formData.lat;
-    const newLng = dispatch.lng || formData.long;
+    let newLat = dispatch.lat || formData.lat;
+    let newLng = dispatch.lng || formData.long;
+    let newMapLink = dispatch.mapLink || formData.mapLink;
+
+    // เพิ่มการตรวจสอบ: ถ้าลิงก์แผนที่เป็นแค่พิกัด (เช่น 13.xxx, 100.xxx) ให้ย้ายไปช่องพิกัด
+    if (newMapLink && /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(newMapLink.trim())) {
+        const parts = newMapLink.split(',');
+        newLat = parseFloat(parts[0].trim());
+        newLng = parseFloat(parts[1].trim());
+        newMapLink = '';
+    }
 
     setFormData(prev => ({
       ...prev,
       location: dispatch.location || prev.location,
       district: dispatch.district || prev.district,
-      mapLink: dispatch.mapLink || prev.mapLink,
+      mapLink: newMapLink,
       lat: newLat,
       long: newLng
     }));
@@ -549,7 +572,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                 </div>
 
                 {/* สถานที่ */}
-                <div className="md:col-span-5">
+                <div className="md:col-span-5 relative">
                   <label className={labelClass}>สถานที่</label>
                   <div className="flex gap-2">
                     <input
@@ -559,9 +582,40 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       className={inputClass}
                       value={formData.location}
                       onChange={e => {
-                        setFormData({ ...formData, location: e.target.value });
+                        const val = e.target.value;
+                        setFormData({ ...formData, location: val });
                         setFoundDispatch(null);
+
+                        if (val.trim()) {
+                          const query = val.toLowerCase();
+                          // รวมข้อมูลจากที่เคยบันทึกแล้ว (มีแขวง) + แผนใหม่
+                          const combined = [...pastLocations, ...allDispatches];
+                          const matches = combined.filter(d => d.location?.toLowerCase().includes(query));
+                          
+                          // กรองไม่ให้ชื่อซ้ำ โดยให้ความสำคัญกับข้อมูลเก่าที่มี "แขวง" 
+                          const uniqueMap = new Map();
+                          matches.forEach(m => {
+                            if (!uniqueMap.has(m.location)) {
+                              uniqueMap.set(m.location, m);
+                            } else {
+                              if (m.subdistrict && !uniqueMap.get(m.location).subdistrict) {
+                                uniqueMap.set(m.location, m);
+                              }
+                            }
+                          });
+                          
+                          setLocationSuggestions(Array.from(uniqueMap.values()).slice(0, 6));
+                          setShowLocationDropdown(true);
+                        } else {
+                          setShowLocationDropdown(false);
+                        }
                       }}
+                      onFocus={() => {
+                        if (formData.location.trim() && locationSuggestions.length > 0) {
+                          setShowLocationDropdown(true);
+                        }
+                      }}
+                      onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                       disabled={isSubmitting}
                     />
                     <button
@@ -574,6 +628,70 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       <Search className="w-5 h-5" />
                     </button>
                   </div>
+
+                  {/* Dropdown Autocomplete */}
+                  {showLocationDropdown && locationSuggestions.length > 0 && (
+                    <div className="absolute z-[60] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                      {locationSuggestions.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="px-4 py-3 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+                          onMouseDown={(e) => {
+                            e.preventDefault(); 
+                            
+                            // จัดเตรียมพิกัด (รองรับทั้ง long จากประวัติเดิม และ lng จากแผนหน่วย)
+                            let newLat = item.lat || formData.lat;
+                            let newLng = item.long || item.lng || formData.long;
+                            let newMapLink = item.mapLink || '';
+                            let newSubdistrict = item.subdistrict || '';
+
+                            // เช็คป้องกันถ้ามีคนเผลอเอาตัวเลขพิกัดไปใส่ในช่อง Map Link ในฐานข้อมูล 
+                            if (newMapLink && /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(newMapLink.trim())) {
+                                const parts = newMapLink.split(',');
+                                newLat = parseFloat(parts[0].trim());
+                                newLng = parseFloat(parts[1].trim());
+                                newMapLink = ''; // ล้างลิงก์ทิ้งเพราะมันคือพิกัด
+                            }
+
+                            // เตรียมประเภทหน่วยงาน
+                            let matchedUnit = formData.unit;
+                            if (item.unit && allUnitOptions.includes(item.unit)) {
+                              matchedUnit = item.unit;
+                            } else if (item.title && allUnitOptions.includes(item.title)) {
+                              matchedUnit = item.title;
+                            }
+
+                            // นำค่าทั้งหมดไปเติมลง Form
+                            setFormData(prev => ({
+                              ...prev,
+                              location: item.location || prev.location,
+                              unit: matchedUnit,
+                              district: item.district || prev.district,
+                              subdistrict: newSubdistrict, 
+                              mapLink: newMapLink,
+                              lat: newLat,
+                              long: newLng
+                            }));
+
+                            // อัปเดตช่อง Input พิกัดโชว์ให้ตรง
+                            if (newLat || newLng) {
+                              setCoordInput(`${newLat || ''}, ${newLng || ''}`);
+                            }
+
+                            setShowLocationDropdown(false);
+                            if (onToast) onToast('success', 'กรอกข้อมูลสถานที่อัตโนมัติเรียบร้อย');
+                          }}
+                        >
+                          <div className="text-sm font-bold text-slate-700">{item.location}</div>
+                          <div className="text-xs text-slate-500 flex flex-wrap gap-2 mt-1">
+                            {item.district && <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/> เขต{item.district}</span>}
+                            {item.subdistrict && <span className="text-gray-500">แขวง{item.subdistrict}</span>}
+                            {(item.unit || item.title) && <span className="text-indigo-500 font-bold">{item.unit || item.title}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* เขต */}
