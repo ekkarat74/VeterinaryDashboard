@@ -37,9 +37,13 @@ interface ActivityLogModalProps {
 
 const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }) => {
     if (!isOpen || !data) return null;
+
+    // เช็คว่ามีโครงสร้าง before/after หรือไม่
+    const isDiffView = data.before && data.after;
+
     return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200">
                 <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -55,13 +59,38 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, data }
                     </button>
                 </div>
                 
-                <div className="p-0 overflow-auto bg-[#1e1e1e] custom-scrollbar">
-                    <pre className="text-[13px] font-mono text-emerald-400 p-6 leading-relaxed">
-                        {JSON.stringify(data, null, 2)}
-                    </pre>
+                {/* เนื้อหาการแสดงผล JSON */}
+                <div className="p-0 overflow-auto bg-[#1e1e1e] flex-1 custom-scrollbar">
+                    {isDiffView ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-700 min-h-full">
+                            {/* ฝั่งซ้าย: ข้อมูลเก่า */}
+                            <div className="p-6">
+                                <div className="flex items-center gap-2 mb-3 text-rose-400 font-bold text-sm bg-rose-500/10 px-3 py-1.5 rounded-lg w-fit">
+                                    <div className="w-2 h-2 rounded-full bg-rose-500"></div> ข้อมูลก่อนแก้ไข
+                                </div>
+                                <pre className="text-[12px] font-mono text-rose-300 leading-relaxed whitespace-pre-wrap">
+                                    {JSON.stringify(data.before, null, 2)}
+                                </pre>
+                            </div>
+                            {/* ฝั่งขวา: ข้อมูลใหม่ */}
+                            <div className="p-6 bg-[#252525]">
+                                <div className="flex items-center gap-2 mb-3 text-emerald-400 font-bold text-sm bg-emerald-500/10 px-3 py-1.5 rounded-lg w-fit">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div> ข้อมูลหลังแก้ไข
+                                </div>
+                                <pre className="text-[12px] font-mono text-emerald-300 leading-relaxed whitespace-pre-wrap">
+                                    {JSON.stringify(data.after, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
+                    ) : (
+                        /* กรณีไม่มี before/after (ข้อมูลจากการ Create) */
+                        <pre className="text-[13px] font-mono text-emerald-400 p-6 leading-relaxed">
+                            {JSON.stringify(data, null, 2)}
+                        </pre>
+                    )}
                 </div>
                 
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
                     <button onClick={onClose} className="px-5 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-bold shadow-sm transition-all">
                         ปิดหน้าต่าง
                     </button>

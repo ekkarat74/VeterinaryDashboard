@@ -99,10 +99,10 @@ const defaultBreakdown: Breakdown = {
 };
 
 // ==============================
-// 3. Helper Functions
+// 3. Helper Functions (แก้ไขส่วนนี้)
 // ==============================
 
-const compressImage = (file: File, maxWidth = 1200, quality = 0.75): Promise<string> => {
+const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -112,15 +112,41 @@ const compressImage = (file: File, maxWidth = 1200, quality = 0.75): Promise<str
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
+        
         if (width > maxWidth) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
         }
+        
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d')!;
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+
+        let quality = 0.9; // เริ่มต้นที่คุณภาพ 90%
+        // แปลงภาพเป็นฟอร์แมต WebP
+        let dataUrl = canvas.toDataURL('image/webp', quality);
+        let sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+
+        // วนลูปลดคุณภาพลงทีละ 10% (0.1) จนกว่าจะ <= 100 KB (ต่ำสุดที่คุณภาพ 10%)
+        while (sizeKB > targetKB && quality > 0.1) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/webp', quality);
+          sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+        }
+
+        // หากลดคุณภาพเหลือ 10% แล้วขนาดยังเกิน 100 KB ให้เริ่มลดขนาดความกว้าง/ยาวของภาพลงทีละ 20%
+        while (sizeKB > targetKB && width > 300) {
+          width *= 0.8;
+          height *= 0.8;
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          dataUrl = canvas.toDataURL('image/webp', quality);
+          sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+        }
+
+        resolve(dataUrl);
       };
       img.onerror = reject;
     };
@@ -141,6 +167,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   const [coordInput, setCoordInput] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageSizeKB, setImageSizeKB] = useState<number | null>(null);
 
   const [showDistrictDropdown, setShowDistrictDropdown] = useState<boolean>(false);
 
@@ -214,6 +241,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       setCoordInput("");
       setImagePreview(null);
       setImageFile(null);
+      setImageSizeKB(null);
       setFoundDispatch(null);
       setAllDispatches([]);
       setIsManagingUnits(false);
@@ -588,11 +616,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
                         if (val.trim()) {
                           const query = val.toLowerCase();
-                          // รวมข้อมูลจากที่เคยบันทึกแล้ว (มีแขวง) + แผนใหม่
                           const combined = [...pastLocations, ...allDispatches];
                           const matches = combined.filter(d => d.location?.toLowerCase().includes(query));
                           
-                          // กรองไม่ให้ชื่อซ้ำ โดยให้ความสำคัญกับข้อมูลเก่าที่มี "แขวง" 
                           const uniqueMap = new Map();
                           matches.forEach(m => {
                             if (!uniqueMap.has(m.location)) {
@@ -639,21 +665,18 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                           onMouseDown={(e) => {
                             e.preventDefault(); 
                             
-                            // จัดเตรียมพิกัด (รองรับทั้ง long จากประวัติเดิม และ lng จากแผนหน่วย)
                             let newLat = item.lat || formData.lat;
                             let newLng = item.long || item.lng || formData.long;
                             let newMapLink = item.mapLink || '';
                             let newSubdistrict = item.subdistrict || '';
 
-                            // เช็คป้องกันถ้ามีคนเผลอเอาตัวเลขพิกัดไปใส่ในช่อง Map Link ในฐานข้อมูล 
                             if (newMapLink && /^[-+]?\d{1,2}\.\d+,\s*[-+]?\d{1,3}\.\d+$/.test(newMapLink.trim())) {
                                 const parts = newMapLink.split(',');
                                 newLat = parseFloat(parts[0].trim());
                                 newLng = parseFloat(parts[1].trim());
-                                newMapLink = ''; // ล้างลิงก์ทิ้งเพราะมันคือพิกัด
+                                newMapLink = '';
                             }
 
-                            // เตรียมประเภทหน่วยงาน
                             let matchedUnit = formData.unit;
                             if (item.unit && allUnitOptions.includes(item.unit)) {
                               matchedUnit = item.unit;
@@ -661,7 +684,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                               matchedUnit = item.title;
                             }
 
-                            // นำค่าทั้งหมดไปเติมลง Form
                             setFormData(prev => ({
                               ...prev,
                               location: item.location || prev.location,
@@ -673,7 +695,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                               long: newLng
                             }));
 
-                            // อัปเดตช่อง Input พิกัดโชว์ให้ตรง
                             if (newLat || newLng) {
                               setCoordInput(`${newLat || ''}, ${newLng || ''}`);
                             }
@@ -1115,27 +1136,47 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     const tempUrl = URL.createObjectURL(file);
                     try {
                       setImagePreview(tempUrl);
-                      const compressed = await compressImage(file, 1200, 0.75);
+                      
+                      const compressed = await compressImage(file, 100, 1200);
+                      
                       const originalKB = Math.round(file.size / 1024);
                       const compressedKB = Math.round((compressed.length * 3) / 4 / 1024);
+                      
                       setImagePreview(compressed);
-                      if (onToast) onToast('success', `✅ บีบอัดรูปสำเร็จ: ${originalKB}KB → ${compressedKB}KB`);
+                      setImageSizeKB(compressedKB); // <-- บันทึกขนาดไฟล์ลง State
+                      
+                      if (onToast) onToast('success', `✅ แปลงไฟล์ WebP และบีบอัดสำเร็จ: ${originalKB}KB → ${compressedKB}KB`);
                     } catch (err) {
                       if (onToast) onToast('error', '❌ ไม่สามารถประมวลผลรูปภาพได้');
                       setImageFile(null);
                       setImagePreview(null);
+                      setImageSizeKB(null);
                     } finally {
                       URL.revokeObjectURL(tempUrl);
                     }
                   }}
                 />
+                
+                {/* ส่วนแสดงผลรูปภาพและขนาดไฟล์ */}
                 {imagePreview && (
                   <div className="mt-2 relative inline-block">
                     <img src={imagePreview} alt="Preview" className="h-32 rounded-lg object-cover border border-slate-200" />
+                    
+                    {/* ป้ายแสดงขนาดไฟล์ */}
+                    {imageSizeKB && (
+                      <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-sm shadow-sm">
+                        {imageSizeKB} KB
+                      </div>
+                    )}
+                    
                     <button
                       type="button"
-                      onClick={() => { setImageFile(null); setImagePreview(null); }}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                      onClick={() => { 
+                        setImageFile(null); 
+                        setImagePreview(null); 
+                        setImageSizeKB(null); // เคลียร์ขนาดเมื่อลบรูป
+                      }}
+                      className="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 shadow-md transition-colors"
                     >
                       <X className="w-3 h-3" />
                     </button>

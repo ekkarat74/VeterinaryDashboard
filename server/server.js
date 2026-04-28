@@ -515,16 +515,21 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
 
 app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
+    // 1. ดึงข้อมูลเก่าออกมาก่อน
+    const oldReport = await Report.findById(req.params.id).lean();
+    if (!oldReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+
+    // 2. อัปเดตข้อมูลใหม่
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id,
       { ...req.body, updatedBy: req.user.username },
       { new: true }
-    );
-    if (!updatedReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+    ).lean();
 
-    createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id}`, updatedReport);
+    // 3. บันทึกลง Log แบบมี Before / After
+    createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id}`, { before: oldReport, after: updatedReport });
+    
     invalidateReportCache();
-
     io.emit('server_data_update', { type: 'REPORT_UPDATED', data: updatedReport });
     res.json(updatedReport);
   } catch (err) {
@@ -610,12 +615,17 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
 
 app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
-    const updatedOutbreak = await Outbreak.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+    // 1. ดึงข้อมูลเก่า
+    const oldOutbreak = await Outbreak.findById(req.params.id).lean();
+    if (!oldOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    createLog(req, 'UPDATE_OUTBREAK', `แก้ไขจุดแจ้งเหตุ: ${updatedOutbreak.location}`, updatedOutbreak);
+    // 2. อัปเดตข้อมูลใหม่
+    const updatedOutbreak = await Outbreak.findByIdAndUpdate(req.params.id, req.body, { new: true }).lean();
+
+    // 3. บันทึกลง Log
+    createLog(req, 'UPDATE_OUTBREAK', `แก้ไขจุดแจ้งเหตุ: ${updatedOutbreak.location}`, { before: oldOutbreak, after: updatedOutbreak });
+    
     invalidateOutbreakCache();
-
     io.emit('server_data_update', { type: 'OUTBREAK_UPDATED', data: updatedOutbreak });
     res.json(updatedOutbreak);
   } catch (err) {
@@ -717,10 +727,13 @@ app.post('/api/meetings', authenticateToken, authorizeRole(['Developer', 'MagaAd
 
 app.put('/api/meetings/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin']), async (req, res) => {
   try {
-    const updatedMeeting = await Meeting.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedMeeting) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+    const oldMeeting = await Meeting.findById(req.params.id).lean();
+    if (!oldMeeting) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    createLog(req, 'UPDATE_MEETING', `แก้ไขนัดหมายประชุม: ${updatedMeeting.title}`);
+    const updatedMeeting = await Meeting.findByIdAndUpdate(req.params.id, req.body, { new: true }).lean();
+
+    createLog(req, 'UPDATE_MEETING', `แก้ไขนัดหมายประชุม: ${updatedMeeting.title}`, { before: oldMeeting, after: updatedMeeting });
+    
     cache.del('meetings');
     io.emit('server_data_update', { type: 'MEETING_UPDATED', data: updatedMeeting });
     res.json(updatedMeeting);

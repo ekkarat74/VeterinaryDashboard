@@ -397,15 +397,17 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         return canvas;
     };
 
-    // 2. ฟังก์ชัน ดาวน์โหลด JPG
-    const handleDownloadJpg = async (item: DataItem) => {
+    // 2. ฟังก์ชัน ดาวน์โหลด WebP (แก้ไขชื่อและนามสกุลไฟล์)
+    const handleDownloadWebp = async (item: DataItem) => {
         if (isGeneratingDocument) return;
         setIsGeneratingDocument(true);
         try {
             const canvas = await generateImageCanvas(item);
             const link = document.createElement('a');
-            link.download = `รายงาน_${item.location || 'เอกสาร'}.jpg`;
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            // เปลี่ยนนามสกุลไฟล์เป็น .webp
+            link.download = `รายงาน_${item.location || 'เอกสาร'}.webp`;
+            // เปลี่ยนจาก 'image/jpeg' เป็น 'image/webp'
+            link.href = canvas.toDataURL('image/webp', 0.9);
             link.click();
         } catch (error) {
             console.error('Error generating image:', error);
@@ -415,7 +417,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         }
     };
 
-    // 3. ฟังก์ชัน แชร์เข้า LINE
+    // 3. ฟังก์ชัน แชร์เข้า LINE (แก้ไขชนิดไฟล์ที่แชร์)
     const handleShareLine = async (item: DataItem) => {
         if (isGeneratingDocument) return;
         setIsGeneratingDocument(true);
@@ -423,7 +425,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             const canvas = await generateImageCanvas(item);
             
             const blob = await new Promise<Blob | null>((resolve) => {
-                canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
+                // เปลี่ยนจาก 'image/jpeg' เป็น 'image/webp'
+                canvas.toBlob((b) => resolve(b), 'image/webp', 0.9);
             });
 
             if (!blob) {
@@ -431,8 +434,10 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 return;
             }
 
-            const fileName = `รายงาน_${item.location || 'เอกสาร'}.jpg`;
-            const file = new File([blob], fileName, { type: 'image/jpeg' });
+            // เปลี่ยนนามสกุลไฟล์เป็น .webp
+            const fileName = `รายงาน_${item.location || 'เอกสาร'}.webp`;
+            // เปลี่ยน type เป็น 'image/webp'
+            const file = new File([blob], fileName, { type: 'image/webp' });
 
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
@@ -470,7 +475,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 {totalPages > 1 && (
                     <div className="flex rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                         <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
-                            หน้าแรก
+                            Frist
                         </button>
                         <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
                             &laquo;
@@ -491,7 +496,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                             &raquo;
                         </button>
                         <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors">
-                            หน้าสุดท้าย
+                            Last
                         </button>
                     </div>
                 )}
@@ -655,7 +660,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                                     <button onClick={() => handlePrint(item)} className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-md transition-colors" title="พิมพ์เอกสาร">
                                                         <Printer className="w-4 h-4"/>
                                                     </button>
-                                                    <button onClick={() => handleDownloadJpg(item)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="ดาวน์โหลด">
+                                                    <button onClick={() => handleDownloadWebp(item)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="ดาวน์โหลด">
                                                         <Download className="w-4 h-4"/>
                                                     </button>
                                                     <button onClick={() => handleShareLine(item)} className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors" title="แชร์ LINE">
