@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Skull, X, Navigation, MapPin, Activity, Edit, Siren, Calendar, Map, ClipboardList, PawPrint } from 'lucide-react';
-import { BANGKOK_DISTRICTS } from '../../constants/locations';
+import { BANGKOK_DISTRICTS, BANGKOK_SUBDISTRICTS } from '../../constants/locations';
 
-// --- Types & Interfaces (คงเดิม) ---
+// --- Types & Interfaces ---
 interface GenderStats { male: number; female: number; }
 interface AnimalStats { dog: GenderStats; cat: GenderStats; }
 interface BaseStats { owned: AnimalStats; unowned: AnimalStats; feeder: AnimalStats; }
@@ -10,7 +10,7 @@ interface InsightData {
   spcc: string; testNo: string; animalType: string; ownership: string; gender: string; breed: string; color: string; age: string; vaccineHistory: string;
 }
 interface FormData {
-  date: string; location: string; district: string; lat: string; long: string; stats: BaseStats; insight: InsightData;
+  date: string; location: string; district: string; subdistrict: string; lat: string; long: string; stats: BaseStats; insight: InsightData;
 }
 interface PayloadData extends Omit<FormData, 'lat' | 'long'> { lat: number; long: number; }
 interface InitialData extends Partial<PayloadData> { _id: string; }
@@ -46,15 +46,25 @@ const CATEGORIES: CategoryItem[] = [
   { key: 'feeder', label: 'สัตว์มีผู้ให้อาหาร', badge: '🥣', color: 'bg-emerald-50 border-emerald-200 text-emerald-800' }
 ];
 
+const InputGroup = ({ label, children, required = false }: { label: string, children: React.ReactNode, required?: boolean }) => (
+  <div className="flex flex-col gap-1.5">
+    <label className="text-sm font-semibold text-slate-700 flex items-center gap-1">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    {children}
+  </div>
+);
+
 // --- Component ---
 const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({ 
-    isOpen, onClose, onSave, onUpdate, initialData, onToast, breeds = [], colors = [] 
+  isOpen, onClose, onSave, onUpdate, initialData, onToast, breeds = [], colors = [] 
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'insight' | 'stats'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'stats'>('general');
   const [formData, setFormData] = useState<FormData>({
     date: new Date().toISOString().split('T')[0],
     location: '',
     district: BANGKOK_DISTRICTS[0] || '',
+    subdistrict: '',
     lat: '',
     long: '',
     stats: DEFAULT_STATS,
@@ -63,6 +73,8 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
 
   const [coordInput, setCoordInput] = useState<string>("");
   const [showDistrictDropdown, setShowDistrictDropdown] = useState<boolean>(false);
+  const [showBreedDropdown, setShowBreedDropdown] = useState<boolean>(false);
+  const [showColorDropdown, setShowColorDropdown] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,6 +84,7 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
           date: initialData.date || new Date().toISOString().split('T')[0],
           location: initialData.location || '',
           district: initialData.district || BANGKOK_DISTRICTS[0] || '',
+          subdistrict: initialData.subdistrict || '',
           lat: initialData.lat ? initialData.lat.toString() : '',
           long: initialData.long ? initialData.long.toString() : '',
           stats: {
@@ -101,6 +114,7 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
           date: new Date().toISOString().split('T')[0],
           location: '',
           district: BANGKOK_DISTRICTS[0] || '',
+          subdistrict: '',
           lat: '',
           long: '',
           stats: DEFAULT_STATS,
@@ -156,16 +170,6 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Reusable Input Wrapper
-  const InputGroup = ({ label, children, required = false }: { label: string, children: React.ReactNode, required?: boolean }) => (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-slate-700 flex items-center gap-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-0 sm:p-4 animate-in fade-in">
       <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90dvh] overflow-hidden">
@@ -186,8 +190,7 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
         {/* Tabs */}
         <div className="flex border-b border-slate-200 px-2 sm:px-6 bg-slate-50/50 shrink-0 overflow-x-auto custom-scrollbar">
           {[
-            { id: 'general', label: 'สถานที่ & เวลา', icon: Map },
-            { id: 'insight', label: 'ข้อมูลเชิงลึก', icon: ClipboardList },
+            { id: 'general', label: 'ข้อมูลทั่วไป', icon: ClipboardList },
             { id: 'stats', label: 'สถิติกลุ่มเสี่ยง', icon: PawPrint }
           ].map(tab => (
             <button
@@ -210,105 +213,74 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
         <div className="overflow-y-auto p-5 sm:p-6 flex-1 custom-scrollbar">
           <form id="outbreak-form" onSubmit={handleSubmit} className="h-full">
             
-            {/* Section 1: ข้อมูลทั่วไป */}
+            {/* Section 1: ข้อมูลและรายละเอียด */}
             {activeTab === 'general' && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <InputGroup label="วันที่พบเชื้อ" required>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        required type="date"
-                        className="w-full p-2.5 pl-10 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all hover:border-slate-400 bg-white"
-                        value={formData.date}
-                        onChange={e => setFormData({ ...formData, date: e.target.value })}
-                      />
-                    </div>
-                  </InputGroup>
-
-                  <InputGroup label="เขตพื้นที่ (District)" required>
-                    <div className="relative">
-                      <input
-                        required type="text" placeholder="พิมพ์ค้นหาเขต..."
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all hover:border-slate-400 bg-white"
-                        value={formData.district}
-                        onChange={e => {
-                          setFormData({ ...formData, district: e.target.value });
-                          setShowDistrictDropdown(true);
-                        }}
-                        onFocus={() => setShowDistrictDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
-                      />
-                      {showDistrictDropdown && (
-                        <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto custom-scrollbar">
-                          {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).length > 0 ? (
-                            BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).map(d => (
-                              <div
-                                key={d}
-                                className="px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors border-b border-slate-100 last:border-0"
-                                onMouseDown={() => { 
-                                  setFormData({ ...formData, district: d });
-                                  setShowDistrictDropdown(false);
-                                }}
-                              >
-                                {d}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="px-4 py-4 text-sm text-slate-400 text-center bg-slate-50">ไม่พบชื่อเขตที่ค้นหา</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </InputGroup>
-                </div>
-
-                <InputGroup label="สถานที่พบ (รายละเอียด)" required>
-                  <input
-                    required type="text" placeholder="ระบุสถานที่ให้ชัดเจน เช่น ซอย, วัด, โรงเรียน"
-                    className="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all hover:border-slate-400 bg-white"
-                    value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </InputGroup>
-
-                <InputGroup label="พิกัดภูมิศาสตร์ (Lat, Long)">
-                  <p className="text-xs text-slate-500 mb-1">คั่นด้วยเครื่องหมายลูกน้ำ (,) เช่น 13.7563, 100.5018</p>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text" placeholder="ค้นหาและวางพิกัดที่นี่"
-                      className="w-full p-2.5 pl-10 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none font-mono bg-slate-50 hover:border-slate-400"
-                      value={coordInput}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setCoordInput(value);
-                        if (value.includes(',')) {
-                          const parts = value.split(',');
-                          setFormData({ ...formData, lat: parts[0].trim(), long: parts[1] ? parts[1].trim() : '' });
-                        } else {
-                          setFormData({ ...formData, lat: value.trim(), long: '' });
-                        }
-                      }}
-                    />
-                  </div>
-                </InputGroup>
-              </div>
-            )}
-
-            {/* Section 2: ข้อมูลเชิงลึก */}
-            {activeTab === 'insight' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 animate-in slide-in-from-right-4 duration-300">
-                <InputGroup label="ศบส.">
-                  <input type="text" placeholder="ระบุ ศบส." className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 hover:border-slate-400" value={formData.insight.spcc} onChange={e => handleInsightChange('spcc', e.target.value)} />
-                </InputGroup>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in slide-in-from-right-4 duration-300">
+                
+                {/* 1. เลขที่ตรวจ */}
                 <InputGroup label="เลขที่ตรวจ">
                   <input type="text" placeholder="เช่น LAB-2026" className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 hover:border-slate-400" value={formData.insight.testNo} onChange={e => handleInsightChange('testNo', e.target.value)} />
                 </InputGroup>
-                <InputGroup label="อายุ">
-                  <input type="text" placeholder="เช่น 2 ปี, 3 เดือน" className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 hover:border-slate-400" value={formData.insight.age} onChange={e => handleInsightChange('age', e.target.value)} />
+
+                {/* 2. วันที่พบ */}
+                <InputGroup label="วันที่พบ" required>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      required type="date"
+                      className="w-full p-2.5 pl-10 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white hover:border-slate-400"
+                      value={formData.date}
+                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
                 </InputGroup>
-                
+
+                {/* 3. เขต - DropDown ค้นหาได้ */}
+                <InputGroup label="เขต (District)" required>
+                  <div className="relative">
+                    <input
+                      required type="text" placeholder="พิมพ์ค้นหาเขต..."
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white hover:border-slate-400"
+                      value={formData.district}
+                      onChange={e => {
+                        setFormData({ ...formData, district: e.target.value, subdistrict: '' });
+                        setShowDistrictDropdown(true);
+                      }}
+                      onFocus={() => setShowDistrictDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
+                    />
+                    {showDistrictDropdown && (
+                      <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto custom-scrollbar">
+                        {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district)).map(d => (
+                          <div key={d} className="px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 cursor-pointer border-b border-slate-100 last:border-0"
+                            onMouseDown={() => { 
+                              setFormData({ ...formData, district: d, subdistrict: '' }); 
+                              setShowDistrictDropdown(false); 
+                            }}>
+                            {d}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </InputGroup>
+
+                {/* 4. แขวง - DropDown เปลี่ยนตามเขต */}
+                <InputGroup label="แขวง (Subdistrict)">
+                  <select 
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400 disabled:bg-slate-100 disabled:text-slate-400" 
+                    value={formData.subdistrict} 
+                    onChange={e => setFormData({ ...formData, subdistrict: e.target.value })}
+                    disabled={!formData.district || !BANGKOK_SUBDISTRICTS[formData.district as keyof typeof BANGKOK_SUBDISTRICTS]}
+                  >
+                    <option value="">-- เลือกแขวง --</option>
+                    {formData.district && BANGKOK_SUBDISTRICTS[formData.district as keyof typeof BANGKOK_SUBDISTRICTS]?.map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                </InputGroup>
+
+                {/* 5. ชนิดสัตว์ */}
                 <InputGroup label="ชนิดสัตว์">
                   <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.animalType} onChange={e => handleInsightChange('animalType', e.target.value)}>
                     <option value="">-- เลือกชนิดสัตว์ --</option>
@@ -317,14 +289,8 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
                     <option value="อื่นๆ">อื่นๆ</option>
                   </select>
                 </InputGroup>
-                <InputGroup label="มี/ไม่เจ้าของ">
-                  <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.ownership} onChange={e => handleInsightChange('ownership', e.target.value)}>
-                    <option value="">-- เลือกสถานะ --</option>
-                    <option value="มีเจ้าของ">มีเจ้าของ</option>
-                    <option value="ไม่มีเจ้าของกึ่งจรจัด">ไม่มีเจ้าของกึ่งจรจัด</option>
-                    <option value="ไม่มีเจ้าของ">ไม่มีเจ้าของ</option>
-                  </select>
-                </InputGroup>
+
+                {/* 6. เพศ */}
                 <InputGroup label="เพศ">
                   <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.gender} onChange={e => handleInsightChange('gender', e.target.value)}>
                     <option value="">-- เลือกเพศ --</option>
@@ -333,30 +299,119 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
                   </select>
                 </InputGroup>
 
-                <InputGroup label="สายพันธุ์">
-                  <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.breed} onChange={e => handleInsightChange('breed', e.target.value)}>
-                    <option value="">-- เลือกสายพันธุ์ --</option>
-                    {breeds.map((b, i) => <option key={i} value={b.name}>{b.name}</option>)}
+                {/* 7. พันธ์ - DropDown ค้นหาได้ */}
+                <InputGroup label="สายพันธุ์ (ค้นหาได้)">
+                  <div className="relative">
+                    <input
+                      type="text" placeholder="พิมพ์ค้นหาสายพันธุ์..."
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white hover:border-slate-400"
+                      value={formData.insight.breed}
+                      onChange={e => { handleInsightChange('breed', e.target.value); setShowBreedDropdown(true); }}
+                      onFocus={() => setShowBreedDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowBreedDropdown(false), 200)}
+                    />
+                    {showBreedDropdown && (
+                      <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto custom-scrollbar">
+                        {breeds.filter(b => b.name.includes(formData.insight.breed)).length > 0 ? (
+                          breeds.filter(b => b.name.includes(formData.insight.breed)).map((b, i) => (
+                            <div key={i} className="px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 cursor-pointer border-b border-slate-100 last:border-0"
+                              onMouseDown={() => { handleInsightChange('breed', b.name); setShowBreedDropdown(false); }}>
+                              {b.name}
+                            </div>
+                          ))
+                        ) : <div className="px-4 py-4 text-sm text-slate-400 text-center">ไม่พบข้อมูล</div>}
+                      </div>
+                    )}
+                  </div>
+                </InputGroup>
+
+                {/* 8. สี - DropDown ค้นหาได้ */}
+                <InputGroup label="สี (ค้นหาได้)">
+                  <div className="relative">
+                    <input
+                      type="text" placeholder="พิมพ์ค้นหาสี..."
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white hover:border-slate-400"
+                      value={formData.insight.color}
+                      onChange={e => { handleInsightChange('color', e.target.value); setShowColorDropdown(true); }}
+                      onFocus={() => setShowColorDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowColorDropdown(false), 200)}
+                    />
+                    {showColorDropdown && (
+                      <div className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto custom-scrollbar">
+                        {colors.filter(c => c.name.includes(formData.insight.color)).length > 0 ? (
+                          colors.filter(c => c.name.includes(formData.insight.color)).map((c, i) => (
+                            <div key={i} className="px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-700 cursor-pointer border-b border-slate-100 last:border-0"
+                              onMouseDown={() => { handleInsightChange('color', c.name); setShowColorDropdown(false); }}>
+                              {c.name}
+                            </div>
+                          ))
+                        ) : <div className="px-4 py-4 text-sm text-slate-400 text-center">ไม่พบข้อมูล</div>}
+                      </div>
+                    )}
+                  </div>
+                </InputGroup>
+
+                {/* 9. อายุ */}
+                <InputGroup label="อายุ">
+                  <input type="text" placeholder="เช่น 2 ปี, 3 เดือน" className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 hover:border-slate-400" value={formData.insight.age} onChange={e => handleInsightChange('age', e.target.value)} />
+                </InputGroup>
+
+                {/* 10. มี/ไม่เจ้าของ */}
+                <InputGroup label="สถานะเจ้าของ">
+                  <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.ownership} onChange={e => handleInsightChange('ownership', e.target.value)}>
+                    <option value="">-- เลือกสถานะ --</option>
+                    <option value="มีเจ้าของ">มีเจ้าของ</option>
+                    <option value="ไม่มีเจ้าของกึ่งจรจัด">ไม่มีเจ้าของกึ่งจรจัด</option>
+                    <option value="ไม่มีเจ้าของ">ไม่มีเจ้าของ</option>
                   </select>
                 </InputGroup>
-                <InputGroup label="สี">
-                  <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.color} onChange={e => handleInsightChange('color', e.target.value)}>
-                    <option value="">-- เลือกสี --</option>
-                    {colors.map((c, i) => <option key={i} value={c.name}>{c.name}</option>)}
-                  </select>
-                </InputGroup>
+
+                {/* 11. ประวัติวัคซีน */}
                 <InputGroup label="ประวัติวัคซีน">
                   <select className="w-full p-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500 bg-white hover:border-slate-400" value={formData.insight.vaccineHistory} onChange={e => handleInsightChange('vaccineHistory', e.target.value)}>
-                    <option value="">-- เลือกประวัติวัคซีน --</option>
+                    <option value="">-- เลือกประวัติ --</option>
                     <option value="ไม่เคยฉีด">ไม่เคยฉีด</option>
                     <option value="ฉีดมากกว่า 1 ปี">ฉีดมากกว่า 1 ปี</option>
                     <option value="น้อยกว่า 1 ปี">น้อยกว่า 1 ปี</option>
                   </select>
                 </InputGroup>
+
+                {/* 12. สถานที่ */}
+                <div className="md:col-span-2">
+                  <InputGroup label="สถานที่พบ (รายละเอียด)" required>
+                    <input required type="text" placeholder="ระบุสถานที่ให้ชัดเจน เช่น ซอย, วัด, โรงเรียน" className="w-full p-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none bg-white hover:border-slate-400" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                  </InputGroup>
+                </div>
+
+                {/* 13. พิกัด */}
+                <div className="md:col-span-2">
+                  <InputGroup label="พิกัดภูมิศาสตร์ (Lat, Long)">
+                    <p className="text-xs text-slate-500 mb-1">คั่นด้วยเครื่องหมายลูกน้ำ (,) เช่น 13.7563, 100.5018</p>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text" placeholder="ค้นหาและวางพิกัดที่นี่"
+                        className="w-full p-2.5 pl-10 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 outline-none font-mono bg-slate-50 hover:border-slate-400"
+                        value={coordInput}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setCoordInput(value);
+                          if (value.includes(',')) {
+                            const parts = value.split(',');
+                            setFormData({ ...formData, lat: parts[0].trim(), long: parts[1] ? parts[1].trim() : '' });
+                          } else {
+                            setFormData({ ...formData, lat: value.trim(), long: '' });
+                          }
+                        }}
+                      />
+                    </div>
+                  </InputGroup>
+                </div>
+
               </div>
             )}
 
-            {/* Section 3: สถิติสัตว์ */}
+            {/* Section 2: สถิติสัตว์ */}
             {activeTab === 'stats' && (
               <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
                 <p className="text-sm text-slate-500 mb-2">ระบุจำนวนสัตว์ที่อยู่ในกลุ่มเสี่ยงในแต่ละประเภท</p>
@@ -417,7 +472,7 @@ const AddOutbreakModal: React.FC<AddOutbreakModalProps> = ({
           
           {/* Action Button Changes based on Active Tab */}
           {activeTab !== 'stats' ? (
-            <button type="button" onClick={() => setActiveTab(activeTab === 'general' ? 'insight' : 'stats')} className="flex-1 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-sm sm:text-base shadow-md transition-all focus:ring-2 focus:ring-slate-500">
+            <button type="button" onClick={() => setActiveTab('stats')} className="flex-1 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-sm sm:text-base shadow-md transition-all focus:ring-2 focus:ring-slate-500">
               ถัดไป
             </button>
           ) : (
