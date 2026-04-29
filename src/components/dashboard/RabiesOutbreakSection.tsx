@@ -338,7 +338,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                                                 </div>
                                                 {item.insight && (item.insight.spcc || item.insight.animalType) && (
                                                     <div className="mt-2 pt-2 border-t border-slate-100 border-dashed text-[10px] text-slate-500 flex flex-col gap-1">
-                                                        <div><span className="font-bold text-slate-600">ศบส:</span> {item.insight.spcc || '-'} | <span className="font-bold text-slate-600">เลขที่ตรวจ:</span> {item.insight.testNo || '-'}</div>
+                                                        <div><span className="font-bold text-slate-600">เลขที่ตรวจ:</span> {item.insight.testNo || '-'}</div>
                                                         <div>
                                                             {item.insight.animalType} {item.insight.breed ? `(${item.insight.breed})` : ''} {item.insight.color ? `สี${item.insight.color}` : ''} {item.insight.gender ? `เพศ${item.insight.gender}` : ''} {item.insight.age ? `อายุ ${item.insight.age}` : ''}
                                                         </div>
