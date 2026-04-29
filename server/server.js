@@ -118,6 +118,7 @@ const outbreakSchema = new mongoose.Schema({
   date: { type: String, required: true },
   location: String,
   district: String,
+  subdistrict: String,
   lat: { type: Number, required: true },
   long: { type: Number, required: true },
   stats: {
@@ -144,7 +145,9 @@ const outbreakSchema = new mongoose.Schema({
     color: { type: String, default: "" },
     age: { type: String, default: "" },
     vaccineHistory: { type: String, default: "" }
-  }
+  },
+  createdBy: { type: String, default: 'System' }, // ✅ 2. เพิ่มฟิลด์ผู้บันทึกข้อมูล
+  updatedBy: { type: String }
 }, { timestamps: true });
 outbreakSchema.index({ date: -1, district: 1 });
 const Outbreak = mongoose.model('Outbreak', outbreakSchema);
@@ -585,7 +588,7 @@ app.get('/api/outbreaks', async (req, res) => {
     if (year) query.date = { $regex: `^${year}` };
 
     const outbreaksQuery = Outbreak.find(query)
-      .select('_id date location district lat long stats')
+      .select('_id date location district subdistrict lat long stats insight createdBy updatedBy')
       .sort({ date: -1 })
       .lean();
     if (limit) outbreaksQuery.limit(parseInt(limit, 10));
@@ -601,7 +604,7 @@ app.get('/api/outbreaks', async (req, res) => {
 
 app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
-    const newOutbreak = new Outbreak(req.body);
+    const newOutbreak = new Outbreak({ ...req.body, createdBy: req.user.username });
     const savedOutbreak = await newOutbreak.save();
     createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak); // ✅ fire-and-forget
     invalidateOutbreakCache();
@@ -620,7 +623,11 @@ app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'Ma
     if (!oldOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
     // 2. อัปเดตข้อมูลใหม่
-    const updatedOutbreak = await Outbreak.findByIdAndUpdate(req.params.id, req.body, { new: true }).lean();
+    const updatedOutbreak = await Outbreak.findByIdAndUpdate(
+      req.params.id, 
+      { ...req.body, updatedBy: req.user.username }, 
+      { new: true }
+    ).lean();
 
     // 3. บันทึกลง Log
     createLog(req, 'UPDATE_OUTBREAK', `แก้ไขจุดแจ้งเหตุ: ${updatedOutbreak.location}`, { before: oldOutbreak, after: updatedOutbreak });
