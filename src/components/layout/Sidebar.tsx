@@ -36,6 +36,7 @@ interface SidebarProps {
     isSystemMenuOpen: boolean;
     setIsSystemMenuOpen: (isOpen: boolean) => void;
     isDevOrSuper?: boolean;
+    availableOutbreakYears?: string[]; // เพิ่ม Prop สำหรับรับปีที่เปิด-ปิดได้
     
     // Actions
     onLogin: () => void;
@@ -123,7 +124,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
     tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
-    onOpenCalendar 
+    onOpenCalendar,
+    availableOutbreakYears = [], // รับค่าปีที่มีข้อมูลโรคระบาด
 }) => {
     
     const isCollapsed = isSidebarCollapsed && !isMobileMenuOpen;
@@ -275,6 +277,32 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                             ))}
                                                         </div>
                                                     </div>
+                                                    
+                                                    {/* ส่วนตั้งค่าเปิด-ปิดปีข้อมูลโรคระบาด */}
+                                                    <div className="h-px bg-slate-100 mt-4 mb-4"></div>
+                                                    <div>
+                                                        <p className="text-[9px] font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5"><Siren className="w-3.5 h-3.5 text-rose-500"/> เปิด-ปิดปีข้อมูลโรคระบาด</p>
+                                                        <div className="space-y-3">
+                                                            {availableOutbreakYears.map((year) => {
+                                                                const configKey = `outbreak_year_${year}`;
+                                                                // หากยังไม่มีการตั้งค่า (undefined) ให้ค่าเริ่มต้นเป็น true เสมอ
+                                                                const isChecked = tabsConfig?.[configKey] ?? true;
+                                                                return (
+                                                                    <label key={configKey} className="flex items-center justify-between cursor-pointer group">
+                                                                        <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">ปี พ.ศ. {parseInt(year) + 543}</span>
+                                                                        <div className="relative inline-flex items-center cursor-pointer">
+                                                                            <input type="checkbox" checked={isChecked} onChange={() => toggleTab(configKey)} className="sr-only peer" />
+                                                                            <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-rose-500"></div>
+                                                                        </div>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                            {availableOutbreakYears.length === 0 && (
+                                                                <span className="text-[10px] text-slate-400">ไม่มีข้อมูลปีในระบบ</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
                                                 </div>
                                                 
                                                 <div className="space-y-1.5">

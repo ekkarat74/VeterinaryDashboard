@@ -613,23 +613,26 @@ const handleDeleteDispatch = async (id: string) => {
     const toggleTab = async (tabName: string) => {
         const previousConfig = { ...tabsConfig };
         const config = tabsConfig as Record<string, any>;
-        const newConfig = { ...tabsConfig, [tabName]: !config[tabName] };
-        
-        setTabsConfig(newConfig); 
 
-        try {
-            const res = await fetch(`${BASE_URL}/api/settings/tabs`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify({ tabsConfig: newConfig })
-            });
-            if (!res.ok) throw new Error('Failed to update');
-        } catch (error) {
-            console.error("Update Tabs Config Error", error);
-            addToast('error', 'ไม่สามารถบันทึกการตั้งค่าแท็บได้');
-            setTabsConfig(previousConfig); 
-        }
-    };
+        // จัดการค่าเริ่มต้น ถ้าเป็นการตั้งค่าปีโรคระบาดและยังไม่มีข้อมูล ให้ถือว่าเป็น true
+        const currentValue = config[tabName] !== undefined ? config[tabName] : (tabName.startsWith('outbreak_year_') ? true : false);
+        const newConfig = { ...tabsConfig, [tabName]: !currentValue };
+        
+        setTabsConfig(newConfig); 
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/settings/tabs`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                body: JSON.stringify({ tabsConfig: newConfig })
+            });
+            if (!res.ok) throw new Error('Failed to update');
+        } catch (error) {
+            console.error("Update Tabs Config Error", error);
+            addToast('error', 'ไม่สามารถบันทึกการตั้งค่าแท็บได้');
+            setTabsConfig(previousConfig); 
+        }
+    };
 
     useEffect(() => {
         const checkTabVisibility = (tabName: string) => {
@@ -1446,7 +1449,19 @@ const handleDeleteDispatch = async (id: string) => {
     }, [filteredData, trendOffset, chartBaseYear, chartBaseMonth]);
 
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map((item: any) => item.date ? item.date.split('-')[0] : null).filter((y: any) => y !== null))].sort().reverse(), [outbreakData]);
-    const filteredOutbreaks = useMemo(() => outbreakFilterYear === 'ทั้งหมด' ? outbreakData : outbreakData.filter((item: any) => item.date && item.date.startsWith(outbreakFilterYear)), [outbreakData, outbreakFilterYear]);
+
+    const visibleOutbreakYears = useMemo(() => {
+        return availableOutbreakYears.filter((year: any) => tabsConfig?.[`outbreak_year_${year}`] !== false);
+    }, [availableOutbreakYears, tabsConfig]);
+
+    const filteredOutbreaks = useMemo(() => {
+        const allowedData = outbreakData.filter((item: any) => {
+            const y = item.date ? item.date.split('-')[0] : null;
+            return y && visibleOutbreakYears.includes(y);
+        });
+
+        return outbreakFilterYear === 'ทั้งหมด' ? allowedData : allowedData.filter((item: any) => item.date && item.date.startsWith(outbreakFilterYear));
+    }, [outbreakData, outbreakFilterYear, visibleOutbreakYears]);
     const outbreakStats = useMemo(() => {
         const total = filteredOutbreaks.length;
         const grouped = filteredOutbreaks.reduce((acc: any, curr: any) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
@@ -1788,7 +1803,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             outbreakData={outbreakData as any} 
                                             filterYear={outbreakFilterYear} 
                                             setFilterYear={setOutbreakFilterYear} 
-                                            years={availableOutbreakYears} 
+                                            years={visibleOutbreakYears as any[]} 
                                             stats={outbreakStats} 
                                             filteredOutbreaks={filteredOutbreaks as any} 
                                             yearlyTrend={outbreakYearlyTrend} 
