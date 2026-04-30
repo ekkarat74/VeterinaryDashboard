@@ -1171,11 +1171,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                         </div>
                         
                         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mt-6 pt-5 border-t border-slate-100">
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-blue-400"></div> วัคซีน</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-pink-400"></div> ทำหมัน</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div> ตรวจสุขภาพ</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-orange-400"></div> รักษา</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-rose-400"></div> ด่วน</div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-blue-400"></div> หน่วยวัคซีน + ไมโครชิป</div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-red-400"></div> หน่วยทำหมัน</div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div> หน่วยสัตว์แพทย์</div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-orange-400"></div> หน่วยผู้ว่า</div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold"><div className="w-2.5 h-2.5 rounded-full bg-purple-400"></div> หน่วยกรงแมว</div>
                         </div>
                     </div>
                 </div>

@@ -89,6 +89,7 @@ const User = mongoose.model('User', userSchema);
 const reportSchema = new mongoose.Schema({
   date: { type: String, required: true },
   location: String,
+  locationDistrict: String,
   district: String,
   subdistrict: String,
   unit: String,
@@ -476,7 +477,7 @@ app.get('/api/reports', async (req, res) => {
 
     const [reports, totalRecords] = await Promise.all([
       Report.find(query)
-        .select('_id date location district subdistrict unit team lat long mapLink note stats details createdBy imageUrl')
+        .select('_id date location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy imageUrl') // <-- เพิ่ม locationDistrict เข้าไปใน select
         .sort({ date: -1 })
         .skip(skip)
         .limit(limitNumber)

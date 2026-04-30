@@ -30,6 +30,7 @@ interface Breakdown {
 interface FormDataState {
   date: string;
   location: string;
+  locationDistrict: string;
   district: string;
   subdistrict: string;
   unit: string;
@@ -80,6 +81,7 @@ interface AddDataModalProps {
 const defaultFormData: FormDataState = {
   date: new Date().toISOString().split('T')[0],
   location: '',
+  locationDistrict: BANGKOK_DISTRICTS[0] || '',
   district: BANGKOK_DISTRICTS[0] || '',
   subdistrict: '',
   unit: UNIT_TYPES[0] || '',
@@ -170,6 +172,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   const [imageSizeKB, setImageSizeKB] = useState<number | null>(null);
 
   const [showDistrictDropdown, setShowDistrictDropdown] = useState<boolean>(false);
+  const [showLocationDistrictDropdown, setShowLocationDistrictDropdown] = useState<boolean>(false);
 
   const [customUnitsObj, setCustomUnitsObj] = useState<CustomUnit[]>([]);
   const [isManagingUnits, setIsManagingUnits] = useState<boolean>(false);
@@ -250,6 +253,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       setExistingReports([]);
       setLocationSuggestions([]);
       setShowLocationDropdown(false);
+      setShowLocationDistrictDropdown(false);
       setPastLocations([]);
     }
   }, [isOpen]);
@@ -285,6 +289,29 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     }
   }, [isOpen, initialData, customUnitsObj]);
 
+  useEffect(() => {
+    if (isOpen && initialData && allDispatches.length > 0) {
+      const query = (initialData.location || '').toLowerCase().trim();
+      if (!query) return;
+
+      // กรองหาแผนปฏิบัติงานในวันเดียวกันก่อน
+      const dispatchesOnDate = allDispatches.filter(d => d.date && d.date.startsWith(initialData.date));
+      
+      const matchInDate = dispatchesOnDate.find(d =>
+        d.location?.toLowerCase().includes(query)
+      );
+      
+      const match = matchInDate ?? allDispatches.find(d =>
+        d.location?.toLowerCase().includes(query)
+      );
+
+      // ถ้าพบข้อมูลแผนออกหน่วยที่ตรงกัน ให้ set เพื่อแสดงการ์ดสีม่วงด้านล่าง
+      if (match) {
+        setFoundDispatch(match);
+      }
+    }
+  }, [isOpen, initialData, allDispatches]);
+
   const dispatchesOnSelectedDate = useMemo(() => {
     if (!formData.date || !allDispatches.length) return [];
     return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
@@ -305,6 +332,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     setFormData(prev => ({
       ...prev,
       location: dispatch.location || prev.location,
+      locationDistrict: dispatch.district || prev.locationDistrict,
       district: dispatch.district || prev.district,
       mapLink: newMapLink,
       lat: newLat,
@@ -453,6 +481,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     const payload = {
       ...formData,
       unit: finalUnit,
+      district: formData.unit === 'หน่วยกรงแมว' ? formData.district : formData.locationDistrict,
       stats: totals,
       details: breakdown,
       lat: latNum,
@@ -684,6 +713,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                               ...prev,
                               location: item.location || prev.location,
                               unit: matchedUnit,
+                              locationDistrict: item.locationDistrict || item.district || prev.locationDistrict,
                               district: item.district || prev.district,
                               subdistrict: newSubdistrict, 
                               mapLink: newMapLink,
@@ -711,34 +741,34 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   )}
                 </div>
 
-                {/* เขต */}
+                {/* เขต (ที่ตั้งสถานที่)*/}
                 <div className="md:col-span-4">
-                  <label className={labelClass}>เขต</label>
+                  <label className={labelClass}>เขต (ที่ตั้งสถานที่)</label>
                   <div className="relative">
                     <input
                       type="text"
                       className={inputClass}
-                      placeholder="พิมพ์เพื่อค้นหาเขต..."
-                      value={formData.district}
+                      placeholder="พิมพ์เพื่อค้นหาเขตที่ตั้ง..."
+                      value={formData.locationDistrict}
                       onChange={e => {
-                        setFormData({ ...formData, district: e.target.value, subdistrict: '' });
-                        setShowDistrictDropdown(true);
+                        setFormData({ ...formData, locationDistrict: e.target.value, subdistrict: '' });
+                        setShowLocationDistrictDropdown(true);
                       }}
-                      onFocus={() => setShowDistrictDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
+                      onFocus={() => setShowLocationDistrictDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowLocationDistrictDropdown(false), 200)}
                       disabled={isSubmitting}
                     />
-                    {showDistrictDropdown && (
+                    {showLocationDistrictDropdown && (
                       <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
-                        {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).length > 0 ? (
-                          BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).map(d => (
+                        {BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).length > 0 ? (
+                          BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).map(d => (
                             <div
                               key={d}
                               className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
                               onMouseDown={(e) => {
                                 e.preventDefault();
-                                setFormData({ ...formData, district: d, subdistrict: '' });
-                                setShowDistrictDropdown(false);
+                                setFormData({ ...formData, locationDistrict: d, subdistrict: '' });
+                                setShowLocationDistrictDropdown(false);
                               }}
                             >
                               {d}
@@ -752,7 +782,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   </div>
                 </div>
 
-                {/* แขวง */}
+                {/* แขวง (ที่ตั้งสถานที่) */}
                 <div className="md:col-span-4">
                   <label className={labelClass}>แขวง</label>
                   <select
@@ -762,11 +792,54 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     disabled={isSubmitting}
                   >
                     <option value="">-- เลือกแขวง --</option>
-                    {formData.district && BANGKOK_SUBDISTRICTS[formData.district as keyof typeof BANGKOK_SUBDISTRICTS]?.map(s => (
+                    {formData.locationDistrict && BANGKOK_SUBDISTRICTS[formData.locationDistrict as keyof typeof BANGKOK_SUBDISTRICTS]?.map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </div>
+
+                {/* เขต (เขตที่ไปปฏิบัติงาน) - แสดงเฉพาะเมื่อเลือก "หน่วยกรงแมว" */}
+                {formData.unit === 'หน่วยกรงแมว' && (
+                  <div className="md:col-span-4 animate-in fade-in zoom-in duration-300">
+                    <label className={labelClass}>เขต (เขตที่ไป)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="พิมพ์เพื่อค้นหาเขตที่ไป..."
+                        value={formData.district}
+                        onChange={e => {
+                          setFormData({ ...formData, district: e.target.value });
+                          setShowDistrictDropdown(true);
+                        }}
+                        onFocus={() => setShowDistrictDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowDistrictDropdown(false), 200)}
+                        disabled={isSubmitting}
+                      />
+                      {showDistrictDropdown && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                          {BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).length > 0 ? (
+                            BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).map(d => (
+                              <div
+                                key={d}
+                                className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({ ...formData, district: d });
+                                  setShowDistrictDropdown(false);
+                                }}
+                              >
+                                {d}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* พิกัด */}
                 <div className="md:col-span-4">

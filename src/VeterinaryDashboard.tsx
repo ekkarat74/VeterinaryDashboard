@@ -869,7 +869,7 @@ const handleDeleteDispatch = async (id: string) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
                 body: JSON.stringify({
-                    date: newRecord.date, location: newRecord.location, lat: parseFloat(newRecord.lat), long: parseFloat(newRecord.long),
+                    date: newRecord.date, location: newRecord.location, lat: parseFloat(newRecord.lat), long: parseFloat(newRecord.long), locationDistrict: newRecord.locationDistrict,
                     district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, team: newRecord.team, imageUrl: newRecord.imageUrl, mapLink: newRecord.mapLink,
                     note: newRecord.note,
                     stats: {
@@ -1769,6 +1769,19 @@ const handleDeleteDispatch = async (id: string) => {
                                     </div>
                                 )}
 
+                                {activeTab === 'database' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
+                                        <MainDataTable 
+                                            data={filteredData as any} 
+                                            canEdit={canEdit} 
+                                            onClearAll={handleClearAllData} 
+                                            onEdit={openEditModal} 
+                                            onDelete={handleDeleteData} 
+                                            onViewImage={setViewImage} 
+                                        />
+                                    </div>
+                                )}
+
                                 {activeTab === 'outbreak' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
                                         <RabiesOutbreakSection 
@@ -1784,19 +1797,6 @@ const handleDeleteDispatch = async (id: string) => {
                                             onEdit={openEditOutbreakModal} 
                                             onDelete={handleDeleteOutbreak} 
                                             canEdit={canEdit} 
-                                        />
-                                    </div>
-                                )}
-
-                                {activeTab === 'database' && (
-                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
-                                        <MainDataTable 
-                                            data={filteredData as any} 
-                                            canEdit={canEdit} 
-                                            onClearAll={handleClearAllData} 
-                                            onEdit={openEditModal} 
-                                            onDelete={handleDeleteData} 
-                                            onViewImage={setViewImage} 
                                         />
                                     </div>
                                 )}
@@ -1827,20 +1827,20 @@ const handleDeleteDispatch = async (id: string) => {
                                 <span className="text-[8px]">ภาพรวมออกหน่วยเคลื่อนที่</span>
                             </button>
                         )}
-                        {checkMobileTabVisibility('outbreak') && (
-                            <button onClick={() => setActiveTab('outbreak')} 
-                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
-                            >
-                                <Siren className="w-5 h-5 mb-1" />
-                                <span className="text-[8px]">จุดเสี่ยงโรคพิสุนัขบ้า</span>
-                            </button>
-                        )}
                         {checkMobileTabVisibility('database') && (
                             <button onClick={() => setActiveTab('database')} 
                                 className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'database' ? 'text-emerald-600 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Database className="w-5 h-5 mb-1" />
                                 <span className="text-[8px]">ฐานข้อมูลออกหน่วยเคลื่อนที่</span>
+                            </button>
+                        )}
+                        {checkMobileTabVisibility('outbreak') && (
+                            <button onClick={() => setActiveTab('outbreak')} 
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'outbreak' ? 'text-red-600 font-bold bg-red-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <Siren className="w-5 h-5 mb-1" />
+                                <span className="text-[8px]">จุดเสี่ยงโรคพิสุนัขบ้า</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('calendar') && (

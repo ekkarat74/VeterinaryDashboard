@@ -206,8 +206,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     
                     {renderSectionHeader('แดชบอร์ด')}
                     {checkTabVisibility('overview') && <NavItem icon={Activity} label="ภาพรวมสถิติออกหน่วยเคลื่อนที่" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                        {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลออกหน่วยเคลื่อนที่" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
                     {checkTabVisibility('outbreak') && <NavItem icon={Siren} label="จุดเสี่ยงโรคพิษสุนัขบ้า" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
-                    {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลออกหน่วยเคลื่อนที่" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
                     {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วยเคลื่อนที่" isActive={false} onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} isCollapsed={isCollapsed} activeColor="indigo" />}
                     
                     {user && !['superadmin', 'executive', 'user'].includes(user.role) && (
@@ -241,8 +241,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         <div className="space-y-3">
                                                             {[
                                                                 { id: 'sa_overview', label: 'ภาพรวมออกหน่วย' },
-                                                                { id: 'sa_outbreak', label: 'จุดเสี่ยงโรค' },
                                                                 { id: 'sa_database', label: 'ฐานข้อมูลออกหน่วย' },
+                                                                { id: 'sa_outbreak', label: 'จุดเสี่ยงโรค' },
                                                                 { id: 'sa_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
@@ -261,8 +261,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         <div className="space-y-3">
                                                             {[
                                                                 { id: 'public_overview', label: 'ภาพรวมออกหน่วย' },
-                                                                { id: 'public_outbreak', label: 'จุดเสี่ยงโรค' },
                                                                 { id: 'public_database', label: 'ฐานข้อมูลออกหน่วย' },
+                                                                { id: 'public_outbreak', label: 'จุดเสี่ยงโรค' },
                                                                 { id: 'public_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
                                                                 <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
