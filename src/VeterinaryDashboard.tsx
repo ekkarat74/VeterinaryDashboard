@@ -1600,6 +1600,7 @@ const handleDeleteDispatch = async (id: string) => {
                 isMobileMenuOpen={isMobileMenuOpen}
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
                 onNotifyUpdate={handleNotifySystemUpdate}
+                availableOutbreakYears={availableOutbreakYears as string[]}
             />
 
             {isMobileMenuOpen && (
