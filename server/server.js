@@ -1125,13 +1125,27 @@ app.delete('/api/staffs/:id', authenticateToken, authorizeRole(['Developer', 'Ma
 // 3.1 API ดึงประวัติการแก้ไขของ Record แบบเจาะจง (Audit Trail)
 app.get('/api/logs/record/:id', authenticateToken, async (req, res) => {
   try {
+    const searchId = req.params.id;
+    let objectId;
+    
+    // แปลง String ให้เป็น ObjectId
+    try {
+      objectId = new mongoose.Types.ObjectId(searchId);
+    } catch (e) {
+      objectId = searchId;
+    }
+
     const logs = await SystemLog.find({
       $or: [
-        { 'metadata.after._id': req.params.id },
-        { 'metadata.before._id': req.params.id },
-        { 'metadata._id': req.params.id }
+        { 'metadata.after._id': objectId },
+        { 'metadata.before._id': objectId },
+        { 'metadata._id': objectId },
+        { 'metadata.after._id': searchId },
+        { 'metadata.before._id': searchId },
+        { 'metadata._id': searchId }
       ]
     }).sort({ createdAt: -1 }).lean();
+    
     res.json(logs);
   } catch (err) { 
     res.status(500).json({ message: err.message }); 
