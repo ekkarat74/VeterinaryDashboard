@@ -277,12 +277,21 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   useEffect(() => {
     if (isOpen && initialData && customUnitsObj !== undefined) {
       const unitExists = allUnitOptions.includes(initialData.unit);
+      
+      // ดึงค่าเขตและแขวงให้ถูกต้อง (ดักจับกรณีข้อมูลเก่าที่ยังไม่มี locationDistrict)
+      const loadedLocationDistrict = initialData.locationDistrict || initialData.district || BANGKOK_DISTRICTS[0] || '';
+      const loadedDistrict = initialData.district || BANGKOK_DISTRICTS[0] || '';
+
       setFormData({
         ...defaultFormData,
         ...initialData,
+        locationDistrict: loadedLocationDistrict, // บังคับใช้ค่าเขตที่ดึงมาให้ถูกต้อง
+        district: loadedDistrict,
+        subdistrict: initialData.subdistrict || '', // บังคับใส่ค่าแขวงกลับเข้าไป
         unit: unitExists ? initialData.unit : 'หน่วยอื่น ๆ',
         otherUnit: !unitExists ? initialData.unit : ''
       });
+      
       setBreakdown(initialData.details || defaultBreakdown);
       setCoordInput(initialData.lat ? `${initialData.lat}, ${initialData.long}` : "");
       setImagePreview(initialData.imageUrl || null);
