@@ -1,33 +1,14 @@
-import React, { useState } from 'react';
+// MainDataTable.tsx
+import React, { useState, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer,
-    Download, Share2, Filter, History, Clock, Terminal, Activity
+    Download, Share2, Filter, History, Clock, Activity, Search, ArrowUpDown
 } from 'lucide-react';
 
-export interface ItemStats {
-    vaccine?: number;
-    sterilize?: number;
-    register?: number;
-    microchip?: number;
-    medical?: number;
-}
-
-export interface DataItem {
-    _id: string;
-    date: string;
-    unit?: string;
-    location: string;
-    district: string;
-    lat?: number | string;
-    long?: number | string;
-    imageUrl?: string | null;
-    stats?: ItemStats;
-    details?: any;
-    createdBy?: string;
-    updatedBy?: string;
-}
+import { DataItem } from '../../types'; 
+import { formatThaiDate, getDocumentStyle, getDocumentHTML } from '../../utils/reportTemplate';
 
 interface MainDataTableProps {
     data?: DataItem[];
@@ -39,23 +20,7 @@ interface MainDataTableProps {
     onViewImage: (url: string) => void;
 }
 
-const formatThaiDate = (dateString: string): string => {
-    if (!dateString) return '';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString; 
-        
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear(); 
-        
-        return `${day}/${month}/${year}`;
-    } catch {
-        return dateString;
-    }
-};
-
-// Helper Function สำหรับแสดงผลความแตกต่าง (Diff) ของข้อมูลใน Audit Trail
+// Helper สำหรับ Track Changes (Audit Trail)
 const renderDiffJSON = (obj: any, compareObj: any, mode: 'before' | 'after', indentLevel = 1): React.ReactNode => {
     if (typeof obj !== 'object' || obj === null) {
         const isDiff = compareObj === undefined || obj !== compareObj;
@@ -112,29 +77,74 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     onViewImage 
 }) => {
     const baseData = incomingData || [];
+    
+    // --- States ---
     const [coordinateFilter, setCoordinateFilter] = useState<'all' | 'with' | 'without'>('all');
-
-    // กรองข้อมูลตามพิกัด
-    const data = baseData.filter(item => {
-        if (coordinateFilter === 'all') return true;
-        const hasCoords = item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0;
-        return coordinateFilter === 'with' ? hasCoords : !hasCoords;
-    });
-
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
     const [currentPage, setCurrentPage] = useState(1);
     const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
-    const itemsPerPage = 25;
-
-    const totalPages = Math.ceil(data.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentData = data.slice(startIndex, startIndex + itemsPerPage);
-
-    // --- State สำหรับระบบ Track Changes (Audit Trail) ---
+    
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [recordLogs, setRecordLogs] = useState<any[]>([]);
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
     const [selectedRecordData, setSelectedRecordData] = useState<DataItem | null>(null);
 
+    const itemsPerPage = 25;
+
+    // --- Performance Optimization (Memoization) ---
+    const processedData = useMemo(() => {
+        let result = baseData.filter(item => {
+            // 1. Coordinate Filter
+            if (coordinateFilter !== 'all') {
+                const hasCoords = item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0;
+                if (coordinateFilter === 'with' && !hasCoords) return false;
+                if (coordinateFilter === 'without' && hasCoords) return false;
+            }
+            
+            // 2. Search Filter
+            if (searchTerm.trim() !== '') {
+                const term = searchTerm.toLowerCase();
+                const matchLoc = item.location?.toLowerCase().includes(term);
+                const matchDist = item.district?.toLowerCase().includes(term);
+                const matchUnit = item.unit?.toLowerCase().includes(term);
+                if (!matchLoc && !matchDist && !matchUnit) return false;
+            }
+            
+            return true;
+        });
+
+        // 3. Sorting
+        result.sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+
+        return result;
+    }, [baseData, coordinateFilter, searchTerm, sortOrder]);
+
+    const totals = useMemo(() => {
+        return processedData.reduce((acc, item) => ({
+            vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
+            sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
+            register: acc.register + (Number(item.stats?.register) || 0),
+            microchip: acc.microchip + (Number(item.stats?.microchip) || 0),
+            medical: acc.medical + (Number(item.stats?.medical) || 0),
+        }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
+    }, [processedData]);
+
+    // --- Pagination Calculation ---
+    const totalPages = Math.ceil(processedData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const currentData = processedData.slice(startIndex, startIndex + itemsPerPage);
+
+    // Reset page on filter/search change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [coordinateFilter, searchTerm, sortOrder]);
+
+    // --- Handlers ---
     const handleViewHistory = async (item: DataItem) => {
         setSelectedRecordData(item);
         setHistoryModalOpen(true);
@@ -162,14 +172,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     const formatNumber = (num?: number | string | null): string => 
         num ? Number(num).toLocaleString() : '0';
 
-    const totals = data.reduce((acc, item) => ({
-        vaccine: acc.vaccine + (Number(item.stats?.vaccine) || 0),
-        sterilize: acc.sterilize + (Number(item.stats?.sterilize) || 0),
-        register: acc.register + (Number(item.stats?.register) || 0),
-        microchip: acc.microchip + (Number(item.stats?.microchip) || 0),
-        medical: acc.medical + (Number(item.stats?.medical) || 0),
-    }), { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 });
-
     const getPageNumbers = (): (number | string)[] => {
         if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
         if (currentPage <= 3) return [1, 2, 3, 4, 5, '...', totalPages];
@@ -177,248 +179,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
     };
 
-    const getDocumentStyle = () => `
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap');
-        .report-doc {
-            font-family: 'Sarabun', sans-serif;
-            color: #000;
-            font-size: 14px;
-            line-height: 1.4;
-            margin: 0 auto;
-            padding: 40px 50px;
-            background: #fff;
-            width: 794px;
-            min-height: 1123px;
-            box-sizing: border-box;
-        }
-        .report-doc .text-center { text-align: center; }
-        .report-doc .font-bold { font-weight: 600; }
-        .report-doc .underline { text-decoration: underline; }
-        
-        .report-doc .header-group { margin-bottom: 25px; }
-        .report-doc .header-title { font-size: 16px; margin-bottom: 4px; }
-        
-        .report-doc .form-line { 
-            display: flex; 
-            align-items: flex-end; 
-            margin-bottom: 12px;
-            white-space: nowrap; 
-        }
-        
-        .report-doc .dotted-text { 
-            border-bottom: 1px dotted #000; 
-            text-align: center; 
-            color: #000000; 
-            padding-bottom: 4px;
-            line-height: 1.2; 
-        }
-        .report-doc .flex-1 { flex: 1; }
-        
-        .report-doc .data-grid { 
-            width: 95%; 
-            margin: 20px auto; 
-            border-collapse: collapse; 
-        }
-        .report-doc .data-grid td { 
-            padding: 6px 0;
-            vertical-align: bottom; 
-        }
-        .report-doc .col-main { width: 45%; }
-        .report-doc .col-sub { width: 25%; padding-left: 15px; }
-        .report-doc .col-val { width: 20%; text-align: center; }
-        .report-doc .col-unit { width: 10%; text-align: left; padding-left: 5px; }
-        
-        .report-doc .val-dots { 
-            display: inline-block; 
-            width: 80%; 
-            border-bottom: 1px dotted #000; 
-            text-align: center; 
-            color: #000; 
-            padding-bottom: 4px;
-            line-height: 1.2; 
-        }
-        .report-doc .section-gap { padding-top: 15px; }
-
-        @media print {
-            @page { size: A4; margin: 10mm; }
-            .report-doc {
-                width: auto;
-                min-height: auto;
-                padding: 0;
-            }
-        }
-    `;
-
-    const getDocumentHTML = (item: DataItem) => `
-        <div class="report-doc">
-            <div class="header-group text-center font-bold">
-                <div class="header-title underline">สรุปผลการปฏิบัติงานสัตวแพทย์ กลุ่มควบคุมโรคพิษสุนัขบ้า</div>
-                <div class="header-title underline">สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย</div>
-            </div>
-            
-            <div class="form-line">
-                <span>ชื่อโครงการ</span>
-                <span class="dotted-text flex-1" style="margin: 0 10px;">${item.unit || ''}</span>
-                <span>สถานที่</span>
-                <span class="dotted-text" style="width: 35%; margin-left: 10px;">${item.location || ''}</span>
-            </div>
-            
-            <div class="form-line">
-                <span>วันที่</span>
-                <span class="dotted-text" style="width: 250px; margin: 0 10px;">${formatThaiDate(item.date)}</span>
-                <span>เขต</span>
-                <span class="dotted-text flex-1" style="margin-left: 10px;">${item.district || ''}</span>
-            </div>
-            
-            <div class="form-line">
-                <span>นสพ.ควบคุมหน่วย</span>
-                <span class="dotted-text flex-1" style="margin: 0 10px;"></span>
-                <span>สังกัด</span>
-                <span class="dotted-text" style="width: 200px; margin-left: 10px;">สำนักอนามัย</span>
-            </div>
-
-            <table class="data-grid">
-                <tr>
-                    <td class="col-main">จำนวนวัคซีนที่เบิก</td>
-                    <td class="col-sub"></td>
-                    <td class="col-val"><span class="val-dots">${item.details?.vaccineRequisitioned || ''}</span></td>
-                    <td class="col-unit">โด๊ส</td>
-                </tr>
-                <tr>
-                    <td class="col-main">จำนวนสัตว์ที่ฉีดวัคซีน</td>
-                    <td class="col-sub">สุนัข</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.dog?.vaccine || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">แมว</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.cat?.vaccine || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">อื่นๆ</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.other?.vaccine || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">รวม</td>
-                    <td class="col-val"><span class="val-dots">${item.stats?.vaccine || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main" style="padding-top: 6px;">คงเหลือวัคซีน</td>
-                    <td class="col-sub" style="padding-top: 6px;"></td>
-                    <td class="col-val" style="padding-top: 6px;"><span class="val-dots">${item.details?.vaccineRemaining || ''}</span></td>
-                    <td class="col-unit" style="padding-top: 6px;">โด๊ส</td>
-                </tr>
-
-                <tr>
-                    <td class="col-main section-gap">จำนวนสุนัข / แมวทำหมัน</td>
-                    <td class="col-sub section-gap">สุนัขเพศผู้</td>
-                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.maleSterilize || ''}</span></td>
-                    <td class="col-unit section-gap">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">สุนัขเพศเมีย</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.dog?.femaleSterilize || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">แมวเพศผู้</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.cat?.maleSterilize || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">แมวเพศเมีย</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.cat?.femaleSterilize || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">รวม</td>
-                    <td class="col-val"><span class="val-dots">${item.stats?.sterilize || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-
-                <tr>
-                    <td class="col-main section-gap">จำนวนสุนัข / แมวที่ฉีดไมโครชิป</td>
-                    <td class="col-sub section-gap">สุนัขมีเจ้าของ</td>
-                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.microchip || ''}</span></td>
-                    <td class="col-unit section-gap">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">แมวมีเจ้าของ</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.cat?.microchip || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">รวม</td>
-                    <td class="col-val"><span class="val-dots">${item.stats?.microchip || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-
-                <tr>
-                    <td class="col-main section-gap">จำนวนสุนัข / แมว ขึ้นทะเบียน</td>
-                    <td class="col-sub section-gap">ขึ้นทะเบียน สุนัข</td>
-                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.register || ''}</span></td>
-                    <td class="col-unit section-gap">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">ขึ้นทะเบียน แมว</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.cat?.register || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">รวม</td>
-                    <td class="col-val"><span class="val-dots">${item.stats?.register || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-
-                <tr>
-                    <td class="col-main section-gap">รักษาสัตว์</td>
-                    <td class="col-sub section-gap">สุนัข</td>
-                    <td class="col-val section-gap"><span class="val-dots">${item.details?.dog?.medical || ''}</span></td>
-                    <td class="col-unit section-gap">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">แมว</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.cat?.medical || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">อื่นๆ</td>
-                    <td class="col-val"><span class="val-dots">${item.details?.other?.medical || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-                <tr>
-                    <td class="col-main"></td>
-                    <td class="col-sub">รวม</td>
-                    <td class="col-val"><span class="val-dots">${item.stats?.medical || ''}</span></td>
-                    <td class="col-unit">ตัว</td>
-                </tr>
-            </table>
-
-            <div class="form-line" style="margin-top: 30px; padding-left: 20px;">
-                <span>ผู้รายงาน</span>
-                <span class="dotted-text" style="width: 250px; margin: 0 15px;"></span>
-                <span>สังกัด</span>
-                <span class="dotted-text flex-1" style="margin-left: 15px;">สำนักอนามัย</span>
-            </div>
-        </div>
-    `;
-
+    // --- Document Generation Handlers ---
     const handlePrint = (item: DataItem) => {
         const printContent = `
             <!DOCTYPE html>
@@ -426,13 +187,9 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             <head>
                 <meta charset="UTF-8">
                 <title>พิมพ์เอกสารสรุปผล - ${item.location || 'ไม่ระบุสถานที่'}</title>
-                <style>
-                    ${getDocumentStyle()}
-                </style>
+                <style>${getDocumentStyle()}</style>
             </head>
-            <body>
-                ${getDocumentHTML(item)}
-            </body>
+            <body>${getDocumentHTML(item)}</body>
             </html>
         `;
 
@@ -440,9 +197,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         if (printWindow) {
             printWindow.document.write(printContent);
             printWindow.document.close();
-            setTimeout(() => {
-                printWindow.print();
-            }, 500);
+            setTimeout(() => { printWindow.print(); }, 500);
         }
     };
 
@@ -456,7 +211,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         document.body.appendChild(container);
 
         const reportDocNode = container.querySelector('.report-doc') as HTMLElement;
-
         await document.fonts.ready;
         await new Promise(res => setTimeout(res, 500));
 
@@ -492,7 +246,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         setIsGeneratingDocument(true);
         try {
             const canvas = await generateImageCanvas(item);
-            
             const blob = await new Promise<Blob | null>((resolve) => {
                 canvas.toBlob((b) => resolve(b), 'image/webp', 0.9);
             });
@@ -512,8 +265,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                     text: `รายงานสรุปผลการปฏิบัติงาน - ${item.location || ''}`
                 });
             } else {
-                alert('อุปกรณ์ไม่รองรับการแชร์รูปโดยตรง ระบบจะทำการดาวน์โหลดภาพให้แทน จากนั้นสามารถส่งเข้า LINE ได้เลยครับ');
-                
+                alert('อุปกรณ์ไม่รองรับการแชร์รูปโดยตรง ระบบจะทำการดาวน์โหลดภาพให้แทน');
                 const link = document.createElement('a');
                 link.download = fileName;
                 link.href = URL.createObjectURL(blob);
@@ -523,45 +275,46 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         } catch (error: any) {
             console.error('Error sharing file:', error);
             if (error.name !== 'AbortError') {
-                alert('เกิดข้อผิดพลาดในการแชร์ หรือเบราว์เซอร์บล็อกการทำงาน (แนะนำให้ใช้ฟังก์ชันดาวน์โหลดรูปแทน)');
+                alert('เกิดข้อผิดพลาดในการแชร์ หรือเบราว์เซอร์บล็อกการทำงาน');
             }
         } finally {
             setIsGeneratingDocument(false);
         }
     };
 
+    // --- Render Helpers ---
     const renderPagination = (isTop: boolean) => {
-        if (data.length === 0) return null;
+        if (processedData.length === 0) return null;
         return (
-            <div className={`px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
-                <span className="text-xs text-gray-500 font-medium">
-                    แสดงข้อมูล <span className="text-gray-900">{startIndex + 1}</span> ถึง <span className="text-gray-900">{Math.min(startIndex + itemsPerPage, data.length)}</span> จาก <span className="text-gray-900">{data.length}</span> รายการ
+            <div className={`px-4 md:px-6 py-3 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 ${isTop ? 'border-b border-gray-100' : 'border-t border-gray-100'}`}>
+                <span className="text-xs text-gray-500 font-medium text-center sm:text-left">
+                    แสดงข้อมูล <span className="text-gray-900">{startIndex + 1}</span> ถึง <span className="text-gray-900">{Math.min(startIndex + itemsPerPage, processedData.length)}</span> จาก <span className="text-gray-900">{processedData.length}</span> รายการ
                 </span>
                 
                 {totalPages > 1 && (
-                    <div className="flex rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
-                            Frist
+                    <div className="flex rounded-lg shadow-sm border border-gray-200 overflow-hidden w-full sm:w-auto justify-center">
+                        <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="px-2 md:px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
+                            First
                         </button>
-                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
+                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-2 md:px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
                             &laquo;
                         </button>
                         
                         {getPageNumbers().map((number, index) => {
                             if (number === '...') {
-                                return <span key={`ellipsis-${index}`} className="px-3 py-1.5 bg-gray-50 text-xs font-medium text-gray-400 border-r border-gray-200">...</span>;
+                                return <span key={`ellipsis-${index}`} className="px-2 md:px-3 py-1.5 bg-gray-50 text-xs font-medium text-gray-400 border-r border-gray-200">...</span>;
                             }
                             return (
-                                <button key={number} onClick={() => handlePageChange(number as number)} className={`min-w-[36px] px-3 py-1.5 text-xs font-medium transition-colors border-r border-gray-200 ${currentPage === number ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 hover:bg-indigo-50'}`}>
+                                <button key={number} onClick={() => handlePageChange(number as number)} className={`min-w-[32px] md:min-w-[36px] px-2 md:px-3 py-1.5 text-xs font-medium transition-colors border-r border-gray-200 ${currentPage === number ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 hover:bg-indigo-50'}`}>
                                     {number}
                                 </button>
                             );
                         })}
 
-                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
+                        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-2 md:px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors border-r border-gray-200">
                             &raquo;
                         </button>
-                        <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors">
+                        <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="px-2 md:px-3 py-1.5 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 transition-colors">
                             Last
                         </button>
                     </div>
@@ -572,46 +325,161 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mt-8 overflow-hidden w-full flex flex-col relative">
-            {/* Header Section */}
-            <div className="px-6 py-5 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 shadow-sm">
+            
+            {/* --- Header & Tools Section --- */}
+            <div className="px-4 md:px-6 py-5 bg-white flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                <div className="flex items-center gap-4 w-full xl:w-auto">
+                    <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 shadow-sm shrink-0">
                         <Database className="w-6 h-6" />
                     </div>
                     <div>
                         <h2 className="text-base font-bold text-gray-900 flex items-center gap-3">
                             ฐานข้อมูลการลงพื้นที่
                             <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-100">
-                                {data.length} รายการ
+                                {processedData.length} รายการ
                             </span>
                         </h2>
                         <p className="text-xs text-gray-500 mt-1">จัดการข้อมูลสถิติและสร้างรายงานสรุปผล</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto bg-gray-50 p-1.5 rounded-xl border border-gray-200">
-                    <div className="pl-3 pr-1 text-gray-400">
-                        <Filter className="w-4 h-4" />
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                    {/* Search Input */}
+                    <div className="relative w-full sm:w-64">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="ค้นหาสถานที่, เขต, โครงการ..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                        />
                     </div>
-                    <select
-                        value={coordinateFilter}
-                        onChange={(e) => {
-                            setCoordinateFilter(e.target.value as 'all' | 'with' | 'without');
-                            setCurrentPage(1);
-                        }}
-                        className="w-full sm:w-auto text-sm bg-transparent text-gray-700 font-medium focus:outline-none cursor-pointer py-1.5 pr-4 border-l border-gray-300 pl-3"
-                    >
-                        <option value="all">แสดงพื้นที่ทั้งหมด</option>
-                        <option value="with">📍 เฉพาะพื้นที่ระบุพิกัด</option>
-                        <option value="without">⚠️ พื้นที่ขาดพิกัด</option>
-                    </select>
+
+                    <div className="flex w-full sm:w-auto gap-2">
+                        {/* Filter Select */}
+                        <div className="flex items-center flex-1 sm:flex-none bg-gray-50 p-1.5 rounded-xl border border-gray-200">
+                            <div className="pl-2 pr-1 text-gray-400">
+                                <Filter className="w-4 h-4" />
+                            </div>
+                            <select
+                                value={coordinateFilter}
+                                onChange={(e) => setCoordinateFilter(e.target.value as 'all' | 'with' | 'without')}
+                                className="w-full sm:w-auto text-sm bg-transparent text-gray-700 font-medium focus:outline-none cursor-pointer py-0.5 pr-2 border-l border-gray-300 pl-2"
+                            >
+                                <option value="all">พื้นที่ทั้งหมด</option>
+                                <option value="with">📍 ระบุพิกัด</option>
+                                <option value="without">⚠️ ขาดพิกัด</option>
+                            </select>
+                        </div>
+
+                        {/* Sort Button */}
+                        <button
+                            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                            className="flex items-center justify-center gap-1.5 bg-gray-50 p-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                            title="เรียงตามวันที่"
+                        >
+                            <ArrowUpDown className="w-4 h-4 text-gray-500" />
+                            <span className="hidden sm:inline">{sortOrder === 'desc' ? 'ล่าสุด' : 'เก่าสุด'}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {renderPagination(true)}
 
-            {/* Table Section */}
-            <div className="overflow-x-auto w-full">
+            {/* --- Mobile Card View (Hidden on md and up) --- */}
+            <div className="block md:hidden bg-gray-50/50">
+                <div className="flex flex-col gap-3 p-4">
+                    {currentData.length > 0 ? (
+                        currentData.map((item) => (
+                            <div key={item._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div className="p-4">
+                                    <div className="flex justify-between items-start gap-2 mb-3">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-1.5 text-gray-500 mb-1">
+                                                <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                                                <span className="text-xs font-medium">{formatThaiDate(item.date)}</span>
+                                            </div>
+                                            <h3 className="font-bold text-gray-900 text-sm leading-tight">{item.location}</h3>
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
+                                                    {item.district}
+                                                </span>
+                                                {(item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0) ? (
+                                                    <span className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md font-medium flex items-center gap-1">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> มีพิกัด
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md font-medium flex items-center gap-1">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-400"></div> ไม่มีพิกัด
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {item.imageUrl ? (
+                                            <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden border border-gray-100">
+                                                <img src={item.imageUrl} alt="preview" onClick={() => onViewImage(item.imageUrl!)} className="w-full h-full object-cover cursor-pointer" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-16 h-16 shrink-0 rounded-lg bg-gray-50 border border-gray-100 dashed flex items-center justify-center text-gray-300">
+                                                <ImageIcon className="w-5 h-5" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {item.unit && (
+                                        <div className="mb-3 px-2 py-1 rounded bg-indigo-50/50 text-indigo-700 text-xs font-semibold border border-indigo-100/50 w-fit">
+                                            {item.unit}
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-3 gap-2 mb-3 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                                        <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
+                                            <Syringe className="w-3.5 h-3.5 text-blue-500 mb-0.5" />
+                                            <span className="font-bold text-blue-700 text-xs">{formatNumber(item.stats?.vaccine)}</span>
+                                        </div>
+                                        <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
+                                            <Scissors className="w-3.5 h-3.5 text-orange-500 mb-0.5" />
+                                            <span className="font-bold text-orange-700 text-xs">{formatNumber(item.stats?.sterilize)}</span>
+                                        </div>
+                                        <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
+                                            <FileText className="w-3.5 h-3.5 text-teal-500 mb-0.5" />
+                                            <span className="font-bold text-teal-700 text-xs">{formatNumber(item.stats?.register)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-2">
+                                        <div className="flex items-center gap-1.5 text-gray-500 text-[10px]">
+                                            <Users className="w-3 h-3"/> {item.createdBy || 'Unknown'}
+                                        </div>
+                                        {canEdit && (
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => handlePrint(item)} className="p-1.5 text-gray-500 bg-gray-50 hover:bg-white border border-gray-200 rounded-md"><Printer className="w-3.5 h-3.5"/></button>
+                                                <button onClick={() => handleShareLine(item)} className="p-1.5 text-green-600 bg-green-50 hover:bg-green-100 border border-green-100 rounded-md"><Share2 className="w-3.5 h-3.5"/></button>
+                                                <div className="w-px h-5 bg-gray-200 mx-1"></div>
+                                                <button onClick={() => handleViewHistory(item)} className="p-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-md"><History className="w-3.5 h-3.5"/></button>
+                                                <button onClick={() => onEdit(item)} className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-100 rounded-md"><Pencil className="w-3.5 h-3.5"/></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-12 text-center flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-gray-200">
+                            <Database className="w-8 h-8 text-gray-300 mb-3" />
+                            <p className="text-sm font-semibold">ไม่พบข้อมูลในระบบ</p>
+                            <p className="text-xs mt-1">ลองเปลี่ยนคำค้นหา หรือตัวกรอง</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* --- Desktop Table View (Hidden on smaller than md) --- */}
+            <div className="hidden md:block overflow-x-auto w-full">
                 <table className="min-w-full text-sm text-left">
                     <thead className="bg-gray-50/80 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-xs">
                         <tr>
@@ -721,7 +589,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     {canEdit && (
                                         <td className="px-6 py-4 align-middle text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                {/* Document Actions */}
                                                 <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-0.5">
                                                     <button onClick={() => handlePrint(item)} className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-md transition-colors" title="พิมพ์เอกสาร">
                                                         <Printer className="w-4 h-4"/>
@@ -734,9 +601,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                                     </button>
                                                 </div>
                                                 
-                                                {/* Data Actions */}
                                                 <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-0.5">
-                                                    <button onClick={() => handleViewHistory(item)} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="ประวัติการแก้ไข (Track Changes)">
+                                                    <button onClick={() => handleViewHistory(item)} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="ประวัติการแก้ไข">
                                                         <History className="w-4 h-4"/>
                                                     </button>
                                                     <button onClick={() => onEdit(item)} className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" title="แก้ไข">
@@ -759,16 +625,16 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                             <Database className="w-10 h-10 text-gray-300" />
                                         </div>
                                         <p className="text-sm text-gray-600 font-semibold">ไม่พบข้อมูลในระบบ</p>
-                                        <p className="text-xs text-gray-400 mt-1">ลองเปลี่ยนตัวกรองพื้นที่ หรือเริ่มบันทึกข้อมูลใหม่</p>
+                                        <p className="text-xs text-gray-400 mt-1">ลองเปลี่ยนคำค้นหา หรือตัวกรอง</p>
                                     </div>
                                 </td>
                             </tr>
                         )}
                     </tbody>
-                    {data.length > 0 && (
+                    {processedData.length > 0 && (
                         <tfoot className="bg-indigo-50/50 border-t-2 border-indigo-100 font-bold text-gray-800">
                             <tr>
-                                <td colSpan={3} className="px-6 py-4 text-right text-sm">ยอดรวมสถิติทุกหน้า:</td>
+                                <td colSpan={3} className="px-6 py-4 text-right text-sm">ยอดรวมสถิติตามการกรองข้อมูล:</td>
                                 <td className="px-6 py-4">
                                     <div className="flex justify-center gap-4 text-xs">
                                         <span className="text-blue-700 flex items-center gap-1"><Syringe className="w-3 h-3"/> {formatNumber(totals.vaccine)}</span>
@@ -787,7 +653,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             
             {renderPagination(false)}
 
-            {/* Modal ประวัติการแก้ไข (Track Changes) */}
+            {/* --- Modal ประวัติการแก้ไข (Track Changes) --- */}
             {historyModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200">
@@ -845,7 +711,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                                             {renderDiffJSON(log.metadata.before, log.metadata.after, 'before')}
                                                         </pre>
                                                     </div>
-                                                    <div className="overflow-auto custom-scrollbar pl-2 md:border-l border-slate-700">
+                                                    <div className="overflow-auto custom-scrollbar pl-2 md:border-l border-slate-700 md:pt-0 pt-4 md:mt-0 mt-2 border-t md:border-t-0">
                                                         <div className="flex items-center gap-2 mb-2 text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-1 rounded w-fit">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ข้อมูลหลังแก้ไข
                                                         </div>
