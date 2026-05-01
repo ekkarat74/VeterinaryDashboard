@@ -237,7 +237,6 @@ export const exportToExcel = (data: VetReportData[]): void => {
     XLSX.writeFile(workbook, `VET_REPORT_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
 
-// 🟢 ฟังก์ชันใหม่: สำหรับ Export ข้อมูลจุดเสี่ยงเป็น Excel
 export const exportOutbreaksToExcel = (data: OutbreakData[]): void => {
     if (!data || data.length === 0) {
         alert("ไม่มีข้อมูลจุดแจ้งเหตุสำหรับส่งออก");

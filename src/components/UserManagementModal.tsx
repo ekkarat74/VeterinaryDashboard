@@ -65,8 +65,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
     };
 
     return (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
+        <div className="fixed inset-0 z-[6000] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all pb-6 sm:pb-0 animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
                 
                 {/* Header Profile */}
                 <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-center text-white relative overflow-hidden">
@@ -82,7 +82,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
                         </span>
                     </div>
                     
-                    <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors">
+                    <button onClick={onClose} className="absolute top-3 right-3 text-slate-400 hover:text-white p-2 md:p-1.5 rounded-full hover:bg-white/10 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -103,39 +103,37 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
                     </button>
                 </div>
 
-                <div className="p-6">
+                <div className="p-5 md:p-6">
                     {activeTab === 'info' ? (
                         <form onSubmit={handleInfoSubmit} className="space-y-4 animate-in slide-in-from-left-2 duration-300">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ชื่อผู้ใช้ (Username)</label>
                                 <div className="relative">
                                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all" 
+                                    <input className="w-full pl-9 p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all" 
                                         value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} required />
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
                                     <div className="relative">
                                         {(user.role === 'Developer' && currentUserRole !== 'Developer') ? (
-                                            <div className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-semibold text-center cursor-not-allowed">
-                                                ผู้พัฒนาระบบ (ไม่สามารถแก้ไขได้)
+                                            <div className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-100 text-slate-500 text-sm font-semibold text-center cursor-not-allowed">
+                                                ผู้พัฒนาระบบ (แก้ไขไม่ได้)
                                             </div>
                                         ) : (
                                             <>
-                                                <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+                                                <select className="w-full p-3 md:p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
                                                     value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                                    
                                                     {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
-                                                    
                                                     <option value="MagaAdmin">MagaAdmin</option>
                                                     <option value="executive">Executive</option>
                                                     <option value="admin">Admin</option>
                                                     <option value="user">User</option>
                                                 </select>
-                                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
                                             </>
                                         )}
                                     </div>
@@ -143,27 +141,27 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สถานะ (Status)</label>
                                     <div className="relative">
-                                        <select className={`w-full p-2.5 pr-8 border rounded-xl appearance-none outline-none text-sm cursor-pointer font-bold transition-all ${formData.status === 'suspended' ? 'bg-red-50 text-red-600 border-red-200 focus:ring-red-500/20' : 'bg-green-50 text-green-700 border-green-200 focus:ring-green-500/20'}`}
+                                        <select className={`w-full p-3 md:p-2.5 pr-8 border rounded-xl appearance-none outline-none text-sm cursor-pointer font-bold transition-all ${formData.status === 'suspended' ? 'bg-red-50 text-red-600 border-red-200 focus:ring-red-500/20' : 'bg-green-50 text-green-700 border-green-200 focus:ring-green-500/20'}`}
                                             value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
                                             <option value="active">ใช้งานปกติ</option>
                                             <option value="suspended">ระงับการใช้งาน</option>
                                         </select>
-                                        <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${formData.status === 'suspended' ? 'text-red-400' : 'text-green-500'}`}/>
+                                        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${formData.status === 'suspended' ? 'text-red-400' : 'text-green-500'}`}/>
                                     </div>
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
+                            <button type="submit" className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
                                 <Save className="w-4 h-4" /> บันทึกการเปลี่ยนแปลง
                             </button>
                         </form>
                     ) : (
                         <form onSubmit={handlePasswordSubmit} className="space-y-4 animate-in slide-in-from-right-2 duration-300">
-                            <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex gap-3 items-start">
+                            <div className="bg-red-50 border border-red-100 rounded-xl p-3 md:p-4 flex gap-3 items-start">
                                 <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                                 <div>
-                                    <h4 className="text-xs font-bold text-red-800">คำเตือนสำหรับ Admin</h4>
-                                    <p className="text-[11px] text-red-600/90 leading-relaxed mt-1">
+                                    <h4 className="text-xs md:text-sm font-bold text-red-800">คำเตือนสำหรับ Admin</h4>
+                                    <p className="text-[11px] md:text-xs text-red-600/90 leading-relaxed mt-1">
                                         การเปลี่ยนรหัสผ่านที่นี่จะทำให้ User ไม่สามารถใช้รหัสเดิมได้ทันที กรุณาแจ้งรหัสใหม่ให้ User ทราบด้วย
                                     </p>
                                 </div>
@@ -173,13 +171,13 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
                                 <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ตั้งรหัสผ่านใหม่</label>
                                 <div className="relative">
                                     <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input type="text" className="w-full pl-9 p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none text-sm font-mono transition-all" 
+                                    <input type="text" className="w-full pl-9 p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none text-sm font-mono transition-all" 
                                         placeholder="ระบุรหัสผ่านใหม่..." 
                                         value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={4} />
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2">
+                            <button type="submit" className="w-full mt-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2">
                                 <RotateCw className="w-4 h-4" /> ยืนยันรีเซ็ตรหัสผ่าน
                             </button>
                         </form>
@@ -330,7 +328,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[5000] flex items-center justify-center md:p-4 animate-in fade-in duration-200">
             <EditUserModal 
                 isOpen={!!editingUser} 
                 onClose={() => setEditingUser(null)} 
@@ -339,28 +337,30 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                 onResetPassword={handleAdminResetPassword}
                 currentUserRole={currentUserRole}
             />
-            <div className="bg-white rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            <div className="bg-white md:rounded-2xl w-full max-w-6xl shadow-2xl flex flex-col h-full md:h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
                 
                 {/* Header */}
-                <div className="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-800">
+                <div className="bg-slate-900 px-4 md:px-6 py-4 flex justify-between items-center shrink-0 border-b border-slate-800 z-20">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30">
+                        <div className="p-2 md:p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30">
                             <Users className="w-5 h-5 text-blue-400"/>
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white tracking-wide">จัดการผู้ใช้งานระบบ</h2>
-                            <p className="text-slate-400 text-xs">ระบบบริหารจัดการบัญชีผู้ใช้และสิทธิ์การเข้าถึง</p>
+                            <h2 className="text-base md:text-lg font-bold text-white tracking-wide">จัดการผู้ใช้งานระบบ</h2>
+                            <p className="text-slate-400 text-[10px] md:text-xs">ระบบบริหารจัดการบัญชีผู้ใช้และสิทธิ์การเข้าถึง</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-800 p-2 rounded-full transition-colors">
-                        <X className="w-5 h-5"/>
+                        <X className="w-6 h-6 md:w-5 md:h-5"/>
                     </button>
                 </div>
 
-                <div className="flex flex-col md:flex-row h-full overflow-hidden bg-slate-50/50">
+                {/* Content Wrapper - scrolls vertically on mobile, uses split layout on md+ */}
+                <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden bg-slate-50/50 relative">
                     
                     {/* Left: Create Form (Sidebar) */}
-                    <div className="w-full md:w-80 bg-white border-r border-slate-200 p-6 flex flex-col gap-6 overflow-y-auto shrink-0 z-10 shadow-[2px_0_10px_rgba(0,0,0,0.02)]">
+                    <div className="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-slate-200 p-4 md:p-6 flex flex-col gap-6 shrink-0 z-10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] md:shadow-[2px_0_10px_rgba(0,0,0,0.02)] md:overflow-y-auto">
                         <div>
                             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                                 <span className="bg-green-100 text-green-600 p-1.5 rounded-lg"><Plus className="w-4 h-4"/></span> 
@@ -369,22 +369,20 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                             <form onSubmit={handleCreateUser} className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">ชื่อผู้ใช้ (Username)</label>
-                                    <input className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
+                                    <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
                                         value={username} onChange={e=>setUsername(e.target.value)} required placeholder="ระบุชื่อผู้ใช้" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">รหัสผ่าน (Password)</label>
-                                    <input className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
+                                    <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
                                         type="password" value={password} onChange={e=>setPassword(e.target.value)} required placeholder="ระบุรหัสผ่าน" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">ระดับสิทธิ์ (Role)</label>
                                     <div className="relative">
-                                        <select className="w-full p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+                                        <select className="w-full p-3 md:p-2.5 pr-8 border border-slate-200 rounded-xl appearance-none outline-none text-sm cursor-pointer bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
                                                 value={role} onChange={e => setRole(e.target.value)}>
-                                            
                                             {currentUserRole === 'Developer' && <option value="Developer">Developer</option>}
-                                            
                                             <option value="MagaAdmin">MagaAdmin</option>
                                             <option value="executive">Executive</option>
                                             <option value="admin">Admin</option>
@@ -393,13 +391,13 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
                                     </div>
                                 </div>
-                                <button type="submit" className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-sm shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center gap-2 mt-4">
+                                <button type="submit" className="w-full py-3.5 md:py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-sm shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center gap-2 mt-4">
                                     <CheckCircle className="w-4 h-4"/> สร้างบัญชีผู้ใช้
                                 </button>
                             </form>
                         </div>
                         
-                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 space-y-2 mt-auto">
+                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 space-y-2 mt-2 md:mt-auto">
                             <p className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5"/> คำแนะนำระดับสิทธิ์:</p>
                             <ul className="list-disc pl-5 space-y-1.5 text-blue-700/80">
                                 <li><b>Executive:</b> ดูข้อมูลระดับผู้บริหาร แต่ไม่มีสิทธิ์แก้ไข</li>
@@ -410,9 +408,9 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                     </div>
 
                     {/* Right: User List Table */}
-                    <div className="flex-1 flex flex-col overflow-hidden bg-transparent p-6">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-lg">
+                    <div className="flex-1 flex flex-col md:overflow-hidden bg-transparent p-4 md:p-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 md:mb-6">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-base md:text-lg">
                                 <Database className="w-5 h-5 text-blue-500"/> รายชื่อในระบบ 
                                 <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold ml-1">{filteredUsers.length}</span>
                             </h3>
@@ -423,26 +421,26 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                     <input 
                                         type="text" 
                                         placeholder="ค้นหาชื่อผู้ใช้..." 
-                                        className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none shadow-sm transition-all"
+                                        className="w-full pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none shadow-sm transition-all"
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
                                     />
                                 </div>
-                                <button onClick={fetchUsers} className="text-slate-500 hover:text-blue-600 bg-white border border-slate-200 hover:border-blue-300 transition-all p-2 rounded-xl shadow-sm hover:bg-blue-50 group">
-                                    <RotateCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                                <button onClick={fetchUsers} className="text-slate-500 hover:text-blue-600 bg-white border border-slate-200 hover:border-blue-300 transition-all p-2.5 md:p-2 rounded-xl shadow-sm hover:bg-blue-50 group shrink-0">
+                                    <RotateCw className="w-5 h-5 md:w-4 md:h-4 group-hover:rotate-180 transition-transform duration-500" />
                                 </button>
                             </div>
                         </div>
                         
-                        {/* Table Container */}
-                        <div className="flex-1 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-sm">
-                            <table className="w-full text-sm text-left border-collapse">
+                        {/* Table Container - Added overflow-x-auto for mobile */}
+                        <div className="flex-1 overflow-y-auto overflow-x-auto bg-white border border-slate-200 rounded-2xl shadow-sm">
+                            <table className="w-full text-sm text-left border-collapse min-w-[550px]">
                                 <thead className="bg-slate-50/80 text-slate-500 font-semibold text-xs uppercase sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200">
                                     <tr>
-                                        <th className="p-4 w-20 text-center font-medium">รูปโปรไฟล์</th>
-                                        <th className="p-4 font-medium">ชื่อผู้ใช้งาน (Username)</th>
-                                        <th className="p-4 font-medium w-40 text-center">ระดับสิทธิ์ (Role)</th>
-                                        <th className="p-4 text-right font-medium w-32">จัดการ</th>
+                                        <th className="p-3 md:p-4 w-16 md:w-20 text-center font-medium">รูปโปรไฟล์</th>
+                                        <th className="p-3 md:p-4 font-medium">ชื่อผู้ใช้งาน (Username)</th>
+                                        <th className="p-3 md:p-4 font-medium w-36 md:w-40 text-center">ระดับสิทธิ์ (Role)</th>
+                                        <th className="p-3 md:p-4 text-right font-medium w-28 md:w-32">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -467,22 +465,22 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                     ) : (
                                         filteredUsers.map(u => (
                                             <tr key={u._id} className="hover:bg-blue-50/30 transition-colors group">
-                                                <td className="p-3 text-center">
-                                                    <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs mx-auto border border-slate-200 shadow-sm">
+                                                <td className="p-3 md:p-4 text-center">
+                                                    <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs mx-auto border border-slate-200 shadow-sm">
                                                         {u.username.substring(0,2).toUpperCase()}
                                                     </div>
                                                 </td>
-                                                <td className="p-3 font-semibold text-slate-700">{u.username}</td>
-                                                <td className="p-3 text-center">
+                                                <td className="p-3 md:p-4 font-semibold text-slate-700">{u.username}</td>
+                                                <td className="p-3 md:p-4 text-center">
                                                     <div className="relative inline-block w-full">
                                                     {(u.role === 'Developer' && currentUserRole !== 'Developer') ? (
-                                                        <div className={`text-xs font-bold px-3 py-1.5 rounded-lg border text-center w-full ${getRoleBadgeStyle(u.role)}`}>
+                                                        <div className={`text-[11px] md:text-xs font-bold px-2 md:px-3 py-1.5 rounded-lg border text-center w-full ${getRoleBadgeStyle(u.role)}`}>
                                                             ผู้พัฒนาระบบ
                                                         </div>
                                                     ) : (
                                                          <>
                                                             <select 
-                                                                className={`text-xs font-bold pl-3 pr-6 py-1.5 rounded-lg border outline-none cursor-pointer appearance-none text-center w-full transition-colors ${getRoleBadgeStyle(u.role)}`}
+                                                                className={`text-[11px] md:text-xs font-bold pl-2 md:pl-3 pr-5 md:pr-6 py-1.5 rounded-lg border outline-none cursor-pointer appearance-none text-center w-full transition-colors ${getRoleBadgeStyle(u.role)}`}
                                                                 value={u.role}
                                                                 onChange={(e) => handleUpdateUser(u._id, { role: e.target.value })}
                                                             >
@@ -497,19 +495,19 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                                     )}
                                                     </div>
                                                 </td>
-                                                <td className="p-3">
-                                                    <div className="flex justify-end gap-1.5">
+                                                <td className="p-3 md:p-4">
+                                                    <div className="flex justify-end gap-1 md:gap-1.5">
                                                         <button onClick={() => setEditingUser(u)}
                                                             className="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-100 transition-all"
                                                             title="แก้ไข / รีเซ็ตรหัสผ่าน"
                                                         >
-                                                            <Edit className="w-4 h-4"/>
+                                                            <Edit className="w-4 h-4 md:w-4 md:h-4"/>
                                                         </button>
                                                         <button onClick={() => handleDeleteUser(u._id)}
                                                             className="text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-100 transition-all"
                                                             title="ลบถาวร"
                                                         >
-                                                            <Trash2 className="w-4 h-4"/>
+                                                            <Trash2 className="w-4 h-4 md:w-4 md:h-4"/>
                                                         </button>
                                                     </div>
                                                 </td>

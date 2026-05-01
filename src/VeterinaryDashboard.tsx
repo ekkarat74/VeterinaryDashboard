@@ -1517,17 +1517,17 @@ const handleDeleteDispatch = async (id: string) => {
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map((item: any) => item.date ? item.date.split('-')[0] : null).filter((y: any) => y !== null))].sort().reverse(), [outbreakData]);
 
     const visibleOutbreakYears = useMemo(() => {
-        return availableOutbreakYears.filter((year: any) => tabsConfig?.[`outbreak_year_${year}`] !== false);
-    }, [availableOutbreakYears, tabsConfig]);
+        return availableOutbreakYears.filter((year: any) => tabsConfig?.[`outbreak_year_${year}`] !== false);
+    }, [availableOutbreakYears, tabsConfig]);
 
     const filteredOutbreaks = useMemo(() => {
-        const allowedData = outbreakData.filter((item: any) => {
-            const y = item.date ? item.date.split('-')[0] : null;
-            return y && visibleOutbreakYears.includes(y);
-        });
+        const allowedData = outbreakData.filter((item: any) => {
+            const y = item.date ? item.date.split('-')[0] : null;
+            return y && visibleOutbreakYears.includes(y);
+        });
 
-        return outbreakFilterYear === 'ทั้งหมด' ? allowedData : allowedData.filter((item: any) => item.date && item.date.startsWith(outbreakFilterYear));
-    }, [outbreakData, outbreakFilterYear, visibleOutbreakYears]);
+        return outbreakFilterYear === 'ทั้งหมด' ? allowedData : allowedData.filter((item: any) => item.date && item.date.startsWith(outbreakFilterYear));
+    }, [outbreakData, outbreakFilterYear, visibleOutbreakYears]);
     const outbreakStats = useMemo(() => {
         const total = filteredOutbreaks.length;
         const grouped = filteredOutbreaks.reduce((acc: any, curr: any) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
