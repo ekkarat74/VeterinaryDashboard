@@ -1,17 +1,18 @@
-// src/components/map/LeafletMap.tsx
-import React, { useState, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, GeoJSON, LayersControl } from 'react-leaflet';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, GeoJSON, LayersControl, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
-import { 
-    Filter, AlertTriangle, ChevronDown, ChevronUp, 
-    Map as MapIcon, PawPrint, MapPin, Layers, Activity, Eye, EyeOff, Edit2
-} from 'lucide-react';
-
-import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.heat'; // นำเข้าปลั๊กอิน Heatmap
+
+import { 
+    Filter, AlertTriangle, ChevronDown, ChevronUp, 
+    Map as MapIcon, PawPrint, MapPin, Layers, Activity, Eye, EyeOff, Edit2, Flame
+} from 'lucide-react';
+
+import bangkokGeoJSON from '../../data/Bangkok-districts.json';
 import { UNIT_TYPES } from '../../constants/locations'; 
 
 const { BaseLayer } = LayersControl;
@@ -85,6 +86,30 @@ interface ColorSet {
     ring: string;
 }
 
+// ==========================================
+// Component: Heatmap Layer
+// ==========================================
+const HeatmapLayerComponent = ({ points }: { points: [number, number, number][] }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (!points || points.length === 0) return;
+        
+        // สร้าง Layer Heatmap โดยใช้ปลั๊กอิน leaflet.heat
+        const heatLayer = (L as any).heatLayer(points, {
+            radius: 25,
+            blur: 15,
+            maxZoom: 14,
+            gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
+        }).addTo(map);
+
+        return () => { map.removeLayer(heatLayer); };
+    }, [map, points]);
+    return null;
+};
+
+// ==========================================
+// Main Component: LeafletMap
+// ==========================================
 const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEdit, onEditOutbreak, canEdit }) => {
     const centerPosition: [number, number] = [13.7563, 100.5018];
     const [activeLayers, setActiveLayers] = useState<string[]>(UNIT_TYPES);
@@ -92,8 +117,9 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
     const [expandedUnit, setExpandedUnit] = useState<string | null>(null);
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
     
-    // --- State สำหรับ Outbreak ---
+    // --- State สำหรับ โหมดการแสดงผล ---
     const [hiddenMapIds, setHiddenMapIds] = useState<string[]>([]);
+    const [showHeatmap, setShowHeatmap] = useState<boolean>(false);
 
     const toggleLayer = (unit: string) => {
         setActiveLayers(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit]);
@@ -123,6 +149,30 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
             return sum + (s.vaccine || 0) + (s.sterilize || 0) + (s.register || 0) + (s.microchip || 0) + (s.medical || 0);
         }, 0);
         return { totalTimes, totalAnimals };
+    };
+
+    const displayData = useMemo(() => {
+        return (data || []).filter(item => activeLayers.includes(item.unit));
+    }, [data, activeLayers]);
+
+    // คำนวณจุด Heatmap 
+    const heatPoints = useMemo<[number, number, number][]>(() => {
+        const points = displayData.map(item => {
+            const lat = typeof item.lat === 'string' ? parseFloat(item.lat) : item.lat;
+            const long = typeof item.long === 'string' ? parseFloat(item.long) : item.long;
+            const stats = item.stats || {};
+            const totalActivity = (stats.vaccine || 0) + (stats.sterilize || 0) + (stats.register || 0) + (stats.microchip || 0) + (stats.medical || 0);
+            
+            return [lat, long, totalActivity * 0.5] as [number, number, number]; 
+        });
+
+        return points.filter((p): p is [number, number, number] => !isNaN(p[0]) && !isNaN(p[1]));
+    }, [displayData]);
+
+    const getNum = (val: string | number | undefined): number => {
+        if (!val) return 0;
+        const parsed = typeof val === 'string' ? parseInt(val, 10) : val;
+        return isNaN(parsed) ? 0 : parsed;
     };
 
     // --- Styles & Colors ---
@@ -168,16 +218,6 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
                 </div>`,
             iconSize: [size, size], iconAnchor: [size / 2, size + 8], popupAnchor: [0, -(size + 5)]
         });
-    };
-
-    const displayData = useMemo(() => {
-        return (data || []).filter(item => activeLayers.includes(item.unit));
-    }, [data, activeLayers]);
-
-    const getNum = (val: string | number | undefined): number => {
-        if (!val) return 0;
-        const parsed = typeof val === 'string' ? parseInt(val, 10) : val;
-        return isNaN(parsed) ? 0 : parsed;
     };
 
     return (
@@ -351,6 +391,17 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
                                 </div>
                             </div>
                         )}
+                        
+                        {/* 3. ปุ่มเปิดปิด Heatmap Mode */}
+                        <div className="p-3 border-t border-slate-100 shrink-0 bg-white">
+                            <button
+                                onClick={() => setShowHeatmap(!showHeatmap)}
+                                className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-bold transition-all shadow-sm ${showHeatmap ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                            >
+                                <Flame className={`w-4 h-4 ${showHeatmap ? 'animate-pulse' : ''}`} /> 
+                                {showHeatmap ? 'ปิดโหมด Heatmap (ความหนาแน่น)' : 'เปิดโหมด Heatmap (ความหนาแน่น)'}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -358,7 +409,6 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
             {/* --- MAP CONTENT --- */}
             <MapContainer center={centerPosition} zoom={10} scrollWheelZoom={true} className="w-full h-full bg-slate-100">
                 
-                {/* --- ส่วนที่เพิ่ม LayersControl ครอบ TileLayer --- */}
                 <LayersControl position="topleft">
                     <BaseLayer checked name="แผนที่ถนน (Street)">
                         <TileLayer 
@@ -373,7 +423,6 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
                         />
                     </BaseLayer>
                 </LayersControl>
-                {/* ------------------------------------------- */}
 
                 {/* ขอบเขตกรุงเทพมหานคร */}
                 {bangkokGeoJSON && (
@@ -389,107 +438,112 @@ const LeafletMap: React.FC<LeafletMapProps> = ({ data = [], outbreaks = [], onEd
                     />
                 )}
                 
-                {/* 1. Unit Markers (ข้อมูลปกติ) */}
-                <MarkerClusterGroup 
-                    key={activeLayers.join(',')} 
-                    chunkedLoading 
-                    maxClusterRadius={45}
-                    showCoverageOnHover={false}
-                    polygonOptions={{ fillColor: '#94a3b8', color: '#64748b', weight: 1, opacity: 0.5, fillOpacity: 0.2 }}
-                >
-                    {displayData.map((item) => {
-                        const lat = typeof item.lat === 'string' ? parseFloat(item.lat) : item.lat;
-                        const long = typeof item.long === 'string' ? parseFloat(item.long) : item.long;
-                        if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
-                        
-                        const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
-                        const totalActivity = (stats.vaccine || 0) + (stats.sterilize || 0) + (stats.register || 0) + (stats.microchip || 0) + (stats.medical || 0);
-                        const colorSet = getMarkerColor(item.unit);
+                {/* --- ส่วนแสดงผล Heatmap Layer --- */}
+                {showHeatmap && <HeatmapLayerComponent points={heatPoints} />}
 
-                        return (
-                            <Marker key={item._id} position={[lat, long]} icon={createNumberIcon(totalActivity, colorSet)}>
-                                <Tooltip direction="top" offset={[0, -38]} opacity={1} className="!bg-slate-800 !text-white !border-0 !rounded-md !px-2 !py-1 !font-bold !text-[10px] !shadow-lg">
-                                    {item.location}
-                                </Tooltip>
-                                <Popup>
-                                    <div className="font-sans flex flex-col w-[260px]">
-                                        <div className="w-full h-32 bg-slate-100 relative group overflow-hidden">
-                                            {item.imageUrl ? (
-                                                <img src={item.imageUrl} alt="site" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-300">
-                                                    <MapIcon className="w-12 h-12 opacity-50" />
+                {/* --- 1. Unit Markers (ข้อมูลปกติ) : ซ่อนถ้าเปิดโหมด Heatmap --- */}
+                {!showHeatmap && (
+                    <MarkerClusterGroup 
+                        key={activeLayers.join(',')} 
+                        chunkedLoading 
+                        maxClusterRadius={45}
+                        showCoverageOnHover={false}
+                        polygonOptions={{ fillColor: '#94a3b8', color: '#64748b', weight: 1, opacity: 0.5, fillOpacity: 0.2 }}
+                    >
+                        {displayData.map((item) => {
+                            const lat = typeof item.lat === 'string' ? parseFloat(item.lat) : item.lat;
+                            const long = typeof item.long === 'string' ? parseFloat(item.long) : item.long;
+                            if (isNaN(lat) || isNaN(long) || lat === 0 || long === 0) return null;
+                            
+                            const stats = item.stats || { vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0 };
+                            const totalActivity = (stats.vaccine || 0) + (stats.sterilize || 0) + (stats.register || 0) + (stats.microchip || 0) + (stats.medical || 0);
+                            const colorSet = getMarkerColor(item.unit);
+
+                            return (
+                                <Marker key={item._id} position={[lat, long]} icon={createNumberIcon(totalActivity, colorSet)}>
+                                    <Tooltip direction="top" offset={[0, -38]} opacity={1} className="!bg-slate-800 !text-white !border-0 !rounded-md !px-2 !py-1 !font-bold !text-[10px] !shadow-lg">
+                                        {item.location}
+                                    </Tooltip>
+                                    <Popup>
+                                        <div className="font-sans flex flex-col w-[260px]">
+                                            <div className="w-full h-32 bg-slate-100 relative group overflow-hidden">
+                                                {item.imageUrl ? (
+                                                    <img src={item.imageUrl} alt="site" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-300">
+                                                        <MapIcon className="w-12 h-12 opacity-50" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+                                                <div className="absolute bottom-3 left-3 right-3">
+                                                    <span className="inline-block px-2 py-0.5 rounded text-[8px] font-bold text-white mb-1 shadow-sm" style={{ backgroundColor: colorSet.bg }}>
+                                                        {item.unit}
+                                                    </span>
+                                                    <h3 className="font-bold text-white text-sm leading-tight drop-shadow-md truncate">{item.location}</h3>
                                                 </div>
-                                            )}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
-                                            <div className="absolute bottom-3 left-3 right-3">
-                                                <span className="inline-block px-2 py-0.5 rounded text-[8px] font-bold text-white mb-1 shadow-sm" style={{ backgroundColor: colorSet.bg }}>
-                                                    {item.unit}
-                                                </span>
-                                                <h3 className="font-bold text-white text-sm leading-tight drop-shadow-md truncate">{item.location}</h3>
+                                            </div>
+
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 mb-4 text-[10px] text-slate-500">
+                                                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                                    <span>{item.district || 'ไม่ระบุเขต'}</span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {(stats.vaccine ?? 0) > 0 && (
+                                                        <div className="bg-emerald-50 rounded-lg p-2 flex flex-col items-center justify-center border border-emerald-100">
+                                                            <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">วัคซีน</span>
+                                                            <span className="text-base font-black text-emerald-700">{stats.vaccine}</span>
+                                                        </div>
+                                                    )}
+                                                    {(stats.sterilize ?? 0) > 0 && (
+                                                        <div className="bg-pink-50 rounded-lg p-2 flex flex-col items-center justify-center border border-pink-100">
+                                                            <span className="text-[9px] text-pink-600 font-bold uppercase tracking-wider">ทำหมัน</span>
+                                                            <span className="text-base font-black text-pink-700">{stats.sterilize}</span>
+                                                        </div>
+                                                    )}
+                                                    {(stats.microchip ?? 0) > 0 && (
+                                                        <div className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center border border-blue-100">
+                                                            <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">ไมโครชิป</span>
+                                                            <span className="text-base font-black text-blue-700">{stats.microchip}</span>
+                                                        </div>
+                                                    )}
+                                                    {(stats.medical ?? 0) > 0 && (
+                                                        <div className="bg-orange-50 rounded-lg p-2 flex flex-col items-center justify-center border border-orange-100">
+                                                            <span className="text-[9px] text-orange-600 font-bold uppercase tracking-wider">รักษา</span>
+                                                            <span className="text-base font-black text-orange-700">{stats.medical}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+                                                    <span className="text-[9px] text-slate-400 font-medium">กิจกรรมรวมทั้งสิ้น</span>
+                                                    <div className="text-xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
+                                                </div>
+
+                                                {canEdit && onEdit && (
+                                                    <div className="mt-3 w-full border-t border-slate-100 pt-3">
+                                                        <button 
+                                                            onClick={(e: React.MouseEvent) => { 
+                                                                e.stopPropagation(); 
+                                                                onEdit(item); 
+                                                            }}
+                                                            className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-2 rounded-lg transition-colors text-[10px] border border-indigo-100"
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" /> แก้ไขข้อมูล
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
+                    </MarkerClusterGroup>
+                )}
 
-                                        <div className="p-4">
-                                            <div className="flex items-center gap-2 mb-4 text-[10px] text-slate-500">
-                                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                                <span>{item.district || 'ไม่ระบุเขต'}</span>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {(stats.vaccine ?? 0) > 0 && (
-                                                    <div className="bg-emerald-50 rounded-lg p-2 flex flex-col items-center justify-center border border-emerald-100">
-                                                        <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">วัคซีน</span>
-                                                        <span className="text-base font-black text-emerald-700">{stats.vaccine}</span>
-                                                    </div>
-                                                )}
-                                                {(stats.sterilize ?? 0) > 0 && (
-                                                    <div className="bg-pink-50 rounded-lg p-2 flex flex-col items-center justify-center border border-pink-100">
-                                                        <span className="text-[9px] text-pink-600 font-bold uppercase tracking-wider">ทำหมัน</span>
-                                                        <span className="text-base font-black text-pink-700">{stats.sterilize}</span>
-                                                    </div>
-                                                )}
-                                                {(stats.microchip ?? 0) > 0 && (
-                                                    <div className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center border border-blue-100">
-                                                        <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">ไมโครชิป</span>
-                                                        <span className="text-base font-black text-blue-700">{stats.microchip}</span>
-                                                    </div>
-                                                )}
-                                                {(stats.medical ?? 0) > 0 && (
-                                                    <div className="bg-orange-50 rounded-lg p-2 flex flex-col items-center justify-center border border-orange-100">
-                                                        <span className="text-[9px] text-orange-600 font-bold uppercase tracking-wider">รักษา</span>
-                                                        <span className="text-base font-black text-orange-700">{stats.medical}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="mt-4 pt-3 border-t border-slate-100 text-center">
-                                                <span className="text-[9px] text-slate-400 font-medium">กิจกรรมรวมทั้งสิ้น</span>
-                                                <div className="text-xl font-black text-slate-800 leading-none mt-0.5">{totalActivity.toLocaleString()}</div>
-                                            </div>
-
-                                            {canEdit && onEdit && (
-                                                <div className="mt-3 w-full border-t border-slate-100 pt-3">
-                                                    <button 
-                                                        onClick={(e: React.MouseEvent) => { 
-                                                            e.stopPropagation(); 
-                                                            onEdit(item); 
-                                                        }}
-                                                        className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-2 rounded-lg transition-colors text-[10px] border border-indigo-100"
-                                                    >
-                                                        <Edit2 className="w-3.5 h-3.5" /> แก้ไขข้อมูล
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
-                </MarkerClusterGroup>
-
-                {/* 2. Outbreak Markers & Circles (จุดระบาดและรัศมี แจ้งเตือน) */}
+                {/* --- 2. Outbreak Markers & Circles (จุดระบาดและรัศมี แจ้งเตือน) --- */}
                 {(outbreaks || []).filter(item => !hiddenMapIds.includes(item._id)).map((item, index) => {
                     const lat = typeof item.lat === 'string' ? parseFloat(item.lat) : item.lat;
                     const long = typeof item.long === 'string' ? parseFloat(item.long) : item.long;

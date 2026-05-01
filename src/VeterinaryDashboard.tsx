@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays,
-    Megaphone, Edit3, Plus, GripVertical, Save
+    Megaphone, Edit3, Plus, GripVertical, Save, Bell
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -356,6 +356,18 @@ export default function VeterinaryDashboard() {
     const [breeds, setBreeds] = useState<any[]>([]);
     const [colors, setColors] = useState<any[]>([]);
 
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            fetch(`${BASE_URL}/api/notifications`, { headers: { 'Authorization': `Bearer ${getCurrentToken()}` }})
+                .then(res => res.json())
+                .then(data => setNotifications(Array.isArray(data) ? data : []))
+                .catch(err => console.error("Error fetching notifications", err));
+        }
+    }, [user, BASE_URL]);
+
     useEffect(() => {
     const fetchBreedsAndColors = async () => {
       try {
@@ -399,17 +411,168 @@ export default function VeterinaryDashboard() {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
+                    'Authorization': `Bearer ${getCurrentToken()}` // เปลี่ยนมาใช้ getCurrentToken()
                 }
             });
             if (response.ok) {
                 addToast('success', "✅ ส่งคำสั่งอัปเดตระบบไปยังผู้ใช้ทั้งหมดแล้ว");
+            } else if (response.status === 401 || response.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
             } else {
                 addToast('error', "❌ ไม่สามารถส่งคำสั่งได้ (อาจไม่มีสิทธิ์)");
             }
         } catch (error) {
             addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server");
         }
+    };
+
+    const handleSaveMeeting = async (meetingData: any) => {
+        try {
+            const method = meetingData._id ? 'PUT' : 'POST';
+            const url = meetingData._id ? `${BASE_URL}/api/meetings/${meetingData._id}` : `${BASE_URL}/api/meetings`;
+            
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` }, // เปลี่ยนมาใช้ getCurrentToken()
+                body: JSON.stringify(meetingData)
+            });
+            if (res.ok) {
+                addToast('success', meetingData._id ? 'แก้ไขข้อมูลเรียบร้อย' : 'บันทึกการประชุมเรียบร้อย');
+                if(meetingData._id) {
+                    const updated = await res.json();
+                        (setMeetings as any)((prev: any[]) => prev.map((m: any) => m._id === updated._id ? updated : m));
+                }
+                setIsMeetingModalOpen(false); // สั่งปิดเมื่อบันทึกสำเร็จเท่านั้น
+            } else if (res.status === 401 || res.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true); // เปิด Login ค้างหน้าข้อมูลไว้
+            } else {
+                addToast('error', 'บันทึกไม่สำเร็จ');
+            }
+        } catch (error) {
+            addToast('error', 'Error saving meeting');
+        }
+    };
+
+    const handleDeleteMeeting = async (id: string) => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/meetings/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getCurrentToken()}` } // เปลี่ยนมาใช้ getCurrentToken()
+            });
+            if (res.ok) {
+                addToast('success', 'ลบการประชุมเรียบร้อย');
+                (setMeetings as any)((prev: any[]) => prev.filter((m: any) => m._id !== id));
+            } else if (res.status === 401 || res.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
+            } else {
+                addToast('error', 'ลบไม่สำเร็จ');
+            }
+        } catch (error) {
+            addToast('error', 'Error deleting meeting');
+        }
+    };
+
+    const handleUpdateOutbreak = async (id: string, updatedData: any) => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` }, // เปลี่ยนมาใช้ getCurrentToken()
+                body: JSON.stringify(updatedData)
+            });
+            if (response.ok) {
+                addToast('success', "✅ แก้ไขข้อมูลจุดเสี่ยงสำเร็จ");
+                setEditingOutbreak(null);
+                setIsOutbreakModalOpen(false); // สั่งปิดเมื่อบันทึกสำเร็จเท่านั้น
+            } else if (response.status === 401 || response.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true); // เปิด Login ค้างหน้าข้อมูลไว้
+            } else {
+                addToast('error', "❌ แก้ไขไม่สำเร็จ");
+            }
+        } catch (error) {
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        }
+    };
+
+    const handleAddOutbreak = async (data: any) => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/outbreaks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` }, // เปลี่ยนมาใช้ getCurrentToken()
+                body: JSON.stringify(data)
+            });
+            if (response.ok) { 
+                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว"); 
+                setIsOutbreakModalOpen(false); // สั่งปิดเมื่อบันทึกสำเร็จเท่านั้น
+            } else if (response.status === 401 || response.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true); // เปิด Login ค้างหน้าข้อมูลไว้
+            } else { 
+                addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้"); 
+            }
+        } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+    };
+
+    const handleDeleteOutbreak = async (id: string) => {
+        if (window.confirm("⚠️ ยืนยันการลบจุดแจ้งเหตุโรคระบาดนี้?")) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${getCurrentToken()}` } // เปลี่ยนมาใช้ getCurrentToken()
+                });
+                if (response.ok) { 
+                    addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว"); 
+                } else if (response.status === 401 || response.status === 403) {
+                    addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                    setUser(null);
+                    localStorage.removeItem('vet_user');
+                    setIsLoginModalOpen(true);
+                } else { 
+                    addToast('error', "❌ ไม่สามารถลบข้อมูลได้"); 
+                }
+            } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+        }
+    };
+
+    const executeClearAllData = async (passwordInput: string, filters: any) => {
+        try {
+            const response = await fetch(API_URL, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` }, // เปลี่ยนมาใช้ getCurrentToken()
+                body: JSON.stringify({ 
+                    password: passwordInput,
+                    year: filters.year,
+                    month: filters.month,
+                    unit: filters.unit
+                })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                fetchData(); 
+                setIsClearDataModalOpen(false);
+                alert(`✅ ${result.message}`);
+            } else if (response.status === 401 || response.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
+            } else {
+                alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
+            }
+        } catch (error) { alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server"); }
     };
 
 
@@ -614,25 +777,24 @@ const handleDeleteDispatch = async (id: string) => {
         const previousConfig = { ...tabsConfig };
         const config = tabsConfig as Record<string, any>;
 
-        // จัดการค่าเริ่มต้น ถ้าเป็นการตั้งค่าปีโรคระบาดและยังไม่มีข้อมูล ให้ถือว่าเป็น true
-        const currentValue = config[tabName] !== undefined ? config[tabName] : (tabName.startsWith('outbreak_year_') ? true : false);
-        const newConfig = { ...tabsConfig, [tabName]: !currentValue };
-        
-        setTabsConfig(newConfig); 
+        const currentValue = config[tabName] !== undefined ? config[tabName] : (tabName.startsWith('outbreak_year_') ? true : false);
+        const newConfig = { ...tabsConfig, [tabName]: !currentValue };
 
-        try {
-            const res = await fetch(`${BASE_URL}/api/settings/tabs`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify({ tabsConfig: newConfig })
-            });
-            if (!res.ok) throw new Error('Failed to update');
-        } catch (error) {
-            console.error("Update Tabs Config Error", error);
-            addToast('error', 'ไม่สามารถบันทึกการตั้งค่าแท็บได้');
-            setTabsConfig(previousConfig); 
-        }
-    };
+        setTabsConfig(newConfig); 
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/settings/tabs`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
+                body: JSON.stringify({ tabsConfig: newConfig })
+            });
+            if (!res.ok) throw new Error('Failed to update');
+        } catch (error) {
+            console.error("Update Tabs Config Error", error);
+            addToast('error', 'ไม่สามารถบันทึกการตั้งค่าแท็บได้');
+            setTabsConfig(previousConfig); 
+        }
+    };
 
     useEffect(() => {
         const checkTabVisibility = (tabName: string) => {
@@ -759,6 +921,10 @@ const handleDeleteDispatch = async (id: string) => {
             addToast('info', `🔄 ${payload.message}`);
             setTimeout(() => { window.location.reload(); }, 3000);
         });
+        socket.on('server_notification', (notif: any) => {
+            setNotifications(prev => [notif, ...prev]);
+            addToast(notif.type || 'info', notif.title);
+        });
         return () => { socket.disconnect(); };
     }, [BASE_URL]);
 
@@ -775,45 +941,12 @@ const handleDeleteDispatch = async (id: string) => {
         fetchMeetings();
     }, [BASE_URL, setMeetings]);
 
-    const handleSaveMeeting = async (meetingData: any) => {
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const markAllAsRead = async () => {
         try {
-            const method = meetingData._id ? 'PUT' : 'POST';
-            const url = meetingData._id ? `${BASE_URL}/api/meetings/${meetingData._id}` : `${BASE_URL}/api/meetings`;
-            
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify(meetingData)
-            });
-            if (res.ok) {
-                addToast('success', meetingData._id ? 'แก้ไขข้อมูลเรียบร้อย' : 'บันทึกการประชุมเรียบร้อย');
-                if(meetingData._id) {
-                    const updated = await res.json();
-                        (setMeetings as any)((prev: any[]) => prev.map((m: any) => m._id === updated._id ? updated : m));
-                }
-            } else {
-                addToast('error', 'บันทึกไม่สำเร็จ');
-            }
-        } catch (error) {
-            addToast('error', 'Error saving meeting');
-        }
-    };
-
-    const handleDeleteMeeting = async (id: string) => {
-        try {
-            const res = await fetch(`${BASE_URL}/api/meetings/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${user?.token}` }
-            });
-            if (res.ok) {
-                addToast('success', 'ลบการประชุมเรียบร้อย');
-                (setMeetings as any)((prev: any[]) => prev.filter((m: any) => m._id !== id));
-            } else {
-                addToast('error', 'ลบไม่สำเร็จ');
-            }
-        } catch (error) {
-            addToast('error', 'Error deleting meeting');
-        }
+            await fetch(`${BASE_URL}/api/notifications/read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${getCurrentToken()}` }});
+            setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+        } catch(e) {}
     };
 
     const handleCalendarEventClick = (evt: any) => {
@@ -843,24 +976,6 @@ const handleDeleteDispatch = async (id: string) => {
 
     const toggleOutbreakVisibility = (id: string) => {
         setHiddenOutbreakIds((prev: string[]) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-    };
-
-    const handleUpdateOutbreak = async (id: string, updatedData: any) => {
-        try {
-            const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify(updatedData)
-            });
-            if (response.ok) {
-                addToast('success', "✅ แก้ไขข้อมูลจุดเสี่ยงสำเร็จ");
-                setEditingOutbreak(null);
-            } else {
-                addToast('error', "❌ แก้ไขไม่สำเร็จ");
-            }
-        } catch (error) {
-            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
-        }
     };
 
     const openEditOutbreakModal = (item: any) => { setEditingOutbreak(item); setIsOutbreakModalOpen(true); };
@@ -942,33 +1057,6 @@ const handleDeleteDispatch = async (id: string) => {
         }
     };
     
-    const handleAddOutbreak = async (data: any) => {
-        try {
-            const response = await fetch(`${BASE_URL}/api/outbreaks`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify(data)
-            });
-            if (response.ok) { 
-                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว"); 
-                setIsOutbreakModalOpen(false);
-            } 
-            else { addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้"); }
-        } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
-    };
-
-    const handleDeleteOutbreak = async (id: string) => {
-        if (window.confirm("⚠️ ยืนยันการลบจุดแจ้งเหตุโรคระบาดนี้?")) {
-            try {
-                const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${user?.token}` }
-                });
-                if (response.ok) { addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว"); } 
-                else { addToast('error', "❌ ไม่สามารถลบข้อมูลได้"); }
-            } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
-        }
-    };
 
     const handleClearAllData = async () => {
         if (!isTopAdmin) {
@@ -978,28 +1066,6 @@ const handleDeleteDispatch = async (id: string) => {
         setIsClearDataModalOpen(true);
     };
 
-    const executeClearAllData = async (passwordInput: string, filters: any) => {
-        try {
-            const response = await fetch(API_URL, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user?.token}` },
-                body: JSON.stringify({ 
-                    password: passwordInput,
-                    year: filters.year,
-                    month: filters.month,
-                    unit: filters.unit
-                })
-            });
-            const result = await response.json();
-            if (response.ok) {
-                fetchData(); 
-                setIsClearDataModalOpen(false);
-                alert(`✅ ${result.message}`);
-            } else {
-                alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
-            }
-        } catch (error) { alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server"); }
-    };
 
     const handleGenerateMockData = () => {
         const count = 500;
@@ -1601,6 +1667,11 @@ const handleDeleteDispatch = async (id: string) => {
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
                 onNotifyUpdate={handleNotifySystemUpdate}
                 availableOutbreakYears={availableOutbreakYears as string[]}
+                notifications={notifications}
+                isNotifOpen={isNotifOpen}
+                setIsNotifOpen={setIsNotifOpen}
+                markAllAsRead={markAllAsRead}
+                unreadCount={unreadCount}
             />
 
             {isMobileMenuOpen && (
@@ -1614,20 +1685,56 @@ const handleDeleteDispatch = async (id: string) => {
                 
                 <AnnouncementManager canEdit={canEdit} addToast={addToast} />
 
-                <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                            <List className="w-6 h-6" />
-                        </button>
-                        <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
-                        <h1 className="text-sm font-bold text-slate-800">ระบบรายงานออกหน่วยเคลื่อนที่สัตวแพทย์</h1>
-                    </div>
-                    {user ? (
+                <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shadow-sm shrink-0 relative">
+            <div className="flex items-center gap-3">
+                <button onClick={() => setIsMobileMenuOpen(true)} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                    <List className="w-6 h-6" />
+                </button>
+                <img src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" className="w-8 h-8 rounded-lg object-cover ring-1 ring-slate-900/5" alt="Logo" />
+                <h1 className="text-sm font-bold text-slate-800">ระบบสัตวแพทย์เคลื่อนที่</h1>
+            </div>
+            
+            <div className="flex items-center gap-2">
+                {user ? (
+                    <>
+                        <div className="relative">
+                            <button 
+                                onClick={() => { setIsNotifOpen(!isNotifOpen); if (unreadCount > 0) markAllAsRead(); }} 
+                                className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors relative"
+                            >
+                                <Bell className="w-5 h-5"/>
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse border border-white"></span>
+                                )}
+                            </button>
+                            
+                            {isNotifOpen && (
+                                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-[9999] animate-in slide-in-from-top-2">
+                                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center">
+                                        <span className="font-bold text-xs text-slate-700">การแจ้งเตือนล่าสุด</span>
+                                    </div>
+                                    <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                                        {notifications.length === 0 ? (
+                                            <div className="text-center py-4 text-xs text-slate-400">ไม่มีการแจ้งเตือน</div>
+                                        ) : (
+                                            notifications.map((n, i) => (
+                                                <div key={i} className={`p-2 rounded-lg text-xs ${!n.isRead ? 'bg-indigo-50/50' : ''}`}>
+                                                    <div className="font-bold text-slate-800">{n.title}</div>
+                                                    <div className="text-slate-500 mt-0.5">{n.message}</div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><LogOut className="w-5 h-5"/></button>
-                    ) : (
-                        <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
-                    )}
-                </div>
+                    </>
+                ) : (
+                    <button onClick={() => setIsLoginModalOpen(true)} className="p-2 text-indigo-600 hover:text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"><Unlock className="w-5 h-5"/></button>
+                )}
+            </div>
+        </div>
 
                 <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8 custom-scrollbar">
                     <div className="bg-gradient-to-r from-[#6B4BFA] to-indigo-500 rounded-2xl p-6 mb-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center gap-5 relative overflow-hidden">

@@ -267,6 +267,18 @@ const invalidateOutbreakCache = () => {
   if (keys.length > 0) cache.del(keys);
 };
 
+// ==========================================
+// [เพิ่มใหม่] 1. Schema สำหรับระบบแจ้งเตือน (Notification)
+// ==========================================
+const notificationSchema = new mongoose.Schema({
+  title: String,
+  message: String,
+  type: { type: String, enum: ['info', 'warning', 'success', 'error'], default: 'info' },
+  isRead: { type: Boolean, default: false },
+  linkId: String
+}, { timestamps: true });
+const Notification = mongoose.model('Notification', notificationSchema);
+
 // =======================
 // A. AUTHENTICATION & LOGS
 // =======================
@@ -607,10 +619,21 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
   try {
     const newOutbreak = new Outbreak({ ...req.body, createdBy: req.user.username });
     const savedOutbreak = await newOutbreak.save();
-    createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak); // ✅ fire-and-forget
+    createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak);
     invalidateOutbreakCache();
 
+    // [เพิ่มใหม่] สร้าง Notification
+    const notif = await Notification.create({
+      title: '🚨 แจ้งเตือนด่วน: พบจุดเสี่ยงโรคระบาดใหม่!',
+      message: `สถานที่: ${savedOutbreak.location} เขต${savedOutbreak.district}`,
+      type: 'error',
+      linkId: savedOutbreak._id
+    });
+    
+    // [แก้ไข] แจ้งเตือนไปที่ Frontend
     io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
+    io.emit('server_notification', notif); // ยิงแจ้งเตือนเข้าระบบกระดิ่ง
+
     res.status(201).json(savedOutbreak);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -1091,6 +1114,47 @@ app.delete('/api/staffs/:id', authenticateToken, authorizeRole(['Developer', 'Ma
     res.json({ message: "ลบรายชื่อเรียบร้อย" });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// ==========================================
+// [เพิ่มใหม่] 3. API สำหรับ Notifications & Audit Trail
+// นำไปวางต่อจาก Section "A. AUTHENTICATION & LOGS"
+// ==========================================
+
+// 3.1 API ดึงประวัติการแก้ไขของ Record แบบเจาะจง (Audit Trail)
+app.get('/api/logs/record/:id', authenticateToken, async (req, res) => {
+  try {
+    const logs = await SystemLog.find({
+      $or: [
+        { 'metadata.after._id': req.params.id },
+        { 'metadata.before._id': req.params.id },
+        { 'metadata._id': req.params.id }
+      ]
+    }).sort({ createdAt: -1 }).lean();
+    res.json(logs);
+  } catch (err) { 
+    res.status(500).json({ message: err.message }); 
+  }
+});
+
+// 3.2 API ดึงรายการแจ้งเตือนทั้งหมด
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifs = await Notification.find().sort({ createdAt: -1 }).limit(50).lean();
+    res.json(notifs);
+  } catch (err) { 
+    res.status(500).json({ message: err.message }); 
+  }
+});
+
+// 3.3 API กดอ่านการแจ้งเตือนทั้งหมด
+app.put('/api/notifications/read', authenticateToken, async (req, res) => {
+  try {
+    await Notification.updateMany({ isRead: false }, { isRead: true });
+    res.json({ message: "Marked all as read" });
+  } catch (err) { 
+    res.status(500).json({ message: err.message }); 
   }
 });
 

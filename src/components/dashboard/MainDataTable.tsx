@@ -3,7 +3,7 @@ import html2canvas from 'html2canvas';
 import { 
     Database, Users, Pencil, X, MapPin, Calendar, 
     ImageIcon, Syringe, Scissors, QrCode, Stethoscope, FileText, Printer,
-    Download, Share2, Filter
+    Download, Share2, Filter, History, Clock, Terminal, Activity
 } from 'lucide-react';
 
 export interface ItemStats {
@@ -43,17 +43,65 @@ const formatThaiDate = (dateString: string): string => {
     if (!dateString) return '';
     try {
         const date = new Date(dateString);
-        // ตรวจสอบว่าเป็น Invalid Date หรือไม่
         if (isNaN(date.getTime())) return dateString; 
         
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear(); // หากต้องการปี พ.ศ. ให้ใช้ date.getFullYear() + 543
+        const year = date.getFullYear(); 
         
         return `${day}/${month}/${year}`;
     } catch {
         return dateString;
     }
+};
+
+// Helper Function สำหรับแสดงผลความแตกต่าง (Diff) ของข้อมูลใน Audit Trail
+const renderDiffJSON = (obj: any, compareObj: any, mode: 'before' | 'after', indentLevel = 1): React.ReactNode => {
+    if (typeof obj !== 'object' || obj === null) {
+        const isDiff = compareObj === undefined || obj !== compareObj;
+        const valStr = typeof obj === 'string' ? `"${obj}"` : String(obj);
+        if (isDiff) {
+            return (
+                <span className={`font-bold px-1 rounded ${mode === 'before' ? 'bg-rose-500/40 text-rose-100' : 'bg-emerald-500/40 text-emerald-100'}`}>
+                    {valStr}
+                </span>
+            );
+        }
+        return <span className={typeof obj === 'string' ? 'text-amber-200' : 'text-sky-300'}>{valStr}</span>;
+    }
+
+    const isArray = Array.isArray(obj);
+    const keys = Object.keys(obj);
+    const indent = "  ".repeat(indentLevel);
+    const closeIndent = "  ".repeat(indentLevel - 1);
+
+    return (
+        <span>
+            <span className="text-slate-400">{isArray ? '[' : '{'}</span>
+            <br />
+            {keys.map((key, index) => {
+                const val = obj[key];
+                const compVal = compareObj && typeof compareObj === 'object' ? compareObj[key] : undefined;
+                const isMissingInComp = compVal === undefined;
+                const keyClass = isMissingInComp 
+                    ? `font-bold px-1 rounded ${mode === 'before' ? 'bg-rose-500/40 text-rose-100' : 'bg-emerald-500/40 text-emerald-100'}`
+                    : "text-slate-300";
+
+                return (
+                    <span key={key}>
+                        {indent}
+                        {!isArray && <span className={keyClass}>"{key}"</span>}
+                        {!isArray && <span className="text-slate-400">{": "}</span>}
+                        {renderDiffJSON(val, compVal, mode, indentLevel + 1)}
+                        {index < keys.length - 1 && <span className="text-slate-400">{","}</span>}
+                        <br />
+                    </span>
+                );
+            })}
+            {closeIndent}
+            <span className="text-slate-400">{isArray ? ']' : '}'}</span>
+        </span>
+    );
 };
 
 const MainDataTable: React.FC<MainDataTableProps> = ({ 
@@ -66,7 +114,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     const baseData = incomingData || [];
     const [coordinateFilter, setCoordinateFilter] = useState<'all' | 'with' | 'without'>('all');
 
-    // กรองข้อมูลตามพิกัดก่อนนำไปให้ตารางและ Pagination ใช้
+    // กรองข้อมูลตามพิกัด
     const data = baseData.filter(item => {
         if (coordinateFilter === 'all') return true;
         const hasCoords = item.lat && item.long && parseFloat(item.lat.toString()) !== 0 && parseFloat(item.long.toString()) !== 0;
@@ -80,6 +128,32 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     const totalPages = Math.ceil(data.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentData = data.slice(startIndex, startIndex + itemsPerPage);
+
+    // --- State สำหรับระบบ Track Changes (Audit Trail) ---
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [recordLogs, setRecordLogs] = useState<any[]>([]);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+    const [selectedRecordData, setSelectedRecordData] = useState<DataItem | null>(null);
+
+    const handleViewHistory = async (item: DataItem) => {
+        setSelectedRecordData(item);
+        setHistoryModalOpen(true);
+        setIsLoadingLogs(true);
+        try {
+            const token = JSON.parse(localStorage.getItem('vet_user') || '{}').token;
+            const res = await fetch(`https://veterinarydashboard-hwho.onrender.com/api/logs/record/${item._id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setRecordLogs(data);
+            }
+        } catch (error) {
+            console.error("Fetch history error", error);
+        } finally {
+            setIsLoadingLogs(false);
+        }
+    };
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -108,7 +182,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         .report-doc {
             font-family: 'Sarabun', sans-serif;
             color: #000;
-            font-size: 14px; /* ปรับลดจาก 15px */
+            font-size: 14px;
             line-height: 1.4;
             margin: 0 auto;
             padding: 40px 50px;
@@ -345,7 +419,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         </div>
     `;
 
-    // 1. ฟังก์ชัน ปริ้น
     const handlePrint = (item: DataItem) => {
         const printContent = `
             <!DOCTYPE html>
@@ -397,16 +470,13 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         return canvas;
     };
 
-    // 2. ฟังก์ชัน ดาวน์โหลด WebP (แก้ไขชื่อและนามสกุลไฟล์)
     const handleDownloadWebp = async (item: DataItem) => {
         if (isGeneratingDocument) return;
         setIsGeneratingDocument(true);
         try {
             const canvas = await generateImageCanvas(item);
             const link = document.createElement('a');
-            // เปลี่ยนนามสกุลไฟล์เป็น .webp
             link.download = `รายงาน_${item.location || 'เอกสาร'}.webp`;
-            // เปลี่ยนจาก 'image/jpeg' เป็น 'image/webp'
             link.href = canvas.toDataURL('image/webp', 0.9);
             link.click();
         } catch (error) {
@@ -417,7 +487,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
         }
     };
 
-    // 3. ฟังก์ชัน แชร์เข้า LINE (แก้ไขชนิดไฟล์ที่แชร์)
     const handleShareLine = async (item: DataItem) => {
         if (isGeneratingDocument) return;
         setIsGeneratingDocument(true);
@@ -425,7 +494,6 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             const canvas = await generateImageCanvas(item);
             
             const blob = await new Promise<Blob | null>((resolve) => {
-                // เปลี่ยนจาก 'image/jpeg' เป็น 'image/webp'
                 canvas.toBlob((b) => resolve(b), 'image/webp', 0.9);
             });
 
@@ -434,9 +502,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                 return;
             }
 
-            // เปลี่ยนนามสกุลไฟล์เป็น .webp
             const fileName = `รายงาน_${item.location || 'เอกสาร'}.webp`;
-            // เปลี่ยน type เป็น 'image/webp'
             const file = new File([blob], fileName, { type: 'image/webp' });
 
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -505,7 +571,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mt-8 overflow-hidden w-full flex flex-col">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mt-8 overflow-hidden w-full flex flex-col relative">
             {/* Header Section */}
             <div className="px-6 py-5 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-4">
@@ -670,6 +736,9 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                                 
                                                 {/* Data Actions */}
                                                 <div className="flex bg-gray-50 border border-gray-200 rounded-lg p-0.5">
+                                                    <button onClick={() => handleViewHistory(item)} className="p-1.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="ประวัติการแก้ไข (Track Changes)">
+                                                        <History className="w-4 h-4"/>
+                                                    </button>
                                                     <button onClick={() => onEdit(item)} className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors" title="แก้ไข">
                                                         <Pencil className="w-4 h-4"/>
                                                     </button>
@@ -717,6 +786,94 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             </div>
             
             {renderPagination(false)}
+
+            {/* Modal ประวัติการแก้ไข (Track Changes) */}
+            {historyModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[6000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200">
+                        <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                    <History className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800">ประวัติการแก้ไขข้อมูล</h3>
+                                    <p className="text-xs text-slate-500">{selectedRecordData?.location}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setHistoryModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-0 overflow-auto bg-slate-50 flex-1 custom-scrollbar">
+                            {isLoadingLogs ? (
+                                <div className="p-12 text-center text-slate-500 flex flex-col items-center gap-3">
+                                    <Activity className="w-8 h-8 animate-pulse text-indigo-400" />
+                                    <span>กำลังโหลดประวัติการแก้ไข...</span>
+                                </div>
+                            ) : recordLogs.length === 0 ? (
+                                <div className="p-12 text-center text-slate-500">ไม่พบประวัติการแก้ไขของรายการนี้</div>
+                            ) : (
+                                <div className="divide-y divide-slate-200">
+                                    {recordLogs.map((log) => (
+                                        <div key={log._id} className="p-6 bg-white">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs border border-slate-200">
+                                                        {log.user?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-slate-800">{log.user}</div>
+                                                        <div className="text-xs text-slate-500 flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" /> {new Date(log.createdAt).toLocaleString('th-TH')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full border ${log.action.includes('CREATE') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : log.action.includes('UPDATE') ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                                                    {log.action}
+                                                </span>
+                                            </div>
+                                            
+                                            {log.metadata && log.metadata.before && log.metadata.after ? (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-[#1e1e1e] p-4 rounded-xl overflow-hidden shadow-inner">
+                                                    <div className="overflow-auto custom-scrollbar pr-2">
+                                                        <div className="flex items-center gap-2 mb-2 text-rose-400 font-bold text-xs bg-rose-500/10 px-2 py-1 rounded w-fit">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div> ข้อมูลก่อนแก้ไข
+                                                        </div>
+                                                        <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap">
+                                                            {renderDiffJSON(log.metadata.before, log.metadata.after, 'before')}
+                                                        </pre>
+                                                    </div>
+                                                    <div className="overflow-auto custom-scrollbar pl-2 md:border-l border-slate-700">
+                                                        <div className="flex items-center gap-2 mb-2 text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-1 rounded w-fit">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ข้อมูลหลังแก้ไข
+                                                        </div>
+                                                        <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap">
+                                                            {renderDiffJSON(log.metadata.after, log.metadata.before, 'after')}
+                                                        </pre>
+                                                    </div>
+                                                </div>
+                                            ) : log.metadata ? (
+                                                <div className="mt-4 bg-[#1e1e1e] p-4 rounded-xl overflow-auto custom-scrollbar shadow-inner">
+                                                    <div className="flex items-center gap-2 mb-2 text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-1 rounded w-fit">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ข้อมูลที่บันทึก
+                                                    </div>
+                                                    <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap">
+                                                        {renderDiffJSON(log.metadata, log.metadata, 'after')}
+                                                    </pre>
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-400 mt-2 italic border-l-2 border-slate-200 pl-2">ไม่มีรายละเอียดการเปลี่ยนแปลงที่บันทึกไว้</div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

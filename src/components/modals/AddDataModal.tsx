@@ -110,7 +110,9 @@ const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<str
     reader.readAsDataURL(file);
     reader.onload = (e) => {
       const img = new Image();
-      img.src = e.target?.result as string;
+      
+      img.onerror = () => reject(new Error('รูปแบบไฟล์ภาพไม่ถูกต้องหรือไม่สามารถอ่านได้'));
+      
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
@@ -125,19 +127,16 @@ const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<str
         const ctx = canvas.getContext('2d')!;
         ctx.drawImage(img, 0, 0, width, height);
 
-        let quality = 0.9; // เริ่มต้นที่คุณภาพ 90%
-        // แปลงภาพเป็นฟอร์แมต WebP
+        let quality = 0.9;
         let dataUrl = canvas.toDataURL('image/webp', quality);
         let sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
 
-        // วนลูปลดคุณภาพลงทีละ 10% (0.1) จนกว่าจะ <= 100 KB (ต่ำสุดที่คุณภาพ 10%)
         while (sizeKB > targetKB && quality > 0.1) {
           quality -= 0.1;
           dataUrl = canvas.toDataURL('image/webp', quality);
           sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
         }
 
-        // หากลดคุณภาพเหลือ 10% แล้วขนาดยังเกิน 100 KB ให้เริ่มลดขนาดความกว้าง/ยาวของภาพลงทีละ 20%
         while (sizeKB > targetKB && width > 300) {
           width *= 0.8;
           height *= 0.8;
@@ -150,7 +149,7 @@ const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<str
 
         resolve(dataUrl);
       };
-      img.onerror = reject;
+      img.src = e.target?.result as string;
     };
     reader.onerror = reject;
   });
@@ -278,16 +277,15 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     if (isOpen && initialData && customUnitsObj !== undefined) {
       const unitExists = allUnitOptions.includes(initialData.unit);
       
-      // ดึงค่าเขตและแขวงให้ถูกต้อง (ดักจับกรณีข้อมูลเก่าที่ยังไม่มี locationDistrict)
       const loadedLocationDistrict = initialData.locationDistrict || initialData.district || BANGKOK_DISTRICTS[0] || '';
       const loadedDistrict = initialData.district || BANGKOK_DISTRICTS[0] || '';
 
       setFormData({
         ...defaultFormData,
         ...initialData,
-        locationDistrict: loadedLocationDistrict, // บังคับใช้ค่าเขตที่ดึงมาให้ถูกต้อง
+        locationDistrict: loadedLocationDistrict, 
         district: loadedDistrict,
-        subdistrict: initialData.subdistrict || '', // บังคับใส่ค่าแขวงกลับเข้าไป
+        subdistrict: initialData.subdistrict || '',
         unit: unitExists ? initialData.unit : 'หน่วยอื่น ๆ',
         otherUnit: !unitExists ? initialData.unit : ''
       });
@@ -303,7 +301,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       const query = (initialData.location || '').toLowerCase().trim();
       if (!query) return;
 
-      // กรองหาแผนปฏิบัติงานในวันเดียวกันก่อน
       const dispatchesOnDate = allDispatches.filter(d => d.date && d.date.startsWith(initialData.date));
       
       const matchInDate = dispatchesOnDate.find(d =>
@@ -314,7 +311,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
         d.location?.toLowerCase().includes(query)
       );
 
-      // ถ้าพบข้อมูลแผนออกหน่วยที่ตรงกัน ให้ set เพื่อแสดงการ์ดสีม่วงด้านล่าง
       if (match) {
         setFoundDispatch(match);
       }
@@ -326,7 +322,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
   }, [allDispatches, formData.date]);
 
-  const handleUseDispatchData = (dispatch: any) => { // เปลี่ยนเป็น any หรือเพิ่ม Type เพื่อรับ subdistrict
+  const handleUseDispatchData = (dispatch: any) => {
     let newLat = dispatch.lat || formData.lat;
     let newLng = dispatch.lng || formData.long;
     let newMapLink = dispatch.mapLink || formData.mapLink;
@@ -342,7 +338,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       const newLocationDistrict = dispatch.district || dispatch.locationDistrict || prev.locationDistrict;
       const newDistrict = dispatch.district || prev.district;
       
-      // ถ้าเขตเปลี่ยนไปจากเดิม และไม่มีข้อมูลแขวงแนบมา ให้ล้างค่าแขวงเป็นค่าว่างเพื่อบังคับให้ผู้ใช้เลือกใหม่
       const newSubdistrict = dispatch.subdistrict || (newLocationDistrict === prev.locationDistrict ? prev.subdistrict : '');
 
       return {
@@ -350,7 +345,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
         location: dispatch.location || prev.location,
         locationDistrict: newLocationDistrict,
         district: newDistrict,
-        subdistrict: newSubdistrict, // อัปเดตแขวง
+        subdistrict: newSubdistrict,
         mapLink: newMapLink,
         lat: newLat,
         long: newLng
@@ -493,8 +488,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     }
 
     const finalUnit = formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit;
-    const latNum = parseFloat(String(formData.lat)) || 0;
-    const lngNum = parseFloat(String(formData.long)) || 0;
+    let latNum = parseFloat(String(formData.lat));
+    let lngNum = parseFloat(String(formData.long));
+    latNum = isNaN(latNum) ? 0 : latNum;
+    lngNum = isNaN(lngNum) ? 0 : lngNum;
 
     const payload = {
       ...formData,

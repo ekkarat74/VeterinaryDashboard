@@ -36,7 +36,7 @@ interface SidebarProps {
     isSystemMenuOpen: boolean;
     setIsSystemMenuOpen: (isOpen: boolean) => void;
     isDevOrSuper?: boolean;
-    availableOutbreakYears?: string[]; // เพิ่ม Prop สำหรับรับปีที่เปิด-ปิดได้
+    availableOutbreakYears?: string[];
     
     // Actions
     onLogin: () => void;
@@ -69,6 +69,13 @@ interface SidebarProps {
     setIsSidebarCollapsed: (isCollapsed: boolean) => void;
     isMobileMenuOpen: boolean;
     setIsMobileMenuOpen: (isOpen: boolean) => void;
+
+    // Notifications
+    notifications?: any[];
+    isNotifOpen?: boolean;
+    setIsNotifOpen?: (isOpen: boolean) => void;
+    markAllAsRead?: () => void;
+    unreadCount?: number;
 }
 
 // --- Components ---
@@ -125,7 +132,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
     onOpenCalendar,
-    availableOutbreakYears = [], // รับค่าปีที่มีข้อมูลโรคระบาด
+    availableOutbreakYears = [],
+    notifications = [],
+    isNotifOpen = false,
+    setIsNotifOpen,
+    markAllAsRead,
+    unreadCount = 0
 }) => {
     
     const isCollapsed = isSidebarCollapsed && !isMobileMenuOpen;
@@ -375,14 +387,53 @@ const Sidebar: React.FC<SidebarProps> = ({
                                             {user.username.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex flex-col min-w-0 flex-1">
-                                        <span className="text-xs font-bold text-slate-800 truncate">{user.username}</span>
-                                        <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider truncate">
-                                            {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
-                                        </span>
-                                    </div>
+                                            <span className="text-xs font-bold text-slate-800 truncate">{user.username}</span>
+                                            <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider truncate">
+                                                {user.role === 'Developer' ? 'ผู้พัฒนาระบบ' : user.role}
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
-                                <div className={`flex ${isCollapsed ? 'flex-col gap-1 w-full' : 'gap-1 shrink-0'}`}>
+                                
+                                {/* กลุ่มปุ่ม Action (Notification, Password, Logout) */}
+                                <div className={`flex ${isCollapsed ? 'flex-col gap-1 w-full' : 'gap-1 shrink-0'} relative`}>
+                                    
+                                    {/* ปุ่มกระดิ่งแจ้งเตือน */}
+                                    <button 
+                                        onClick={() => { 
+                                            if (setIsNotifOpen) setIsNotifOpen(!isNotifOpen); 
+                                            if ((unreadCount ?? 0) > 0 && markAllAsRead) markAllAsRead(); 
+                                        }} 
+                                        className={`p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-xl transition-all shrink-0 relative ${isCollapsed ? 'flex justify-center w-full bg-white border border-slate-200 shadow-sm' : ''}`} 
+                                        title="การแจ้งเตือน"
+                                    >
+                                        <Bell className="w-[18px] h-[18px]" />
+                                        {(unreadCount ?? 0) > 0 && (
+                                            <span className={`absolute ${isCollapsed ? 'top-2 right-2' : 'top-2.5 right-2.5'} w-2 h-2 bg-rose-500 rounded-full animate-pulse border border-white`}></span>
+                                        )}
+                                    </button>
+
+                                    {/* Dropdown แจ้งเตือน */}
+                                    {isNotifOpen && (
+                                        <div className={`absolute bottom-full mb-2 ${isCollapsed ? 'left-14' : 'right-0'} w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-[9999] animate-in slide-in-from-bottom-2`}>
+                                            <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between items-center text-left">
+                                                <span className="font-bold text-xs text-slate-700">การแจ้งเตือนล่าสุด</span>
+                                            </div>
+                                            <div className="max-h-64 overflow-y-auto custom-scrollbar p-2 space-y-1 text-left">
+                                                {(!notifications || notifications.length === 0) ? (
+                                                    <div className="text-center py-4 text-xs text-slate-400">ไม่มีการแจ้งเตือน</div>
+                                                ) : (
+                                                    notifications.map((n, i) => (
+                                                        <div key={i} className={`p-2 rounded-lg text-xs ${!n.isRead ? 'bg-indigo-50/50' : ''}`}>
+                                                            <div className="font-bold text-slate-800">{n.title}</div>
+                                                            <div className="text-slate-500 mt-0.5">{n.message}</div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <button onClick={() => handleAction(onChangePassword)} className={`p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-xl transition-all shrink-0 ${isCollapsed ? 'flex justify-center w-full bg-white border border-slate-200 shadow-sm' : ''}`} title="เปลี่ยนรหัสผ่าน">
                                         <Key className="w-[18px] h-[18px]" />
                                     </button>
