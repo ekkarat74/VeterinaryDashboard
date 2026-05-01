@@ -317,7 +317,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
   }, [allDispatches, formData.date]);
 
-  const handleUseDispatchData = (dispatch: DispatchType) => {
+  const handleUseDispatchData = (dispatch: any) => { // เปลี่ยนเป็น any หรือเพิ่ม Type เพื่อรับ subdistrict
     let newLat = dispatch.lat || formData.lat;
     let newLng = dispatch.lng || formData.long;
     let newMapLink = dispatch.mapLink || formData.mapLink;
@@ -329,15 +329,24 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
         newMapLink = '';
     }
 
-    setFormData(prev => ({
-      ...prev,
-      location: dispatch.location || prev.location,
-      locationDistrict: dispatch.district || prev.locationDistrict,
-      district: dispatch.district || prev.district,
-      mapLink: newMapLink,
-      lat: newLat,
-      long: newLng
-    }));
+    setFormData(prev => {
+      const newLocationDistrict = dispatch.district || dispatch.locationDistrict || prev.locationDistrict;
+      const newDistrict = dispatch.district || prev.district;
+      
+      // ถ้าเขตเปลี่ยนไปจากเดิม และไม่มีข้อมูลแขวงแนบมา ให้ล้างค่าแขวงเป็นค่าว่างเพื่อบังคับให้ผู้ใช้เลือกใหม่
+      const newSubdistrict = dispatch.subdistrict || (newLocationDistrict === prev.locationDistrict ? prev.subdistrict : '');
+
+      return {
+        ...prev,
+        location: dispatch.location || prev.location,
+        locationDistrict: newLocationDistrict,
+        district: newDistrict,
+        subdistrict: newSubdistrict, // อัปเดตแขวง
+        mapLink: newMapLink,
+        lat: newLat,
+        long: newLng
+      };
+    });
 
     if (newLat || newLng) {
       setCoordInput(`${newLat || ''}, ${newLng || ''}`);
@@ -501,6 +510,26 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // ฟังก์ชันแก้ปัญหาคำว่า "เขต" คลาดเคลื่อน เพื่อให้ Dropdown แขวงทำงานได้เสมอ
+  const getSubdistricts = (districtName: string) => {
+      if (!districtName) return [];
+      // 1. ค้นหาแบบตรงๆ ก่อน
+      if (BANGKOK_SUBDISTRICTS[districtName as keyof typeof BANGKOK_SUBDISTRICTS]) {
+          return BANGKOK_SUBDISTRICTS[districtName as keyof typeof BANGKOK_SUBDISTRICTS];
+      }
+      // 2. ถ้าไม่เจอ ลองตัดคำว่า "เขต" ออก
+      const cleanName = districtName.replace(/^เขต\s*/, '').trim();
+      if (BANGKOK_SUBDISTRICTS[cleanName as keyof typeof BANGKOK_SUBDISTRICTS]) {
+          return BANGKOK_SUBDISTRICTS[cleanName as keyof typeof BANGKOK_SUBDISTRICTS];
+      }
+      // 3. ถ้าข้อมูลใน Constants มีคำว่าเขต แต่ชื่อที่เข้ามาไม่มี
+      const withKhet = `เขต${cleanName}`;
+      if (BANGKOK_SUBDISTRICTS[withKhet as keyof typeof BANGKOK_SUBDISTRICTS]) {
+          return BANGKOK_SUBDISTRICTS[withKhet as keyof typeof BANGKOK_SUBDISTRICTS];
+      }
+      return [];
   };
 
   if (!isOpen) return null;
@@ -709,17 +738,24 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                               matchedUnit = item.title;
                             }
 
-                            setFormData(prev => ({
-                              ...prev,
-                              location: item.location || prev.location,
-                              unit: matchedUnit,
-                              locationDistrict: item.locationDistrict || item.district || prev.locationDistrict,
-                              district: item.district || prev.district,
-                              subdistrict: newSubdistrict, 
-                              mapLink: newMapLink,
-                              lat: newLat,
-                              long: newLng
-                            }));
+                            setFormData(prev => {
+                              const newLocationDistrict = item.locationDistrict || item.district || prev.locationDistrict;
+        
+                              // เคลียร์แขวงถ้าเขตไม่ตรงกัน และ item นั้นไม่มีแขวงติดมาด้วย
+                              const finalSubdistrict = newSubdistrict || (newLocationDistrict === prev.locationDistrict ? prev.subdistrict : '');
+
+                              return {
+                                ...prev,
+                                location: item.location || prev.location,
+                                unit: matchedUnit,
+                                locationDistrict: newLocationDistrict,
+                                district: item.district || prev.district,
+                                subdistrict: finalSubdistrict, // อัปเดตแขวง
+                                mapLink: newMapLink,
+                                lat: newLat,
+                                long: newLng
+                                };
+                            });
 
                             if (newLat || newLng) {
                               setCoordInput(`${newLat || ''}, ${newLng || ''}`);
@@ -792,7 +828,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     disabled={isSubmitting}
                   >
                     <option value="">-- เลือกแขวง --</option>
-                    {formData.locationDistrict && BANGKOK_SUBDISTRICTS[formData.locationDistrict as keyof typeof BANGKOK_SUBDISTRICTS]?.map(s => (
+                    {getSubdistricts(formData.locationDistrict).map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
