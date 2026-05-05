@@ -698,8 +698,13 @@ const DispatchCalendarDashboard: React.FC = () => {
     const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, type, message }]);
+
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
     };
-    const removeToast = (id: number | string) => setToasts(prev => prev.filter(t => t.id !== id));
+
+    const removeToast = (id: number | string) => setToasts(prev => prev.filter(t => t.id !== id));;
 
     useEffect(() => {
         const storedUser = localStorage.getItem('vet_user');

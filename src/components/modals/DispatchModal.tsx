@@ -739,18 +739,21 @@ ${staffDetails}
 
     if (onSave) {
         const success = await onSave(finalData, !isSaveAndContinue);
-        if (success && isSaveAndContinue) {
-            setIsDirty(false); 
-            setGeneralInfo(prev => ({
-                ...prev,
-                locationName: '', district: '', mapLink: '',
-                locationNameB: '', districtB: '', mapLinkB: '',
-                note: '', endDate: ''
-            }));
-            if (onToast) onToast('success', 'เคลียร์ฟอร์มเตรียมพร้อมสำหรับงานต่อไป');
-        } else if (success && !isSaveAndContinue) {
-            setIsDirty(false); 
-            handleSendLine();
+        if (success) {
+            setIsDirty(false);
+            
+            if (isSaveAndContinue) {
+                setGeneralInfo(prev => ({
+                    ...prev,
+                    locationName: '', district: '', mapLink: '',
+                    locationNameB: '', districtB: '', mapLinkB: '',
+                    note: '', endDate: ''
+                }));
+                if (onToast) onToast('success', 'บันทึกสำเร็จและเคลียร์ฟอร์มแล้ว');
+            } else {
+                if (onToast) onToast('success', 'บันทึกข้อมูลเรียบร้อยแล้ว');
+                onClose(); 
+            }
         }
     }
   };

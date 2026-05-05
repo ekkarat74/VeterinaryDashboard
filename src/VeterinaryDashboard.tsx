@@ -1793,7 +1793,6 @@ const handleDeleteDispatch = async (id: string) => {
 
                             {isFilterExpanded && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
-                                    {/* ... โค้ด Input ของ Filter ทั้งหมด เดิม ... */}
                                     <div className="relative">
                                         <label className="block text-[10px] font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
                                         <div className="relative">
