@@ -436,7 +436,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                         </div>
                                     )}
 
-                                    <div className="grid grid-cols-3 gap-2 mb-3 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                                    <div className="grid grid-cols-5 gap-2 mb-3 bg-gray-50 rounded-lg p-2 border border-gray-100">
                                         <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
                                             <Syringe className="w-3.5 h-3.5 text-blue-500 mb-0.5" />
                                             <span className="font-bold text-blue-700 text-xs">{formatNumber(item.stats?.vaccine)}</span>
@@ -448,6 +448,14 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                         <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
                                             <FileText className="w-3.5 h-3.5 text-teal-500 mb-0.5" />
                                             <span className="font-bold text-teal-700 text-xs">{formatNumber(item.stats?.register)}</span>
+                                        </div>
+                                        <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
+                                            <QrCode className="w-3.5 h-3.5 text-purple-500 mb-0.5" />
+                                            <span className="font-bold text-purple-700 text-xs">{formatNumber(item.stats?.microchip)}</span>
+                                        </div>
+                                        <div className="flex flex-col items-center p-1 bg-white rounded-md shadow-sm border border-gray-100">
+                                            <Stethoscope className="w-3.5 h-3.5 text-emerald-500 mb-0.5" />
+                                            <span className="font-bold text-emerald-700 text-xs">{formatNumber(item.stats?.medical)}</span>
                                         </div>
                                     </div>
 

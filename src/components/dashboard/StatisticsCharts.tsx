@@ -47,6 +47,7 @@ interface StatisticsChartsProps {
     chartBaseMonth: string | number;
     setChartBaseMonth: (val: string | number) => void;
     availableYears?: (string | number)[];
+    allUnits?: string[];
 }
 
 interface TooltipPayload {
@@ -105,8 +106,10 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 const StatisticsCharts: React.FC<StatisticsChartsProps> = ({ 
     trendData, unitStats, dispatchStats, trendOffset, setTrendOffset,
     freqDailyOffset, setFreqDailyOffset, freqMonthlyOffset, setFreqMonthlyOffset,
-    chartBaseYear, setChartBaseYear, chartBaseMonth, setChartBaseMonth, availableYears
+    chartBaseYear, setChartBaseYear, chartBaseMonth, setChartBaseMonth, availableYears,
+    allUnits = []
 }) => {
+    const CHART_COLORS = ['#60a5fa', '#34d399', '#fb923c', '#a78bfa', '#f472b6', '#facc15', '#2dd4bf', '#818cf8', '#f87171', '#38bdf8', '#c084fc', '#4ade80'];
     const [freqFilter, setFreqFilter] = useState<'monthly' | 'daily'>('monthly'); 
     const currentFreqData = freqFilter === 'monthly' ? (dispatchStats?.monthly || []) : (dispatchStats?.daily || []);
 
@@ -292,10 +295,15 @@ const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
                             />
                             <Legend iconType="rect" wrapperStyle={{ paddingTop: '20px', fontSize: '9px' }} />
                             
-                            <Bar dataKey="sterilization" fill="#60a5fa" name="สัตวแพทย์" stackId="a" />
-                            <Bar dataKey="vaccine_microchip" fill="#34d399" name="วัคซีน + ไมโครชิป" stackId="a" />
-                            <Bar dataKey="governor" fill="#fb923c" name="ผู้ว่าฯ" stackId="a" />
-                            <Bar dataKey="cat_cage" fill="#a78bfa" name="กรงแมว" stackId="a" />
+                            {allUnits.map((unit, index) => (
+                                <Bar 
+                                    key={unit}
+                                    dataKey={unit} 
+                                    fill={CHART_COLORS[index % CHART_COLORS.length]} 
+                                    name={unit} 
+                                    stackId="a" 
+                                />
+                            ))}
                             <Bar dataKey="other" fill="#cbd5e1" name="อื่นๆ" radius={[3,3,0,0]} stackId="a" />
                         </BarChart>
                     </ResponsiveContainer>

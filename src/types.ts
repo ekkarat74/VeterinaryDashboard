@@ -14,6 +14,8 @@ export interface ItemDetails {
     dog?: AnimalStats;
     cat?: AnimalStats;
     other?: AnimalStats;
+    vaccineWasted?: string | number;
+    microchipLost?: string | number;
 }
 
 export interface ItemStats {

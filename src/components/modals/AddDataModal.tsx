@@ -25,6 +25,8 @@ interface Breakdown {
   other: BreakdownStats;
   vaccineRequisitioned?: string | number;
   vaccineRemaining?: string | number;
+  vaccineWasted?: string | number; // เพิ่มฟิลด์วัคซีนเสีย
+  microchipLost?: string | number; // เพิ่มฟิลด์ไมโครชิปหลุด
 }
 
 interface FormDataState {
@@ -97,7 +99,9 @@ const defaultBreakdown: Breakdown = {
   cat: { maleSterilize: '', femaleSterilize: '', vaccine: '', register: '', microchip: '', medical: '' },
   other: { vaccine: '', medical: '' },
   vaccineRequisitioned: '',
-  vaccineRemaining: ''
+  vaccineRemaining: '',
+  vaccineWasted: '', // ค่าเริ่มต้นวัคซีนเสีย
+  microchipLost: ''  // ค่าเริ่มต้นไมโครชิปหลุด
 };
 
 // ==============================
@@ -427,9 +431,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
   useEffect(() => {
     const requisitioned = parseInt(String(breakdown.vaccineRequisitioned)) || 0;
+    const wasted = parseInt(String(breakdown.vaccineWasted)) || 0; // ดึงค่าวัคซีนเสีย
 
-    if (breakdown.vaccineRequisitioned !== '' || totals.vaccine > 0) {
-      const remaining = requisitioned - totals.vaccine;
+    if (breakdown.vaccineRequisitioned !== '' || totals.vaccine > 0 || breakdown.vaccineWasted !== '') {
+      const remaining = requisitioned - totals.vaccine - wasted; // หักลบยอดใช้งานและวัคซีนเสีย
       if (breakdown.vaccineRemaining !== String(remaining)) {
         setBreakdown(prev => ({
           ...prev,
@@ -439,7 +444,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     } else if (breakdown.vaccineRemaining !== '') {
       setBreakdown(prev => ({ ...prev, vaccineRemaining: '' }));
     }
-  }, [breakdown.vaccineRequisitioned, breakdown.vaccineRemaining, totals.vaccine]);
+  }, [breakdown.vaccineRequisitioned, breakdown.vaccineWasted, breakdown.vaccineRemaining, totals.vaccine]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -518,19 +523,15 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     }
   };
 
-  // ฟังก์ชันแก้ปัญหาคำว่า "เขต" คลาดเคลื่อน เพื่อให้ Dropdown แขวงทำงานได้เสมอ
   const getSubdistricts = (districtName: string) => {
       if (!districtName) return [];
-      // 1. ค้นหาแบบตรงๆ ก่อน
       if (BANGKOK_SUBDISTRICTS[districtName as keyof typeof BANGKOK_SUBDISTRICTS]) {
           return BANGKOK_SUBDISTRICTS[districtName as keyof typeof BANGKOK_SUBDISTRICTS];
       }
-      // 2. ถ้าไม่เจอ ลองตัดคำว่า "เขต" ออก
       const cleanName = districtName.replace(/^เขต\s*/, '').trim();
       if (BANGKOK_SUBDISTRICTS[cleanName as keyof typeof BANGKOK_SUBDISTRICTS]) {
           return BANGKOK_SUBDISTRICTS[cleanName as keyof typeof BANGKOK_SUBDISTRICTS];
       }
-      // 3. ถ้าข้อมูลใน Constants มีคำว่าเขต แต่ชื่อที่เข้ามาไม่มี
       const withKhet = `เขต${cleanName}`;
       if (BANGKOK_SUBDISTRICTS[withKhet as keyof typeof BANGKOK_SUBDISTRICTS]) {
           return BANGKOK_SUBDISTRICTS[withKhet as keyof typeof BANGKOK_SUBDISTRICTS];
@@ -1089,7 +1090,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 flex items-center gap-2">
                     <Syringe className="w-4 h-4" /> ฉีดวัคซีน
                   </div>
-                  <div className="p-4 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                  <div className="p-4 grid grid-cols-3 sm:grid-cols-6 gap-3"> {/* แก้จาก 5 เป็น 6 คอลัมน์ */}
                     <div>
                       <label className="text-[10px] text-blue-600 uppercase font-bold mb-1 block">วัคซีนที่เบิก</label>
                       <input
@@ -1115,7 +1116,17 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       </div>
                     ))}
                     <div>
-                      <label className="text-[10px] text-rose-500 uppercase font-bold mb-1 block">คงเหลือ (อัตโนมัติ)</label>
+                      <label className="text-[10px] text-orange-500 uppercase font-bold mb-1 block">วัคซีนเสีย</label>
+                      <input
+                        type="number" min="0" placeholder="0"
+                        className="w-full p-2 border border-orange-200 bg-orange-50/30 rounded-lg text-center"
+                        value={breakdown.vaccineWasted}
+                        disabled={isSubmitting}
+                        onChange={e => setBreakdown({ ...breakdown, vaccineWasted: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-rose-500 uppercase font-bold mb-1 block">คงเหลือ</label>
                       <input
                         type="number" placeholder="0"
                         className="w-full p-2 border border-rose-200 bg-rose-50/80 rounded-lg text-center font-bold text-rose-600 cursor-not-allowed focus:outline-none"
@@ -1165,7 +1176,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   <div className="bg-purple-50/50 px-4 py-2 border-b border-slate-200 font-bold text-purple-700 flex items-center gap-2">
                     <Database className="w-4 h-4" /> ฝังไมโครชิป
                   </div>
-                  <div className="p-4 grid grid-cols-2 gap-4">
+                  <div className="p-4 grid grid-cols-3 gap-4">
                     {(['dog', 'cat'] as const).map(t => (
                       <div key={t}>
                         <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">
@@ -1180,6 +1191,16 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                         />
                       </div>
                     ))}
+                    <div>
+                      <label className="text-[10px] text-orange-500 uppercase font-bold mb-1 block">ไมโครชิปหลุด</label>
+                      <input
+                        type="number" min="0" placeholder="0"
+                        className="w-full p-2 border border-orange-200 bg-orange-50/30 rounded-lg text-center"
+                        value={breakdown.microchipLost}
+                        disabled={isSubmitting}
+                        onChange={e => setBreakdown({ ...breakdown, microchipLost: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1254,7 +1275,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       const compressedKB = Math.round((compressed.length * 3) / 4 / 1024);
                       
                       setImagePreview(compressed);
-                      setImageSizeKB(compressedKB); // <-- บันทึกขนาดไฟล์ลง State
+                      setImageSizeKB(compressedKB);
                       
                       if (onToast) onToast('success', `✅ แปลงไฟล์ WebP และบีบอัดสำเร็จ: ${originalKB}KB → ${compressedKB}KB`);
                     } catch (err) {

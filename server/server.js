@@ -1118,8 +1118,7 @@ app.delete('/api/staffs/:id', authenticateToken, authorizeRole(['Developer', 'Ma
 });
 
 // ==========================================
-// [เพิ่มใหม่] 3. API สำหรับ Notifications & Audit Trail
-// นำไปวางต่อจาก Section "A. AUTHENTICATION & LOGS"
+// 3. API สำหรับ Notifications & Audit Trail
 // ==========================================
 
 // 3.1 API ดึงประวัติการแก้ไขของ Record แบบเจาะจง (Audit Trail)
@@ -1128,7 +1127,6 @@ app.get('/api/logs/record/:id', authenticateToken, async (req, res) => {
     const searchId = req.params.id;
     let objectId;
     
-    // แปลง String ให้เป็น ObjectId
     try {
       objectId = new mongoose.Types.ObjectId(searchId);
     } catch (e) {

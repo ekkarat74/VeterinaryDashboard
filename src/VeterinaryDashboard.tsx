@@ -66,13 +66,6 @@ export interface User {
     [key: string]: any;
 }
 
-export interface Announcement {
-    id: number;
-    icon: string;
-    text: string;
-    isActive: boolean;
-}
-
 // ==========================================
 // Component: Dashboard Skeleton Loading
 // ==========================================
@@ -355,6 +348,29 @@ export default function VeterinaryDashboard() {
 
     const [breeds, setBreeds] = useState<any[]>([]);
     const [colors, setColors] = useState<any[]>([]);
+
+    const [customUnits, setCustomUnits] = useState<any[]>([]);
+
+    // ----- ส่วนที่ต้องเพิ่ม: ดึงข้อมูล Custom Units ตอนโหลดหน้าจอ -----
+    useEffect(() => {
+        const fetchCustomUnits = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/api/custom-units`);
+                if (res.ok) {
+                    setCustomUnits(await res.json());
+                }
+            } catch (err) { 
+                console.error("Error fetching custom units", err); 
+            }
+        };
+        fetchCustomUnits();
+    }, [BASE_URL]);
+
+    // ----- ส่วนที่ต้องเพิ่ม: รวมรายชื่อหน่วยงานตั้งต้น กับที่ดึงมาจาก API (ตัดตัวซ้ำออก) -----
+    const allUnits = useMemo(() => {
+        const dynamicUnits = customUnits.map((u: any) => u.name);
+        return Array.from(new Set([...UNIT_TYPES, ...dynamicUnits]));
+    }, [customUnits]);
 
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -914,6 +930,15 @@ const handleDeleteDispatch = async (id: string) => {
                 case 'COLOR_DELETED':
                     setColors((prev: any[]) => prev.filter(c => c._id !== payload.id));
                     break;
+                case 'CUSTOM_UNIT_ADDED':
+                    setCustomUnits((prev: any[]) => [...prev, payload.data]);
+                    break;
+                case 'CUSTOM_UNIT_UPDATED':
+                    setCustomUnits((prev: any[]) => prev.map(u => u._id === payload.data._id ? payload.data : u));
+                    break;
+                case 'CUSTOM_UNIT_DELETED':
+                    setCustomUnits((prev: any[]) => prev.filter(u => u._id !== payload.id));
+                    break;
                 default: break;
             }
         });
@@ -1410,8 +1435,16 @@ const handleDeleteDispatch = async (id: string) => {
         return { rankingNestedStats: newRankingNestedStats, rankingUnitStats: newRankingUnitStats };
     }, [reportData, rankingYear, rankingMonth]);
     
+    // ----- ส่วนที่ต้องแก้ไข: ในไฟล์ VeterinaryDashboard -----
     const dispatchStats = useMemo(() => {
-        const initStats = () => ({ count: 0, sterilization: 0, vaccine_microchip: 0, governor: 0, cat_cage: 0, other: 0 });
+        // สร้าง initStats ให้รองรับทุกหน่วยงาน (ทั้งตั้งต้นและที่เพิ่มใหม่)
+        const initStats = () => {
+            const stats: any = { count: 0, other: 0 };
+            allUnits.forEach((u: string) => {
+                stats[u] = 0;
+            });
+            return stats;
+        };
 
         const baseYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
         const baseMonth = String(chartBaseMonth) === 'ทั้งหมด' ? (new Date().getMonth() + 1) : Number(chartBaseMonth);
@@ -1422,23 +1455,17 @@ const handleDeleteDispatch = async (id: string) => {
         filteredData.forEach(item => {
             const day = item.date;
             const m = item.date.substring(0, 7);
-            const uKey = getUnitKey(item.unit);
+            
+            // ตรวจสอบว่ามีชื่อหน่วยงานในระบบหรือไม่ ถ้าไม่มีให้ลง 'other'
+            const uKey = item.unit && allUnits.includes(item.unit) ? item.unit : 'other';
             
             if (!monthMap[m]) monthMap[m] = initStats();
             monthMap[m].count += 1;
-            if (monthMap[m][uKey] !== undefined) {
-                monthMap[m][uKey] += 1;
-            } else {
-                monthMap[m]['other'] += 1;
-            }
+            monthMap[m][uKey] += 1;
 
             if (!dayMap[day]) dayMap[day] = initStats();
             dayMap[day].count += 1;
-            if (dayMap[day][uKey] !== undefined) {
-                 dayMap[day][uKey] += 1;
-            } else {
-                 dayMap[day]['other'] += 1;
-            }
+            dayMap[day][uKey] += 1;
         });
 
         const monthlyData = [];
@@ -1477,7 +1504,7 @@ const handleDeleteDispatch = async (id: string) => {
         }
 
         return { monthly: monthlyData, daily: dailyData };
-    }, [filteredData, freqMonthlyOffset, freqDailyOffset, chartBaseYear, chartBaseMonth]);
+    }, [filteredData, freqMonthlyOffset, freqDailyOffset, chartBaseYear, chartBaseMonth, allUnits]); // อย่าลืมเพิ่ม allUnits ใน Dependency Array
 
     const trendData = useMemo(() => {
         const baseYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
@@ -1626,7 +1653,7 @@ const handleDeleteDispatch = async (id: string) => {
                 <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
             </Suspense>
 
-            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={UNIT_TYPES} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={allUnits} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={user?.token as any} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
@@ -1823,7 +1850,7 @@ const handleDeleteDispatch = async (id: string) => {
                                         <label className="block text-[10px] font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
                                         <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
                                             <option value="ทั้งหมด">-- เลือกหน่วยงาน --</option>
-                                            {UNIT_TYPES.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                                            {allUnits.map((u, i) => <option key={i} value={u}>{u}</option>)}
                                         </select>
                                     </div>
                                     <div>
@@ -1881,7 +1908,9 @@ const handleDeleteDispatch = async (id: string) => {
                                             chartBaseMonth={chartBaseMonth}
                                             setChartBaseMonth={setChartBaseMonth as any}
                                             availableYears={availableYears as any[]}
+                                            allUnits={allUnits} // <--- เพิ่มบรรทัดนี้
                                         />
+                                        
                                         <PieChartsSection 
                                             unitByDistrictPieData={unitByDistrictPieData as any[]}
                                             unitByUnitTypePieData={unitByUnitTypePieData as any[]}

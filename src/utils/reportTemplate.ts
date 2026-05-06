@@ -1,4 +1,3 @@
-// reportTemplate.ts
 import { DataItem } from '../types';
 
 export const formatThaiDate = (dateString: string): string => {
@@ -139,6 +138,12 @@ export const getDocumentHTML = (item: DataItem): string => `
                 <td class="col-unit">ตัว</td>
             </tr>
             <tr>
+                <td class="col-main" style="padding-top: 6px;">วัคซีนเสีย</td>
+                <td class="col-sub" style="padding-top: 6px;"></td>
+                <td class="col-val" style="padding-top: 6px;"><span class="val-dots">${item.details?.vaccineWasted || ''}</span></td>
+                <td class="col-unit" style="padding-top: 6px;">โด๊ส</td>
+            </tr>
+            <tr>
                 <td class="col-main" style="padding-top: 6px;">คงเหลือวัคซีน</td>
                 <td class="col-sub" style="padding-top: 6px;"></td>
                 <td class="col-val" style="padding-top: 6px;"><span class="val-dots">${item.details?.vaccineRemaining || ''}</span></td>
@@ -193,6 +198,12 @@ export const getDocumentHTML = (item: DataItem): string => `
                 <td class="col-sub">รวม</td>
                 <td class="col-val"><span class="val-dots">${item.stats?.microchip || ''}</span></td>
                 <td class="col-unit">ตัว</td>
+            </tr>
+            <tr>
+                <td class="col-main" style="padding-top: 6px;">ไมโครชิปหลุด</td>
+                <td class="col-sub" style="padding-top: 6px;"></td>
+                <td class="col-val" style="padding-top: 6px;"><span class="val-dots">${item.details?.microchipLost || ''}</span></td>
+                <td class="col-unit" style="padding-top: 6px;">อัน</td>
             </tr>
 
             <tr>
