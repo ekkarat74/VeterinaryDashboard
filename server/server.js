@@ -522,7 +522,18 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     createLog(req, 'CREATE_REPORT', `เพิ่มข้อมูลปฏิบัติงาน: ${savedReport.location}`, savedReport);
     invalidateReportCache();
 
+    // แจ้งอัปเดตตารางปกติ
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
+
+    // 🔔 สร้างและส่ง Notification เข้าระบบกระดิ่งแจ้งเตือน
+    const notif = await Notification.create({
+      title: '📝 มีรายงานผลปฏิบัติงานใหม่',
+      message: `สถานที่: ${savedReport.location} (เขต${savedReport.district || '-'})`,
+      type: 'success',
+      linkId: savedReport._id
+    });
+    io.emit('server_notification', notif);
+
     res.status(201).json(savedReport);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -1150,17 +1161,15 @@ app.get('/api/logs/record/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 3.2 API ดึงรายการแจ้งเตือนทั้งหมด
 app.get('/api/notifications', authenticateToken, async (req, res) => {
   try {
     const notifs = await Notification.find().sort({ createdAt: -1 }).limit(50).lean();
-    res.json(notifs);
+    res.json(notifs || []);
   } catch (err) { 
     res.status(500).json({ message: err.message }); 
   }
 });
 
-// 3.3 API กดอ่านการแจ้งเตือนทั้งหมด
 app.put('/api/notifications/read', authenticateToken, async (req, res) => {
   try {
     await Notification.updateMany({ isRead: false }, { isRead: true });

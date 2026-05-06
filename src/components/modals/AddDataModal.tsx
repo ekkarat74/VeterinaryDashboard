@@ -510,6 +510,26 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     };
 
     try {
+      if (formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim()) {
+        try {
+          const newUnitName = formData.otherUnit.trim();
+          const unitExists = allUnitOptions.includes(newUnitName);
+          
+          if (!unitExists) {
+            await fetch(`${BASE_URL}/api/custom-units`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${getUserToken()}` 
+              },
+              body: JSON.stringify({ name: newUnitName })
+            });
+            if (onToast) onToast('info', `บันทึกหน่วย "${newUnitName}" เข้าสู่ระบบแล้ว`);
+          }
+        } catch (unitErr) {
+          console.error("Auto-save custom unit failed", unitErr);
+        }
+      }
       if (initialData) {
         await onUpdate(initialData._id, payload);
       } else {

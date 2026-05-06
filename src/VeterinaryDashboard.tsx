@@ -346,12 +346,26 @@ export default function VeterinaryDashboard() {
 
     const user = rawUser as User | null;
 
+    const getCurrentToken = useCallback(() => {
+        try {
+            const storedUser = localStorage.getItem('vet_user');
+            if (storedUser) {
+                const parsed = JSON.parse(storedUser);
+                return parsed?.token || user?.token || '';
+            }
+        } catch (e) {
+        console.error('Error parsing token', e);
+        }
+        return user?.token || '';
+    }, [user]);
+
     const [breeds, setBreeds] = useState<any[]>([]);
     const [colors, setColors] = useState<any[]>([]);
-
     const [customUnits, setCustomUnits] = useState<any[]>([]);
 
-    // ----- ส่วนที่ต้องเพิ่ม: ดึงข้อมูล Custom Units ตอนโหลดหน้าจอ -----
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+
     useEffect(() => {
         const fetchCustomUnits = async () => {
             try {
@@ -366,23 +380,42 @@ export default function VeterinaryDashboard() {
         fetchCustomUnits();
     }, [BASE_URL]);
 
-    // ----- ส่วนที่ต้องเพิ่ม: รวมรายชื่อหน่วยงานตั้งต้น กับที่ดึงมาจาก API (ตัดตัวซ้ำออก) -----
     const allUnits = useMemo(() => {
         const dynamicUnits = customUnits.map((u: any) => u.name);
         return Array.from(new Set([...UNIT_TYPES, ...dynamicUnits]));
     }, [customUnits]);
 
-    const [notifications, setNotifications] = useState<any[]>([]);
-    const [isNotifOpen, setIsNotifOpen] = useState(false);
-
     useEffect(() => {
-        if (user) {
-            fetch(`${BASE_URL}/api/notifications`, { headers: { 'Authorization': `Bearer ${getCurrentToken()}` }})
-                .then(res => res.json())
-                .then(data => setNotifications(Array.isArray(data) ? data : []))
-                .catch(err => console.error("Error fetching notifications", err));
-        }
-    }, [user, BASE_URL]);
+    if (user) {
+        const fetchNotifs = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/api/notifications`, { 
+                    headers: { 'Authorization': `Bearer ${getCurrentToken()}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setNotifications(Array.isArray(data) ? data : []);
+                }
+            } catch (err) {
+                console.error("Error fetching notifications", err);
+            }
+        };
+        fetchNotifs();
+    }
+}, [user, BASE_URL, getCurrentToken]);
+
+const unreadCount = notifications.filter(n => !n.isRead).length;
+const markAllAsRead = async () => {
+    try {
+        await fetch(`${BASE_URL}/api/notifications/read`, { 
+            method: 'PUT', 
+            headers: { 'Authorization': `Bearer ${getCurrentToken()}` }
+        });
+        setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+    } catch(e) {
+        console.error("Error marking notifications as read", e);
+    }
+};
 
     useEffect(() => {
     const fetchBreedsAndColors = async () => {
@@ -590,20 +623,6 @@ export default function VeterinaryDashboard() {
             }
         } catch (error) { alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Server"); }
     };
-
-
-const getCurrentToken = () => {
-    try {
-        const storedUser = localStorage.getItem('vet_user');
-        if (storedUser) {
-            const parsed = JSON.parse(storedUser);
-            return parsed?.token || user?.token || '';
-        }
-    } catch (e) {
-        console.error('Error parsing token', e);
-    }
-    return user?.token || '';
-};
 
 useEffect(() => {
     const fetchDispatches = async () => {
@@ -965,14 +984,6 @@ const handleDeleteDispatch = async (id: string) => {
         };
         fetchMeetings();
     }, [BASE_URL, setMeetings]);
-
-    const unreadCount = notifications.filter(n => !n.isRead).length;
-    const markAllAsRead = async () => {
-        try {
-            await fetch(`${BASE_URL}/api/notifications/read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${getCurrentToken()}` }});
-            setNotifications(prev => prev.map(n => ({...n, isRead: true})));
-        } catch(e) {}
-    };
 
     const handleCalendarEventClick = (evt: any) => {
         if (evt.type === 'meeting') {
@@ -1908,9 +1919,9 @@ const handleDeleteDispatch = async (id: string) => {
                                             chartBaseMonth={chartBaseMonth}
                                             setChartBaseMonth={setChartBaseMonth as any}
                                             availableYears={availableYears as any[]}
-                                            allUnits={allUnits} // <--- เพิ่มบรรทัดนี้
+                                            allUnits={allUnits}
                                         />
-                                        
+
                                         <PieChartsSection 
                                             unitByDistrictPieData={unitByDistrictPieData as any[]}
                                             unitByUnitTypePieData={unitByUnitTypePieData as any[]}
