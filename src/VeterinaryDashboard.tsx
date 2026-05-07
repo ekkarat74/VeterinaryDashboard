@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays,
-    Megaphone, Edit3, Plus, GripVertical, Save, Bell
+    Megaphone, Edit3, Plus, GripVertical, Save, Bell, LayoutList, Columns
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -345,6 +345,35 @@ export default function VeterinaryDashboard() {
     } = useDashboardState();
 
     const user = rawUser as User | null;
+    const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
+
+    // ==========================================
+    // Responsive & View Mode Management
+    // ==========================================
+    const [isMobile, setIsMobile] = useState(false);
+    const [displayMode, setDisplayMode] = useState<'table' | 'list'>('table');
+
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            
+            // ถ้าเป็นผู้ใช้ทั่วไป (ไม่มี user หรือเป็น readOnly) และใช้งานผ่านมือถือ ให้บังคับเป็น List View
+            const isPublic = !user || isReadOnlyMode;
+            if (isPublic && mobile) {
+                setDisplayMode('list');
+            } else {
+                // ค่าเริ่มต้นเมื่อเป็น Desktop หรือมี User
+                setDisplayMode('table');
+            }
+        };
+
+        // เรียกใช้ครั้งแรกเมื่อ Component Mount
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [user, isReadOnlyMode]);
 
     const getCurrentToken = useCallback(() => {
         try {
@@ -437,7 +466,6 @@ const markAllAsRead = async () => {
     const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
     const [isBreedModalOpen, setIsBreedModalOpen] = useState(false);
     const [isColorModalOpen, setIsColorModalOpen] = useState(false);
-    const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
 
     // จัดการสิทธิ์การแสดงผลใหม่
     const isSystemDeveloper = user?.role === 'Developer';
@@ -1805,7 +1833,6 @@ const handleDeleteDispatch = async (id: string) => {
                                     
                                     {(!isFilterExpanded && (searchTerm || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด')) && (
                                         <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
-                                            {/* ... โค้ด Tag สถานะการกรองข้อมูล เดิม ... */}
                                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
                                             {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
                                             {searchDate && <span className="inline-flex items-center gap-1 bg-pink-50 text-pink-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-pink-100">วันที่: {searchDate}</span>}
@@ -1818,6 +1845,22 @@ const handleDeleteDispatch = async (id: string) => {
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2">
+                                    {/* เพิ่มปุ่มสลับมุมมอง */}
+                                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                                        <button 
+                                            onClick={() => setDisplayMode('list')} 
+                                            className={`px-3 py-1.5 flex items-center gap-1.5 text-[11px] font-bold rounded-md transition-all ${displayMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            <LayoutList className="w-3.5 h-3.5" /> แบบรายการ
+                                        </button>
+                                        <button 
+                                            onClick={() => setDisplayMode('table')} 
+                                            className={`px-3 py-1.5 flex items-center gap-1.5 text-[11px] font-bold rounded-md transition-all ${displayMode === 'table' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            <Columns className="w-3.5 h-3.5" /> แบบตาราง/ไทม์ไลน์
+                                        </button>
+                                    </div>
+
                                     {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
                                         <button 
                                             onClick={handleClearFilters} 
@@ -1940,6 +1983,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             onEdit={openEditModal} 
                                             onDelete={handleDeleteData} 
                                             onViewImage={setViewImage} 
+                                            displayMode={displayMode} // <--- ส่งค่า Prop ให้ Component รับไปสลับการแสดงผล
                                         />
                                     </div>
                                 )}
@@ -1959,6 +2003,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             onEdit={openEditOutbreakModal} 
                                             onDelete={handleDeleteOutbreak} 
                                             canEdit={canEdit} 
+                                            displayMode={displayMode} // <--- ส่งค่า Prop ให้ Component รับไปสลับการแสดงผล
                                         />
                                     </div>
                                 )}

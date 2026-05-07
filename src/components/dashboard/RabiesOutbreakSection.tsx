@@ -2,14 +2,13 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { 
     Siren, Activity, Skull, AlertTriangle, MapPin, Calendar, Eye, 
     EyeOff, Edit, Trash2, TrendingUp, Search, PieChart as PieChartIcon, BarChart3,
-    Database, Filter, ChevronLeft, ChevronRight, User, Printer, Download, Share2, 
-    Syringe, Scissors, FileText, QrCode, Stethoscope, Image as ImageIcon
+    Database, Filter, ChevronLeft, ChevronRight, Syringe
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
     ResponsiveContainer, Cell, Legend, PieChart, Pie, AreaChart, Area
 } from 'recharts';
-import OutbreakMap from '../modals/OutbreakMap'; // เช็ค path ให้ตรงกับโปรเจกต์ของคุณ
+import OutbreakMap from '../modals/OutbreakMap';
 
 // --------------------------------------------------------
 // TYPES & INTERFACES
@@ -92,6 +91,7 @@ interface RabiesOutbreakSectionProps {
     onEdit: (item: OutbreakItem) => void;
     onDelete: (id: string) => void;
     canEdit: boolean;
+    displayMode?: 'list' | 'table'; // รับค่าโหมดการแสดงผล
 }
 
 // --------------------------------------------------------
@@ -149,7 +149,8 @@ const calculateAnimalCounts = (item: OutbreakItem) => {
 const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({ 
     outbreakData, filterYear, setFilterYear, years, stats, 
     filteredOutbreaks, yearlyTrend, hiddenIds, toggleVisibility, 
-    onEdit, onDelete, canEdit 
+    onEdit, onDelete, canEdit,
+    displayMode = 'table' // กำหนดค่าเริ่มต้นเป็น table
 }) => {
     
     // --------------------------------------------------------
@@ -517,7 +518,7 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                     </div>
                 </div>
 
-                {/* Bottom Row */}
+                {/* Bottom Row - สถิติแยกตามเขต */}
                 <div className="lg:col-span-12 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 mt-2">
                     <div className="flex justify-between items-center mb-6">
                         <div>
@@ -559,12 +560,12 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                             </div>
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <h3 className="text-base font-bold text-slate-800">ฐานข้อมูลการลงพื้นที่</h3>
+                                    <h3 className="text-base font-bold text-slate-800">ฐานข้อมูลจุดเสี่ยงโรคระบาด</h3>
                                     <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-full">
                                         {filteredOutbreaks.length} รายการ
                                     </span>
                                 </div>
-                                <p className="text-xs text-slate-500 mt-0.5">จัดการข้อมูลสถิติและสร้างรายงานสรุปผล</p>
+                                <p className="text-xs text-slate-500 mt-0.5">จัดการข้อมูลจุดเกิดเหตุและรายละเอียดสัตว์</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -598,8 +599,92 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
                         </div>
                     </div>
 
-                    {/* Table Data */}
-                    <div className="overflow-x-auto custom-scrollbar">
+                    {/* --- LIST VIEW (Mobile) --- */}
+                    <div className={`${displayMode === 'list' ? 'block' : 'hidden'} bg-slate-50/50 p-4`}>
+                        <div className="flex flex-col gap-4">
+                            {paginatedData.map((item, idx) => {
+                                const { dog: dogCount, cat: catCount } = calculateAnimalCounts(item);
+                                
+                                return (
+                                    <div key={item._id || idx} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3">
+                                        {/* Row 1: Test No & Date */}
+                                        <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                                            <div className="inline-flex items-center justify-center bg-indigo-50 text-indigo-700 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-indigo-100">
+                                                {item.insight?.testNo ? `Lab: ${item.insight.testNo}` : 'ไม่ระบุเลขที่ตรวจ'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold bg-slate-50 px-2 py-1 rounded-md">
+                                                <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                                                {new Date(item.date).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Row 2: Location & District */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="flex items-start gap-2 text-sm font-bold text-slate-800">
+                                                <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                                                <span className="leading-snug">{item.location || '-'}</span>
+                                            </div>
+                                            <div className="pl-6">
+                                                <span className="bg-slate-100 text-slate-600 text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                                                    เขต{item.district || '-'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Animal Info */}
+                                        <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-100 text-xs text-slate-700 grid grid-cols-2 gap-2 mt-1">
+                                            <div className="col-span-2 flex justify-between border-b border-slate-100 pb-1.5">
+                                                <span className="font-semibold text-slate-400 text-[10px]">ชนิด/เพศ:</span> 
+                                                <span className="font-bold">{item.insight?.animalType || '-'} / {item.insight?.gender || '-'}</span>
+                                            </div>
+                                            <div className="col-span-2 flex justify-between border-b border-slate-100 pb-1.5">
+                                                <span className="font-semibold text-slate-400 text-[10px]">สายพันธุ์:</span> 
+                                                <span className="font-medium">{item.insight?.breed || '-'}</span>
+                                            </div>
+                                            <div className="col-span-2 flex justify-between">
+                                                <span className="font-semibold text-slate-400 text-[10px]">สี/อายุ:</span> 
+                                                <span className="font-medium">{item.insight?.color || '-'} / {item.insight?.age ? `${item.insight.age}` : '-'}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 4: Status & Vaccine */}
+                                        <div className="flex flex-col gap-2 mt-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${item.insight?.ownership === 'มีเจ้าของ' ? 'bg-blue-500' : item.insight?.ownership === 'ไม่มีเจ้าของ' ? 'bg-orange-500' : 'bg-slate-300'}`}></span>
+                                                <span className="text-xs font-bold text-slate-700">{item.insight?.ownership || 'ไม่ระบุสถานะ'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 bg-emerald-50 text-emerald-700 px-2.5 py-1.5 rounded-lg border border-emerald-100 w-fit">
+                                                <Syringe className="w-3.5 h-3.5" /> 
+                                                วัคซีน: {item.insight?.vaccineHistory || '-'}
+                                            </div>
+                                        </div>
+
+                                        {/* Row 5: Actions */}
+                                        {canEdit && (
+                                            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-2">
+                                                <button onClick={() => onEdit(item)} className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1.5 transition-colors">
+                                                    <Edit className="w-3.5 h-3.5" /> แก้ไข
+                                                </button>
+                                                <button onClick={() => onDelete(item._id)} className="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1.5 transition-colors">
+                                                    <Trash2 className="w-3.5 h-3.5" /> ลบ
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                            
+                            {paginatedData.length === 0 && (
+                                <div className="p-10 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
+                                    <Database className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <span>ไม่พบข้อมูลลงพื้นที่ในระบบ</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* --- TABLE VIEW (Desktop) --- */}
+                    <div className={`${displayMode === 'table' ? 'block' : 'hidden'} overflow-x-auto custom-scrollbar`}>
                         <table className="w-full text-left border-collapse min-w-[1050px]">
                             <thead>
                                 <tr className="bg-slate-50 border-y border-slate-100">

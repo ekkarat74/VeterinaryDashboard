@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { 
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
     Volume2, VolumeX,
     FileText
 } from 'lucide-react';
+import { useCallback } from 'react';
+
 import DispatchModal from './modals/DispatchModal'; 
 import LoginModal from './modals/LoginModal';
 import ToastContainer from '../path/to/ToastContainer'; 
@@ -367,6 +369,7 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const deferredSearchTerm = useDeferredValue(searchTerm);
     const [selectedType, setSelectedType] = useState<string>('ทุกประเภท');
 
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
@@ -405,16 +408,16 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const displayEvents = useMemo(() => {
         return events.filter(e => {
-            const matchSearch = !searchTerm || 
-                e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                e.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                e.team?.toLowerCase().includes(searchTerm.toLowerCase());
-            
+            const matchSearch = !deferredSearchTerm || 
+                e.location?.toLowerCase().includes(deferredSearchTerm.toLowerCase()) || 
+                e.title?.toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
+                e.team?.toLowerCase().includes(deferredSearchTerm.toLowerCase());
+        
             const baseType = getBaseType(e.title, e.type);
             const matchType = selectedType === 'ทุกประเภท' || baseType === selectedType;
             return matchSearch && matchType;
         });
-    }, [events, searchTerm, selectedType]);
+    }, [events, deferredSearchTerm, selectedType]);
 
     const stats = useMemo(() => {
         const todayStr = toLocalISOString(new Date());
@@ -704,7 +707,7 @@ const DispatchCalendarDashboard: React.FC = () => {
         }, 3000);
     };
 
-    const removeToast = (id: number | string) => setToasts(prev => prev.filter(t => t.id !== id));;
+    const removeToast = (id: number | string) => setToasts(prev => prev.filter(t => t.id !== id));
 
     useEffect(() => {
         const storedUser = localStorage.getItem('vet_user');
@@ -776,7 +779,7 @@ const DispatchCalendarDashboard: React.FC = () => {
     };
 
     // 1. แก้ไขให้ดึง Token ปลอดภัยขึ้น
-    const getCurrentToken = () => {
+    const getCurrentToken = useCallback(() => {
         try {
             const storedUser = localStorage.getItem('vet_user');
             if (storedUser) {
@@ -787,7 +790,7 @@ const DispatchCalendarDashboard: React.FC = () => {
             console.error('Error parsing token', e);
         }
         return user?.token || '';
-    };
+    }, [user?.token]);
 
     // 2. ดักจับ Session ตอนดึงข้อมูลโหลดปฏิทิน
     useEffect(() => {
@@ -1293,10 +1296,20 @@ const DispatchCalendarDashboard: React.FC = () => {
                                             onDragStart={(e) => handleDragStart(e, evt._id)}
                                             onContextMenu={(e: React.MouseEvent<HTMLDivElement>) => {
                                                 e.preventDefault();
+    
+                                                // คำนวณป้องกันเมนูล้นขอบจอ
+                                                const menuWidth = 180; // ความกว้างเมนูโดยประมาณ
+                                                const menuHeight = canEdit ? 120 : 50; // ความสูงเมนูโดยประมาณ
+                                                let posX = e.clientX;
+                                                let posY = e.clientY;
+
+                                                if (posX + menuWidth > window.innerWidth) posX = window.innerWidth - menuWidth - 10;
+                                                if (posY + menuHeight > window.innerHeight) posY = window.innerHeight - menuHeight - 10;
+
                                                 setContextMenu({ 
                                                     visible: true, 
-                                                    x: e.clientX, 
-                                                    y: e.clientY, 
+                                                    x: posX, 
+                                                    y: posY, 
                                                     event: evt,
                                                     uniqueId: uniqueId 
                                                 });

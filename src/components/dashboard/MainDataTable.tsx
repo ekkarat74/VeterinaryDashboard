@@ -18,6 +18,7 @@ interface MainDataTableProps {
     onEdit: (item: DataItem) => void;
     onDelete: (id: string) => void;
     onViewImage: (url: string) => void;
+    displayMode?: 'list' | 'table';
 }
 
 // Helper สำหรับ Track Changes (Audit Trail)
@@ -74,7 +75,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
     canEdit = false,
     onEdit, 
     onDelete, 
-    onViewImage 
+    onViewImage,
+    displayMode = 'table'
 }) => {
     const baseData = incomingData || [];
     
@@ -391,7 +393,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             {renderPagination(true)}
 
             {/* --- Mobile Card View (Hidden on md and up) --- */}
-            <div className="block md:hidden bg-gray-50/50">
+            <div className={`${displayMode === 'list' || window.innerWidth < 768 ? 'block' : 'hidden'} bg-gray-50/50`}>
                 <div className="flex flex-col gap-3 p-4">
                     {currentData.length > 0 ? (
                         currentData.map((item) => (
@@ -487,7 +489,7 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
             </div>
 
             {/* --- Desktop Table View (Hidden on smaller than md) --- */}
-            <div className="hidden md:block overflow-x-auto w-full">
+            <div className={`${displayMode === 'table' && window.innerWidth >= 768 ? 'block' : 'hidden'} overflow-x-auto w-full`}>
                 <table className="min-w-full text-sm text-left">
                     <thead className="bg-gray-50/80 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-xs">
                         <tr>
