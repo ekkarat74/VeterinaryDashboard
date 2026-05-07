@@ -259,7 +259,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                                 { id: 'sa_outbreak', label: 'จุดเสี่ยงโรค' },
                                                                 { id: 'sa_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
-                                                                <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
+                                                                <label key={tab.id} className="flex items-center justify-between cursor-pointer group py-1.5 border-b border-slate-50 last:border-0">
                                                                     <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
                                                                     <div className="relative inline-flex items-center cursor-pointer">
                                                                         <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="sr-only peer" />
@@ -279,7 +279,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                                 { id: 'public_outbreak', label: 'จุดเสี่ยงโรค' },
                                                                 { id: 'public_calendar', label: 'ปฏิทินออกหน่วย' }
                                                             ].map(tab => (
-                                                                <label key={tab.id} className="flex items-center justify-between cursor-pointer group">
+                                                                <label key={tab.id} className="flex items-center justify-between cursor-pointer group py-1.5 border-b border-slate-50 last:border-0">
                                                                     <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{tab.label}</span>
                                                                     <div className="relative inline-flex items-center cursor-pointer">
                                                                         <input type="checkbox" checked={tabsConfig?.[tab.id] || false} onChange={() => toggleTab(tab.id)} className="sr-only peer" />
