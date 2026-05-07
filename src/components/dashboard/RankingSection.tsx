@@ -20,12 +20,14 @@ interface UnitStat {
     name: string;
     total: number;
     trend?: number;
+    trendHistory?: number[]; // ข้อมูลย้อนหลังสำหรับวาดกราฟเส้น เช่น [120, 150, 130, 180, 200]
 }
 
 interface DistrictStat {
     name: string;
     total: number;
     stats?: ServiceStats;
+    estimatedPopulation?: number; // ประชากรสัตว์คาดการณ์ในพื้นที่
 }
 
 interface NestedStat {
@@ -47,6 +49,51 @@ interface RankingSectionProps {
     rankingNestedStats?: NestedStat[];
 }
 
+// Component สำหรับวาดกราฟเส้นขนาดเล็ก (Sparkline)
+const Sparkline = ({ data, trend }: { data?: number[], trend?: number }) => {
+    if (!data || data.length < 2) return null;
+
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1;
+    
+    // ตั้งค่าขนาดกรอบ SVG
+    const width = 48; 
+    const height = 16;
+
+    // คำนวณพิกัดแต่ละจุด
+    const points = data.map((d, i) => {
+        const x = (i / (data.length - 1)) * width;
+        const y = height - ((d - min) / range) * height;
+        return `${x},${y}`;
+    }).join(' ');
+
+    // กำหนดสีตามเทรนด์
+    const colorClass = trend && trend > 0 ? 'text-emerald-500' : trend && trend < 0 ? 'text-rose-500' : 'text-slate-400';
+
+    return (
+        <svg width={width} height={height} className="ml-2 overflow-visible inline-block shrink-0">
+            <polyline 
+                points={points} 
+                fill="none" 
+                stroke="currentColor" 
+                className={colorClass}
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+            />
+            {/* จุดวงกลมที่ตำแหน่งล่าสุด */}
+            <circle 
+                cx={width} 
+                cy={height - ((data[data.length - 1] - min) / range) * height} 
+                r="2.5" 
+                fill="currentColor" 
+                className={colorClass}
+            />
+        </svg>
+    );
+};
+
 const RankingSection: React.FC<RankingSectionProps> = ({
     type = "all",
     rankingYear,
@@ -67,11 +114,13 @@ const RankingSection: React.FC<RankingSectionProps> = ({
         });
     }, [rankingUnitStats, sortOrder]);
 
-    const maxTotal = rankingUnitStats?.length > 0 
-        ? Math.max(...rankingUnitStats.map(u => u.total || 0)) 
-        : 0;
+    const maxTotal = useMemo(() => 
+        rankingUnitStats?.length > 0 ? Math.max(...rankingUnitStats.map(u => u.total || 0)) : 0
+    , [rankingUnitStats]);
 
-    const totalAllServices = rankingUnitStats?.reduce((sum, item) => sum + (item.total || 0), 0) || 0;
+    const totalAllServices = useMemo(() => 
+        rankingUnitStats?.reduce((sum, item) => sum + (item.total || 0), 0) || 0
+    , [rankingUnitStats]);
 
     const RankBadge = ({ rank }: { rank: number }) => {
         if (rank === 1) return <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 shadow-sm border border-yellow-200"><Trophy className="w-4 h-4" /></div>;
@@ -224,18 +273,25 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                                                         className="absolute right-0 top-1 bottom-1 bg-indigo-50/50 transition-all duration-500 ease-out z-0 rounded-l-md"
                                                         style={{ width: `${(u.total / maxTotal) * 100}%` }}
                                                     />
-                                                    <span className="relative z-10">{(u.total || 0).toLocaleString()}</span>
-                                                    
-                                                    {u.trend !== undefined && (
-                                                        <span className={`relative z-10 ml-2 inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded border ${
-                                                            u.trend > 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
-                                                            u.trend < 0 ? 'bg-rose-50 border-rose-100 text-rose-600' : 
-                                                            'bg-slate-50 border-slate-200 text-slate-500'
-                                                        }`}>
-                                                            {u.trend > 0 ? '▲' : u.trend < 0 ? '▼' : '-'} 
-                                                            {u.trend !== 0 && Math.abs(u.trend)}
-                                                        </span>
-                                                    )}
+                                                    <div className="relative z-10 flex items-center justify-end">
+                                                        <span>{(u.total || 0).toLocaleString()}</span>
+                                                        
+                                                        {u.trend !== undefined && (
+                                                            <div className="flex items-center ml-2">
+                                                                <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded border ${
+                                                                    u.trend > 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
+                                                                    u.trend < 0 ? 'bg-rose-50 border-rose-100 text-rose-600' : 
+                                                                    'bg-slate-50 border-slate-200 text-slate-500'
+                                                                }`}>
+                                                                    {u.trend > 0 ? '▲' : u.trend < 0 ? '▼' : '-'} 
+                                                                    {u.trend !== 0 && Math.abs(u.trend)}
+                                                                </span>
+                                                                
+                                                                {/* เพิ่ม Sparkline */}
+                                                                <Sparkline data={u.trendHistory} trend={u.trend} />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -318,17 +374,39 @@ const RankingSection: React.FC<RankingSectionProps> = ({
                                                 const distPercent = unit.totalWork > 0 ? ((dist.total / unit.totalWork) * 100).toFixed(1) : 0;
                                                 
                                                 return (
-                                                    <div key={dIndex} className="flex flex-col py-1.5 px-2 rounded hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 relative overflow-hidden group">
+                                                    <div key={dIndex} className="flex flex-col py-1.5 px-2 rounded hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 relative group cursor-default">
                                                         
+                                                        {/* พื้นหลัง */}
                                                         <div 
-                                                            className="absolute left-0 bottom-0 top-0 bg-slate-100/50 z-0 transition-all duration-500 group-hover:bg-indigo-50/40" 
+                                                            className="absolute left-0 bottom-0 top-0 bg-slate-100/50 z-0 transition-all duration-500 group-hover:bg-indigo-50/40 rounded-r-md" 
                                                             style={{ width: `${distPercent}%` }}
                                                         />
+
+                                                        {/* Tooltip Box */}
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 flex flex-col items-center">
+                                                            <div className="bg-slate-800 text-white text-[10px] py-1.5 px-2.5 rounded shadow-xl whitespace-nowrap min-w-[140px]">
+                                                                <div className="font-bold text-indigo-300 border-b border-slate-600 pb-1 mb-1">{dist.name}</div>
+                                                                <div className="flex justify-between items-center gap-4">
+                                                                    <span className="text-slate-300">สัดส่วนพื้นที่:</span>
+                                                                    <span className="font-bold">{distPercent}%</span>
+                                                                </div>
+                                                                {dist.estimatedPopulation && (
+                                                                    <div className="flex justify-between items-center gap-4 mt-0.5">
+                                                                        <span className="text-slate-300">ครอบคลุมประชากร:</span>
+                                                                        <span className="font-bold text-green-300">
+                                                                            {((dist.total / dist.estimatedPopulation) * 100).toFixed(1)}%
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {/* สามเหลี่ยมชี้ลงของ Tooltip */}
+                                                            <div className="w-2 h-2 bg-slate-800 rotate-45 -mt-1"></div>
+                                                        </div>
 
                                                         <div className="relative z-10 flex justify-between items-center mb-1">
                                                             <div className="flex items-center gap-1.5">
                                                                 <span className="w-3 text-[8px] text-slate-400 font-mono">{dIndex + 1}.</span>
-                                                                <span className="text-[10px] text-slate-700 font-bold truncate max-w-[120px]" title={dist.name}>{dist.name}</span>
+                                                                <span className="text-[10px] text-slate-700 font-bold truncate max-w-[120px]">{dist.name}</span>
                                                             </div>
                                                             <div className="flex items-center gap-1.5 shrink-0">
                                                                 <span className="text-[7px] text-slate-400">{distPercent}%</span>

@@ -1,11 +1,9 @@
 @import "tailwindcss";
 
-/* 1. ตั้งค่าฟอนต์หลักให้ Tailwind v4 รู้จัก */
 @theme {
   --font-sans: "Sao Chingcha", sans-serif;
 }
 
-/* 2. นำเข้าไฟล์ฟอนต์จากโฟลเดอร์ public */
 @font-face {
   font-family: 'Sao Chingcha';
   src: url('/fonts/SaoChingcha-Regular.otf') format('opentype'); 
@@ -22,7 +20,6 @@
   font-display: swap;
 }
 
-/* 3. บังคับใช้กับ Body */
 body {
   font-family: 'Sao Chingcha', sans-serif;
 }
