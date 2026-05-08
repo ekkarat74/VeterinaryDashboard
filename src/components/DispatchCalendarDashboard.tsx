@@ -382,6 +382,14 @@ const DispatchCalendarDashboard: React.FC = () => {
         if (!audioRef.current) {
             audioRef.current = new Audio('https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3'); 
             audioRef.current.loop = true;
+
+            audioRef.current.play()
+                .then(() => {
+                    setIsPlaying(true);
+                })
+                .catch(e => {
+                    console.log('Autoplay prevented:', e);
+                });
         }
         audioRef.current.volume = volume;
     }, [volume]);
