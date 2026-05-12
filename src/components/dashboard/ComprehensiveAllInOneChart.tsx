@@ -53,9 +53,8 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
             .sort((a, b) => a.district.localeCompare(b.district) || b.total - a.total);
     }, [data]);
 
-    // คำนวณความกว้างของกราฟแบบไดนามิก (ให้แท่งละ 60px เป็นอย่างน้อย) 
-    // เพื่อให้กราฟไม่เบียดกันเมื่อมีหน่วยงานเยอะๆ
-    const dynamicWidth = Math.max(800, chartData.length * 60);
+    // ปรับความกว้างให้แคบลง (จาก 60 เหลือ 20) เพื่อให้แท่งดูเรียวและแน่นเหมือนรูปตัวอย่าง
+    const dynamicWidth = Math.max(800, chartData.length * 20);
 
     if (chartData.length === 0) {
         return (
@@ -79,15 +78,16 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                             data={chartData}
-                            margin={{ top: 20, right: 30, left: 20, bottom: 80 }} // เพิ่ม bottom เพื่อเผื่อที่ให้ข้อความเอียง
+                            margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                            barCategoryGap={0} // <--- จุดสำคัญ: ตั้งค่าช่องว่างระหว่างแท่งให้เป็น 0
                         >
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
                             
                             <XAxis 
                                 dataKey="label" 
                                 type="category" 
-                                interval={0} // บังคับให้แสดงชื่อทุกแท่ง
-                                tick={{ fontSize: 11, fill: '#475569', fontWeight: 600, angle: -45, textAnchor: 'end' }} // เอียงข้อความ 45 องศา
+                                interval={0} 
+                                tick={{ fontSize: 10, fill: '#475569', fontWeight: 600, angle: -45, textAnchor: 'end' }} 
                             />
                             
                             <YAxis 
@@ -101,16 +101,14 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
                                 itemStyle={{ fontWeight: 'bold' }}
                             />
                             
-                            {/* ขยับ Legend ไปไว้ด้านบนเพื่อให้มีพื้นที่ด้านล่างมากขึ้น */}
                             <Legend wrapperStyle={{ fontSize: '12px', paddingBottom: '20px' }} verticalAlign="top" />
 
-                            {/* กำหนดสีให้ตรงกับ Theme ของระบบ */}
+                            {/* นำความโค้ง (radius) ออกเพื่อให้กราฟดูเป็นบล็อกแท่งเรียบๆ ติดกันแบบในรูป */}
                             <Bar dataKey="vaccine" name="ฉีดวัคซีน" stackId="a" fill="#6B4BFA" />
                             <Bar dataKey="sterilize" name="ผ่าตัดทำหมัน" stackId="a" fill="#F43F5E" />
                             <Bar dataKey="medical" name="รักษาพยาบาล" stackId="a" fill="#10B981" />
                             <Bar dataKey="microchip" name="ฝังไมโครชิป" stackId="a" fill="#F59E0B" />
-                            {/* ใส่ความโค้งมนที่แท่งบนสุด (จดทะเบียน) -> [บนซ้าย, บนขวา, ล่างขวา, ล่างซ้าย] */}
-                            <Bar dataKey="register" name="จดทะเบียน" stackId="a" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="register" name="จดทะเบียน" stackId="a" fill="#3B82F6" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
