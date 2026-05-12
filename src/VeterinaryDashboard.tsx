@@ -37,9 +37,9 @@ const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal')
 const BreedModal = lazy(() => import('./components/modals/BreedModal'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal'));
 import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors';
-const DogCatComparisonChart = lazy(() => import('./components/dashboard/DogCatComparisonChart')); // <-- เพิ่มบรรทัดนี้
+const DogCatComparisonChart = lazy(() => import('./components/dashboard/DogCatComparisonChart'));
 const YearOverYearChart = lazy(() => import('./components/dashboard/YearOverYearChart'))
-
+import ComprehensiveAllInOneChart from './components/dashboard/ComprehensiveAllInOneChart';
 
 export interface Announcement {
     id: number;
@@ -2028,6 +2028,10 @@ const handleDeleteDispatch = async (id: string) => {
                                                 data={yoyTrendData} 
                                                 currentYear={String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear)} 
                                             />
+                                        </div>
+
+                                        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                                            <ComprehensiveAllInOneChart data={filteredData} />
                                         </div>
                                     </div>
                                 )}
