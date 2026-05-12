@@ -37,6 +37,8 @@ const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal')
 const BreedModal = lazy(() => import('./components/modals/BreedModal'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal'));
 import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors';
+const DogCatComparisonChart = lazy(() => import('./components/dashboard/DogCatComparisonChart')); // <-- เพิ่มบรรทัดนี้
+const YearOverYearChart = lazy(() => import('./components/dashboard/YearOverYearChart'))
 
 
 export interface Announcement {
@@ -1653,6 +1655,54 @@ const handleDeleteDispatch = async (id: string) => {
         return Object.values(grouped).sort((a: any, b: any) => b.value - a.value).slice(0, 10);
     }, [filteredOutbreaks]);
 
+    const dogCatChartData = useMemo(() => {
+        if (!totals) return [];
+        return [
+            { name: 'ฉีดวัคซีน', สุนัข: totals.dog.vaccine, แมว: totals.cat.vaccine },
+            { name: 'ผ่าตัดทำหมัน', สุนัข: totals.dog.sterilize, แมว: totals.cat.sterilize },
+            { name: 'จดทะเบียน', สุนัข: totals.dog.register, แมว: totals.cat.register },
+            { name: 'ฝังไมโครชิป', สุนัข: totals.dog.microchip, แมว: totals.cat.microchip },
+            { name: 'รักษาพยาบาล', สุนัข: totals.dog.medical, แมว: totals.cat.medical }
+        ];
+    }, [totals]);
+
+    // ==========================================
+    // DATA PREP: สำหรับกราฟ 5 (Year over Year Trend)
+    // ==========================================
+    const yoyTrendData = useMemo(() => {
+        const currentYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
+        const prevYear = currentYear - 1;
+
+        const monthlyStats: any = {};
+        // สร้าง Template เดือน 1-12 รอไว้
+        for (let i = 1; i <= 12; i++) {
+            const m = String(i).padStart(2, '0');
+            // ใช้ชื่อย่อเดือนเพื่อง่ายต่อการดูบนกราฟ
+            const shortMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            monthlyStats[m] = { name: shortMonths[i - 1], current: 0, prev: 0 };
+        }
+
+        if (Array.isArray(filteredData)) {
+            filteredData.forEach((item: any) => {
+                if (!item.date) return;
+                const [year, month] = item.date.split('-');
+                const y = parseInt(year, 10);
+                
+                const toNum = (val: any) => parseInt(val, 10) || 0;
+                const workTotal = toNum(item.stats?.vaccine) + toNum(item.stats?.sterilize) + 
+                                  toNum(item.stats?.register) + toNum(item.stats?.microchip) + toNum(item.stats?.medical);
+
+                if (y === currentYear && monthlyStats[month]) {
+                    monthlyStats[month].current += workTotal;
+                } else if (y === prevYear && monthlyStats[month]) {
+                    monthlyStats[month].prev += workTotal;
+                }
+            });
+        }
+
+        return Object.values(monthlyStats);
+    }, [filteredData, chartBaseYear]);
+
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
             <style>{`
@@ -1971,6 +2021,14 @@ const handleDeleteDispatch = async (id: string) => {
                                             unitByWorkTypePieData={unitByWorkTypePieData as any[]}
                                             outbreakPieData={outbreakPieData as any[]}
                                         />
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            <DogCatComparisonChart data={dogCatChartData} />
+                                            <YearOverYearChart 
+                                                data={yoyTrendData} 
+                                                currentYear={String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear)} 
+                                            />
+                                        </div>
                                     </div>
                                 )}
 
