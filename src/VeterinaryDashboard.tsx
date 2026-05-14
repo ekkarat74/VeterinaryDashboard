@@ -161,7 +161,6 @@ const AnnouncementBar = React.memo(({ announcements, onEditClick, canEdit }: Ann
                 <Megaphone className="w-3 h-3" /> PREVIEW
             </div>
             
-            {/* พื้นที่แสดงข้อความ */}
             <div className="flex-1 relative h-full flex items-center overflow-hidden">
                 {currentItem && (
                     <div 
@@ -1672,10 +1671,8 @@ const handleDeleteDispatch = async (id: string) => {
         const prevYear = currentYear - 1;
 
         const monthlyStats: any = {};
-        // สร้าง Template เดือน 1-12 รอไว้
         for (let i = 1; i <= 12; i++) {
             const m = String(i).padStart(2, '0');
-            // ใช้ชื่อย่อเดือนเพื่อง่ายต่อการดูบนกราฟ
             const shortMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             monthlyStats[m] = { name: shortMonths[i - 1], current: 0, prev: 0 };
         }

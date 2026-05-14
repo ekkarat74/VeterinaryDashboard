@@ -67,9 +67,7 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
     return (
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 w-full">
             <div className="mb-4">
-                {/* ลดขนาดฟอนต์หัวข้อจาก text-lg เป็น text-base */}
                 <h3 className="text-base font-bold text-slate-800">สรุปการให้บริการครอบคลุมทุกมิติ</h3>
-                {/* ลดขนาดฟอนต์คำอธิบายจาก text-xs เป็น text-[10px] */}
                 <p className="text-[10px] text-slate-500">แยกตามพื้นที่เขต หน่วยปฏิบัติงาน และประเภทการให้บริการ (เลื่อนซ้าย-ขวาเพื่อดูทั้งหมด)</p>
             </div>
 
