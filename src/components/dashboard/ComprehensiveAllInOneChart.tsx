@@ -67,8 +67,10 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
     return (
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 w-full">
             <div className="mb-4">
-                <h3 className="text-lg font-bold text-slate-800">สรุปการให้บริการครอบคลุมทุกมิติ</h3>
-                <p className="text-xs text-slate-500">แยกตามพื้นที่เขต หน่วยปฏิบัติงาน และประเภทการให้บริการ (เลื่อนซ้าย-ขวาเพื่อดูทั้งหมด)</p>
+                {/* ลดขนาดฟอนต์หัวข้อจาก text-lg เป็น text-base */}
+                <h3 className="text-base font-bold text-slate-800">สรุปการให้บริการครอบคลุมทุกมิติ</h3>
+                {/* ลดขนาดฟอนต์คำอธิบายจาก text-xs เป็น text-[10px] */}
+                <p className="text-[10px] text-slate-500">แยกตามพื้นที่เขต หน่วยปฏิบัติงาน และประเภทการให้บริการ (เลื่อนซ้าย-ขวาเพื่อดูทั้งหมด)</p>
             </div>
 
             {/* กรอบสำหรับ Scroll แนวนอน */}
@@ -79,7 +81,7 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
                         <BarChart
                             data={chartData}
                             margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-                            barCategoryGap={0} // <--- จุดสำคัญ: ตั้งค่าช่องว่างระหว่างแท่งให้เป็น 0
+                            barCategoryGap={0}
                         >
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E8F0" />
                             
@@ -87,23 +89,22 @@ export default function ComprehensiveAllInOneChart({ data }: ComprehensiveChartP
                                 dataKey="label" 
                                 type="category" 
                                 interval={0} 
-                                tick={{ fontSize: 10, fill: '#475569', fontWeight: 600, angle: -45, textAnchor: 'end' }} 
+                                tick={{ fontSize: 9, fill: '#475569', fontWeight: 600, angle: -45, textAnchor: 'end' }} 
                             />
                             
                             <YAxis 
                                 type="number" 
-                                tick={{ fontSize: 12, fill: '#64748B' }} 
+                                tick={{ fontSize: 10, fill: '#64748B' }} 
                             />
                             
                             <Tooltip
                                 cursor={{ fill: '#F1F5F9' }}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '13px' }}
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '11px' }}
                                 itemStyle={{ fontWeight: 'bold' }}
                             />
                             
-                            <Legend wrapperStyle={{ fontSize: '12px', paddingBottom: '20px' }} verticalAlign="top" />
+                            <Legend wrapperStyle={{ fontSize: '10px', paddingBottom: '20px' }} verticalAlign="top" />
 
-                            {/* นำความโค้ง (radius) ออกเพื่อให้กราฟดูเป็นบล็อกแท่งเรียบๆ ติดกันแบบในรูป */}
                             <Bar dataKey="vaccine" name="ฉีดวัคซีน" stackId="a" fill="#6B4BFA" />
                             <Bar dataKey="sterilize" name="ผ่าตัดทำหมัน" stackId="a" fill="#F43F5E" />
                             <Bar dataKey="medical" name="รักษาพยาบาล" stackId="a" fill="#10B981" />

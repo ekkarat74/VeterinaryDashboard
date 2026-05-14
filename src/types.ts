@@ -32,6 +32,7 @@ export interface DataItem {
     unit?: string;
     location: string;
     district: string;
+    subdistrict?: string;
     lat?: number | string;
     long?: number | string;
     imageUrl?: string | null;

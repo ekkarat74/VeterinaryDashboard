@@ -40,6 +40,7 @@ import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './uti
 const DogCatComparisonChart = lazy(() => import('./components/dashboard/DogCatComparisonChart'));
 const YearOverYearChart = lazy(() => import('./components/dashboard/YearOverYearChart'))
 import ComprehensiveAllInOneChart from './components/dashboard/ComprehensiveAllInOneChart';
+const GenderSterilizationChart = lazy(() => import('./components/dashboard/GenderSterilizationChart'));
 
 export interface Announcement {
     id: number;
@@ -1476,9 +1477,7 @@ const handleDeleteDispatch = async (id: string) => {
         return { rankingNestedStats: newRankingNestedStats, rankingUnitStats: newRankingUnitStats };
     }, [reportData, rankingYear, rankingMonth]);
     
-    // ----- ส่วนที่ต้องแก้ไข: ในไฟล์ VeterinaryDashboard -----
     const dispatchStats = useMemo(() => {
-        // สร้าง initStats ให้รองรับทุกหน่วยงาน (ทั้งตั้งต้นและที่เพิ่มใหม่)
         const initStats = () => {
             const stats: any = { count: 0, other: 0 };
             allUnits.forEach((u: string) => {
@@ -1497,7 +1496,6 @@ const handleDeleteDispatch = async (id: string) => {
             const day = item.date;
             const m = item.date.substring(0, 7);
             
-            // ตรวจสอบว่ามีชื่อหน่วยงานในระบบหรือไม่ ถ้าไม่มีให้ลง 'other'
             const uKey = item.unit && allUnits.includes(item.unit) ? item.unit : 'other';
             
             if (!monthMap[m]) monthMap[m] = initStats();
@@ -1702,6 +1700,28 @@ const handleDeleteDispatch = async (id: string) => {
 
         return Object.values(monthlyStats);
     }, [filteredData, chartBaseYear]);
+
+    const genderSterilizationData = useMemo(() => {
+        let dogMale = 0, dogFemale = 0;
+        let catMale = 0, catFemale = 0;
+
+        if (Array.isArray(filteredData)) {
+            filteredData.forEach(item => {
+                const d = item.details?.dog || {};
+                const c = item.details?.cat || {};
+
+                dogMale += (parseInt(d.maleSterilize as any, 10) || 0);
+                dogFemale += (parseInt(d.femaleSterilize as any, 10) || 0);
+                catMale += (parseInt(c.maleSterilize as any, 10) || 0);
+                catFemale += (parseInt(c.femaleSterilize as any, 10) || 0);
+            });
+        }
+
+        return [
+            { name: 'สุนัข', 'ตัวผู้': dogMale, 'ตัวเมีย': dogFemale },
+            { name: 'แมว', 'ตัวผู้': catMale, 'ตัวเมีย': catFemale }
+        ];
+    }, [filteredData]);
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
@@ -2022,8 +2042,9 @@ const handleDeleteDispatch = async (id: string) => {
                                             outbreakPieData={outbreakPieData as any[]}
                                         />
 
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                             <DogCatComparisonChart data={dogCatChartData} />
+                                            <GenderSterilizationChart data={genderSterilizationData} />
                                             <YearOverYearChart 
                                                 data={yoyTrendData} 
                                                 currentYear={String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear)} 
