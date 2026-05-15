@@ -25,8 +25,8 @@ interface Breakdown {
   other: BreakdownStats;
   vaccineRequisitioned?: string | number;
   vaccineRemaining?: string | number;
-  vaccineWasted?: string | number; // เพิ่มฟิลด์วัคซีนเสีย
-  microchipLost?: string | number; // เพิ่มฟิลด์ไมโครชิปหลุด
+  vaccineWasted?: string | number;
+  microchipLost?: string | number;
 }
 
 interface FormDataState {
@@ -100,8 +100,8 @@ const defaultBreakdown: Breakdown = {
   other: { vaccine: '', medical: '' },
   vaccineRequisitioned: '',
   vaccineRemaining: '',
-  vaccineWasted: '', // ค่าเริ่มต้นวัคซีนเสีย
-  microchipLost: ''  // ค่าเริ่มต้นไมโครชิปหลุด
+  vaccineWasted: '',
+  microchipLost: ''
 };
 
 // ==============================
@@ -561,8 +561,8 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
   if (!isOpen) return null;
 
-  const inputClass = "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all";
-  const labelClass = "block text-xs font-bold text-slate-600 mb-1.5";
+  const inputClass = "w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all";
+  const labelClass = "block text-[11px] font-bold text-slate-600 mb-1.5";
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-0 sm:p-6">
@@ -572,14 +572,14 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-xl ${initialData ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
-              {initialData ? <Edit className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+              {initialData ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </div>
-            <h3 className="text-xl font-bold text-slate-800">
+            <h3 className="text-lg font-bold text-slate-800">
               {initialData ? 'แก้ไขข้อมูลปฏิบัติงาน' : 'บันทึกผลปฏิบัติงานใหม่'}
             </h3>
           </div>
           <button onClick={onClose} disabled={isSubmitting} className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50">
-            <X className="w-6 h-6 text-slate-400" />
+            <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 
@@ -588,7 +588,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
             {/* SECTION 1: General Info */}
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
+              <h4 className="text-xs font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span> ข้อมูลทั่วไป
               </h4>
 
@@ -610,12 +610,12 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                 {/* หน่วยกิจกรรม */}
                 <div className="md:col-span-4">
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="text-xs font-bold text-slate-600">หน่วยกิจกรรม</label>
+                    <label className="text-[11px] font-bold text-slate-600">หน่วยกิจกรรม</label>
                     <button
                       type="button"
                       onClick={() => setIsManagingUnits(!isManagingUnits)}
                       disabled={isSubmitting}
-                      className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                      className="text-[9px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md hover:bg-indigo-100 transition-colors flex items-center gap-1"
                     >
                       <Settings2 className="w-3 h-3" /> {isManagingUnits ? 'เสร็จสิ้น' : 'จัดการหน่วย'}
                     </button>
@@ -624,20 +624,20 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   {isManagingUnits ? (
                     <div className="border border-slate-200 rounded-xl p-2 bg-slate-50 max-h-32 overflow-y-auto custom-scrollbar">
                       {customUnitsObj.length === 0 && (
-                        <div className="text-xs text-slate-400 text-center py-2">ยังไม่มีหน่วยงานที่กำหนดเอง</div>
+                        <div className="text-[11px] text-slate-400 text-center py-2">ยังไม่มีหน่วยงานที่กำหนดเอง</div>
                       )}
                       {customUnitsObj.map(u => (
                         <div key={u._id} className="flex items-center justify-between p-2 bg-white mb-1 rounded-lg border border-slate-100">
                           {editingUnitId === u._id ? (
                             <input
                               autoFocus
-                              className="flex-1 text-xs outline-none"
+                              className="flex-1 text-[11px] outline-none"
                               value={editingUnitName}
                               onChange={e => setEditingUnitName(e.target.value)}
                               disabled={isSubmitting}
                             />
                           ) : (
-                            <span className="text-xs text-slate-700 truncate">{u.name}</span>
+                            <span className="text-[11px] text-slate-700 truncate">{u.name}</span>
                           )}
                           <div className="flex gap-1">
                             {editingUnitId === u._id ? (
@@ -732,7 +732,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0 disabled:opacity-50"
                       title="ค้นหาข้อมูลจากแผนออกหน่วย"
                     >
-                      <Search className="w-5 h-5" />
+                      <Search className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -768,7 +768,6 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                             setFormData(prev => {
                               const newLocationDistrict = item.locationDistrict || item.district || prev.locationDistrict;
         
-                              // เคลียร์แขวงถ้าเขตไม่ตรงกัน และ item นั้นไม่มีแขวงติดมาด้วย
                               const finalSubdistrict = newSubdistrict || (newLocationDistrict === prev.locationDistrict ? prev.subdistrict : '');
 
                               return {
@@ -777,7 +776,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                                 unit: matchedUnit,
                                 locationDistrict: newLocationDistrict,
                                 district: item.district || prev.district,
-                                subdistrict: finalSubdistrict, // อัปเดตแขวง
+                                subdistrict: finalSubdistrict,
                                 mapLink: newMapLink,
                                 lat: newLat,
                                 long: newLng
@@ -792,8 +791,8 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                             if (onToast) onToast('success', 'กรอกข้อมูลสถานที่อัตโนมัติเรียบร้อย');
                           }}
                         >
-                          <div className="text-sm font-bold text-slate-700">{item.location}</div>
-                          <div className="text-xs text-slate-500 flex flex-wrap gap-2 mt-1">
+                          <div className="text-xs font-bold text-slate-700">{item.location}</div>
+                          <div className="text-[11px] text-slate-500 flex flex-wrap gap-2 mt-1">
                             {item.district && <span className="flex items-center gap-1"><MapPin className="w-3 h-3"/> เขต{item.district}</span>}
                             {item.subdistrict && <span className="text-gray-500">แขวง{item.subdistrict}</span>}
                             {(item.unit || item.title) && <span className="text-indigo-500 font-bold">{item.unit || item.title}</span>}
@@ -827,7 +826,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                           BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).map(d => (
                             <div
                               key={d}
-                              className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                              className="px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 setFormData({ ...formData, locationDistrict: d, subdistrict: '' });
@@ -838,7 +837,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                             </div>
                           ))
                         ) : (
-                          <div className="px-3 py-2 text-sm text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
+                          <div className="px-3 py-2 text-[11px] text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
                         )}
                       </div>
                     )}
@@ -885,7 +884,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                             BANGKOK_DISTRICTS.filter(d => d.includes(formData.district || '')).map(d => (
                               <div
                                 key={d}
-                                className="px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                                className="px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   setFormData({ ...formData, district: d });
@@ -896,7 +895,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                               </div>
                             ))
                           ) : (
-                            <div className="px-3 py-2 text-sm text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
+                            <div className="px-3 py-2 text-[11px] text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
                           )}
                         </div>
                       )}
@@ -961,10 +960,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                 {/* การ์ดรายการแผนออกหน่วยประจำวัน */}
                 {dispatchesOnSelectedDate.length > 0 && !initialData && (
                   <div className="md:col-span-12 mt-2 pt-4 border-t border-slate-100">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 mb-3">
+                    <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 mb-3">
                       <CalendarDays className="w-4 h-4 text-indigo-500" />
                       แผนออกหน่วยประจำวันที่ {new Date(formData.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">{dispatchesOnSelectedDate.length} รายการ</span>
+                      <span className="text-[9px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">{dispatchesOnSelectedDate.length} รายการ</span>
                     </label>
                     <div className="flex overflow-x-auto gap-3 pb-3 custom-scrollbar">
                       {dispatchesOnSelectedDate.map(dispatch => {
@@ -980,10 +979,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                             <div>
                               <div className="flex justify-between items-start mb-1">
                                 <div className="flex flex-col gap-1.5 items-start">
-                                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md truncate max-w-[150px]">
+                                  <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md truncate max-w-[150px]">
                                     {dispatch.title || 'แผนออกหน่วย'}
                                   </span>
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${
                                     isRecorded 
                                       ? 'bg-emerald-100 text-emerald-700' 
                                       : 'bg-slate-100 text-slate-500'
@@ -992,14 +991,14 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                                     {isRecorded ? 'บันทึกข้อมูลแล้ว' : 'ยังไม่บันทึกข้อมูล'}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-slate-500 flex items-center gap-1 shrink-0">
+                                <span className="text-[9px] text-slate-500 flex items-center gap-1 shrink-0">
                                   <Activity className="w-3 h-3" /> {dispatch.time}
                                 </span>
                               </div>
-                              <div className="text-sm font-bold text-slate-800 line-clamp-2 leading-tight mt-1">
+                              <div className="text-xs font-bold text-slate-800 line-clamp-2 leading-tight mt-1">
                                 {dispatch.location}
                               </div>
-                              <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                              <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                                 <MapPin className="w-3 h-3 text-slate-400" /> เขต{dispatch.district || '-'}
                               </div>
                             </div>
@@ -1007,7 +1006,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                               type="button"
                               disabled={isSubmitting}
                               onClick={() => setFoundDispatch(dispatch)}
-                              className={`mt-3 w-full py-1.5 text-xs font-bold rounded-lg transition-colors border disabled:opacity-50 ${
+                              className={`mt-3 w-full py-1.5 text-[11px] font-bold rounded-lg transition-colors border disabled:opacity-50 ${
                               isRecorded 
                                 ? 'bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-100'
                                 : 'bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border-indigo-100'
@@ -1028,14 +1027,14 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
             {foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
                 <div className="flex justify-between items-start mb-3">
-                  <h4 className="text-sm font-bold text-indigo-800 flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-indigo-800 flex items-center gap-2">
                     <Activity className="w-4 h-4" /> ข้อมูลสถานที่จากแผนออกหน่วย (Dispatch Plan)
                   </h4>
                   <button
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleUseDispatchData(foundDispatch)}
-                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 shrink-0 ml-2"
+                    className="px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 shrink-0 ml-2"
                   >
                     ใช้ข้อมูลนี้
                   </button>
@@ -1049,7 +1048,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     if (!phoneNum && splitData.length > 1) phoneNum = splitData[1].trim();
                   }
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] text-slate-700 bg-white p-4 rounded-xl border border-indigo-50">
                       {foundDispatch.title && (
                         <div className="sm:col-span-2">
                           <span className="font-bold text-slate-500">กิจกรรม:</span> <span className="font-bold text-indigo-700">{foundDispatch.title}</span>
@@ -1072,7 +1071,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                         <div className="sm:col-span-2 flex flex-wrap gap-1.5 items-center mt-1">
                           <span className="font-bold text-slate-500">บริการ:</span>
                           {foundDispatch.services.map((srv, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-[10px] font-bold">
+                            <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-[9px] font-bold">
                               {srv}
                             </span>
                           ))}
@@ -1099,7 +1098,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
             {/* SECTION 2: Quantitative Data */}
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
+              <h4 className="text-xs font-bold text-slate-800 uppercase mb-5 flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-orange-500 rounded-full"></span> ข้อมูลจำนวนสัตว์
               </h4>
 
@@ -1107,15 +1106,15 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
                 {/* ฉีดวัคซีน */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 flex items-center gap-2">
+                  <div className="bg-blue-50/50 px-4 py-2 border-b border-slate-200 font-bold text-blue-700 text-[11px] flex items-center gap-2">
                     <Syringe className="w-4 h-4" /> ฉีดวัคซีน
                   </div>
-                  <div className="p-4 grid grid-cols-3 sm:grid-cols-6 gap-3"> {/* แก้จาก 5 เป็น 6 คอลัมน์ */}
+                  <div className="p-4 grid grid-cols-3 sm:grid-cols-6 gap-3">
                     <div>
-                      <label className="text-[10px] text-blue-600 uppercase font-bold mb-1 block">วัคซีนที่เบิก</label>
+                      <label className="text-[9px] text-blue-600 uppercase font-bold mb-1 block">วัคซีนที่เบิก</label>
                       <input
                         type="number" min="0" placeholder="0"
-                        className="w-full p-2 border border-blue-100 bg-blue-50/30 rounded-lg text-center"
+                        className="w-full p-2 border border-blue-100 bg-blue-50/30 rounded-lg text-center text-xs"
                         value={breakdown.vaccineRequisitioned}
                         disabled={isSubmitting}
                         onChange={e => setBreakdown({ ...breakdown, vaccineRequisitioned: e.target.value })}
@@ -1123,12 +1122,12 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     </div>
                     {(['dog', 'cat', 'other'] as const).map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">
+                        <label className="text-[9px] text-slate-500 uppercase font-bold mb-1 block">
                           {t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}
                         </label>
                         <input
                           type="number" min="0" placeholder="0"
-                          className="w-full p-2 border border-slate-200 rounded-lg text-center"
+                          className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs"
                           value={breakdown[t].vaccine}
                           disabled={isSubmitting}
                           onChange={e => setBreakdown({ ...breakdown, [t]: { ...breakdown[t], vaccine: e.target.value } })}
@@ -1136,20 +1135,20 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       </div>
                     ))}
                     <div>
-                      <label className="text-[10px] text-orange-500 uppercase font-bold mb-1 block">วัคซีนเสีย</label>
+                      <label className="text-[9px] text-orange-500 uppercase font-bold mb-1 block">วัคซีนเสีย</label>
                       <input
                         type="number" min="0" placeholder="0"
-                        className="w-full p-2 border border-orange-200 bg-orange-50/30 rounded-lg text-center"
+                        className="w-full p-2 border border-orange-200 bg-orange-50/30 rounded-lg text-center text-xs"
                         value={breakdown.vaccineWasted}
                         disabled={isSubmitting}
                         onChange={e => setBreakdown({ ...breakdown, vaccineWasted: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-rose-500 uppercase font-bold mb-1 block">คงเหลือ</label>
+                      <label className="text-[9px] text-rose-500 uppercase font-bold mb-1 block">คงเหลือ</label>
                       <input
                         type="number" placeholder="0"
-                        className="w-full p-2 border border-rose-200 bg-rose-50/80 rounded-lg text-center font-bold text-rose-600 cursor-not-allowed focus:outline-none"
+                        className="w-full p-2 border border-rose-200 bg-rose-50/80 rounded-lg text-center font-bold text-rose-600 cursor-not-allowed focus:outline-none text-xs"
                         value={breakdown.vaccineRemaining}
                         readOnly
                         tabIndex={-1}
@@ -1161,26 +1160,26 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
                 {/* ผ่าตัดทำหมัน */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-orange-50/50 px-4 py-2 border-b border-slate-200 font-bold text-orange-700 flex items-center gap-2">
+                  <div className="bg-orange-50/50 px-4 py-2 border-b border-slate-200 font-bold text-orange-700 text-[11px] flex items-center gap-2">
                     <Scissors className="w-4 h-4" /> ผ่าตัดทำหมัน
                   </div>
                   <div className="p-4 grid grid-cols-2 gap-4">
                     {(['dog', 'cat'] as const).map(t => (
                       <div key={t} className="space-y-2">
-                        <label className="text-[10px] text-slate-500 uppercase font-bold block">
+                        <label className="text-[9px] text-slate-500 uppercase font-bold block">
                           {t === 'dog' ? '🐶 สุนัข' : '🐱 แมว'}
                         </label>
                         <div className="flex gap-2">
                           <input
                             type="number" placeholder="ผู้"
-                            className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs"
+                            className="w-full p-2 border border-slate-200 rounded-lg text-center text-[11px]"
                             value={breakdown[t].maleSterilize}
                             disabled={isSubmitting}
                             onChange={e => setBreakdown({ ...breakdown, [t]: { ...breakdown[t], maleSterilize: e.target.value } })}
                           />
                           <input
                             type="number" placeholder="เมีย"
-                            className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs"
+                            className="w-full p-2 border border-slate-200 rounded-lg text-center text-[11px]"
                             value={breakdown[t].femaleSterilize}
                             disabled={isSubmitting}
                             onChange={e => setBreakdown({ ...breakdown, [t]: { ...breakdown[t], femaleSterilize: e.target.value } })}
@@ -1193,18 +1192,18 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
                 {/* ฝังไมโครชิป */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-purple-50/50 px-4 py-2 border-b border-slate-200 font-bold text-purple-700 flex items-center gap-2">
+                  <div className="bg-purple-50/50 px-4 py-2 border-b border-slate-200 font-bold text-purple-700 text-[11px] flex items-center gap-2">
                     <Database className="w-4 h-4" /> ฝังไมโครชิป
                   </div>
                   <div className="p-4 grid grid-cols-3 gap-4">
                     {(['dog', 'cat'] as const).map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">
+                        <label className="text-[9px] text-slate-500 uppercase font-bold mb-1 block">
                           {t === 'dog' ? 'สุนัข' : 'แมว'}
                         </label>
                         <input
                           type="number" min="0" placeholder="0"
-                          className="w-full p-2 border border-slate-200 rounded-lg text-center"
+                          className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs"
                           value={breakdown[t].microchip}
                           disabled={isSubmitting}
                           onChange={e => setBreakdown({ ...breakdown, [t]: { ...breakdown[t], microchip: e.target.value } })}
@@ -1212,10 +1211,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       </div>
                     ))}
                     <div>
-                      <label className="text-[10px] text-orange-500 uppercase font-bold mb-1 block">ไมโครชิปหลุด</label>
+                      <label className="text-[9px] text-orange-500 uppercase font-bold mb-1 block">ไมโครชิปหลุด</label>
                       <input
                         type="number" min="0" placeholder="0"
-                        className="w-full p-2 border border-orange-200 bg-orange-50/30 rounded-lg text-center"
+                        className="w-full p-2 border border-orange-200 bg-orange-50/30 rounded-lg text-center text-xs"
                         value={breakdown.microchipLost}
                         disabled={isSubmitting}
                         onChange={e => setBreakdown({ ...breakdown, microchipLost: e.target.value })}
@@ -1226,18 +1225,18 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
                 {/* จดทะเบียน */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-emerald-50/50 px-4 py-2 border-b border-slate-200 font-bold text-emerald-700 flex items-center gap-2">
+                  <div className="bg-emerald-50/50 px-4 py-2 border-b border-slate-200 font-bold text-emerald-700 text-[11px] flex items-center gap-2">
                     <FileText className="w-4 h-4" /> จดทะเบียนสัตว์
                   </div>
                   <div className="p-4 grid grid-cols-2 gap-4">
                     {(['dog', 'cat'] as const).map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">
+                        <label className="text-[9px] text-slate-500 uppercase font-bold mb-1 block">
                           {t === 'dog' ? 'สุนัข' : 'แมว'}
                         </label>
                         <input
                           type="number" min="0" placeholder="0"
-                          className="w-full p-2 border border-slate-200 rounded-lg text-center"
+                          className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs"
                           value={breakdown[t].register}
                           disabled={isSubmitting}
                           onChange={e => setBreakdown({ ...breakdown, [t]: { ...breakdown[t], register: e.target.value } })}
@@ -1249,18 +1248,18 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
                 {/* รักษาสัตว์ */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden lg:col-span-2">
-                  <div className="bg-rose-50/50 px-4 py-2 border-b border-slate-200 font-bold text-rose-700 flex items-center gap-2">
+                  <div className="bg-rose-50/50 px-4 py-2 border-b border-slate-200 font-bold text-rose-700 text-[11px] flex items-center gap-2">
                     <Stethoscope className="w-4 h-4" /> รักษาสัตว์
                   </div>
                   <div className="p-4 grid grid-cols-3 gap-3">
                     {(['dog', 'cat', 'other'] as const).map(t => (
                       <div key={t}>
-                        <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">
+                        <label className="text-[9px] text-slate-500 uppercase font-bold mb-1 block">
                           {t === 'dog' ? 'สุนัข' : t === 'cat' ? 'แมว' : 'อื่นๆ'}
                         </label>
                         <input
                           type="number" min="0" placeholder="0"
-                          className="w-full p-2 border border-slate-200 rounded-lg text-center"
+                          className="w-full p-2 border border-slate-200 rounded-lg text-center text-xs"
                           value={breakdown[t].medical}
                           disabled={isSubmitting}
                           onChange={e => setBreakdown({ ...breakdown, [t]: { ...breakdown[t], medical: e.target.value } })}
@@ -1278,7 +1277,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   type="file"
                   accept="image/*"
                   disabled={isSubmitting}
-                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -1309,14 +1308,13 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   }}
                 />
                 
-                {/* ส่วนแสดงผลรูปภาพและขนาดไฟล์ */}
                 {imagePreview && (
                   <div className="mt-2 relative inline-block">
                     <img src={imagePreview} alt="Preview" className="h-32 rounded-lg object-cover border border-slate-200" />
                     
                     {/* ป้ายแสดงขนาดไฟล์ */}
                     {imageSizeKB && (
-                      <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-sm shadow-sm">
+                      <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-md backdrop-blur-sm shadow-sm">
                         {imageSizeKB} KB
                       </div>
                     )}
@@ -1326,7 +1324,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       onClick={() => { 
                         setImageFile(null); 
                         setImagePreview(null); 
-                        setImageSizeKB(null); // เคลียร์ขนาดเมื่อลบรูป
+                        setImageSizeKB(null); 
                       }}
                       className="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white rounded-full p-1 shadow-md transition-colors"
                     >
@@ -1338,11 +1336,11 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
               {/* สรุปยอดรวม */}
               <div className="mt-6 bg-slate-900 rounded-2xl p-5 text-white flex flex-wrap justify-around gap-4">
-                <div className="text-center"><div className="text-2xl font-bold">{totals.vaccine}</div><div className="text-[10px] text-slate-400 uppercase">วัคซีน</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-orange-400">{totals.sterilize}</div><div className="text-[10px] text-slate-400 uppercase">ทำหมัน</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-purple-400">{totals.microchip}</div><div className="text-[10px] text-slate-400 uppercase">ไมโครชิป</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-emerald-400">{totals.register}</div><div className="text-[10px] text-slate-400 uppercase">จดทะเบียน</div></div>
-                <div className="text-center"><div className="text-2xl font-bold text-rose-400">{totals.medical}</div><div className="text-[10px] text-slate-400 uppercase">รักษา</div></div>
+                <div className="text-center"><div className="text-xl font-bold">{totals.vaccine}</div><div className="text-[9px] text-slate-400 uppercase">วัคซีน</div></div>
+                <div className="text-center"><div className="text-xl font-bold text-orange-400">{totals.sterilize}</div><div className="text-[9px] text-slate-400 uppercase">ทำหมัน</div></div>
+                <div className="text-center"><div className="text-xl font-bold text-purple-400">{totals.microchip}</div><div className="text-[9px] text-slate-400 uppercase">ไมโครชิป</div></div>
+                <div className="text-center"><div className="text-xl font-bold text-emerald-400">{totals.register}</div><div className="text-[9px] text-slate-400 uppercase">จดทะเบียน</div></div>
+                <div className="text-center"><div className="text-xl font-bold text-rose-400">{totals.medical}</div><div className="text-[9px] text-slate-400 uppercase">รักษา</div></div>
               </div>
             </div>
           </div>
@@ -1353,19 +1351,19 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all disabled:bg-blue-400"
+              className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all disabled:bg-blue-400"
             >
               {isSubmitting ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> กำลังบันทึก...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> กำลังบันทึก...</>
               ) : (
-                <><Save className="w-5 h-5" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}</>
+                <><Save className="w-4 h-4" /> {initialData ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล'}</>
               )}
             </button>
           </div>
