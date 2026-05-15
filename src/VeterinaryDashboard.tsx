@@ -2005,7 +2005,13 @@ const handleDeleteDispatch = async (id: string) => {
             
                                             <div className="lg:col-span-7 flex flex-col gap-8">
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
-                                                    <LeafletMap data={mapDisplayData} outbreaks={outbreakData as any[]} onEdit={openEditModal} onEditOutbreak={openEditOutbreakModal} canEdit={canEdit}/>
+                                                    <LeafletMap 
+                                                        data={mapDisplayData}
+                                                        outbreaks={filteredOutbreaks as any[]} 
+                                                        onEdit={openEditModal} 
+                                                        onEditOutbreak={openEditOutbreakModal} 
+                                                        canEdit={canEdit}
+                                                    />
                                                 </div>
                 
                                                 <div className="h-full">

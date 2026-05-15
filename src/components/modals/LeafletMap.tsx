@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import 'leaflet.heat'; // นำเข้าปลั๊กอิน Heatmap
+import 'leaflet.heat';
 
 import { 
     Filter, AlertTriangle, ChevronDown, ChevronUp, 
