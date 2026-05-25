@@ -1022,8 +1022,14 @@ const DispatchCalendarDashboard: React.FC = () => {
             <AnnouncementBar announcements={announcements} onEditClick={() => setIsAnnouncementModalOpen(true)} canEdit={canEdit} />
 
             <div className="flex flex-1 overflow-hidden relative">
+                {isSidebarOpen && (
+        <div 
+            className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" 
+            onClick={() => setIsSidebarOpen(false)} 
+        />
+    )}
                 {/* ================= Sidebar (Left) ================= */}
-                <aside className={`bg-[#312069] flex-col hidden lg:flex text-white transition-all duration-300 shadow-xl z-30 shrink-0 ${isSidebarOpen ? 'w-[260px] ml-0' : 'w-[260px] -ml-[260px]'}`}>
+                <aside className={`bg-[#312069] flex-col text-white transition-all duration-300 shadow-xl z-50 fixed inset-y-0 left-0 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex w-[260px] shrink-0`}>
                     <div className="p-6 flex items-center gap-3 border-b border-white/10 shrink-0">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-sm">
                             <Truck className="w-6 h-6 text-indigo-300" />
@@ -1086,14 +1092,14 @@ const DispatchCalendarDashboard: React.FC = () => {
                     <header className="h-[76px] bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between shrink-0 z-20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
                         <div className="flex items-center gap-3 sm:gap-4">
         
-                            {/* ปุ่มเปิด-ปิด Sidebar */}
-                            <button 
-                                onClick={() => { playSound('switch'); setIsSidebarOpen(!isSidebarOpen); }}
-                                className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors hidden lg:block"
-                                title={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
-                            >
-                                <Menu className="w-5 h-5" />
-                            </button>
+                            {/* ปุ่มเปิด-ปิด Sidebar ที่อยู่ใน Header */}
+<button 
+    onClick={() => { playSound('switch'); setIsSidebarOpen(!isSidebarOpen); }}
+    className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors block"
+    title={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
+>
+    <Menu className="w-5 h-5" />
+</button>
                             <div>
                                 <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
                                     สวัสดี, {user ? user.username : 'ผู้เยี่ยมชม'} 👋
