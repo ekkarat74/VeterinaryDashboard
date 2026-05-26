@@ -90,16 +90,20 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = React.memo(({ label, value, colorClass, bgClass, icon: Icon, trend }) => (
-    <div className="bg-white p-4 lg:p-5 rounded-[1.25rem] shadow-sm border border-slate-100 flex flex-col justify-between group hover:shadow-md transition-all duration-300">
-        <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
-                {Icon && <Icon className={`w-5 h-5 ${colorClass}`} />}
+    <div className="bg-white p-3 lg:p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col group hover:shadow-md transition-all duration-300">
+        <div className="flex items-center gap-2 mb-2">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
+                {Icon && <Icon className={`w-4 h-4 ${colorClass}`} />}
             </div>
-            <div className="text-slate-500 text-xs font-bold">{label}</div>
+            <div className="text-slate-500 text-[10px] font-bold">{label}</div>
         </div>
-        <div className="flex items-end justify-between mt-1">
-            <div className={`text-xl lg:text-xl font-black tracking-tight ${colorClass}`}>{value}</div>
-            {trend && <div className="text-[10px] text-emerald-500 font-bold bg-emerald-50 px-2 py-1 rounded-md">{trend}</div>}
+        <div className="flex items-end justify-between mt-0.5">
+            <div className={`text-xl lg:text-2xl font-black tracking-tight ${colorClass} leading-none pl-1`}>{value}</div>
+            {trend && (
+                <div className="text-[8px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-md mb-0.5">
+                    {trend}
+                </div>
+            )}
         </div>
     </div>
 ));
@@ -180,7 +184,7 @@ const RealTimeClock: React.FC = React.memo(() => {
         return () => clearInterval(timer);
     }, []);
     return (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-700 text-xs font-bold shadow-sm">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-700 text-[10px] font-bold shadow-sm">
             <Clock className="w-4 h-4 text-indigo-500" />
             {realTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
         </div>
@@ -254,8 +258,8 @@ const AnnouncementBar: React.FC<AnnouncementBarProps> = ({ announcements, onEdit
     const currentItem = activeAnnouncements[safeIndex];
 
     return (
-        <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-xs relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
-            <div className="bg-[#6B4BFA] text-white px-3 py-1 rounded-full font-bold text-[10px] mr-3 shrink-0 z-10 flex items-center gap-2 shadow-sm">
+        <div className="bg-[#2D1B6B] text-white flex items-center px-4 text-[10px] relative z-40 shadow-md shrink-0 w-full h-11 overflow-hidden">
+            <div className="bg-[#6B4BFA] text-white px-3 py-1 rounded-full font-bold text-[8px] mr-3 shrink-0 z-10 flex items-center gap-2 shadow-sm">
                 <Megaphone className="w-3 h-3" /> PREVIEW
             </div>
             
@@ -311,8 +315,8 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
                             <Edit3 className="w-5 h-5" />
                         </div>
                         <div>
-                            <h2 className="text-sm font-bold text-slate-800">แก้ไขข้อความแถบเลื่อน</h2>
-                            <p className="text-[11px] text-slate-500">จัดการข้อความประชาสัมพันธ์ด้านบน</p>
+                            <h2 className="text-xs font-bold text-slate-800">แก้ไขข้อความแถบเลื่อน</h2>
+                            <p className="text-[9px] text-slate-500">จัดการข้อความประชาสัมพันธ์ด้านบน</p>
                         </div>
                     </div>
                     <button onClick={() => { playSound('pop'); onClose(); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
@@ -320,7 +324,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
 
                 <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50">
                     <div className="flex justify-between items-center mb-3">
-                        <span className="text-xs font-bold text-slate-600">รายการข้อความ ({items.length})</span>
+                        <span className="text-[10px] font-bold text-slate-600">รายการข้อความ ({items.length})</span>
                     </div>
                     
                     <div className="space-y-3">
@@ -330,8 +334,8 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
                                     <ChevronUp className="w-4 h-4 -mb-1" />
                                     <ChevronDown className="w-4 h-4 -mt-1" />
                                 </div>
-                                <input type="text" value={item.icon} onChange={(e) => handleChangeIcon(item.id, e.target.value)} className="w-8 text-center bg-slate-50 border border-slate-200 rounded-md py-1 text-xs outline-none focus:border-purple-400" />
-                                <input type="text" value={item.text} onChange={(e) => handleChangeText(item.id, e.target.value)} className="flex-1 bg-transparent border-none text-xs text-slate-700 outline-none placeholder-slate-400 focus:ring-0" placeholder="พิมพ์ข้อความ..." />
+                                <input type="text" value={item.icon} onChange={(e) => handleChangeIcon(item.id, e.target.value)} className="w-8 text-center bg-slate-50 border border-slate-200 rounded-md py-1 text-[10px] outline-none focus:border-purple-400" />
+                                <input type="text" value={item.text} onChange={(e) => handleChangeText(item.id, e.target.value)} className="flex-1 bg-transparent border-none text-[10px] text-slate-700 outline-none placeholder-slate-400 focus:ring-0" placeholder="พิมพ์ข้อความ..." />
                                 <div className="flex items-center gap-2 ml-2">
                                     <button onClick={() => handleToggle(item.id)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.isActive ? 'bg-[#6B4BFA]' : 'bg-slate-200'}`}>
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${item.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -342,14 +346,14 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
                         ))}
                     </div>
                     
-                    <button onClick={handleAdd} className="mt-4 w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-[#6B4BFA] hover:border-[#6B4BFA] hover:bg-purple-50 transition-colors flex justify-center items-center gap-2">
+                    <button onClick={handleAdd} className="mt-4 w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-500 hover:text-[#6B4BFA] hover:border-[#6B4BFA] hover:bg-purple-50 transition-colors flex justify-center items-center gap-2">
                         <Plus className="w-4 h-4" /> เพิ่มข้อความใหม่
                     </button>
                 </div>
 
                 <div className="p-4 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 shrink-0">
-                    <button onClick={() => { playSound('pop'); onClose(); }} className="py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
-                    <button onClick={() => { playSound('success'); onSave(items); onClose(); }} className="py-2.5 rounded-xl font-bold text-xs text-white bg-[#6B4BFA] hover:bg-[#5A3EE0] shadow-md shadow-purple-200 flex justify-center items-center gap-2 transition-colors"><Save className="w-4 h-4"/> บันทึกทั้งหมด</button>
+                    <button onClick={() => { playSound('pop'); onClose(); }} className="py-2.5 rounded-xl font-bold text-[10px] text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                    <button onClick={() => { playSound('success'); onSave(items); onClose(); }} className="py-2.5 rounded-xl font-bold text-[10px] text-white bg-[#6B4BFA] hover:bg-[#5A3EE0] shadow-md shadow-purple-200 flex justify-center items-center gap-2 transition-colors"><Save className="w-4 h-4"/> บันทึกทั้งหมด</button>
                 </div>
             </div>
         </div>
@@ -402,8 +406,8 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {[ {label: 'ทั้งหมด', val: stats.total, color: 'text-indigo-600'}, {label: 'เสร็จสิ้น', val: stats.completed, color: 'text-emerald-600'}, {label: 'รอดำเนินการ', val: stats.pending, color: 'text-amber-600'}, {label: 'ยกเลิก', val: stats.cancelled, color: 'text-rose-600'} ].map((s, i) => (
                     <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase">{s.label}</div>
-                        <div className={`text-xl font-black ${s.color}`}>{s.val} <span className="text-xs">งาน</span></div>
+                        <div className="text-[8px] font-bold text-slate-500 uppercase">{s.label}</div>
+                        <div className={`text-lg font-black ${s.color}`}>{s.val} <span className="text-[10px]">งาน</span></div>
                     </div>
                 ))}
             </div>
@@ -411,11 +415,11 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
                 <div>
-                    <h2 className="text-xl font-black text-slate-800">จัดการข้อมูลกิจกรรม</h2>
-                    <p className="text-xs text-slate-500 font-medium">จัดการกรองข้อมูลและส่งออกรายงาน</p>
+                    <h2 className="text-lg font-black text-slate-800">จัดการข้อมูลกิจกรรม</h2>
+                    <p className="text-[10px] text-slate-500 font-medium">จัดการกรองข้อมูลและส่งออกรายงาน</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={exportToCSV} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-colors">
+                    <button onClick={exportToCSV} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[10px] flex items-center gap-2 shadow-sm transition-colors">
                         <FileDown className="w-4 h-4"/> Export CSV
                     </button>
                     <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -427,17 +431,17 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
 
             {/* Filters */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                <input type="text" placeholder="ค้นหา..." className="col-span-2 md:col-span-1 p-2.5 bg-slate-50 rounded-xl text-xs border border-slate-200" onChange={(e) => setSearchTerm(e.target.value)} />
-                <select className="p-2.5 bg-slate-50 rounded-xl text-xs border border-slate-200" onChange={(e) => setFilterDistrict(e.target.value)}>{districts.map(d => <option key={d}>{d}</option>)}</select>
-                <select className="p-2.5 bg-slate-50 rounded-xl text-xs border border-slate-200" onChange={(e) => setFilterTeam(e.target.value)}>{teams.map(t => <option key={t}>{t}</option>)}</select>
-                <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-xs border border-slate-200" onChange={(e) => setStartDate(e.target.value)} />
-                <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-xs border border-slate-200" onChange={(e) => setEndDate(e.target.value)} />
+                <input type="text" placeholder="ค้นหา..." className="col-span-2 md:col-span-1 p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setSearchTerm(e.target.value)} />
+                <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterDistrict(e.target.value)}>{districts.map(d => <option key={d}>{d}</option>)}</select>
+                <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterTeam(e.target.value)}>{teams.map(t => <option key={t}>{t}</option>)}</select>
+                <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setStartDate(e.target.value)} />
+                <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setEndDate(e.target.value)} />
             </div>
 
             {/* Views */}
             <div className="flex-1 overflow-auto custom-scrollbar">
                 {view === 'table' ? (
-                    <table className="w-full text-xs text-left">
+                    <table className="w-full text-[10px] text-left">
                         <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
                             <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
                         </thead>
@@ -449,7 +453,7 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                                     <td className="p-3">{e.location}</td>
                                     <td className="p-3">{e.team || '-'}</td>
                                     <td className="p-3">
-                                        <span className={`px-2 py-1 rounded-md font-bold text-[10px] ${e.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : e.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>
+                                        <span className={`px-2 py-1 rounded-md font-bold text-[8px] ${e.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : e.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>
                                             {e.status || 'เตรียมพร้อม'}
                                         </span>
                                     </td>
@@ -461,11 +465,11 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                     <div className="flex gap-4 min-w-[800px] h-full">
                         {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(status => (
                             <div key={status} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3">
-                                <h4 className="font-bold text-slate-700 text-xs px-1">{status}</h4>
+                                <h4 className="font-bold text-slate-700 text-[10px] px-1">{status}</h4>
                                 {filteredEvents.filter(e => (status === 'เตรียมพร้อม' ? !e.status || e.status === 'เตรียมพร้อม' : e.status === status)).map((e, i) => (
-                                    <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-xs">
+                                    <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px]">
                                         <p className="font-bold mb-1">{e.title}</p>
-                                        <p className="text-slate-500 text-[10px]">{e.location}</p>
+                                        <p className="text-slate-500 text-[8px]">{e.location}</p>
                                     </div>
                                 ))}
                             </div>
@@ -1035,34 +1039,34 @@ const DispatchCalendarDashboard: React.FC = () => {
                             <Truck className="w-6 h-6 text-indigo-300" />
                         </div>
                         <div>
-                            <h1 className="font-black tracking-wide text-sm leading-tight text-white/90">ปฏิทินออกหน่วยสัตวแพทย์เคลื่อนที่</h1>
-                            <h2 className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">Mobile Veterinary Unit Calendar</h2>
+                            <h1 className="font-black tracking-wide text-xs leading-tight text-white/90">ปฏิทินออกหน่วยสัตวแพทย์เคลื่อนที่</h1>
+                            <h2 className="text-[8px] text-indigo-300 font-bold uppercase tracking-wider">Mobile Veterinary Unit Calendar</h2>
                         </div>
                     </div>
 
                    <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
                         <button 
                             onClick={() => { playSound('switch'); setActiveMenu('dashboard'); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition-all border ${activeMenu === 'dashboard' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'dashboard' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
                             <LayoutDashboard className={`w-4 h-4 ${activeMenu === 'dashboard' ? 'text-indigo-300' : ''}`} /> หน้าหลัก
                         </button>
                         <button 
                             onClick={() => { playSound('switch'); setActiveMenu('calendar'); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition-all border ${activeMenu === 'calendar' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'calendar' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
                             <CalendarDays className={`w-4 h-4 ${activeMenu === 'calendar' ? 'text-indigo-300' : ''}`} /> ปฏิทิน
                         </button>
                         <button 
                             onClick={() => { playSound('switch'); setActiveMenu('activities'); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition-all border ${activeMenu === 'activities' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'activities' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
                             <Activity className={`w-4 h-4 ${activeMenu === 'activities' ? 'text-indigo-300' : ''}`} /> กิจกรรม
                         </button>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-xs transition-all">
+                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <Users className="w-4 h-4" /> หน่วยสัตวแพทย์
                         </button>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-xs transition-all">
+                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <FileText className="w-4 h-4" /> รายงาน
                         </button>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-xs transition-all">
+                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <Settings className="w-4 h-4" /> ตั้งค่า
                         </button>
                     </div>
@@ -1071,15 +1075,15 @@ const DispatchCalendarDashboard: React.FC = () => {
                         {/* Help Section */}
                         <div className="bg-[#44308a] rounded-2xl p-4 text-center border border-white/10 relative overflow-hidden">
                             <div className="flex justify-center gap-2 mb-3">
-                                <div className="w-10 h-10 bg-[#5a42b1] rounded-full flex items-center justify-center text-xl shadow-sm">🐶</div>
-                                <div className="w-8 h-8 bg-[#5a42b1] rounded-full flex items-center justify-center text-lg mt-2 shadow-sm">🐱</div>
+                                <div className="w-10 h-10 bg-[#5a42b1] rounded-full flex items-center justify-center text-lg shadow-sm">🐶</div>
+                                <div className="w-8 h-8 bg-[#5a42b1] rounded-full flex items-center justify-center text-base mt-2 shadow-sm">🐱</div>
                             </div>
-                            <h4 className="text-[11px] font-bold text-white/90 mb-1">ต้องการความช่วยเหลือ?</h4>
-                            <button className="w-full py-2 bg-white text-[#312069] rounded-lg text-[10px] font-black shadow-sm hover:bg-slate-50 transition-colors">
+                            <h4 className="text-[9px] font-bold text-white/90 mb-1">ต้องการความช่วยเหลือ?</h4>
+                            <button className="w-full py-2 bg-white text-[#312069] rounded-lg text-[8px] font-black shadow-sm hover:bg-slate-50 transition-colors">
                                 ติดต่อเจ้าหน้าที่
                             </button>
                         </div>
-                        <div className="text-[9px] text-white/40 text-center mt-4 mb-2">
+                        <div className="text-[7px] text-white/40 text-center mt-4 mb-2">
                             © {new Date().getFullYear()} สำนักงานสัตวแพทย์สาธารณสุข สำนักอนามัย กรุงเทพมหานคร
                         </div>
                     </div>
@@ -1093,25 +1097,25 @@ const DispatchCalendarDashboard: React.FC = () => {
                         <div className="flex items-center gap-3 sm:gap-4">
         
                             {/* ปุ่มเปิด-ปิด Sidebar ที่อยู่ใน Header */}
-<button 
-    onClick={() => { playSound('switch'); setIsSidebarOpen(!isSidebarOpen); }}
-    className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors block"
-    title={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
->
-    <Menu className="w-5 h-5" />
-</button>
+                            <button 
+                                onClick={() => { playSound('switch'); setIsSidebarOpen(!isSidebarOpen); }}
+                                className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors block"
+                                title={isSidebarOpen ? "ซ่อนเมนู" : "แสดงเมนู"}
+                            >
+                                <Menu className="w-5 h-5" />
+                            </button>
                             <div>
-                                <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
                                     สวัสดี, {user ? user.username : 'ผู้เยี่ยมชม'} 👋
                                 </h2>
-                                <p className="text-xs text-slate-500 font-medium mt-0.5">ยินดีต้อนรับสู่ระบบปฏิทินออกหน่วยสัตวแพทย์เคลื่อนที่</p>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5">ยินดีต้อนรับสู่ระบบปฏิทินออกหน่วยสัตวแพทย์เคลื่อนที่</p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4">
                             <RealTimeClock />
                             
-                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-2 py-1.5 rounded-full shadow-sm">
+                            <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-100 px-2 py-1.5 rounded-full shadow-sm">
                                 <button
                                     onClick={togglePlay}
                                     className={`p-1.5 rounded-full transition-colors ${isPlaying ? 'text-indigo-600 bg-indigo-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'}`}
@@ -1129,21 +1133,38 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                             <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block"></div>
 
+                            {/* ========================================================= */}
+                            {/* ย้ายปุ่ม Admin Action Buttons มาไว้ตรงนี้ (ข้างๆ ข้อมูล User) */}
+                            {/* ========================================================= */}
+                            {canEdit && (
+                                <div className="hidden xl:flex items-center gap-2 mr-2">
+                                    <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-emerald-200">
+                                        <UserPlus className="w-3.5 h-3.5"/> เพิ่มผู้ควบคุม
+                                    </button>
+                                    <button onClick={() => { playSound('pop'); setIsManageStaffOpen(true); }} className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-blue-200">
+                                        <Users className="w-3.5 h-3.5"/> จัดการทีมงาน
+                                    </button>
+                                    <button onClick={() => { playSound('pop'); openDispatchForm(); }} className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5">
+                                        <Plus className="w-3.5 h-3.5" /> เพิ่มงานใหม่
+                                    </button>
+                                </div>
+                            )}
+
                             {user ? (
                                 <div className="flex items-center gap-3 pl-2 cursor-pointer group">
                                     <div className="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center overflow-hidden shadow-sm">
                                         <Users className="w-4 h-4 text-indigo-600" />
                                     </div>
                                     <div className="hidden md:block">
-                                        <div className="text-xs font-bold text-slate-700 leading-tight">{user.username}</div>
-                                        <div className="text-[10px] text-slate-400 font-medium">{user.role}</div>
+                                        <div className="text-[10px] font-bold text-slate-700 leading-tight">{user.username}</div>
+                                        <div className="text-[8px] text-slate-400 font-medium">{user.role}</div>
                                     </div>
                                     <button onClick={handleLogout} className="ml-2 p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
                                         <LogOut className="w-4 h-4" />
                                     </button>
                                 </div>
                             ) : (
-                                <button onClick={() => setIsLoginModalOpen(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
+                                <button onClick={() => setIsLoginModalOpen(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-2">
                                     <Unlock className="w-4 h-4"/> เข้าสู่ระบบ
                                 </button>
                             )}
@@ -1151,25 +1172,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                     </header>
 
                     {/* Main Scrollable Area */}
-                    <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar relative">
+                    <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 custom-scrollbar relative">
                         
                         {/* ===================== หน้าหลัก (Dashboard) ===================== */}
                         {activeMenu === 'dashboard' && (
                             <div className="animate-in fade-in duration-300">
-                                {/* Admin Action Buttons (ถ้ามีสิทธิ์ Edit) */}
-                                {canEdit && (
-                                    <div className="flex justify-end gap-3 mb-6">
-                                        <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-emerald-200">
-                                            <UserPlus className="w-4 h-4"/> เพิ่มผู้ควบคุม
-                                        </button>
-                                        <button onClick={() => { playSound('pop'); setIsManageStaffOpen(true); }} className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2 border border-blue-200">
-                                            <Users className="w-4 h-4"/> จัดการทีมงาน
-                                        </button>
-                                        <button onClick={() => { playSound('pop'); openDispatchForm(); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs shadow-sm flex items-center gap-2">
-                                            <Plus className="w-4 h-4" /> เพิ่มงานใหม่
-                                        </button>
-                                    </div>
-                                )}
 
                                 {/* Stats Row */}
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
@@ -1186,25 +1193,25 @@ const DispatchCalendarDashboard: React.FC = () => {
                                     <div className="xl:col-span-4 space-y-6">
                                         
                                         {/* Calendar Widget */}
-                                        <div className="bg-white rounded-3xl p-5 lg:p-7 shadow-sm border border-slate-100">
+                                        <div className="bg-white rounded-[1.5rem] p-4 lg:p-5 shadow-sm border border-slate-100">
                                             <div className="flex justify-between items-center mb-6">
-                                                <h3 className="text-lg font-black text-slate-800">
+                                                <h3 className="text-base font-black text-slate-800">
                                                     {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
                                                 </h3>
                                                 <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
                                                     <button onClick={() => { playSound('pop'); changeMonth(-1); }} className="p-1.5 hover:bg-white rounded-lg text-slate-500 shadow-sm transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-                                                    <button onClick={() => { playSound('pop'); setCurrentDate(new Date()); }} className="px-3 py-1 text-[11px] font-bold text-indigo-600 hover:bg-white rounded-lg shadow-sm transition-colors">วันนี้</button>
+                                                    <button onClick={() => { playSound('pop'); setCurrentDate(new Date()); }} className="px-3 py-1 text-[9px] font-bold text-indigo-600 hover:bg-white rounded-lg shadow-sm transition-colors">วันนี้</button>
                                                     <button onClick={() => { playSound('pop'); changeMonth(1); }} className="p-1.5 hover:bg-white rounded-lg text-slate-500 shadow-sm transition-colors"><ChevronRight className="w-4 h-4" /></button>
                                                 </div>
                                             </div>
 
                                             <div className="grid grid-cols-7 gap-1 mb-4">
                                                 {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d, i) => (
-                                                    <div key={d} className={`text-center text-[10px] lg:text-[11px] font-bold pb-2 ${i===0 || i===6 ? 'text-rose-500' : 'text-slate-400'}`}>{d}</div>
+                                                    <div key={d} className={`text-center text-[8px] lg:text-[9px] font-bold pb-2 ${i===0 || i===6 ? 'text-rose-500' : 'text-slate-400'}`}>{d}</div>
                                                 ))}
                                             </div>
 
-                                            <div className="grid grid-cols-7 auto-rows-[minmax(40px,1fr)] lg:auto-rows-[minmax(48px,1fr)] gap-2">
+                                            <div className="grid grid-cols-7 auto-rows-[minmax(32px,1fr)] lg:auto-rows-[minmax(38px,1fr)] gap-1.5">
                                                 {daysArray.map((day, i) => {
                                                     if (i < firstDay) return <div key={i} className="bg-transparent" />;
                                                     const dayNum = i - firstDay + 1;
@@ -1227,7 +1234,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                             ${isDragOver ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-400/50 scale-105 z-10' :
                                                               isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105 z-10' : 'bg-white hover:bg-slate-50 border border-transparent hover:border-slate-100'}`}
                                                         >
-                                                            <span className={`text-xs lg:text-sm font-bold ${isDragOver ? 'text-emerald-600' : isSelected ? 'text-white' : isToday ? 'text-indigo-600' : 'text-slate-700'}`}>
+                                                            <span className={`text-[10px] lg:text-xs font-bold ${isDragOver ? 'text-emerald-600' : isSelected ? 'text-white' : isToday ? 'text-indigo-600' : 'text-slate-700'}`}>
                                                                 {dayNum}
                                                             </span>
                                                             {dotColors.length > 0 && (
@@ -1241,12 +1248,12 @@ const DispatchCalendarDashboard: React.FC = () => {
                                             </div>
                                             
                                             {/* Legend */}
-                                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-6 pt-5 border-t border-slate-100">
-                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-blue-500"></div> หน่วยวัคซีน+ไมโครชิป</div>
-                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-rose-500"></div> หน่วยทำหมัน</div>
-                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> หน่วยสัตว์แพทย์</div>
-                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-orange-500"></div> หน่วยผู้ว่า</div>
-                                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-purple-500"></div> หน่วยกรงแมว</div>
+                                            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 pt-4 border-t border-slate-100">
+                                                <div className="flex items-center gap-1.5 text-[8px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-blue-500"></div> หน่วยวัคซีน+ไมโครชิป</div>
+                                                <div className="flex items-center gap-1.5 text-[8px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-rose-500"></div> หน่วยทำหมัน</div>
+                                                <div className="flex items-center gap-1.5 text-[8px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> หน่วยสัตว์แพทย์</div>
+                                                <div className="flex items-center gap-1.5 text-[8px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-orange-500"></div> หน่วยผู้ว่า</div>
+                                                <div className="flex items-center gap-1.5 text-[8px] text-slate-500 font-bold"><div className="w-2 h-2 rounded-full bg-purple-500"></div> หน่วยกรงแมว</div>
                                             </div>
                                         </div>
 
@@ -1256,11 +1263,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                 <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-3 text-indigo-500 border border-indigo-100">
                                                     <MapPin className="w-6 h-6" />
                                                 </div>
-                                                <h4 className="text-sm font-black text-slate-800 mb-1">ดูแผนที่ออกให้บริการ</h4>
-                                                <p className="text-[10px] text-slate-500 font-medium mb-4 max-w-[120px] leading-relaxed">
+                                                <h4 className="text-xs font-black text-slate-800 mb-1">ดูแผนที่ออกให้บริการ</h4>
+                                                <p className="text-[8px] text-slate-500 font-medium mb-4 max-w-[120px] leading-relaxed">
                                                     ค้นหาหน่วยสัตวแพทย์ใกล้คุณบนแผนที่ออนไลน์
                                                 </p>
-                                                <button className="px-4 py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-bold shadow-sm border border-indigo-50 hover:bg-indigo-50 transition-colors flex items-center gap-1.5">
+                                                <button className="px-4 py-2 bg-white text-indigo-600 rounded-xl text-[8px] font-bold shadow-sm border border-indigo-50 hover:bg-indigo-50 transition-colors flex items-center gap-1.5">
                                                     เปิดแผนที่ <ChevronRight className="w-3 h-3" />
                                                 </button>
                                             </div>
@@ -1279,24 +1286,24 @@ const DispatchCalendarDashboard: React.FC = () => {
                                     <div className="xl:col-span-8 flex flex-col gap-5">
                                         
                                         {/* Header & Controls */}
-                                        <div className="bg-white rounded-[1.5rem] p-5 lg:p-6 shadow-sm border border-slate-100 flex flex-col gap-5">
+<div className="bg-white rounded-[1.5rem] p-4 lg:p-5 shadow-sm border border-slate-100 flex flex-col gap-4">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                 <div>
-                                                    <h3 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight">
+                                                    <h3 className="text-base lg:text-lg font-black text-slate-800 tracking-tight">
                                                         {selectedDate.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}
                                                     </h3>
-                                                    <p className="text-xs text-slate-500 font-medium mt-1">
+                                                    <p className="text-[10px] text-slate-500 font-medium mt-1">
                                                         มี {selectedDateEvents.length} กิจกรรม {selectedDateEvents.length > 0 && `(แสดง ${selectedDateEvents.length})`}
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100">
                                                     <button onClick={() => { playSound('pop'); setViewMode('list'); }}
-                                                        className={`px-5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white'}`}
+                                                        className={`px-5 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white'}`}
                                                     >
                                                         <LayoutDashboard className="w-3.5 h-3.5" /> มุมมองรายการ
                                                     </button>
                                                     <button onClick={() => { playSound('pop'); setViewMode('timeline'); }}
-                                                        className={`px-5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white'}`}
+                                                        className={`px-5 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white'}`}
                                                     >
                                                         <Activity className="w-3.5 h-3.5" /> มุมมองไทม์ไลน์
                                                     </button>
@@ -1311,7 +1318,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                         placeholder="ค้นหางาน โลเคชัน ทีม สถานที่..." 
                                                         value={searchTerm} 
                                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-xs font-medium text-slate-700 shadow-sm" 
+                                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-[10px] font-medium text-slate-700 shadow-sm" 
                                                     />
                                                 </div>
                                                 <button className="w-full sm:w-auto px-4 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center justify-center">
@@ -1327,12 +1334,12 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                         <button 
                                                             key={type} 
                                                             onClick={() => { playSound('pop'); setSelectedType(type); }}
-                                                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold transition-all duration-200 shadow-sm border
+                                                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[9px] font-bold transition-all duration-200 shadow-sm border
                                                                 ${isSelected ? 'bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-500/10' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}
                                                             `}
                                                         >
                                                             {type}
-                                                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                            <span className={`px-1.5 py-0.5 rounded-md text-[8px] ${isSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
                                                                 {count}
                                                             </span>
                                                         </button>
@@ -1349,8 +1356,8 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                                             <CalendarDays className="w-8 h-8 text-slate-300" />
                                                         </div>
-                                                        <span className="text-slate-600 font-bold text-sm mb-1">ไม่พบกิจกรรม</span>
-                                                        <span className="text-slate-400 text-xs font-medium">ไม่มีกำหนดการในวันนี้ กรุณาเลือกวันอื่น</span>
+                                                        <span className="text-slate-600 font-bold text-[10px] mb-1">ไม่พบกิจกรรม</span>
+                                                        <span className="text-slate-400 text-[8px] font-medium">ไม่มีกำหนดการในวันนี้ กรุณาเลือกวันอื่น</span>
                                                     </div>
                                                 ) : (
                                                     selectedDateEvents.map((evt, idx) => {
@@ -1382,38 +1389,37 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                                                                 <div className="flex-1 flex flex-col">
                                                                     {/* Card Content Row */}
-                                                                    <div className="p-4 lg:p-5 flex flex-col md:flex-row md:items-center gap-4 lg:gap-6">
-                                                                        
+                                                                    <div className="p-3 lg:p-4 flex flex-col md:flex-row md:items-center gap-3 lg:gap-4">
                                                                         {/* Col 1: Time & Duration */}
                                                                         <div className="w-full md:w-[130px] shrink-0 border-b md:border-b-0 md:border-r border-slate-100 pb-3 md:pb-0 md:pr-4 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start">
-                                                                            <div className="text-sm font-black text-slate-800 tracking-tight">
+                                                                            <div className="text-[10px] font-black text-slate-800 tracking-tight">
                                                                                 {evt.time} - {evt.closingTime || '12:00'}
                                                                             </div>
-                                                                            <div className="text-[10px] text-slate-400 font-bold mt-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                                                            <div className="text-[8px] text-slate-400 font-bold mt-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
                                                                                 {duration}
                                                                             </div>
                                                                         </div>
 
                                                                         {/* Col 2: Icon & Main Info */}
                                                                         <div className="flex-1 flex items-start gap-4">
-                                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${styles.bg}`}>
-                                                                                <Activity className={`w-6 h-6 ${styles.text}`} />
+                                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${styles.bg}`}>
+                                                                                <Activity className={`w-5 h-5 ${styles.text}`} />
                                                                             </div>
                                                                             <div className="flex flex-col gap-1">
                                                                                 <div className="flex items-center gap-2">
-                                                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${styles.bg} ${styles.text}`}>
+                                                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md ${styles.bg} ${styles.text}`}>
                                                                                         {evt.title || 'หน่วยบริการ'}
                                                                                     </span>
                                                                                     {evt.isVisibleToPublic === false && !canEdit && (
-                                                                                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                                                                        <span className="text-[8px] px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 border border-slate-200">
                                                                                             ซ่อน
                                                                                         </span>
                                                                                     )}
                                                                                 </div>
-                                                                                <h4 className="text-sm font-black text-slate-800 leading-snug">
+                                                                                <h4 className="text-[10px] font-black text-slate-800 leading-snug">
                                                                                     {evt.location || 'ไม่ระบุสถานที่'}
                                                                                 </h4>
-                                                                                <div className="text-[11px] font-bold text-slate-500 mt-1 flex flex-wrap items-center gap-3">
+                                                                                <div className="text-[9px] font-bold text-slate-500 mt-1 flex flex-wrap items-center gap-3">
                                                                                     <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5 text-indigo-300"/> {evt.team || '-'}</span>
                                                                                     <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-indigo-300"/> {evt.controllerName || '-'}</span>
                                                                                 </div>
@@ -1424,16 +1430,16 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                                         <div className="w-full md:w-auto shrink-0 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 border-t md:border-t-0 border-slate-100 pt-3 md:pt-0">
                                                                             <div className="flex flex-row md:flex-col gap-1.5 items-end">
                                                                                 {status && (
-                                                                                    <div className={`flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md font-bold border ${status.badge}`}>
+                                                                                    <div className={`flex items-center gap-1.5 text-[8px] px-2.5 py-1 rounded-md font-bold border ${status.badge}`}>
                                                                                         {status.icon && <status.icon className="w-3 h-3" />} {status.text}
                                                                                     </div>
                                                                                 )}
                                                                                 {isRecorded ? (
-                                                                                    <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                                                                    <div className="flex items-center gap-1.5 text-[8px] px-2.5 py-1 rounded-md font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
                                                                                         <CheckCircle className="w-3 h-3" /> บันทึกผลแล้ว
                                                                                     </div>
                                                                                 ) : (
-                                                                                    <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                                                                                    <div className="flex items-center gap-1.5 text-[8px] px-2.5 py-1 rounded-md font-bold bg-amber-50 text-amber-600 border border-amber-200">
                                                                                         <FileText className="w-3 h-3" /> ยังไม่บันทึก
                                                                                     </div>
                                                                                 )}
@@ -1446,7 +1452,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                                                 )}
                                                                                 <button 
                                                                                     onClick={() => setExpandedEventId(isExpanded ? null : (evt._id || idx))}
-                                                                                    className={`px-4 py-1.5 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 ${isExpanded ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                                                                                    className={`px-4 py-1.5 rounded-lg text-[9px] font-bold transition-colors flex items-center gap-1 ${isExpanded ? 'bg-slate-100 text-slate-600' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
                                                                                 >
                                                                                     {isExpanded ? 'ซ่อน' : 'ดูข้อมูล'} {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                                                 </button>
@@ -1459,31 +1465,31 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                                         <div className="border-t border-dashed border-slate-200 p-4 lg:p-6 bg-slate-50/50 animate-in slide-in-from-top-2">
                                                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                                                                 <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                                                                    <div className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-rose-400"/> เขต/พื้นที่</div>
-                                                                                    <div className="text-xs font-bold text-slate-700">{evt.district || '-'}</div>
+                                                                                    <div className="text-[8px] font-bold text-slate-400 mb-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-rose-400"/> เขต/พื้นที่</div>
+                                                                                    <div className="text-[10px] font-bold text-slate-700">{evt.district || '-'}</div>
                                                                                 </div>
                                                                                 <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                                                                    <div className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1"><Phone className="w-3 h-3 text-emerald-400"/> เบอร์ติดต่อ</div>
-                                                                                    <div className="text-xs font-bold text-slate-700">{evt.controllerPhone || '-'}</div>
+                                                                                    <div className="text-[8px] font-bold text-slate-400 mb-1 flex items-center gap-1"><Phone className="w-3 h-3 text-emerald-400"/> เบอร์ติดต่อ</div>
+                                                                                    <div className="text-[10px] font-bold text-slate-700">{evt.controllerPhone || '-'}</div>
                                                                                 </div>
                                                                                 <div className="md:col-span-2 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                                                                    <div className="text-[10px] font-bold text-slate-400 mb-1">พิกัดแผนที่ (GPS)</div>
+                                                                                    <div className="text-[8px] font-bold text-slate-400 mb-1">พิกัดแผนที่ (GPS)</div>
                                                                                     {evt.mapLink || (evt.lat && evt.lng) ? (
                                                                                         <a 
                                                                                             href={evt.mapLink || `https://www.google.com/maps/search/?api=1&query=${evt.lat},${evt.lng}`}
                                                                                             target="_blank" 
                                                                                             rel="noopener noreferrer" 
-                                                                                            className="text-xs font-mono text-indigo-600 hover:underline break-all block"
+                                                                                            className="text-[10px] font-mono text-indigo-600 hover:underline break-all block"
                                                                                         >
                                                                                             {evt.lat && evt.lng ? `${evt.lat}, ${evt.lng}` : 'เปิดใน Google Maps'}
                                                                                         </a>
                                                                                     ) : (
-                                                                                        <div className="text-xs font-mono text-slate-400">ไม่ระบุพิกัด</div>
+                                                                                        <div className="text-[10px] font-mono text-slate-400">ไม่ระบุพิกัด</div>
                                                                                     )}
                                                                                 </div>
                                                                                 <div className="sm:col-span-2 md:col-span-4 bg-amber-50/30 p-3.5 rounded-xl border border-amber-100">
-                                                                                    <div className="text-[10px] font-bold text-amber-500 mb-1.5 flex items-center gap-1">📋 รายละเอียดเพิ่มเติม</div>
-                                                                                    <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{evt.details || evt.description || '-'}</div>
+                                                                                    <div className="text-[8px] font-bold text-amber-500 mb-1.5 flex items-center gap-1">📋 รายละเอียดเพิ่มเติม</div>
+                                                                                    <div className="text-[10px] text-slate-700 leading-relaxed whitespace-pre-wrap">{evt.details || evt.description || '-'}</div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -1500,13 +1506,13 @@ const DispatchCalendarDashboard: React.FC = () => {
                                         {viewMode === 'timeline' && (
                                             <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col mb-10 min-h-[500px]">
                                                 <div className="flex border-b border-slate-200 bg-slate-50">
-                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex items-center justify-center font-bold text-xs text-slate-500">
+                                                    <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex items-center justify-center font-bold text-[10px] text-slate-500">
                                                         ทีมปฏิบัติการ
                                                     </div>
                                                     <div className="flex-1 relative flex">
                                                         {Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR + 1 }).map((_, i) => (
                                                             <div key={i} className="flex-1 border-l border-slate-200/50 relative h-10 first:border-l-0">
-                                                                <span className="absolute -left-3 top-2 text-[10px] font-bold text-slate-400 bg-slate-50 px-1">
+                                                                <span className="absolute -left-3 top-2 text-[8px] font-bold text-slate-400 bg-slate-50 px-1">
                                                                     {String(TIMELINE_START_HOUR + i).padStart(2, '0')}:00
                                                                 </span>
                                                             </div>
@@ -1516,7 +1522,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                                                 <div className="overflow-y-auto custom-scrollbar flex-1 relative">
                                                     {Object.entries(eventsByTeam).length === 0 ? (
-                                                        <div className="p-10 text-center text-slate-400 text-sm font-medium flex flex-col items-center gap-3">
+                                                        <div className="p-10 text-center text-slate-400 text-[10px] font-medium flex flex-col items-center gap-3">
                                                             <CalendarDays className="w-10 h-10 text-slate-200" />
                                                             ไม่มีตารางงานในวันนี้
                                                         </div>
@@ -1531,9 +1537,9 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                                 <div key={groupKey} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors group relative">
                                                                     
                                                                     <div className="w-32 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                                                                        <span className="text-[11px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>{unitName}</span>
-                                                                        <span className="text-xs font-bold text-slate-700 line-clamp-2" title={teamName}>{teamName}</span>
-                                                                        <span className="text-[10px] font-medium text-slate-500 mt-1 line-clamp-2 leading-tight" title={locationName}>📍 {locationName}</span>
+                                                                        <span className="text-[9px] font-extrabold text-indigo-600 mb-0.5 truncate" title={unitName}>{unitName}</span>
+                                                                        <span className="text-[10px] font-bold text-slate-700 line-clamp-2" title={teamName}>{teamName}</span>
+                                                                        <span className="text-[8px] font-medium text-slate-500 mt-1 line-clamp-2 leading-tight" title={locationName}>📍 {locationName}</span>
                                                                     </div>
                                                                     
                                                                     <div className="flex-1 relative min-h-[70px] py-2">
@@ -1554,11 +1560,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                                                     className={`absolute top-2 bottom-2 rounded-lg border shadow-sm cursor-pointer overflow-hidden transition-all hover:scale-[1.02] hover:shadow-md hover:z-20 ${styles.bg} ${styles.border} border-l-[4px] opacity-90 hover:opacity-100 flex flex-col justify-center px-2 min-w-[20px]`}
                                                                                     style={{ left, width }}
                                                                                 >
-                                                                                    <div className={`text-[10px] font-bold truncate flex items-center gap-1 ${styles.text}`}>
+                                                                                    <div className={`text-[8px] font-bold truncate flex items-center gap-1 ${styles.text}`}>
                                                                                         {evt.time} - {evt.title || 'ออกหน่วย'}
                                                                                     </div>
                                                                                     {parseFloat(width) > 10 && ( 
-                                                                                        <div className="text-[9px] text-slate-500 truncate mt-0.5 font-medium">{evt.location}</div>
+                                                                                        <div className="text-[7px] text-slate-500 truncate mt-0.5 font-medium">{evt.location}</div>
                                                                                     )}
                                                                                 </div>
                                                                             );
@@ -1582,14 +1588,14 @@ const DispatchCalendarDashboard: React.FC = () => {
                                 {/* Header ปฏิทิน */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                                        <h2 className="text-lg font-black text-slate-800 tracking-tight">
                                             {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
                                         </h2>
-                                        <p className="text-sm text-slate-500 font-medium mt-1">ตารางปฏิบัติงานและหน่วยสัตวแพทย์เคลื่อนที่ทั้งหมด</p>
+                                        <p className="text-[10px] text-slate-500 font-medium mt-1">ตารางปฏิบัติงานและหน่วยสัตวแพทย์เคลื่อนที่ทั้งหมด</p>
                                     </div>
                                     <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-sm shrink-0">
                                         <button onClick={() => { playSound('pop'); changeMonth(-1); }} className="p-2 hover:bg-white rounded-lg text-slate-500 shadow-sm transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-                                        <button onClick={() => { playSound('pop'); setCurrentDate(new Date()); }} className="px-5 py-2 text-xs font-bold text-indigo-600 hover:bg-white rounded-lg shadow-sm transition-colors">ไปที่วันนี้</button>
+                                        <button onClick={() => { playSound('pop'); setCurrentDate(new Date()); }} className="px-5 py-2 text-[10px] font-bold text-indigo-600 hover:bg-white rounded-lg shadow-sm transition-colors">ไปที่วันนี้</button>
                                         <button onClick={() => { playSound('pop'); changeMonth(1); }} className="p-2 hover:bg-white rounded-lg text-slate-500 shadow-sm transition-colors"><ChevronRight className="w-5 h-5" /></button>
                                     </div>
                                 </div>
@@ -1597,7 +1603,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                 {/* หัววันในสัปดาห์ */}
                                 <div className="grid grid-cols-7 gap-2 mb-2">
                                     {['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'].map((d, i) => (
-                                        <div key={d} className={`text-center text-xs font-bold py-2.5 rounded-xl bg-slate-50 border border-slate-100 ${i === 0 || i === 6 ? 'text-rose-500' : 'text-slate-600'}`}>{d}</div>
+                                        <div key={d} className={`text-center text-[10px] font-bold py-2.5 rounded-xl bg-slate-50 border border-slate-100 ${i === 0 || i === 6 ? 'text-rose-500' : 'text-slate-600'}`}>{d}</div>
                                     ))}
                                 </div>
 
@@ -1625,11 +1631,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                   isToday ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-100 bg-white hover:border-indigo-300'}`}
                                             >
                                                 <div className="flex justify-between items-start mb-1">
-                                                    <span className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${isToday ? 'bg-indigo-600 text-white shadow-sm' : isSelected ? 'bg-indigo-100 text-indigo-700' : 'text-slate-600 group-hover:text-indigo-600'}`}>
+                                                    <span className={`w-7 h-7 flex items-center justify-center rounded-full text-[10px] font-bold ${isToday ? 'bg-indigo-600 text-white shadow-sm' : isSelected ? 'bg-indigo-100 text-indigo-700' : 'text-slate-600 group-hover:text-indigo-600'}`}>
                                                         {dayNum}
                                                     </span>
                                                     {dayEvents.length > 0 && (
-                                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md mt-0.5">
+                                                        <span className="text-[8px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded-md mt-0.5">
                                                             {dayEvents.length} งาน
                                                         </span>
                                                     )}
@@ -1641,7 +1647,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                         const styles = getEventStyles(evt);
                                                         return (
                                                             <div key={idx} 
-                                                                className={`text-[10px] px-2 py-1.5 rounded-lg truncate font-bold border-l-[3px] ${styles.bg} ${styles.text} ${styles.border} shadow-sm`} 
+                                                                className={`text-[8px] px-2 py-1.5 rounded-lg truncate font-bold border-l-[3px] ${styles.bg} ${styles.text} ${styles.border} shadow-sm`} 
                                                                 title={evt.location || evt.title}
                                                             >
                                                                 {evt.time} - {evt.location || evt.title || 'ออกหน่วย'}
@@ -1649,7 +1655,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                         );
                                                     })}
                                                     {dayEvents.length > 3 && (
-                                                        <div className="text-[10px] text-slate-500 font-bold text-center bg-slate-50 border border-slate-100 py-1 rounded-lg">
+                                                        <div className="text-[8px] text-slate-500 font-bold text-center bg-slate-50 border border-slate-100 py-1 rounded-lg">
                                                             +{dayEvents.length - 3} งานเพิ่มเติม
                                                         </div>
                                                     )}
@@ -1673,16 +1679,16 @@ const DispatchCalendarDashboard: React.FC = () => {
             {/* Context Menu (Right Click) */}
             {contextMenu.visible && contextMenu.event && (
                 <div className="fixed z-[99999] bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 min-w-[160px] animate-in fade-in zoom-in-95 duration-100" style={{ top: contextMenu.y, left: contextMenu.x }}>
-                    <button onClick={(e) => { e.stopPropagation(); setExpandedEventId(contextMenu.uniqueId); setContextMenu({ ...contextMenu, visible: false }); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+                    <button onClick={(e) => { e.stopPropagation(); setExpandedEventId(contextMenu.uniqueId); setContextMenu({ ...contextMenu, visible: false }); }} className="w-full text-left px-4 py-2 text-[10px] text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors">
                         <ChevronDown className="w-4 h-4 text-slate-400" /> ดูรายละเอียด
                     </button>
                     {canEdit && (
                         <>
                             <div className="h-px bg-slate-100 my-1 w-full"></div>
-                            <button onClick={(e) => { e.stopPropagation(); if(contextMenu.event) openDispatchEvent(contextMenu.event); setContextMenu({ ...contextMenu, visible: false }); }} className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors">
+                            <button onClick={(e) => { e.stopPropagation(); if(contextMenu.event) openDispatchEvent(contextMenu.event); setContextMenu({ ...contextMenu, visible: false }); }} className="w-full text-left px-4 py-2 text-[10px] text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors">
                                 <Edit3 className="w-4 h-4 text-indigo-400" /> แก้ไขข้อมูล
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDeleteDispatch(contextMenu.event?._id); setContextMenu({ ...contextMenu, visible: false }); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors">
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteDispatch(contextMenu.event?._id); setContextMenu({ ...contextMenu, visible: false }); }} className="w-full text-left px-4 py-2 text-[10px] text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors">
                                 <Trash2 className="w-4 h-4 text-rose-400" /> ลบรายการ
                             </button>
                         </>
@@ -1695,42 +1701,42 @@ const DispatchCalendarDashboard: React.FC = () => {
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center mb-4 shrink-0">
-                            <h3 className="text-sm font-bold text-slate-800">จัดการรายชื่อผู้ควบคุม</h3>
+                            <h3 className="text-[10px] font-bold text-slate-800">จัดการรายชื่อผู้ควบคุม</h3>
                             <button onClick={() => setIsAddControllerOpen(false)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"><X className="w-5 h-5"/></button>
                         </div>
                         <div className="space-y-3 shrink-0 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
                             <div className="flex items-center gap-2 mb-1">
                                 <UserPlus className="w-4 h-4 text-indigo-500" />
-                                <span className="text-xs font-bold text-indigo-700">{editingControllerIndex !== null ? 'แก้ไขข้อมูล' : 'เพิ่มข้อมูลใหม่'}</span>
+                                <span className="text-[10px] font-bold text-indigo-700">{editingControllerIndex !== null ? 'แก้ไขข้อมูล' : 'เพิ่มข้อมูลใหม่'}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="col-span-2">
-                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-xs bg-white" value={controllerNameInput} onChange={(e) => setControllerNameInput(e.target.value)} placeholder="ชื่อ-นามสกุล..." />
+                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-[10px] bg-white" value={controllerNameInput} onChange={(e) => setControllerNameInput(e.target.value)} placeholder="ชื่อ-นามสกุล..." />
                                 </div>
                                 <div className="col-span-2">
-                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-xs bg-white" value={controllerPhoneInput} onChange={(e) => setControllerPhoneInput(e.target.value)} placeholder="เบอร์โทร (เช่น 08X-XXX-XXXX)" />
+                                    <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none rounded-lg text-[10px] bg-white" value={controllerPhoneInput} onChange={(e) => setControllerPhoneInput(e.target.value)} placeholder="เบอร์โทร (เช่น 08X-XXX-XXXX)" />
                                 </div>
                             </div>
                             <div className="flex gap-2 justify-end pt-1">
                                 {editingControllerIndex !== null && (
-                                    <button onClick={() => { setControllerNameInput(''); setControllerPhoneInput(''); setEditingControllerIndex(null); }} className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-bold text-[11px] transition-colors shadow-sm">ยกเลิก</button>
+                                    <button onClick={() => { setControllerNameInput(''); setControllerPhoneInput(''); setEditingControllerIndex(null); }} className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-bold text-[9px] transition-colors shadow-sm">ยกเลิก</button>
                                 )}
-                                <button onClick={handleSaveController} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors flex items-center gap-1.5">
+                                <button onClick={handleSaveController} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[9px] shadow-sm transition-colors flex items-center gap-1.5">
                                     <Plus className="w-3.5 h-3.5"/> {editingControllerIndex !== null ? 'บันทึก' : 'เพิ่ม'}
                                 </button>
                             </div>
                         </div>
                         <div className="mt-5 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[150px]">
-                            <h4 className="text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อที่บันทึกไว้ ({savedControllersList.length})</h4>
+                            <h4 className="text-[9px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อที่บันทึกไว้ ({savedControllersList.length})</h4>
                             {savedControllersList.length === 0 ? (
-                                <div className="text-center text-slate-400 text-xs py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีข้อมูลในระบบ</div>
+                                <div className="text-center text-slate-400 text-[10px] py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีข้อมูลในระบบ</div>
                             ) : (
                                 <div className="space-y-2">
                                     {savedControllersList.map((item, idx) => (
                                         <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingControllerIndex === idx ? 'border-indigo-300 bg-indigo-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
                                             <div>
-                                                <div className="text-xs font-bold text-slate-700">{item.name}</div>
-                                                <div className="text-[11px] font-medium text-slate-500 flex items-center gap-1.5 mt-0.5"><Phone className="w-3 h-3 text-slate-400"/> {item.phone || '-'}</div>
+                                                <div className="text-[10px] font-bold text-slate-700">{item.name}</div>
+                                                <div className="text-[9px] font-medium text-slate-500 flex items-center gap-1.5 mt-0.5"><Phone className="w-3 h-3 text-slate-400"/> {item.phone || '-'}</div>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => handleEditController(idx)} className={`p-1.5 rounded-lg transition-colors ${editingControllerIndex === idx ? 'bg-indigo-100 text-indigo-600' : 'text-blue-500 hover:bg-blue-50'}`} title="แก้ไข"><Edit3 className="w-4 h-4"/></button>
@@ -1749,51 +1755,51 @@ const DispatchCalendarDashboard: React.FC = () => {
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
                         <div className="flex justify-between items-center mb-4 shrink-0">
-                            <h3 className="text-sm font-bold text-slate-800">จัดการรายชื่อทีมงานทั้งหมด</h3>
+                            <h3 className="text-[10px] font-bold text-slate-800">จัดการรายชื่อทีมงานทั้งหมด</h3>
                             <button onClick={() => setIsManageStaffOpen(false)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"><X className="w-5 h-5"/></button>
                         </div>
                         <div className="space-y-3 shrink-0 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                             <div className="flex items-center gap-2 mb-1">
                                 <Users className="w-4 h-4 text-blue-500" />
-                                <span className="text-xs font-bold text-blue-700">{editingStaffIndex !== null ? 'แก้ไขรายชื่อ' : 'เพิ่มรายชื่อใหม่'}</span>
+                                <span className="text-[10px] font-bold text-blue-700">{editingStaffIndex !== null ? 'แก้ไขรายชื่อ' : 'เพิ่มรายชื่อใหม่'}</span>
                             </div>
                             <div className="flex flex-col gap-3">
-                                <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-xs bg-white" value={staffNameInput} onChange={(e) => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
+                                <input type="text" className="w-full p-2.5 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none rounded-lg text-[10px] bg-white" value={staffNameInput} onChange={(e) => setStaffNameInput(e.target.value)} placeholder="พิมพ์ชื่อ-นามสกุล..." />
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4 px-1">
-                                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                                        <label className="flex items-center gap-1.5 text-[10px] font-medium text-slate-700 cursor-pointer">
                                             <input type="radio" name="staffRole" value="vet" checked={staffRoleInput === 'vet'} onChange={() => setStaffRoleInput('vet')} className="accent-blue-600 w-3.5 h-3.5" /> สัตวแพทย์
                                         </label>
-                                        <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                                        <label className="flex items-center gap-1.5 text-[10px] font-medium text-slate-700 cursor-pointer">
                                             <input type="radio" name="staffRole" value="general" checked={staffRoleInput === 'general'} onChange={() => setStaffRoleInput('general')} className="accent-blue-600 w-3.5 h-3.5" /> บุคลากรทั่วไป
                                         </label>
                                     </div>
-                                    <button onClick={handleSaveStaff} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-sm transition-colors flex items-center gap-1.5 shrink-0">
+                                    <button onClick={handleSaveStaff} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[9px] shadow-sm transition-colors flex items-center gap-1.5 shrink-0">
                                         <Plus className="w-3.5 h-3.5"/> {editingStaffIndex !== null ? 'บันทึก' : 'เพิ่ม'}
                                     </button>
                                 </div>
                             </div>
                             {editingStaffIndex !== null && (
                                 <div className="flex justify-end mt-1">
-                                    <button onClick={() => { setStaffNameInput(''); setStaffRoleInput('general'); setEditingStaffIndex(null); }} className="text-[10px] text-slate-500 hover:text-slate-700 underline">ยกเลิกการแก้ไข</button>
+                                    <button onClick={() => { setStaffNameInput(''); setStaffRoleInput('general'); setEditingStaffIndex(null); }} className="text-[8px] text-slate-500 hover:text-slate-700 underline">ยกเลิกการแก้ไข</button>
                                 </div>
                             )}
                         </div>
                         <div className="mt-5 flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-[150px]">
-                            <h4 className="text-[11px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อในระบบ ({savedStaffList.length})</h4>
+                            <h4 className="text-[9px] font-bold text-slate-500 mb-3 uppercase tracking-wider">รายชื่อในระบบ ({savedStaffList.length})</h4>
                             {savedStaffList.length === 0 ? (
-                                <div className="text-center text-slate-400 text-xs py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายชื่อทีมงาน</div>
+                                <div className="text-center text-slate-400 text-[10px] py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">ยังไม่มีรายชื่อทีมงาน</div>
                             ) : (
                                 <div className="space-y-4">
                                     {savedStaffList.some(s => s.role === 'vet') && (
                                         <div>
-                                            <div className="text-[11px] font-bold text-indigo-600 mb-2 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> สัตวแพทย์</div>
+                                            <div className="text-[9px] font-bold text-indigo-600 mb-2 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> สัตวแพทย์</div>
                                             <div className="space-y-2">
                                                 {savedStaffList.map((item, idx) => {
                                                     if (item.role !== 'vet') return null;
                                                     return (
                                                         <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingStaffIndex === idx ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                                                            <div className="text-xs font-bold text-slate-700">{item.name}</div>
+                                                            <div className="text-[10px] font-bold text-slate-700">{item.name}</div>
                                                             <div className="flex items-center gap-1">
                                                                 <button onClick={() => { setStaffNameInput(item.name); setStaffRoleInput(item.role || 'vet'); setEditingStaffIndex(idx); }} className={`p-1.5 rounded-lg transition-colors ${editingStaffIndex === idx ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:bg-slate-100 hover:text-blue-500'}`} title="แก้ไข"><Edit3 className="w-4 h-4"/></button>
                                                                 <button onClick={() => handleDeleteStaff(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ"><Trash2 className="w-4 h-4"/></button>
@@ -1806,13 +1812,13 @@ const DispatchCalendarDashboard: React.FC = () => {
                                     )}
                                     {savedStaffList.some(s => s.role !== 'vet') && (
                                         <div>
-                                            <div className="text-[11px] font-bold text-slate-600 mb-2 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> บุคลากรทั่วไป</div>
+                                            <div className="text-[9px] font-bold text-slate-600 mb-2 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div> บุคลากรทั่วไป</div>
                                             <div className="space-y-2">
                                                 {savedStaffList.map((item, idx) => {
                                                     if (item.role === 'vet') return null;
                                                     return (
                                                         <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${editingStaffIndex === idx ? 'border-blue-300 bg-blue-50/70 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                                                            <div className="text-xs font-bold text-slate-700">{item.name}</div>
+                                                            <div className="text-[10px] font-bold text-slate-700">{item.name}</div>
                                                             <div className="flex items-center gap-1">
                                                                 <button onClick={() => { setStaffNameInput(item.name); setStaffRoleInput(item.role || 'general'); setEditingStaffIndex(idx); }} className={`p-1.5 rounded-lg transition-colors ${editingStaffIndex === idx ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:bg-slate-100 hover:text-blue-500'}`} title="แก้ไข"><Edit3 className="w-4 h-4"/></button>
                                                                 <button onClick={() => handleDeleteStaff(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="ลบ"><Trash2 className="w-4 h-4"/></button>
