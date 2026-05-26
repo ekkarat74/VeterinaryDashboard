@@ -360,7 +360,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
     );
 };
 
-const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
+const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> = ({ events, activeCategory = 'all' }) => {
     const [view, setView] = useState<'table' | 'kanban'>('table');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDistrict, setFilterDistrict] = useState('ทั้งหมด');
@@ -369,29 +369,55 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
     const [endDate, setEndDate] = useState('');
 
     const filteredEvents = useMemo(() => {
-        return events.filter(e => {
-            const matchesSearch = !searchTerm || e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || e.title?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesDistrict = filterDistrict === 'ทั้งหมด' || e.district === filterDistrict;
-            const matchesTeam = filterTeam === 'ทั้งหมด' || e.team === filterTeam;
-            const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
-            return matchesSearch && matchesDistrict && matchesTeam && matchesDate;
-        });
-    }, [events, searchTerm, filterDistrict, filterTeam, startDate, endDate]);
+    return events.filter(e => {
+        const matchesSearch = !searchTerm || e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || e.title?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesDistrict = filterDistrict === 'ทั้งหมด' || e.district === filterDistrict;
+        const matchesTeam = filterTeam === 'ทั้งหมด' || e.team === filterTeam;
+        const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
 
-    // คำนวณ Stats
-    const stats = useMemo(() => ({
-        total: filteredEvents.length,
-        completed: filteredEvents.filter(e => e.status === 'completed').length,
-        pending: filteredEvents.filter(e => !e.status || e.status === 'เตรียมพร้อม').length,
-        cancelled: filteredEvents.filter(e => e.status === 'cancelled').length
-    }), [filteredEvents]);
+        // ดึงสถานะปัจจุบันแบบ Real-time
+        const st = getDispatchStatus(e)?.text || '';
+
+        let matchesCategory = true;
+            if (activeCategory === 'pending') {
+                matchesCategory = st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
+            } else if (activeCategory === 'in-progress') {
+                matchesCategory = st === 'กำลังดำเนินงาน';
+            } else if (activeCategory === 'history') {
+                matchesCategory = st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน' || st === 'ยกเลิก';
+            } else if (activeCategory === 'vet-unit') {
+                matchesCategory = !!e.title?.includes('สัตวแพทย์');
+            } else if (activeCategory === 'vaccine') {
+                matchesCategory = !!e.title?.includes('วัคซีน') || !!e.title?.includes('ไมโครชิป');
+            } else if (activeCategory === 'spay') {
+                matchesCategory = !!e.title?.includes('ทำหมัน');
+            } else if (activeCategory === 'governor') {
+                matchesCategory = !!e.title?.includes('ผู้ว่า');
+            } else if (activeCategory === 'cat-cage') {
+                matchesCategory = !!e.title?.includes('กรงแมว');
+            }
+        return matchesSearch && matchesDistrict && matchesTeam && matchesDate && matchesCategory;
+    });
+}, [events, searchTerm, filterDistrict, filterTeam, startDate, endDate, activeCategory]);
+
+const stats = useMemo(() => {
+    let completed = 0, inProgress = 0, pending = 0, cancelled = 0;
+    filteredEvents.forEach(e => {
+        const st = getDispatchStatus(e)?.text;
+        if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน') completed++;
+        else if (st === 'กำลังดำเนินงาน') inProgress++; // เพิ่มตัวนับนี้
+        else if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
+        else if (st === 'ยกเลิก') cancelled++;
+    });
+    return { total: filteredEvents.length, completed, inProgress, pending, cancelled };
+}, [filteredEvents]);
 
     const districts = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.district).filter(Boolean)))], [events]);
     const teams = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.team).filter(Boolean)))], [events]);
 
     const exportToCSV = () => {
         const headers = ["วันที่", "ชื่อกิจกรรม", "สถานที่", "เขต", "ทีม", "สถานะ"];
-        const rows = filteredEvents.map(e => [e.date, e.title, e.location, e.district, e.team, e.status]);
+        const rows = filteredEvents.map(e => [e.date, e.title, e.location, e.district, e.team, getDispatchStatus(e)?.text || '']);
         const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -446,41 +472,49 @@ const ActivityPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                             <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredEvents.map((e, i) => (
-                                <tr key={i} className="hover:bg-slate-50">
-                                    <td className="p-3 font-mono">{e.date}</td>
-                                    <td className="p-3 font-bold text-slate-800">{e.title}</td>
-                                    <td className="p-3">{e.location}</td>
-                                    <td className="p-3">{e.team || '-'}</td>
-                                    <td className="p-3">
-                                        <span className={`px-2 py-1 rounded-md font-bold text-[8px] ${e.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : e.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>
-                                            {e.status || 'เตรียมพร้อม'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
+                            {filteredEvents.map((e, i) => {
+                                const st = getDispatchStatus(e);
+                                return (
+                                    <tr key={i} className="hover:bg-slate-50">
+                                        <td className="p-3 font-mono">{e.date}</td>
+                                        <td className="p-3 font-bold text-slate-800">{e.title}</td>
+                                        <td className="p-3">{e.location}</td>
+                                        <td className="p-3">{e.team || '-'}</td>
+                                        <td className="p-3">
+                                            <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
+                                                {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 ) : (
                     <div className="flex gap-4 min-w-[800px] h-full">
-                        {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(status => (
-                            <div key={status} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3">
-                                <h4 className="font-bold text-slate-700 text-[10px] px-1">{status}</h4>
-                                {filteredEvents.filter(e => (status === 'เตรียมพร้อม' ? !e.status || e.status === 'เตรียมพร้อม' : e.status === status)).map((e, i) => (
-                                    <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px]">
-                                        <p className="font-bold mb-1">{e.title}</p>
-                                        <p className="text-slate-500 text-[8px]">{e.location}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
+                        {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => (
+                            <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3">
+                                <h4 className="font-bold text-slate-700 text-[10px] px-1">{statusGroup} ({filteredEvents.filter(e => getDispatchStatus(e)?.text === statusGroup).length})</h4>
+                                {filteredEvents.filter(e => {
+                                    const currentStatus = getDispatchStatus(e)?.text || '';
+                                    // เงื่อนไขการจัดกลุ่ม
+                                    if (statusGroup === 'เตรียมพร้อม') return currentStatus === 'เตรียมพร้อม' || currentStatus === 'รอปฏิบัติงาน';
+                                    if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
+                                    return currentStatus === statusGroup;
+                                }).map((e, i) => (
+                                <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px]">
+                                    <p className="font-bold mb-1">{e.title}</p>
+                                    <p className="text-slate-500 text-[8px]">{e.location}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
                     </div>
                 )}
             </div>
         </div>
     );
 };
-
 // ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
@@ -499,9 +533,20 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
     const [activeMenu, setActiveMenu] = useState<'dashboard' | 'calendar' | 'activities'>('dashboard');
 
+    const [isActivitiesExpanded, setIsActivitiesExpanded] = useState<boolean>(false);
+    const [activeActivityTab, setActiveActivityTab] = useState<string>('all');
+    
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [volume, setVolume] = useState<number>(0.3); 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const pendingActivitiesCount = useMemo(() => {
+    return events.filter(e => {
+        const st = getDispatchStatus(e)?.text;
+        // นับเฉพาะงานที่ยังไม่เริ่มหรือเตรียมพร้อม
+        return st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
+    }).length;
+}, [events]);
 
     useEffect(() => {
         if (!audioRef.current) {
@@ -1055,11 +1100,62 @@ const DispatchCalendarDashboard: React.FC = () => {
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'calendar' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
                             <CalendarDays className={`w-4 h-4 ${activeMenu === 'calendar' ? 'text-indigo-300' : ''}`} /> ปฏิทิน
                         </button>
-                        <button 
-                            onClick={() => { playSound('switch'); setActiveMenu('activities'); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'activities' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
-                            <Activity className={`w-4 h-4 ${activeMenu === 'activities' ? 'text-indigo-300' : ''}`} /> กิจกรรม
-                        </button>
+                        <div className="flex flex-col gap-1">
+                            <button 
+                                onClick={() => { 
+                                    playSound('switch'); 
+                                    setActiveMenu('activities'); 
+                                    setIsActivitiesExpanded(!isActivitiesExpanded);
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'activities' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Activity className={`w-4 h-4 ${activeMenu === 'activities' ? 'text-indigo-300' : ''}`} /> กิจกรรม
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {pendingActivitiesCount > 0 && (
+                                        <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold shadow-sm">
+                                            {pendingActivitiesCount}
+                                        </span>
+                                    )}
+                                    {isActivitiesExpanded ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
+                                </div>
+                            </button>
+
+                            {/* Sub-menus ที่จะกางออกมา */}
+                            {isActivitiesExpanded && (
+                                <div className="pl-4 pr-2 py-1 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                    <div className="text-[8px] font-bold text-indigo-300/70 mb-1 mt-2 px-2 uppercase tracking-wider">สถานะการดำเนินงาน</div>
+                                    <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('pending'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'pending' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                                        <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> คำขอรอดำเนินการ</span>
+                                        {pendingActivitiesCount > 0 && <span className="text-[8px] bg-white/10 px-1.5 rounded-md text-white">{pendingActivitiesCount}</span>}
+                                    </button>
+                                    <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('in-progress'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'in-progress' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                                        <span className="flex items-center gap-2"><Activity className="w-3.5 h-3.5" /> กำลังดำเนินการ</span>
+                                    </button>
+                                    <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('history'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'history' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                                        <span className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5" /> ประวัติกิจกรรม</span>
+                                    </button>
+
+                                    <div className="text-[8px] font-bold text-indigo-300/70 mb-1 mt-3 px-2 uppercase tracking-wider">ประเภทหน่วย</div>
+{[
+    { id: 'vet-unit', label: 'หน่วยสัตวแพทย์', icon: '🏥' },
+    { id: 'spay', label: 'หน่วยทำหมัน', icon: '✂️' },
+    { id: 'vaccine', label: 'หน่วยวัคซีน + ไมโครชิป', icon: '💉' },
+    { id: 'governor', label: 'หน่วยผู้ว่า', icon: '👔' },
+    { id: 'cat-cage', label: 'หน่วยกรงแมว', icon: '🐱' }
+].map((item) => (
+    <button 
+        key={item.id}
+        onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab(item.id); }} 
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === item.id ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+    >
+        <span>{item.icon} {item.label}</span>
+    </button>
+))}
+                                </div>
+                            )}
+                        </div>
                         <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <Users className="w-4 h-4" /> หน่วยสัตวแพทย์
                         </button>
@@ -1069,6 +1165,30 @@ const DispatchCalendarDashboard: React.FC = () => {
                         <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <Settings className="w-4 h-4" /> ตั้งค่า
                         </button>
+
+                        {canEdit && (
+                            <div className="xl:hidden pt-4 mt-4 border-t border-white/10 space-y-1.5">
+                                <div className="px-4 pb-1 text-[8px] font-bold text-indigo-300 uppercase tracking-wider">สำหรับผู้ดูแลระบบ</div>
+                                <button 
+                                    onClick={() => { playSound('pop'); setIsAddControllerOpen(true); setIsSidebarOpen(false); }} 
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-emerald-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
+                                >
+                                    <UserPlus className="w-4 h-4" /> เพิ่มผู้ควบคุม
+                                </button>
+                                <button 
+                                    onClick={() => { playSound('pop'); setIsManageStaffOpen(true); setIsSidebarOpen(false); }} 
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-blue-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
+                                >
+                                    <Users className="w-4 h-4" /> จัดการทีมงาน
+                                </button>
+                                <button 
+                                    onClick={() => { playSound('pop'); openDispatchForm(); setIsSidebarOpen(false); }} 
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 mt-2 text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-[10px] shadow-sm transition-all"
+                                >
+                                    <Plus className="w-4 h-4" /> เพิ่มงานใหม่
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-4 shrink-0">
@@ -1669,7 +1789,8 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                         {activeMenu === 'activities' && (
                             <div className="h-full">
-                                <ActivityPage events={events} />
+                                {/* 👇 ส่ง prop activeCategory ไปบอกตารางว่ากรองข้อมูลอะไรอยู่ */}
+                                <ActivityPage events={events} activeCategory={activeActivityTab} />
                             </div>
                         )}
                     </main>
