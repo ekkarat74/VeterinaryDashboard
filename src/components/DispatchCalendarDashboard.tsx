@@ -367,21 +367,18 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
     const [filterTeam, setFilterTeam] = useState('ทั้งหมด');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    
-    // State สำหรับจัดการจำนวนข้อมูลที่จะแสดงผล
-    const [visibleCount, setVisibleCount] = useState<number>(10);
 
     const filteredEvents = useMemo(() => {
-        return events.filter(e => {
-            const matchesSearch = !searchTerm || e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || e.title?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesDistrict = filterDistrict === 'ทั้งหมด' || e.district === filterDistrict;
-            const matchesTeam = filterTeam === 'ทั้งหมด' || e.team === filterTeam;
-            const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
+    return events.filter(e => {
+        const matchesSearch = !searchTerm || e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || e.title?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesDistrict = filterDistrict === 'ทั้งหมด' || e.district === filterDistrict;
+        const matchesTeam = filterTeam === 'ทั้งหมด' || e.team === filterTeam;
+        const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
 
-            // ดึงสถานะปัจจุบันแบบ Real-time
-            const st = getDispatchStatus(e)?.text || '';
+        // ดึงสถานะปัจจุบันแบบ Real-time
+        const st = getDispatchStatus(e)?.text || '';
 
-            let matchesCategory = true;
+        let matchesCategory = true;
             if (activeCategory === 'pending') {
                 matchesCategory = st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
             } else if (activeCategory === 'in-progress') {
@@ -399,34 +396,21 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
             } else if (activeCategory === 'cat-cage') {
                 matchesCategory = !!e.title?.includes('กรงแมว');
             }
-            return matchesSearch && matchesDistrict && matchesTeam && matchesDate && matchesCategory;
-        });
-    }, [events, searchTerm, filterDistrict, filterTeam, startDate, endDate, activeCategory]);
+        return matchesSearch && matchesDistrict && matchesTeam && matchesDate && matchesCategory;
+    });
+}, [events, searchTerm, filterDistrict, filterTeam, startDate, endDate, activeCategory]);
 
-    // รีเซ็ตการโหลดข้อมูลกลับไปที่ 10 รายการแรกทุกครั้งที่มีการเปลี่ยนฟิลเตอร์
-    useEffect(() => {
-        setVisibleCount(10);
-    }, [searchTerm, filterDistrict, filterTeam, startDate, endDate, activeCategory]);
-
-    // ฟังก์ชันตรวจสอบการเลื่อนหน้าจอ (Scroll) เพื่อโหลดเพิ่ม
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-        if (scrollHeight - scrollTop <= clientHeight + 50) {
-            setVisibleCount(prev => prev + 10);
-        }
-    };
-
-    const stats = useMemo(() => {
-        let completed = 0, inProgress = 0, pending = 0, cancelled = 0;
-        filteredEvents.forEach(e => {
-            const st = getDispatchStatus(e)?.text;
-            if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน') completed++;
-            else if (st === 'กำลังดำเนินงาน') inProgress++; 
-            else if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
-            else if (st === 'ยกเลิก') cancelled++;
-        });
-        return { total: filteredEvents.length, completed, inProgress, pending, cancelled };
-    }, [filteredEvents]);
+const stats = useMemo(() => {
+    let completed = 0, inProgress = 0, pending = 0, cancelled = 0;
+    filteredEvents.forEach(e => {
+        const st = getDispatchStatus(e)?.text;
+        if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน') completed++;
+        else if (st === 'กำลังดำเนินงาน') inProgress++; // เพิ่มตัวนับนี้
+        else if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
+        else if (st === 'ยกเลิก') cancelled++;
+    });
+    return { total: filteredEvents.length, completed, inProgress, pending, cancelled };
+}, [filteredEvents]);
 
     const districts = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.district).filter(Boolean)))], [events]);
     const teams = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.team).filter(Boolean)))], [events]);
@@ -446,12 +430,7 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
         <div className="flex flex-col h-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 animate-in fade-in duration-300">
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                {[ 
-                    {label: 'ทั้งหมด', val: stats.total, color: 'text-indigo-600'}, 
-                    {label: 'เสร็จสิ้น', val: stats.completed, color: 'text-emerald-600'}, 
-                    {label: 'รอดำเนินการ', val: stats.pending, color: 'text-amber-600'}, 
-                    {label: 'ยกเลิก', val: stats.cancelled, color: 'text-rose-600'} 
-                ].map((s, i) => (
+                {[ {label: 'ทั้งหมด', val: stats.total, color: 'text-indigo-600'}, {label: 'เสร็จสิ้น', val: stats.completed, color: 'text-emerald-600'}, {label: 'รอดำเนินการ', val: stats.pending, color: 'text-amber-600'}, {label: 'ยกเลิก', val: stats.cancelled, color: 'text-rose-600'} ].map((s, i) => (
                     <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                         <div className="text-[8px] font-bold text-slate-500 uppercase">{s.label}</div>
                         <div className={`text-lg font-black ${s.color}`}>{s.val} <span className="text-[10px]">งาน</span></div>
@@ -485,15 +464,15 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
                 <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setEndDate(e.target.value)} />
             </div>
 
-            {/* Views - ทำงานร่วมกับ handleScroll */}
-            <div className="flex-1 overflow-auto custom-scrollbar" onScroll={handleScroll}>
+            {/* Views */}
+            <div className="flex-1 overflow-auto custom-scrollbar">
                 {view === 'table' ? (
                     <table className="w-full text-[10px] text-left">
                         <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
                             <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredEvents.slice(0, visibleCount).map((e, i) => {
+                            {filteredEvents.map((e, i) => {
                                 const st = getDispatchStatus(e);
                                 return (
                                     <tr key={i} className="hover:bg-slate-50">
@@ -513,34 +492,29 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
                     </table>
                 ) : (
                     <div className="flex gap-4 min-w-[800px] h-full">
-                        {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => {
-                            // จัดกลุ่มข้อมูลก่อนแล้วค่อยนำมา slice
-                            const groupEvents = filteredEvents.filter(e => {
-                                const currentStatus = getDispatchStatus(e)?.text || '';
-                                if (statusGroup === 'เตรียมพร้อม') return currentStatus === 'เตรียมพร้อม' || currentStatus === 'รอปฏิบัติงาน';
-                                if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
-                                return currentStatus === statusGroup;
-                            });
-
-                            return (
-                                <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3">
-                                    <h4 className="font-bold text-slate-700 text-[10px] px-1">{statusGroup} ({groupEvents.length})</h4>
-                                    {groupEvents.slice(0, visibleCount).map((e, i) => (
-                                        <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px]">
-                                            <p className="font-bold mb-1">{e.title}</p>
-                                            <p className="text-slate-500 text-[8px]">{e.location}</p>
-                                        </div>
-                                    ))}
+                        {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => (
+                            <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3">
+                                <h4 className="font-bold text-slate-700 text-[10px] px-1">{statusGroup} ({filteredEvents.filter(e => getDispatchStatus(e)?.text === statusGroup).length})</h4>
+                                {filteredEvents.filter(e => {
+                                    const currentStatus = getDispatchStatus(e)?.text || '';
+                                    // เงื่อนไขการจัดกลุ่ม
+                                    if (statusGroup === 'เตรียมพร้อม') return currentStatus === 'เตรียมพร้อม' || currentStatus === 'รอปฏิบัติงาน';
+                                    if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
+                                    return currentStatus === statusGroup;
+                                }).map((e, i) => (
+                                <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px]">
+                                    <p className="font-bold mb-1">{e.title}</p>
+                                    <p className="text-slate-500 text-[8px]">{e.location}</p>
                                 </div>
-                            );
-                        })}
+                            ))}
+                        </div>
+                    ))}
                     </div>
                 )}
             </div>
         </div>
     );
 };
-
 // ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
@@ -1083,7 +1057,7 @@ const DispatchCalendarDashboard: React.FC = () => {
     }, [selectedDateEvents]);
 
     return (
-        <div className="flex flex-col h-[100dvh] w-full bg-[#F5F6FA] overflow-hidden font-sans">
+        <div className="flex flex-col h-screen w-full bg-[#F5F6FA] overflow-hidden font-sans">
             <style>{`
                 @keyframes slideLeft {
                     0% { transform: translateX(100%); opacity: 0; }
@@ -1115,7 +1089,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                   <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar min-h-0 pb-10">
+                   <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
                         <button 
                             onClick={() => { playSound('switch'); setActiveMenu('dashboard'); }}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'dashboard' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
@@ -1730,7 +1704,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                         {/* ===================== หน้าปฏิทินเต็มรูปแบบ ===================== */}
                         {activeMenu === 'calendar' && (
-                            <div className="bg-white rounded-3xl p-5 lg:p-8 shadow-sm border border-slate-100 flex flex-col min-h-[700px] h-max lg:h-full mb-10 lg:mb-0 animate-in fade-in duration-300">
+                            <div className="bg-white rounded-3xl p-5 lg:p-8 shadow-sm border border-slate-100 flex flex-col min-h-[700px] h-full animate-in fade-in duration-300">
                                 {/* Header ปฏิทิน */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                                     <div>
