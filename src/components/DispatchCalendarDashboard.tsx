@@ -469,9 +469,7 @@ const stats = useMemo(() => {
             <div className="w-full overflow-x-auto pb-6">
                 {view === 'table' ? (
                     <div className="max-h-[420px] overflow-y-auto custom-scrollbar relative border border-slate-100 rounded-xl">
-                        {/* 1. ใส่กรอบจำกัดความสูง max-h-[420px] ให้เลื่อนแนวตั้งได้ */}
                         <table className="w-full min-w-[600px] text-[10px] text-left">
-                            {/* 2. สั่ง sticky top-0 ให้หัวตารางค้างอยู่กับที่ตอนเลื่อนลง */}
                             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                                 <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
                             </thead>
@@ -499,7 +497,6 @@ const stats = useMemo(() => {
                     <div className="flex gap-4 min-w-[800px] h-full">
                         {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => (
                             <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3 max-h-[420px] overflow-y-auto custom-scrollbar border border-slate-100">
-                                {/* 3. จำกัดความสูงในโหมด Kanban ให้เลื่อนแนวตั้งได้เช่นกัน */}
                                 <h4 className="font-bold text-slate-700 text-[10px] px-1 sticky top-0 bg-slate-50 py-1 z-10">{statusGroup} ({filteredEvents.filter(e => getDispatchStatus(e)?.text === statusGroup).length})</h4>
                                 {filteredEvents.filter(e => {
                                     const currentStatus = getDispatchStatus(e)?.text || '';
