@@ -3,6 +3,7 @@ import {
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
     Volume2, VolumeX, FileText, LayoutDashboard, Activity, Truck, Settings, Bell, MoreHorizontal, Menu, FileDown, Table, Columns,
+    User, Shield, Database, Smartphone
 } from 'lucide-react';
 
 import DispatchModal from './modals/DispatchModal'; 
@@ -405,7 +406,7 @@ const stats = useMemo(() => {
     filteredEvents.forEach(e => {
         const st = getDispatchStatus(e)?.text;
         if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน') completed++;
-        else if (st === 'กำลังดำเนินงาน') inProgress++; // เพิ่มตัวนับนี้
+        else if (st === 'กำลังดำเนินงาน') inProgress++;
         else if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
         else if (st === 'ยกเลิก') cancelled++;
     });
@@ -427,7 +428,7 @@ const stats = useMemo(() => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-3xl p-6 shadow-sm border border-slate-100 animate-in fade-in duration-300">
+        <div className="flex flex-col min-h-full h-auto bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-100 animate-in fade-in duration-300">
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {[ {label: 'ทั้งหมด', val: stats.total, color: 'text-indigo-600'}, {label: 'เสร็จสิ้น', val: stats.completed, color: 'text-emerald-600'}, {label: 'รอดำเนินการ', val: stats.pending, color: 'text-amber-600'}, {label: 'ยกเลิก', val: stats.cancelled, color: 'text-rose-600'} ].map((s, i) => (
@@ -465,44 +466,48 @@ const stats = useMemo(() => {
             </div>
 
             {/* Views */}
-            <div className="flex-1 overflow-auto custom-scrollbar">
+            <div className="w-full overflow-x-auto pb-6">
                 {view === 'table' ? (
-                    <table className="w-full text-[10px] text-left">
-                        <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
-                            <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {filteredEvents.map((e, i) => {
-                                const st = getDispatchStatus(e);
-                                return (
-                                    <tr key={i} className="hover:bg-slate-50">
-                                        <td className="p-3 font-mono">{e.date}</td>
-                                        <td className="p-3 font-bold text-slate-800">{e.title}</td>
-                                        <td className="p-3">{e.location}</td>
-                                        <td className="p-3">{e.team || '-'}</td>
-                                        <td className="p-3">
-                                            <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
-                                                {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                    <div className="max-h-[420px] overflow-y-auto custom-scrollbar relative border border-slate-100 rounded-xl">
+                        {/* 1. ใส่กรอบจำกัดความสูง max-h-[420px] ให้เลื่อนแนวตั้งได้ */}
+                        <table className="w-full min-w-[600px] text-[10px] text-left">
+                            {/* 2. สั่ง sticky top-0 ให้หัวตารางค้างอยู่กับที่ตอนเลื่อนลง */}
+                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredEvents.map((e, i) => {
+                                    const st = getDispatchStatus(e);
+                                    return (
+                                        <tr key={i} className="hover:bg-slate-50">
+                                            <td className="p-3 font-mono">{e.date}</td>
+                                            <td className="p-3 font-bold text-slate-800">{e.title}</td>
+                                            <td className="p-3">{e.location}</td>
+                                            <td className="p-3">{e.team || '-'}</td>
+                                            <td className="p-3">
+                                                <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
+                                                    {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 ) : (
                     <div className="flex gap-4 min-w-[800px] h-full">
                         {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => (
-                            <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3">
-                                <h4 className="font-bold text-slate-700 text-[10px] px-1">{statusGroup} ({filteredEvents.filter(e => getDispatchStatus(e)?.text === statusGroup).length})</h4>
+                            <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3 max-h-[420px] overflow-y-auto custom-scrollbar border border-slate-100">
+                                {/* 3. จำกัดความสูงในโหมด Kanban ให้เลื่อนแนวตั้งได้เช่นกัน */}
+                                <h4 className="font-bold text-slate-700 text-[10px] px-1 sticky top-0 bg-slate-50 py-1 z-10">{statusGroup} ({filteredEvents.filter(e => getDispatchStatus(e)?.text === statusGroup).length})</h4>
                                 {filteredEvents.filter(e => {
                                     const currentStatus = getDispatchStatus(e)?.text || '';
-                                    // เงื่อนไขการจัดกลุ่ม
                                     if (statusGroup === 'เตรียมพร้อม') return currentStatus === 'เตรียมพร้อม' || currentStatus === 'รอปฏิบัติงาน';
                                     if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
                                     return currentStatus === statusGroup;
                                 }).map((e, i) => (
-                                <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px]">
+                                <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px] shrink-0">
                                     <p className="font-bold mb-1">{e.title}</p>
                                     <p className="text-slate-500 text-[8px]">{e.location}</p>
                                 </div>
@@ -515,6 +520,566 @@ const stats = useMemo(() => {
         </div>
     );
 };
+
+// ==========================================
+// Component: SettingsPage (อัปเดตใหม่ เพิ่มจัดการข้อมูลพื้นฐาน)
+// ==========================================
+interface SettingsPageProps {
+    activeTab: string;
+    user: User | null;
+    addToast: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
+}
+
+const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }) => {
+    // --- State: ตั้งค่าโปรไฟล์ ---
+    const [oldPassword, setOldPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+    // --- State: จัดการสิทธิ์ (Permissions) ---
+    const [users, setUsers] = useState<any[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const [showUserForm, setShowUserForm] = useState(false);
+    const [editingUser, setEditingUser] = useState<any | null>(null);
+
+    const [formUsername, setFormUsername] = useState('');
+    const [formPassword, setFormPassword] = useState('');
+    const [formRole, setFormRole] = useState('user');
+    const [formStatus, setFormStatus] = useState('active');
+
+    // --- State: จัดการข้อมูลพื้นฐาน (Master Data) ---
+    const canManageUnits = ['Developer', 'MagaAdmin'].includes(user?.role || '');
+    const [masterDataTab, setMasterDataTab] = useState<'units' | 'breeds' | 'colors'>(canManageUnits ? 'units' : 'breeds');
+    const [masterDataList, setMasterDataList] = useState<any[]>([]);
+    const [newMasterDataName, setNewMasterDataName] = useState('');
+    const [isMasterDataLoading, setIsMasterDataLoading] = useState(false);
+
+    const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
+
+    // ----------------------------------------------------
+    // Function: เปลี่ยนรหัสผ่านตัวเอง (Profile)
+    // ----------------------------------------------------
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newPassword !== confirmPassword) {
+            addToast('error', 'รหัสผ่านใหม่ไม่ตรงกัน');
+            return;
+        }
+        if (!oldPassword || !newPassword) {
+            addToast('warning', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
+        }
+
+        setIsProfileLoading(true);
+        try {
+            const res = await fetch(`${BASE_URL}/api/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                addToast('success', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
+                setOldPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+            } else {
+                addToast('error', data.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน');
+            }
+        } catch (error) {
+            addToast('error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+        } finally {
+            setIsProfileLoading(false);
+        }
+    };
+
+    // ----------------------------------------------------
+    // Functions: จัดการผู้ใช้งาน (Permissions)
+    // ----------------------------------------------------
+    const fetchUsers = useCallback(async () => {
+        if (!user || !['Developer', 'MagaAdmin'].includes(user.role)) return;
+        setIsLoadingUsers(true);
+        try {
+            const res = await fetch(`${BASE_URL}/api/users`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUsers(data);
+            } else {
+                addToast('error', 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้');
+            }
+        } catch (err) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        } finally {
+            setIsLoadingUsers(false);
+        }
+    }, [user, addToast]);
+
+    useEffect(() => {
+        if (activeTab === 'permissions') fetchUsers();
+    }, [activeTab, fetchUsers]);
+
+    const handleSaveUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formUsername || (!editingUser && !formPassword)) {
+            addToast('warning', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
+        }
+
+        const isEdit = !!editingUser;
+        const url = isEdit ? `${BASE_URL}/api/users/${editingUser._id}` : `${BASE_URL}/api/users`;
+        
+        const payload: any = { username: formUsername, role: formRole, status: formStatus };
+        if (!isEdit) payload.password = formPassword;
+
+        try {
+            const res = await fetch(url, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                addToast('success', isEdit ? 'อัปเดตข้อมูลสำเร็จ' : 'เพิ่มผู้ใช้งานสำเร็จ');
+                setShowUserForm(false);
+                fetchUsers();
+            } else {
+                addToast('error', data.message || 'ไม่สามารถบันทึกข้อมูลได้');
+            }
+        } catch (error) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+
+    const handleDeleteUser = async (id: string) => {
+        if (!window.confirm('ยืนยันการลบบัญชีผู้ใช้งานนี้?')) return;
+        try {
+            const res = await fetch(`${BASE_URL}/api/users/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${user?.token}` }
+            });
+            if (res.ok) {
+                addToast('success', 'ลบผู้ใช้งานสำเร็จ');
+                fetchUsers();
+            } else {
+                const data = await res.json();
+                addToast('error', data.message || 'ไม่สามารถลบข้อมูลได้');
+            }
+        } catch (err) {
+             addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+
+    const handleResetPassword = async (id: string) => {
+        const newPassword = window.prompt('กรุณากรอกรหัสผ่านใหม่:');
+        if (!newPassword) return;
+
+        try {
+            const res = await fetch(`${BASE_URL}/api/users/${id}/reset-password`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify({ newPassword })
+            });
+            if (res.ok) {
+                addToast('success', 'รีเซ็ตรหัสผ่านสำเร็จ');
+            } else {
+                const data = await res.json();
+                addToast('error', data.message || 'ไม่สามารถรีเซ็ตรหัสผ่านได้');
+            }
+        } catch (err) {
+             addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+
+    // ----------------------------------------------------
+    // Functions: จัดการข้อมูลพื้นฐาน (Master Data)
+    // ----------------------------------------------------
+    const fetchMasterData = useCallback(async () => {
+        if (!user) return;
+        setIsMasterDataLoading(true);
+        try {
+            const endpoint = masterDataTab === 'units' ? 'custom-units' : masterDataTab;
+            const res = await fetch(`${BASE_URL}/api/${endpoint}`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setMasterDataList(data);
+            }
+        } catch (err) {
+            addToast('error', 'ไม่สามารถดึงข้อมูลพื้นฐานได้');
+        } finally {
+            setIsMasterDataLoading(false);
+        }
+    }, [user, masterDataTab, addToast]);
+
+    useEffect(() => {
+        if (activeTab === 'master-data') fetchMasterData();
+    }, [activeTab, fetchMasterData, masterDataTab]);
+
+    const handleAddMasterData = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMasterDataName.trim()) return;
+        
+        try {
+            const endpoint = masterDataTab === 'units' ? 'custom-units' : masterDataTab;
+            const res = await fetch(`${BASE_URL}/api/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user?.token}`
+                },
+                body: JSON.stringify({ name: newMasterDataName.trim() })
+            });
+
+            if (res.ok) {
+                playSound('success');
+                addToast('success', 'เพิ่มข้อมูลเรียบร้อยแล้ว');
+                setNewMasterDataName('');
+                fetchMasterData();
+            } else {
+                const data = await res.json();
+                addToast('error', data.message || 'ไม่สามารถเพิ่มข้อมูลได้ (อาจมีข้อมูลนี้อยู่แล้ว)');
+            }
+        } catch (err) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+
+    const handleDeleteMasterData = async (id: string) => {
+        if (!window.confirm('ยืนยันการลบข้อมูลนี้?')) return;
+        try {
+            const endpoint = masterDataTab === 'units' ? 'custom-units' : masterDataTab;
+            const res = await fetch(`${BASE_URL}/api/${endpoint}/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${user?.token}` }
+            });
+            
+            if (res.ok) {
+                playSound('delete');
+                addToast('success', 'ลบข้อมูลเรียบร้อยแล้ว');
+                fetchMasterData();
+            } else {
+                addToast('error', 'ไม่สามารถลบข้อมูลได้ หรือไม่มีสิทธิ์');
+            }
+        } catch (err) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+    };
+
+    return (
+        <div className="animate-in fade-in duration-300 bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-slate-100 min-h-[500px]">
+            <div className="flex items-center gap-4 mb-8 border-b pb-6">
+                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                    <Settings className="w-6 h-6" />
+                </div>
+                <div>
+                    <h2 className="text-lg font-black text-slate-800">
+                        {activeTab === 'profile' && 'ตั้งค่าโปรไฟล์'}
+                        {activeTab === 'permissions' && 'จัดการสิทธิ์ผู้ใช้งาน'}
+                        {activeTab === 'master-data' && 'จัดการข้อมูลพื้นฐาน'}
+                        {activeTab === 'preferences' && 'ตั้งค่าการแสดงผล'}
+                    </h2>
+                    <p className="text-[10px] text-slate-500 font-medium">จัดการรายละเอียดส่วนการตั้งค่า {activeTab}</p>
+                </div>
+            </div>
+            
+            {/* -------------------- TAB: ตั้งค่าโปรไฟล์ -------------------- */}
+            {activeTab === 'profile' && (
+                <div className="max-w-2xl">
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8 flex items-center gap-6">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-black shadow-inner shrink-0">
+                            {user?.username?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                            <h3 className="text-lg sm:text-xl font-black text-slate-800">{user?.username || 'ไม่ระบุชื่อผู้ใช้'}</h3>
+                            <div className="inline-block mt-2 px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg border border-indigo-200">
+                                สิทธิ์การใช้งาน: {user?.role || 'User'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h4 className="text-[12px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+                            <Unlock className="w-4 h-4 text-indigo-500" /> เปลี่ยนรหัสผ่าน (Change Password)
+                        </h4>
+                        <form onSubmit={handleChangePassword} className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-600 mb-1.5">รหัสผ่านเดิม</label>
+                                <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="กรอกรหัสผ่านปัจจุบัน" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-600 mb-1.5">รหัสผ่านใหม่</label>
+                                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="กรอกรหัสผ่านใหม่" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ยืนยันรหัสผ่านใหม่</label>
+                                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] sm:text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="กรอกรหัสผ่านใหม่อีกครั้ง" />
+                                </div>
+                            </div>
+                            <div className="pt-5 border-t border-slate-100 flex justify-end mt-6">
+                                <button type="submit" disabled={isProfileLoading} className={`px-6 py-2.5 rounded-xl font-bold text-[10px] sm:text-xs shadow-sm flex items-center gap-2 transition-all ${isProfileLoading ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
+                                    <Save className="w-4 h-4" /> {isProfileLoading ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่านใหม่'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* -------------------- TAB: จัดการสิทธิ์ผู้ใช้งาน -------------------- */}
+            {activeTab === 'permissions' && (
+                <div className="max-w-4xl">
+                    {!['Developer', 'MagaAdmin'].includes(user?.role || '') ? (
+                        <div className="flex flex-col items-center justify-center py-10 bg-rose-50 rounded-2xl border border-rose-100 text-rose-500">
+                            <Shield className="w-12 h-12 mb-3 text-rose-300" />
+                            <h3 className="font-bold text-base">ไม่มีสิทธิ์เข้าถึง</h3>
+                            <p className="text-[10px] mt-1">เฉพาะผู้ดูแลระบบระดับ Developer หรือ MagaAdmin เท่านั้น</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-500"/> จัดการบัญชีผู้ใช้งาน</h3>
+                                    <p className="text-[10px] text-slate-500 mt-1">เพิ่ม แก้ไข ลบ หรือกำหนดสิทธิ์การเข้าถึงระบบ</p>
+                                </div>
+                                {!showUserForm && (
+                                    <button onClick={() => {
+                                        setEditingUser(null);
+                                        setFormUsername('');
+                                        setFormPassword('');
+                                        setFormRole('user');
+                                        setFormStatus('active');
+                                        setShowUserForm(true);
+                                    }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-bold shadow-sm flex items-center gap-2 transition-colors">
+                                        <UserPlus className="w-4 h-4" /> เพิ่มผู้ใช้งานใหม่
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* ฟอร์มเพิ่ม/แก้ไขผู้ใช้ */}
+                            {showUserForm && (
+                                <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 mb-6 animate-in slide-in-from-top-4">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="text-[12px] font-bold text-indigo-800 flex items-center gap-1.5">
+                                            {editingUser ? <Edit3 className="w-4 h-4"/> : <Plus className="w-4 h-4"/>} 
+                                            {editingUser ? 'แก้ไขข้อมูลผู้ใช้งาน' : 'สร้างผู้ใช้งานใหม่'}
+                                        </h4>
+                                        <button onClick={() => setShowUserForm(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-colors"><X className="w-4 h-4"/></button>
+                                    </div>
+                                    <form onSubmit={handleSaveUser} className="space-y-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username)</label>
+                                                <input type="text" required value={formUsername} onChange={e => setFormUsername(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ตั้งชื่อผู้ใช้งาน" />
+                                            </div>
+                                            {!editingUser && (
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-600 mb-1.5">รหัสผ่าน</label>
+                                                    <input type="password" required value={formPassword} onChange={e => setFormPassword(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ตั้งรหัสผ่านเริ่มต้น" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ระดับสิทธิ์ (Role)</label>
+                                                <select value={formRole} onChange={e => setFormRole(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400">
+                                                    <option value="user">User (ใช้งานทั่วไป)</option>
+                                                    <option value="admin">Admin (จัดการข้อมูล)</option>
+                                                    <option value="executive">Executive (ดูรายงานผล)</option>
+                                                    <option value="MagaAdmin">MagaAdmin (ผู้ดูแลสูงสุด)</option>
+                                                    <option value="Developer">Developer (ผู้พัฒนาระบบ)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 mb-1.5">สถานะ</label>
+                                                <select value={formStatus} onChange={e => setFormStatus(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400">
+                                                    <option value="active">Active (ใช้งานปกติ)</option>
+                                                    <option value="suspended">Suspended (ระงับการใช้งาน)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end pt-2 border-t border-indigo-100 mt-4">
+                                            <button type="submit" className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-sm transition-colors">
+                                                <Save className="w-4 h-4"/> บันทึกข้อมูลบัญชี
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* ตารางแสดงผู้ใช้งาน */}
+                            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-[10px]">
+                                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                                            <tr>
+                                                <th className="p-4 uppercase tracking-wider">บัญชีผู้ใช้งาน</th>
+                                                <th className="p-4 uppercase tracking-wider">สิทธิ์เข้าถึง</th>
+                                                <th className="p-4 uppercase tracking-wider">สถานะบัญชี</th>
+                                                <th className="p-4 uppercase tracking-wider">เข้าสู่ระบบล่าสุด</th>
+                                                <th className="p-4 text-center uppercase tracking-wider">จัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {isLoadingUsers ? (
+                                                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">กำลังโหลดข้อมูลผู้ใช้งาน...</td></tr>
+                                            ) : users.length === 0 ? (
+                                                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">ไม่พบข้อมูลในระบบ</td></tr>
+                                            ) : (
+                                                users.map(u => (
+                                                    <tr key={u._id} className="hover:bg-slate-50/80 transition-colors group">
+                                                        <td className="p-4 font-bold text-slate-700 flex items-center gap-2.5">
+                                                            <div className="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-200 shadow-sm">
+                                                                {u.username.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            {u.username}
+                                                        </td>
+                                                        <td className="p-4 text-slate-600 font-medium">
+                                                            <span className="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{u.role}</span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <span className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1 w-fit border ${u.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
+                                                                {u.status === 'active' ? <CheckCircle className="w-3 h-3"/> : <X className="w-3 h-3"/>}
+                                                                {u.status === 'active' ? 'ปกติ' : 'ระงับ'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4 text-slate-500">{u.lastLogin ? new Date(u.lastLogin).toLocaleString('th-TH') : 'ยังไม่เคยเข้าสู่ระบบ'}</td>
+                                                        <td className="p-4">
+                                                            <div className="flex justify-center gap-1.5">
+                                                                <button onClick={() => {
+                                                                    setEditingUser(u);
+                                                                    setFormUsername(u.username);
+                                                                    setFormRole(u.role);
+                                                                    setFormStatus(u.status);
+                                                                    setShowUserForm(true);
+                                                                }} className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors border border-transparent hover:border-blue-200" title="แก้ไข">
+                                                                    <Edit3 className="w-4 h-4"/>
+                                                                </button>
+                                                                <button onClick={() => handleResetPassword(u._id)} className="p-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors border border-transparent hover:border-amber-200" title="รีเซ็ตรหัสผ่าน">
+                                                                    <Unlock className="w-4 h-4"/>
+                                                                </button>
+                                                                <button onClick={() => handleDeleteUser(u._id)} disabled={user?.username === u.username} className={`p-1.5 rounded-lg transition-colors border border-transparent ${user?.username === u.username ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-200'}`} title={user?.username === u.username ? 'ไม่สามารถลบบัญชีตัวเองได้' : 'ลบ'}>
+                                                                    <Trash2 className="w-4 h-4"/>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* -------------------- TAB: จัดการข้อมูลพื้นฐาน (Master Data) -------------------- */}
+            {activeTab === 'master-data' && (
+                <div className="max-w-4xl animate-in fade-in duration-300">
+                    {!['Developer', 'MagaAdmin', 'admin'].includes(user?.role || '') ? (
+                        <div className="flex flex-col items-center justify-center py-10 bg-rose-50 rounded-2xl border border-rose-100 text-rose-500">
+                            <Shield className="w-12 h-12 mb-3 text-rose-300" />
+                            <h3 className="font-bold text-base">ไม่มีสิทธิ์เข้าถึง</h3>
+                            <p className="text-[10px] mt-1">เฉพาะผู้ดูแลระบบเท่านั้นที่มีสิทธิ์จัดการข้อมูลพื้นฐานได้</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            {/* เมนูจัดการข้อมูลย่อยด้านซ้าย */}
+                            <div className="md:col-span-4 flex flex-col gap-2">
+                                {canManageUnits && (
+                                    <button onClick={() => setMasterDataTab('units')} className={`p-3.5 rounded-xl text-[10px] font-bold text-left transition-colors flex items-center justify-between ${masterDataTab === 'units' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'}`}>
+                                        <span className="flex items-center gap-2"><Database className="w-4 h-4"/> หน่วยงาน (Units)</span>
+                                        {masterDataTab === 'units' && <ChevronRight className="w-4 h-4 opacity-50"/>}
+                                    </button>
+                                )}
+                                <button onClick={() => setMasterDataTab('breeds')} className={`p-3.5 rounded-xl text-[10px] font-bold text-left transition-colors flex items-center justify-between ${masterDataTab === 'breeds' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'}`}>
+                                    <span className="flex items-center gap-2"><Database className="w-4 h-4"/> สายพันธุ์สัตว์ (Breeds)</span>
+                                    {masterDataTab === 'breeds' && <ChevronRight className="w-4 h-4 opacity-50"/>}
+                                </button>
+                                <button onClick={() => setMasterDataTab('colors')} className={`p-3.5 rounded-xl text-[10px] font-bold text-left transition-colors flex items-center justify-between ${masterDataTab === 'colors' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'}`}>
+                                    <span className="flex items-center gap-2"><Database className="w-4 h-4"/> สีสัตว์ (Colors)</span>
+                                    {masterDataTab === 'colors' && <ChevronRight className="w-4 h-4 opacity-50"/>}
+                                </button>
+                            </div>
+
+                            {/* พื้นที่จัดการข้อมูลด้านขวา */}
+                            <div className="md:col-span-8 bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col">
+                                <h3 className="text-[12px] font-black text-slate-800 mb-5 pb-4 border-b border-slate-100">
+                                    จัดการ: {masterDataTab === 'units' ? 'รายชื่อหน่วยงาน' : masterDataTab === 'breeds' ? 'ข้อมูลสายพันธุ์สัตว์' : 'ข้อมูลสีสัตว์'}
+                                </h3>
+                                
+                                <form onSubmit={handleAddMasterData} className="flex flex-col sm:flex-row gap-3 mb-6">
+                                    <input 
+                                        type="text" 
+                                        value={newMasterDataName}
+                                        onChange={e => setNewMasterDataName(e.target.value)}
+                                        className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"
+                                        placeholder={`พิมพ์ชื่อ${masterDataTab === 'units' ? 'หน่วยงาน' : masterDataTab === 'breeds' ? 'สายพันธุ์' : 'สี'} ที่ต้องการเพิ่ม...`}
+                                    />
+                                    <button type="submit" disabled={!newMasterDataName.trim()} className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-xl text-[10px] font-bold shadow-sm transition-colors flex items-center justify-center gap-1.5 shrink-0">
+                                        <Plus className="w-4 h-4"/> เพิ่มข้อมูล
+                                    </button>
+                                </form>
+
+                                <div className="flex-1 min-h-[250px] max-h-[350px] overflow-y-auto custom-scrollbar pr-1 bg-slate-50/50 rounded-xl border border-slate-100 p-2">
+                                    {isMasterDataLoading ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
+                                            <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="text-[10px] font-medium">กำลังโหลดข้อมูล...</span>
+                                        </div>
+                                    ) : masterDataList.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
+                                            <Database className="w-8 h-8 text-slate-200" />
+                                            <span className="text-[10px] font-medium">ยังไม่มีข้อมูลในระบบ</span>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {masterDataList.map((item, idx) => (
+                                                <div key={item._id || idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-sm transition-all group">
+                                                    <div className="text-[10px] font-bold text-slate-700 truncate pr-2" title={item.name}>{item.name}</div>
+                                                    <button onClick={() => handleDeleteMasterData(item._id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors shrink-0" title="ลบข้อมูล">
+                                                        <Trash2 className="w-3.5 h-3.5"/>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-3 text-[9px] text-slate-400 font-medium text-right">
+                                    จำนวนข้อมูลทั้งหมด: {masterDataList.length} รายการ
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* -------------------- TAB: Placeholder อื่นๆ -------------------- */}
+            {activeTab !== 'profile' && activeTab !== 'permissions' && activeTab !== 'master-data' && (
+                <div className="flex flex-col items-center justify-center text-slate-400 py-10">
+                    <Database className="w-12 h-12 mb-3 text-slate-200" />
+                    <p className="text-[10px]">ส่วนการตั้งค่านี้กำลังอยู่ระหว่างการพัฒนา</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
@@ -531,7 +1096,10 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
     const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-    const [activeMenu, setActiveMenu] = useState<'dashboard' | 'calendar' | 'activities'>('dashboard');
+    const [activeMenu, setActiveMenu] = useState<'dashboard' | 'calendar' | 'activities' | 'settings'>('dashboard');
+
+    const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(false);
+    const [activeSettingsTab, setActiveSettingsTab] = useState<string>('profile');
 
     const [isActivitiesExpanded, setIsActivitiesExpanded] = useState<boolean>(false);
     const [activeActivityTab, setActiveActivityTab] = useState<string>('all');
@@ -543,7 +1111,6 @@ const DispatchCalendarDashboard: React.FC = () => {
     const pendingActivitiesCount = useMemo(() => {
     return events.filter(e => {
         const st = getDispatchStatus(e)?.text;
-        // นับเฉพาะงานที่ยังไม่เริ่มหรือเตรียมพร้อม
         return st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
     }).length;
 }, [events]);
@@ -1138,21 +1705,21 @@ const DispatchCalendarDashboard: React.FC = () => {
                                     </button>
 
                                     <div className="text-[8px] font-bold text-indigo-300/70 mb-1 mt-3 px-2 uppercase tracking-wider">ประเภทหน่วย</div>
-{[
-    { id: 'vet-unit', label: 'หน่วยสัตวแพทย์', icon: '🏥' },
-    { id: 'spay', label: 'หน่วยทำหมัน', icon: '✂️' },
-    { id: 'vaccine', label: 'หน่วยวัคซีน + ไมโครชิป', icon: '💉' },
-    { id: 'governor', label: 'หน่วยผู้ว่า', icon: '👔' },
-    { id: 'cat-cage', label: 'หน่วยกรงแมว', icon: '🐱' }
-].map((item) => (
-    <button 
-        key={item.id}
-        onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab(item.id); }} 
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === item.id ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-    >
-        <span>{item.icon} {item.label}</span>
-    </button>
-))}
+                                        {[
+                                            { id: 'vet-unit', label: 'หน่วยสัตวแพทย์', icon: '🏥' },
+                                            { id: 'spay', label: 'หน่วยทำหมัน', icon: '✂️' },
+                                            { id: 'vaccine', label: 'หน่วยวัคซีน + ไมโครชิป', icon: '💉' },
+                                            { id: 'governor', label: 'หน่วยผู้ว่า', icon: '👔' },
+                                            { id: 'cat-cage', label: 'หน่วยกรงแมว', icon: '🐱' }
+                                        ].map((item) => (
+                                        <button 
+                                            key={item.id}
+                                            onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab(item.id); }} 
+                                            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === item.id ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                                        >
+                                            <span>{item.icon} {item.label}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -1162,9 +1729,57 @@ const DispatchCalendarDashboard: React.FC = () => {
                         <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <FileText className="w-4 h-4" /> รายงาน
                         </button>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
-                            <Settings className="w-4 h-4" /> ตั้งค่า
-                        </button>
+                        <div className="flex flex-col gap-1">
+                            <button 
+                                onClick={() => { 
+                                    playSound('switch'); 
+                                    setActiveMenu('settings'); 
+                                    setIsSettingsExpanded(!isSettingsExpanded);
+                                }}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'settings' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Settings className={`w-4 h-4 ${activeMenu === 'settings' ? 'text-indigo-300' : ''}`} /> ตั้งค่า
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {isSettingsExpanded ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
+                                </div>
+                            </button>
+
+                            {/* Sub-menus Settings ที่จะกางออกมา */}
+                            {isSettingsExpanded && (
+                                <div className="pl-4 pr-2 py-1 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                    {[
+                                        { id: 'profile', label: 'ตั้งค่าโปรไฟล์', icon: User },
+                                        { id: 'permissions', label: 'จัดการสิทธิ์ผู้ใช้งาน', icon: Shield },
+                                        { id: 'master-data', label: 'จัดการข้อมูลพื้นฐาน', icon: Database },
+                                        { id: 'announcements', label: 'ตั้งค่าประกาศระบบ', icon: Megaphone },
+                                        { id: 'preferences', label: 'ตั้งค่าการแสดงผล', icon: Smartphone }
+                                    ].map((item) => {
+                                        const Icon = item.icon;
+                                        return (
+                                            <button 
+                                                key={item.id}
+                                                onClick={() => { 
+                                                    playSound('pop'); 
+                                                    setActiveMenu('settings'); 
+                                                    setActiveSettingsTab(item.id); 
+
+                                                    // ถ้าเลือก "ตั้งค่าประกาศ" ให้เปิด Modal ทันที และซ่อน Sidebar ถ้าใช้มือถืออยู่
+                                                    if (item.id === 'announcements') {
+                                                        setIsAnnouncementModalOpen(true);
+                                                        if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                                                    }
+                                                }} 
+                                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${(activeSettingsTab === item.id && activeMenu === 'settings' && item.id !== 'announcements') ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                                            >
+                                                <Icon className="w-3.5 h-3.5" /> {item.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
                         {canEdit && (
                             <div className="xl:hidden pt-4 mt-4 border-t border-white/10 space-y-1.5">
@@ -1253,9 +1868,6 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                             <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block"></div>
 
-                            {/* ========================================================= */}
-                            {/* ย้ายปุ่ม Admin Action Buttons มาไว้ตรงนี้ (ข้างๆ ข้อมูล User) */}
-                            {/* ========================================================= */}
                             {canEdit && (
                                 <div className="hidden xl:flex items-center gap-2 mr-2">
                                     <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-emerald-200">
@@ -1406,7 +2018,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                     <div className="xl:col-span-8 flex flex-col gap-5">
                                         
                                         {/* Header & Controls */}
-<div className="bg-white rounded-[1.5rem] p-4 lg:p-5 shadow-sm border border-slate-100 flex flex-col gap-4">
+                                        <div className="bg-white rounded-[1.5rem] p-4 lg:p-5 shadow-sm border border-slate-100 flex flex-col gap-4">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                 <div>
                                                     <h3 className="text-base lg:text-lg font-black text-slate-800 tracking-tight">
@@ -1470,7 +2082,8 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                                         {/* Event Cards (ViewMode = List) */}
                                         {viewMode === 'list' && (
-                                            <div className="space-y-4 pb-10">
+                                            <div className="space-y-4 pb-4 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
+                                                {/* 4. เพิ่ม max-h-[420px] และ overflow-y-auto ให้มุมมองรายการประจำวัน */}
                                                 {selectedDateEvents.length === 0 ? (
                                                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
@@ -1481,7 +2094,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                     </div>
                                                 ) : (
                                                     selectedDateEvents.map((evt, idx) => {
-                                                        const styles = getEventStyles(evt); 
+                                                        const styles = getEventStyles(evt);
                                                         const status = getDispatchStatus(evt);
                                                         const isRecorded = reports.some(r => r.date === evt.date && r.location === evt.location);
                                                         const duration = calculateDuration(evt.time, evt.closingTime);
@@ -1704,7 +2317,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                         {/* ===================== หน้าปฏิทินเต็มรูปแบบ ===================== */}
                         {activeMenu === 'calendar' && (
-                            <div className="bg-white rounded-3xl p-5 lg:p-8 shadow-sm border border-slate-100 flex flex-col min-h-[700px] h-full animate-in fade-in duration-300">
+                            <div className="bg-white rounded-3xl p-5 lg:p-8 shadow-sm border border-slate-100 flex flex-col min-h-[700px] h-fit animate-in fade-in duration-300">
                                 {/* Header ปฏิทิน */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                                     <div>
@@ -1788,10 +2401,14 @@ const DispatchCalendarDashboard: React.FC = () => {
                         )}
 
                         {activeMenu === 'activities' && (
-                            <div className="h-full">
-                                {/* 👇 ส่ง prop activeCategory ไปบอกตารางว่ากรองข้อมูลอะไรอยู่ */}
+                            <div className="min-h-full h-auto pb-10">
                                 <ActivityPage events={events} activeCategory={activeActivityTab} />
                             </div>
+                        )}
+
+                        {/* ===================== หน้าตั้งค่า (Settings) ===================== */}
+                        {activeMenu === 'settings' && activeSettingsTab !== 'announcements' && (
+                            <SettingsPage activeTab={activeSettingsTab} user={user} addToast={addToast} />
                         )}
                     </main>
                 </div>
