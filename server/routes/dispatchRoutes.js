@@ -17,6 +17,8 @@ const dispatchPlanSchema = new mongoose.Schema({
     location: { type: String, required: true },
     district: String,
     mapLink: String,
+    lat: Number, // เพิ่มบรรทัดนี้
+    lng: Number, // เพิ่มบรรทัดนี้
     note: String,
     staff: { type: Object, default: {} }, // เก็บรายชื่อเจ้าหน้าที่ทั้งหมด
     team: String,        // ชื่อทีม (เช่น ทีม 1, หรือรายชื่อสัตวแพทย์)

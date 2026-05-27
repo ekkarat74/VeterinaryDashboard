@@ -526,6 +526,47 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     // แจ้งอัปเดตตารางปกติ
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
 
+    // ✅ [ส่วนที่เพิ่มใหม่] ตรวจสอบและเพิ่มปฏิทินออกหน่วยอัตโนมัติ (หากยังไม่มี)
+    try {
+        const DispatchPlan = mongoose.model('DispatchPlan');
+        const existingDispatch = await DispatchPlan.findOne({
+            date: savedReport.date,
+            location: savedReport.location
+        });
+
+        if (!existingDispatch) {
+            // แมปชื่อหน่วยเข้ากับ Category ของปฏิทิน
+            let autoUnitType = 'other';
+            const unitName = savedReport.unit || '';
+            if (unitName.includes('ทำหมัน')) autoUnitType = 'spay_neuter';
+            else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) autoUnitType = 'microchip';
+            else if (unitName.includes('กรงแมว')) autoUnitType = 'cat_cage';
+            else if (unitName.includes('ผู้ว่า')) autoUnitType = 'governor';
+            else if (unitName.includes('สัตวแพทย์')) autoUnitType = 'sterilization';
+
+            const newDispatch = new DispatchPlan({
+                unitType: autoUnitType,
+                customUnitName: autoUnitType === 'other' ? unitName : '',
+                title: unitName,
+                date: savedReport.date,
+                time: '08:30', // ตั้งเวลาเริ่มต้นอัตโนมัติ
+                closingTime: '12:00',
+                location: savedReport.location,
+                district: savedReport.district,
+                mapLink: savedReport.mapLink,
+                lat: savedReport.lat,
+                lng: savedReport.long,
+                createdBy: 'Auto-System',
+                status: 'completed', // ตั้งค่าสถานะเป็น "เสร็จสิ้นแล้ว" เลยเพราะมีการลงยอดแล้ว
+                isVisibleToPublic: true
+            });
+            await newDispatch.save();
+            io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: newDispatch });
+        }
+    } catch (dispatchErr) {
+        console.error("Auto-create dispatch failed:", dispatchErr);
+    }
+
     // 🔔 สร้างและส่ง Notification เข้าระบบกระดิ่งแจ้งเตือน
     const notif = await Notification.create({
       title: '📝 มีรายงานผลปฏิบัติงานใหม่',
