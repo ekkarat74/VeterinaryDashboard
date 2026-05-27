@@ -1313,26 +1313,28 @@ const syncHistoricalReportsToDispatch = async () => {
             else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
 
             const newDispatch = new DispatchPlan({
-                unitType: autoUnitType,
-                customUnitName: autoUnitType === 'other' ? unitName : '',
-                unitLetter: '',
-                unitColor: autoColor,
-                title: unitName,
-                date: report.date,
-                time: '08:30', 
-                closingTime: '12:00',
-                location: report.location.trim(),
-                district: report.district || report.locationDistrict || '',
-                mapLink: report.mapLink || '',
-                lat: report.lat || 0,
-                lng: report.long || 0,
-                note: report.note || '',
-                team: report.team || '',
-                staff: {}, 
-                createdBy: 'Auto-Sync-System',
-                status: 'completed', // ตั้งเป็นงานเสร็จสิ้นแล้ว
-                isVisibleToPublic: true
-            });
+    unitType: autoUnitType,
+    customUnitName: autoUnitType === 'other' ? unitName : '',
+    unitLetter: '',
+    unitColor: autoColor,
+    title: unitName,
+    unit: unitName,                    // เพิ่ม
+    date: report.date,
+    time: '08:30', 
+    closingTime: '12:00',
+    location: report.location.trim(),
+    locationDistrict: report.locationDistrict || report.district || '', // เพิ่ม
+    district: report.district || report.locationDistrict || '',
+    mapLink: report.mapLink || '',
+    lat: report.lat || 0,
+    lng: report.long || 0,
+    note: report.note || '',
+    team: report.team || '',
+    staff: {}, 
+    createdBy: 'Auto-Sync-System',
+    status: 'completed',
+    isVisibleToPublic: true
+});
             await newDispatch.save();
             addedCount++;
         }
@@ -1352,8 +1354,5 @@ const syncHistoricalReportsToDispatch = async () => {
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  // สั่งให้ซิงค์ข้อมูลย้อนหลังทันทีที่ Backend เปิดทำงานเสร็จ
   syncHistoricalReportsToDispatch();
 });
-
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
