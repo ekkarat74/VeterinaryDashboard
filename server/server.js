@@ -863,10 +863,57 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
 
     const CHUNK_SIZE = 500;
     let totalInserted = 0;
+    
+    // 📌 เตรียม Model สำหรับสร้างลงปฏิทิน
+    const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+    const dispatchPlansToInsert = [];
+
     for (let i = 0; i < reportsWithUser.length; i += CHUNK_SIZE) {
       const chunk = reportsWithUser.slice(i, i + CHUNK_SIZE);
       const inserted = await Report.insertMany(chunk, { ordered: false });
       totalInserted += inserted.length;
+      
+      // 📌 สร้างปฏิทินออกหน่วยอัตโนมัติสำหรับข้อมูลที่เพิ่ง Import เข้ามา
+      for (const rep of chunk) {
+          const existingDispatch = await DispatchPlan.findOne({ date: rep.date, location: rep.location.trim() });
+          if (!existingDispatch) {
+                let autoUnitType = 'other';
+                let autoColor = 'bg-slate-400';
+                const unitName = rep.unit || '';
+                if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
+                else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
+                else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
+                else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
+                else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
+
+                dispatchPlansToInsert.push({
+                    unitType: autoUnitType,
+                    customUnitName: autoUnitType === 'other' ? unitName : '',
+                    unitLetter: '',
+                    unitColor: autoColor,
+                    title: unitName,
+                    date: rep.date,
+                    time: '08:30', 
+                    closingTime: '12:00',
+                    location: rep.location.trim(),
+                    district: rep.district || rep.locationDistrict || '',
+                    mapLink: rep.mapLink || '',
+                    lat: rep.lat || 0,
+                    lng: rep.long || 0,
+                    note: rep.note || '',
+                    team: rep.team || '',
+                    staff: {}, 
+                    createdBy: req.user.username || 'Auto-System',
+                    status: 'completed', 
+                    isVisibleToPublic: true
+                });
+          }
+      }
+    }
+
+    // บันทึกลงปฏิทินรวดเดียว
+    if (dispatchPlansToInsert.length > 0) {
+        await DispatchPlan.insertMany(dispatchPlansToInsert, { ordered: false }).catch(e => console.log("Dispatch Bulk Insert Error:", e.message));
     }
 
     createLog(req, 'BULK_IMPORT_REPORTS', `นำเข้าข้อมูลจำนวน ${totalInserted} รายการ`);
@@ -1233,6 +1280,80 @@ app.put('/api/notifications/read', authenticateToken, async (req, res) => {
   } catch (err) { 
     res.status(500).json({ message: err.message }); 
   }
+});
+
+// ==========================================
+// [เพิ่มใหม่] ฟังก์ชันซิงค์รายงานย้อนหลังลงปฏิทินอัตโนมัติเมื่อเซิร์ฟเวอร์เปิด
+// ==========================================
+const syncHistoricalReportsToDispatch = async () => {
+  try {
+    console.log("⏳ [Auto-Sync] Checking for historical reports to sync to Dispatch Calendar...");
+    const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+    const reports = await Report.find().lean();
+    let addedCount = 0;
+
+    for (const report of reports) {
+        if (!report.date || !report.location) continue;
+        
+        const existingDispatch = await DispatchPlan.findOne({
+            date: report.date,
+            location: report.location.trim()
+        });
+
+        // ถ้ายอดออกหน่วยนี้ยังไม่มีในปฏิทิน ให้สร้างใหม่
+        if (!existingDispatch) {
+            let autoUnitType = 'other';
+            let autoColor = 'bg-slate-400';
+            const unitName = report.unit || '';
+            
+            if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
+            else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
+            else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
+            else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
+            else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
+
+            const newDispatch = new DispatchPlan({
+                unitType: autoUnitType,
+                customUnitName: autoUnitType === 'other' ? unitName : '',
+                unitLetter: '',
+                unitColor: autoColor,
+                title: unitName,
+                date: report.date,
+                time: '08:30', 
+                closingTime: '12:00',
+                location: report.location.trim(),
+                district: report.district || report.locationDistrict || '',
+                mapLink: report.mapLink || '',
+                lat: report.lat || 0,
+                lng: report.long || 0,
+                note: report.note || '',
+                team: report.team || '',
+                staff: {}, 
+                createdBy: 'Auto-Sync-System',
+                status: 'completed', // ตั้งเป็นงานเสร็จสิ้นแล้ว
+                isVisibleToPublic: true
+            });
+            await newDispatch.save();
+            addedCount++;
+        }
+    }
+    
+    if (addedCount > 0) {
+        console.log(`✅ [Auto-Sync] Successfully synced ${addedCount} historical reports to Dispatch Calendar.`);
+        // แจ้งให้หน้าเว็บโหลดตารางปฏิทินใหม่
+        io.emit('server_data_update', { type: 'DISPATCH_SYNCED' });
+    } else {
+        console.log("✅ [Auto-Sync] All reports are already synced. No missing dispatches.");
+    }
+  } catch (err) {
+    console.error("❌ [Auto-Sync] Error syncing historical reports:", err);
+  }
+};
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  // สั่งให้ซิงค์ข้อมูลย้อนหลังทันทีที่ Backend เปิดทำงานเสร็จ
+  syncHistoricalReportsToDispatch();
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
