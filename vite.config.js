@@ -3,7 +3,22 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  build: {
-    chunkSizeWarningLimit: 1600, // เพิ่มขีดจำกัดเป็น 1600 kB (1.6 MB)
+  
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react', 'socket.io-client']
   },
+
+  build: {
+    chunkSizeWarningLimit: 1600,
+    
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        }
+      }
+    },
+  }
 })
