@@ -526,42 +526,56 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     // แจ้งอัปเดตตารางปกติ
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
 
-    // ✅ [ส่วนที่เพิ่มใหม่] ตรวจสอบและเพิ่มปฏิทินออกหน่วยอัตโนมัติ (หากยังไม่มี)
+    // ✅ [ส่วนที่แก้ไขและเพิ่มใหม่] ตรวจสอบและเพิ่มปฏิทินออกหน่วยอัตโนมัติแบบรัดกุม 100%
     try {
-        const DispatchPlan = mongoose.model('DispatchPlan');
+        // ดึง Model อย่างปลอดภัย ป้องกัน Error Model not registered
+        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+        
         const existingDispatch = await DispatchPlan.findOne({
             date: savedReport.date,
-            location: savedReport.location
+            location: savedReport.location.trim()
         });
 
         if (!existingDispatch) {
-            // แมปชื่อหน่วยเข้ากับ Category ของปฏิทิน
             let autoUnitType = 'other';
+            let autoColor = 'bg-slate-400';
             const unitName = savedReport.unit || '';
-            if (unitName.includes('ทำหมัน')) autoUnitType = 'spay_neuter';
-            else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) autoUnitType = 'microchip';
-            else if (unitName.includes('กรงแมว')) autoUnitType = 'cat_cage';
-            else if (unitName.includes('ผู้ว่า')) autoUnitType = 'governor';
-            else if (unitName.includes('สัตวแพทย์')) autoUnitType = 'sterilization';
+            
+            if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
+            else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
+            else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
+            else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
+            else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
 
             const newDispatch = new DispatchPlan({
                 unitType: autoUnitType,
                 customUnitName: autoUnitType === 'other' ? unitName : '',
+                unitLetter: '',
+                unitColor: autoColor,
                 title: unitName,
                 date: savedReport.date,
-                time: '08:30', // ตั้งเวลาเริ่มต้นอัตโนมัติ
+                time: '08:30', 
                 closingTime: '12:00',
-                location: savedReport.location,
-                district: savedReport.district,
-                mapLink: savedReport.mapLink,
-                lat: savedReport.lat,
-                lng: savedReport.long,
-                createdBy: 'Auto-System',
-                status: 'completed', // ตั้งค่าสถานะเป็น "เสร็จสิ้นแล้ว" เลยเพราะมีการลงยอดแล้ว
+                location: savedReport.location.trim(),
+                district: savedReport.district || savedReport.locationDistrict || '',
+                mapLink: savedReport.mapLink || '',
+                lat: savedReport.lat || 0,
+                lng: savedReport.long || 0,
+                note: savedReport.note || '',
+                team: savedReport.team || '',
+                staff: {}, 
+                createdBy: req.user.username || 'Auto-System',
+                status: 'completed', // สถานะเสร็จสิ้น
                 isVisibleToPublic: true
             });
-            await newDispatch.save();
-            io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: newDispatch });
+            
+            const savedDispatch = await newDispatch.save();
+            
+            // ส่ง Socket แจ้งให้ปฏิทินอัปเดตตัวเองทันที
+            io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
+            
+            // บันทึก Log การสร้างอัตโนมัติ
+            createLog(req, 'AUTO_CREATE_DISPATCH', `สร้างแผนออกหน่วยอัตโนมัติจากรายงาน: ${savedDispatch.location}`);
         }
     } catch (dispatchErr) {
         console.error("Auto-create dispatch failed:", dispatchErr);
