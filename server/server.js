@@ -607,7 +607,18 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
       { new: true }
     ).lean();
 
-    // 3. บันทึกลง Log แบบมี Before / After
+    // 🌟 3. (เพิ่มใหม่) ตรวจสอบการแก้ไขสถานที่หรือวันที่ เพื่อซิงค์ไปที่ปฏิทิน (DispatchPlan)
+    if (oldReport.location !== updatedReport.location || oldReport.date !== updatedReport.date) {
+        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+        await DispatchPlan.updateMany(
+            { date: oldReport.date, location: oldReport.location },
+            { $set: { location: updatedReport.location, date: updatedReport.date, district: updatedReport.district } }
+        );
+        // สั่งให้ Frontend รีเฟรชข้อมูลล่าสุด
+        io.emit('server_data_update', { type: 'SYSTEM_RESTORED' });
+    }
+
+    // 4. บันทึกลง Log แบบมี Before / After
     createLog(req, 'UPDATE_REPORT', `แก้ไขข้อมูล ID: ${req.params.id}`, { before: oldReport, after: updatedReport });
     
     invalidateReportCache();
