@@ -1642,7 +1642,15 @@ const DispatchCalendarDashboard: React.FC = () => {
         />
     )}
                 {/* ================= Sidebar (Left) ================= */}
-                <aside className={`bg-[#312069] flex-col text-white transition-all duration-300 shadow-xl z-50 fixed inset-y-0 left-0 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex w-[260px] shrink-0`}>
+                <aside 
+                    className={`flex-col text-white transition-all duration-300 shadow-xl z-50 fixed inset-y-0 left-0 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex w-[260px] shrink-0`}
+                    style={{
+                        /* 🌟 ใส่รูปรองพื้น Sidebar ตรง url(...) และใช้ linear-gradient เคลือบสีม่วงเดิมทับให้ดูละมุน */
+                        backgroundImage: "linear-gradient(rgba(49, 32, 105, 0.85), rgba(49, 32, 105, 0.95)), url('https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=800&q=80')",
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    }}
+                >
                     <div className="p-6 flex items-center gap-3 border-b border-white/10 shrink-0">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-sm">
                             <Truck className="w-6 h-6 text-indigo-300" />
@@ -1822,10 +1830,22 @@ const DispatchCalendarDashboard: React.FC = () => {
                 </aside>
 
                 {/* ================= Main Content (Right) ================= */}
-                <div className="flex-1 flex flex-col overflow-hidden relative">
+                <div 
+                className="flex-1 flex flex-col overflow-hidden relative"
+                style={{
+                    /* 🌟 1. ใส่รูปภาพวอลเปเปอร์ตรงนี้ (สามารถนำลิงก์รูปอื่นมาวางแทนได้) */
+                    backgroundImage: "url('https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=2000&q=80')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            >
+                {/* 🌟 2. เพิ่มแผ่นฟิล์ม (Overlay) โปร่งแสงและเบลอ เพื่อให้มองเห็น UI ชัดเจน */}
+                <div className="absolute inset-0 bg-[#F5F6FA]/80 backdrop-blur-sm pointer-events-none z-0"></div>
+                
+                {/* Topbar */}
+                {/* 🌟 3. เติมคลาส 'relative' ไว้ด้านหน้า เพื่อให้แถบเมนูลอยอยู่เหนือพื้นหลัง */}
+                <header className="relative h-[76px] bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between shrink-0 z-20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
                     
-                    {/* Topbar */}
-                    <header className="h-[76px] bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between shrink-0 z-20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
                         <div className="flex items-center gap-3 sm:gap-4">
         
                             {/* ปุ่มเปิด-ปิด Sidebar ที่อยู่ใน Header */}
@@ -1901,7 +1921,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                     </header>
 
                     {/* Main Scrollable Area */}
-                    <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 custom-scrollbar relative">
+                    <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 custom-scrollbar relative z-10">
                         
                         {/* ===================== หน้าหลัก (Dashboard) ===================== */}
                         {activeMenu === 'dashboard' && (
@@ -2093,7 +2113,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                     selectedDateEvents.map((evt, idx) => {
                                                         const styles = getEventStyles(evt);
                                                         const status = getDispatchStatus(evt);
-                                                        const isRecorded = reports.some(r => r.date === evt.date && r.location === evt.location);
+                                                        const isRecorded = reports.some(r => r.date === evt.date && r.location?.trim() === evt.location?.trim());
                                                         const duration = calculateDuration(evt.time, evt.closingTime);
                                                         const isExpanded = expandedEventId === (evt._id || idx);
 

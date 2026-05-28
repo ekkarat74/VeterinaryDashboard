@@ -531,9 +531,11 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
         // ดึง Model อย่างปลอดภัย ป้องกัน Error Model not registered
         const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
         
+        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const locRegex = new RegExp(`^\\s*${escapeRegex(savedReport.location.trim())}\\s*$`, 'i');
         const existingDispatch = await DispatchPlan.findOne({
             date: savedReport.date,
-            location: savedReport.location.trim()
+            location: locRegex
         });
 
         if (!existingDispatch) {
@@ -875,7 +877,9 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
       
       // 📌 สร้างปฏิทินออกหน่วยอัตโนมัติสำหรับข้อมูลที่เพิ่ง Import เข้ามา
       for (const rep of chunk) {
-          const existingDispatch = await DispatchPlan.findOne({ date: rep.date, location: rep.location.trim() });
+            const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const locRegex = new RegExp(`^\\s*${escapeRegex(rep.location.trim())}\\s*$`, 'i');
+            const existingDispatch = await DispatchPlan.findOne({ date: rep.date, location: locRegex });
           if (!existingDispatch) {
                 let autoUnitType = 'other';
                 let autoColor = 'bg-slate-400';
@@ -1295,9 +1299,11 @@ const syncHistoricalReportsToDispatch = async () => {
     for (const report of reports) {
         if (!report.date || !report.location) continue;
         
+        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const locRegex = new RegExp(`^\\s*${escapeRegex(report.location.trim())}\\s*$`, 'i');
         const existingDispatch = await DispatchPlan.findOne({
             date: report.date,
-            location: report.location.trim()
+            location: locRegex
         });
 
         // ถ้ายอดออกหน่วยนี้ยังไม่มีในปฏิทิน ให้สร้างใหม่
