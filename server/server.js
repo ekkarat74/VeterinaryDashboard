@@ -528,60 +528,56 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
 
     // ✅ [ส่วนที่แก้ไขและเพิ่มใหม่] ตรวจสอบและเพิ่มปฏิทินออกหน่วยอัตโนมัติแบบรัดกุม 100%
     try {
-        // ดึง Model อย่างปลอดภัย ป้องกัน Error Model not registered
-        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+    const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+    
+    const normalizedNewLoc = normalizeLocation(savedReport.location);
+    const existingOnDate = await DispatchPlan.find({ date: savedReport.date }).lean();
+    const alreadyExists = existingOnDate.some(d => normalizeLocation(d.location) === normalizedNewLoc);
+
+    if (!alreadyExists) {
+        let autoUnitType = 'other';
+        let autoColor = 'bg-slate-400';
+        const unitName = savedReport.unit || '';
         
-        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const locRegex = new RegExp(`^\\s*${escapeRegex(savedReport.location.trim())}\\s*$`, 'i');
-        const existingDispatch = await DispatchPlan.findOne({
+        if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
+        else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
+        else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
+        else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
+        else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
+
+        const correctDistrict = getDistrictForDispatch(savedReport);
+
+        const newDispatch = new DispatchPlan({
+            unitType: autoUnitType,
+            customUnitName: autoUnitType === 'other' ? unitName : '',
+            unitLetter: '',
+            unitColor: autoColor,
+            title: unitName,
+            unit: unitName,
             date: savedReport.date,
-            location: locRegex
+            time: '08:30',
+            closingTime: '12:00',
+            location: savedReport.location.trim(),
+            locationDistrict: savedReport.locationDistrict || savedReport.district || '',
+            district: correctDistrict,
+            mapLink: savedReport.mapLink || '',
+            lat: savedReport.lat || 0,
+            lng: savedReport.long || 0,
+            note: savedReport.note || '',
+            team: savedReport.team || '',
+            staff: {},
+            createdBy: req.user.username || 'Auto-System',
+            status: 'completed',
+            isVisibleToPublic: true
         });
-
-        if (!existingDispatch) {
-            let autoUnitType = 'other';
-            let autoColor = 'bg-slate-400';
-            const unitName = savedReport.unit || '';
-            
-            if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
-            else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
-            else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
-            else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
-            else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
-
-            const newDispatch = new DispatchPlan({
-                unitType: autoUnitType,
-                customUnitName: autoUnitType === 'other' ? unitName : '',
-                unitLetter: '',
-                unitColor: autoColor,
-                title: unitName,
-                date: savedReport.date,
-                time: '08:30', 
-                closingTime: '12:00',
-                location: savedReport.location.trim(),
-                district: savedReport.district || savedReport.locationDistrict || '',
-                mapLink: savedReport.mapLink || '',
-                lat: savedReport.lat || 0,
-                lng: savedReport.long || 0,
-                note: savedReport.note || '',
-                team: savedReport.team || '',
-                staff: {}, 
-                createdBy: req.user.username || 'Auto-System',
-                status: 'completed', // สถานะเสร็จสิ้น
-                isVisibleToPublic: true
-            });
-            
-            const savedDispatch = await newDispatch.save();
-            
-            // ส่ง Socket แจ้งให้ปฏิทินอัปเดตตัวเองทันที
-            io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
-            
-            // บันทึก Log การสร้างอัตโนมัติ
-            createLog(req, 'AUTO_CREATE_DISPATCH', `สร้างแผนออกหน่วยอัตโนมัติจากรายงาน: ${savedDispatch.location}`);
-        }
-    } catch (dispatchErr) {
-        console.error("Auto-create dispatch failed:", dispatchErr);
+        
+        const savedDispatch = await newDispatch.save();
+        io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
+        createLog(req, 'AUTO_CREATE_DISPATCH', `สร้างแผนออกหน่วยอัตโนมัติ: ${savedDispatch.location}`);
     }
+} catch (dispatchErr) {
+    console.error("Auto-create dispatch failed:", dispatchErr);
+}
 
     // 🔔 สร้างและส่ง Notification เข้าระบบกระดิ่งแจ้งเตือน
     const notif = await Notification.create({
@@ -1286,28 +1282,87 @@ app.put('/api/notifications/read', authenticateToken, async (req, res) => {
   }
 });
 
-// ==========================================
-// [เพิ่มใหม่] ฟังก์ชันซิงค์รายงานย้อนหลังลงปฏิทินอัตโนมัติเมื่อเซิร์ฟเวอร์เปิด
-// ==========================================
+// Helper: normalize location string สำหรับเปรียบเทียบ
+const normalizeLocation = (str) => {
+    if (!str) return '';
+    return str.trim().replace(/\s+/g, ' ').toLowerCase();
+};
+
+// Helper: หา district ที่ถูกต้องตาม unitType
+const getDistrictForDispatch = (report) => {
+    const unitName = report.unit || '';
+    // หน่วยกรงแมว ใช้ district (เขตที่ไป) ถ้ามี ไม่งั้นใช้ locationDistrict
+    if (unitName.includes('กรงแมว')) {
+        return report.district || report.locationDistrict || '';
+    }
+    // หน่วยอื่นๆ ใช้ locationDistrict (เขตที่ตั้งสถานที่)
+    return report.locationDistrict || report.district || '';
+};
+
 const syncHistoricalReportsToDispatch = async () => {
   try {
-    console.log("⏳ [Auto-Sync] Checking for historical reports to sync to Dispatch Calendar...");
+    console.log("⏳ [Auto-Sync] Checking and deduplicating Dispatch Calendar...");
     const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+    
+    // --- STEP 1: ลบ dispatch ที่ซ้ำกันออกก่อน (เก็บไว้แค่อันที่ดีที่สุด) ---
+    const allDispatches = await DispatchPlan.find().lean();
+    
+    // Group by date + normalized location
+    const groupMap = new Map();
+    for (const d of allDispatches) {
+        const key = `${d.date}__${normalizeLocation(d.location)}`;
+        if (!groupMap.has(key)) {
+            groupMap.set(key, []);
+        }
+        groupMap.get(key).push(d);
+    }
+    
+    let removedCount = 0;
+    for (const [key, group] of groupMap.entries()) {
+        if (group.length <= 1) continue;
+        
+        // เรียงลำดับ: อันที่มี staff/team/controllerName จริงๆ อยู่ก่อน (คือ dispatch ที่วางแผนจริง)
+        group.sort((a, b) => {
+            const scoreA = (
+                (Object.keys(a.staff || {}).some(k => Array.isArray(a.staff[k]) && a.staff[k].some(v => v)) ? 10 : 0) +
+                (a.team ? 3 : 0) +
+                (a.controllerName ? 2 : 0) +
+                (a.status !== 'completed' && a.createdBy !== 'Auto-Sync-System' && a.createdBy !== 'Auto-System' ? 5 : 0)
+            );
+            const scoreB = (
+                (Object.keys(b.staff || {}).some(k => Array.isArray(b.staff[k]) && b.staff[k].some(v => v)) ? 10 : 0) +
+                (b.team ? 3 : 0) +
+                (b.controllerName ? 2 : 0) +
+                (b.status !== 'completed' && b.createdBy !== 'Auto-Sync-System' && b.createdBy !== 'Auto-System' ? 5 : 0)
+            );
+            return scoreB - scoreA; // score สูงกว่าอยู่ก่อน (เก็บไว้)
+        });
+        
+        // เก็บอันแรก (ดีที่สุด) ลบที่เหลือ
+        const toDelete = group.slice(1).map(d => d._id);
+        await DispatchPlan.deleteMany({ _id: { $in: toDelete } });
+        removedCount += toDelete.length;
+        console.log(`🗑️ [Dedup] Removed ${toDelete.length} duplicates for: ${key}`);
+    }
+    
+    if (removedCount > 0) {
+        console.log(`✅ [Dedup] Removed ${removedCount} duplicate dispatch entries.`);
+    }
+
+    // --- STEP 2: sync รายงานที่ยังไม่มี dispatch ---
     const reports = await Report.find().lean();
     let addedCount = 0;
 
     for (const report of reports) {
         if (!report.date || !report.location) continue;
         
-        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const locRegex = new RegExp(`^\\s*${escapeRegex(report.location.trim())}\\s*$`, 'i');
-        const existingDispatch = await DispatchPlan.findOne({
-            date: report.date,
-            location: locRegex
-        });
-
-        // ถ้ายอดออกหน่วยนี้ยังไม่มีในปฏิทิน ให้สร้างใหม่
-        if (!existingDispatch) {
+        const normalizedLoc = normalizeLocation(report.location);
+        
+        // ตรวจสอบซ้ำโดย normalize ทั้งสองฝั่ง
+        const existingDispatches = await DispatchPlan.find({ date: report.date }).lean();
+        const alreadyExists = existingDispatches.some(d => normalizeLocation(d.location) === normalizedLoc);
+        
+        if (!alreadyExists) {
             let autoUnitType = 'other';
             let autoColor = 'bg-slate-400';
             const unitName = report.unit || '';
@@ -1318,45 +1373,57 @@ const syncHistoricalReportsToDispatch = async () => {
             else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
             else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
 
+            const correctDistrict = getDistrictForDispatch(report);
+
             const newDispatch = new DispatchPlan({
-    unitType: autoUnitType,
-    customUnitName: autoUnitType === 'other' ? unitName : '',
-    unitLetter: '',
-    unitColor: autoColor,
-    title: unitName,
-    unit: unitName,                    // เพิ่ม
-    date: report.date,
-    time: '08:30', 
-    closingTime: '12:00',
-    location: report.location.trim(),
-    locationDistrict: report.locationDistrict || report.district || '', // เพิ่ม
-    district: report.district || report.locationDistrict || '',
-    mapLink: report.mapLink || '',
-    lat: report.lat || 0,
-    lng: report.long || 0,
-    note: report.note || '',
-    team: report.team || '',
-    staff: {}, 
-    createdBy: 'Auto-Sync-System',
-    status: 'completed',
-    isVisibleToPublic: true
-});
+                unitType: autoUnitType,
+                customUnitName: autoUnitType === 'other' ? unitName : '',
+                unitLetter: '',
+                unitColor: autoColor,
+                title: unitName,
+                unit: unitName,
+                date: report.date,
+                time: '08:30',
+                closingTime: '12:00',
+                location: report.location.trim(),
+                locationDistrict: report.locationDistrict || report.district || '',
+                district: correctDistrict,
+                mapLink: report.mapLink || '',
+                lat: report.lat || 0,
+                lng: report.long || 0,
+                note: report.note || '',
+                team: report.team || '',
+                staff: {},
+                createdBy: 'Auto-Sync-System',
+                status: 'completed',
+                isVisibleToPublic: true
+            });
             await newDispatch.save();
             addedCount++;
         }
     }
     
-    if (addedCount > 0) {
-        console.log(`✅ [Auto-Sync] Successfully synced ${addedCount} historical reports to Dispatch Calendar.`);
-        // แจ้งให้หน้าเว็บโหลดตารางปฏิทินใหม่
+    if (addedCount > 0 || removedCount > 0) {
+        console.log(`✅ [Auto-Sync] Added: ${addedCount}, Removed duplicates: ${removedCount}`);
         io.emit('server_data_update', { type: 'DISPATCH_SYNCED' });
     } else {
-        console.log("✅ [Auto-Sync] All reports are already synced. No missing dispatches.");
+        console.log("✅ [Auto-Sync] All synced. No changes needed.");
     }
   } catch (err) {
-    console.error("❌ [Auto-Sync] Error syncing historical reports:", err);
+    console.error("❌ [Auto-Sync] Error:", err);
   }
 };
+
+// เพิ่ม endpoint ใหม่ใน server.js
+app.post('/api/system/dedup-dispatches', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
+    try {
+        await syncHistoricalReportsToDispatch();
+        createLog(req, 'DEDUP_DISPATCHES', 'สั่งล้างข้อมูล Dispatch ซ้ำและ sync ใหม่');
+        res.json({ message: "ดำเนินการล้างข้อมูลซ้ำและ sync เรียบร้อยแล้ว" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
