@@ -1425,6 +1425,72 @@ app.post('/api/system/dedup-dispatches', authenticateToken, authorizeRole(['Deve
     }
 });
 
+// เพิ่ม endpoint นี้ใน server.js — force dedup แบบ aggressive
+app.delete('/api/system/force-dedup-dispatches', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
+    try {
+        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+        
+        // ดึงทุก dispatch มา group ด้วย date + normalized location
+        const all = await DispatchPlan.find().sort({ createdAt: 1 }).lean(); // เรียงจากเก่าไปใหม่
+        
+        const seen = new Map(); // key = "date__normalizedLocation"
+        const toDelete = [];
+        
+        for (const d of all) {
+            const key = `${d.date}__${normalizeLocation(d.location)}`;
+            
+            if (!seen.has(key)) {
+                // ยังไม่เคยเห็น — เก็บไว้
+                seen.set(key, d);
+            } else {
+                // เคยเห็นแล้ว — เปรียบเทียบว่าอันไหนดีกว่า
+                const existing = seen.get(key);
+                
+                const scoreExisting = (
+                    (existing.staff && Object.values(existing.staff).some(arr => Array.isArray(arr) && arr.some(v => v && v.trim())) ? 10 : 0) +
+                    (existing.team && existing.team.trim() ? 3 : 0) +
+                    (existing.controllerName && existing.controllerName.trim() ? 2 : 0) +
+                    (existing.createdBy !== 'Auto-Sync-System' && existing.createdBy !== 'Auto-System' ? 5 : 0)
+                );
+                
+                const scoreCurrent = (
+                    (d.staff && Object.values(d.staff).some(arr => Array.isArray(arr) && arr.some(v => v && v.trim())) ? 10 : 0) +
+                    (d.team && d.team.trim() ? 3 : 0) +
+                    (d.controllerName && d.controllerName.trim() ? 2 : 0) +
+                    (d.createdBy !== 'Auto-Sync-System' && d.createdBy !== 'Auto-System' ? 5 : 0)
+                );
+                
+                if (scoreCurrent > scoreExisting) {
+                    // อันใหม่ดีกว่า — ลบอันเก่า เก็บอันใหม่
+                    toDelete.push(existing._id);
+                    seen.set(key, d);
+                } else {
+                    // อันเก่าดีกว่าหรือเท่ากัน — ลบอันใหม่
+                    toDelete.push(d._id);
+                }
+            }
+        }
+        
+        let deletedCount = 0;
+        if (toDelete.length > 0) {
+            const result = await DispatchPlan.deleteMany({ _id: { $in: toDelete } });
+            deletedCount = result.deletedCount;
+        }
+        
+        createLog(req, 'FORCE_DEDUP_DISPATCHES', `Force dedup: ลบ dispatch ซ้ำ ${deletedCount} รายการ`);
+        io.emit('server_data_update', { type: 'DISPATCH_SYNCED' });
+        
+        res.json({ 
+            message: `ลบข้อมูลซ้ำสำเร็จ`, 
+            deletedCount,
+            remaining: all.length - deletedCount
+        });
+    } catch (err) {
+        console.error("Force dedup error:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   syncHistoricalReportsToDispatch();

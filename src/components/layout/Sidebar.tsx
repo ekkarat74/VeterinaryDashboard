@@ -4,7 +4,7 @@ import {
     Database, Download, Zap, List, CalendarDays, AlertTriangle, 
     Plus, Key, LogOut, Siren, ChevronLeft, ChevronRight, X,
     RefreshCw, Building2, Trash2, Sparkles, PaintBucket, Bell,
-    PawPrint, ShieldCheck, Dog, Palette, LucideIcon
+    PawPrint, ShieldCheck, Dog, Palette, LucideIcon, Copy // <-- เพิ่ม Copy ตรงนี้
 } from 'lucide-react';
 
 // --- Types & Interfaces ---
@@ -57,6 +57,7 @@ interface SidebarProps {
     onClearData: () => void;
     onOpenBreedMgmt: () => void;
     onOpenColorMgmt: () => void;
+    onOpenDuplicateCheck: () => void;
     onOpenThemeSettings?: () => void;
     onOpenCalendar?: () => void;
     
@@ -131,6 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
     onOpenMeetingList, onOpenMeetingCalendar, onOpenAddOutbreak, onOpenAddData,
     onNotifyUpdate, onOpenCustomUnits, onClearData, onOpenBreedMgmt, onOpenColorMgmt,
+    onOpenDuplicateCheck,
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
     tabsConfig, toggleTab, activeTab, setActiveTab, 
     isSidebarCollapsed, setIsSidebarCollapsed, isMobileMenuOpen, setIsMobileMenuOpen,
@@ -346,6 +348,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                                             <div className="px-2 pb-3 space-y-1">
                                                 <p className="text-[10px] font-bold text-slate-400 mb-2 mt-2 px-2 uppercase tracking-wider">ความปลอดภัย & ข้อมูล</p>
+                                                <button onClick={() => handleAction(onOpenDuplicateCheck)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-amber-600 hover:bg-amber-50 flex items-center gap-3 transition-colors">
+                                                    <Copy className="w-4 h-4 shrink-0 text-slate-400"/> ตรวจสอบข้อมูลซ้ำ
+                                                </button>
                                                 <button onClick={() => handleAction(onOpenLog)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><FileText className="w-4 h-4 shrink-0 text-slate-400"/> ประวัติใช้งาน (Log)</button>
                                                 <button onClick={() => handleAction(onOpenBackup)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 flex items-center gap-3 transition-colors"><Database className="w-4 h-4 shrink-0 text-slate-400"/> สำรอง/กู้คืนข้อมูล</button>
                                                 <button onClick={() => handleAction(onOpenCsvOutbreak)} className="w-full text-left py-2 px-3 rounded-xl text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"><Download className="w-4 h-4 shrink-0 text-slate-400"/> นำเข้า CSV (ระบาด)</button>

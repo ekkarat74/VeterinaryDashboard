@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays,
-    Megaphone, Edit3, Plus, GripVertical, Save, Bell, LayoutList, Columns
+    Megaphone, Edit3, Plus, GripVertical, Save, Bell, LayoutList, Columns,ChevronRight,
+    Copy, AlertTriangle, MapPin, CheckCircle // <-- เพิ่มบรรทัดนี้
 } from 'lucide-react';
 import { io } from "socket.io-client";
 
@@ -55,6 +56,261 @@ const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 const API_URL = `${BASE_URL}/api/reports`;
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
+// ==========================================
+// Component: DuplicateReportModal (ระบบตรวจสอบข้อมูลซ้ำและยังไม่ลงปฏิทิน)
+// ==========================================
+interface DuplicateReportModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    reports: any[];
+    dispatchEvents: any[];
+    onSelectRecord: (date: string, location: string) => void;
+}
+
+const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onClose, reports, dispatchEvents, onSelectRecord }) => {
+    const [activeTab, setActiveTab] = useState<'duplicates' | 'unscheduled'>('duplicates');
+
+    const { duplicateData, unscheduledData } = useMemo(() => {
+        // --- 1. ข้อมูลที่ซ้ำกัน (สถานที่เดียวกัน และ วันที่เดียวกัน) ---
+        const exactMatchMap = new Map<string, any[]>();
+        reports.forEach(rep => {
+            const loc = rep.location?.trim();
+            if (!loc) return;
+            // ทำให้เป็นตัวเล็กและตัดช่องว่างเพื่อการเปรียบเทียบที่แม่นยำขึ้น
+            const normalizedLoc = loc.toLowerCase().replace(/\s+/g, ' '); 
+            const key = `${rep.date}|${normalizedLoc}`;
+            
+            if (!exactMatchMap.has(key)) exactMatchMap.set(key, []);
+            exactMatchMap.get(key)!.push(rep);
+        });
+
+        const dupByLocation = new Map<string, any[]>();
+        exactMatchMap.forEach((reps) => {
+            if (reps.length > 1) {
+                const loc = reps[0].location || 'ไม่ระบุสถานที่';
+                if (!dupByLocation.has(loc)) dupByLocation.set(loc, []);
+                dupByLocation.get(loc)!.push(...reps);
+            }
+        });
+
+        const duplicateResults = Array.from(dupByLocation.entries()).map(([loc, reps]) => ({
+            location: loc,
+            count: reps.length,
+            reports: reps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        })).sort((a, b) => b.count - a.count);
+
+        // --- 2. ข้อมูลที่ยังไม่ได้ลงปฏิทิน ---
+        const unschByLocation = new Map<string, any[]>();
+        reports.forEach(rep => {
+            const loc = rep.location?.trim();
+            if (!loc) return;
+            const normalizedLoc = loc.toLowerCase().replace(/\s+/g, ' '); 
+            
+            // เช็คว่ารายงานนี้ถูกสร้างเป็นปฏิทินออกหน่วย (Dispatch) หรือยัง
+            const isDispatched = dispatchEvents.some(d => {
+                const dLoc = d.location?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
+                return d.date === rep.date && dLoc === normalizedLoc;
+            });
+
+            if (!isDispatched) {
+                if (!unschByLocation.has(loc)) unschByLocation.set(loc, []);
+                unschByLocation.get(loc)!.push(rep);
+            }
+        });
+
+        const unscheduledResults = Array.from(unschByLocation.entries()).map(([loc, reps]) => ({
+            location: loc,
+            count: reps.length,
+            reports: reps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        })).sort((a, b) => b.count - a.count);
+
+        return { duplicateData: duplicateResults, unscheduledData: unscheduledResults };
+    }, [reports, dispatchEvents]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[6000] flex justify-center items-center bg-slate-900/50 backdrop-blur-sm transition-opacity p-4">
+            <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                            <Search className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-black text-slate-800">ตรวจสอบและจัดการข้อมูล</h2>
+                            <p className="text-[10px] text-slate-500">ตรวจสอบข้อมูลซ้ำ และรายงานที่ตกหล่นยังไม่ถูกลงปฏิทิน</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex bg-slate-50 border-b border-slate-200 px-4 sm:px-6 pt-3 gap-2 shrink-0">
+                    <button 
+                        onClick={() => setActiveTab('duplicates')}
+                        className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 ${activeTab === 'duplicates' ? 'bg-white text-rose-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}
+                    >
+                        <Copy className="w-4 h-4 hidden sm:block" /> 
+                        1. ข้อมูลที่ซ้ำกัน 
+                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'duplicates' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>
+                            {duplicateData.length} แห่ง
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('unscheduled')}
+                        className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 ${activeTab === 'unscheduled' ? 'bg-white text-amber-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}
+                    >
+                        <CalendarDays className="w-4 h-4 hidden sm:block" /> 
+                        2. ข้อมูลที่ยังไม่ได้ลงปฏิทิน 
+                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'unscheduled' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
+                            {unscheduledData.length} แห่ง
+                        </span>
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/50">
+                    
+                    {/* TAB 1: ข้อมูลที่ซ้ำกัน */}
+                    {activeTab === 'duplicates' && (
+                        duplicateData.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500 animate-in fade-in duration-300">
+                                <CheckCircle className="w-12 h-12 mb-3 text-emerald-300" />
+                                <h3 className="font-bold text-sm">ยอดเยี่ยม! ไม่พบข้อมูลที่บันทึกซ้ำซ้อน</h3>
+                                <p className="text-[10px] mt-1 text-slate-400">ข้อมูลสถานที่และวันที่ทั้งหมดมีความถูกต้อง</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-5 animate-in fade-in duration-300">
+                                <div className="flex items-center gap-2 bg-rose-50 text-rose-700 text-[10px] sm:text-xs p-3.5 rounded-xl border border-rose-200 shadow-sm">
+                                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                                    <span>พบรายงานที่มี <strong>สถานที่และวันที่ตรงกัน</strong> จำนวน <strong>{duplicateData.length}</strong> แห่ง (คลิกที่รายการเพื่อดูในฐานข้อมูล)</span>
+                                </div>
+
+                                {duplicateData.map((item, idx) => (
+                                    <div key={idx} className="bg-white border border-rose-100 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="px-4 py-3 bg-rose-50/30 border-b border-rose-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                            <h4 className="font-bold text-xs sm:text-sm text-slate-800 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
+                                                <span className="leading-snug">{item.location}</span>
+                                            </h4>
+                                            <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-lg text-[10px] font-bold w-fit">
+                                                ซ้ำ {item.count} รายการ
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col divide-y divide-slate-100">
+                                            {item.reports.map((rep, eIdx) => (
+                                                <div 
+                                                    key={eIdx} 
+                                                    onClick={() => onSelectRecord(rep.date, item.location)}
+                                                    className="p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors cursor-pointer hover:bg-rose-50 bg-white"
+                                                >
+                                                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 shrink-0 md:w-32 text-rose-600">
+                                                            <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-rose-500 animate-pulse"></div>
+                                                            <span className="text-[11px] font-bold">
+                                                                {new Date(rep.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0 md:border-l-2 md:border-slate-100 md:pl-4">
+                                                            <span className="text-[11px] font-bold text-slate-800 truncate" title={rep.unit}>
+                                                                {rep.unit || 'ไม่ระบุหน่วย'}
+                                                            </span>
+                                                            <span className="text-[9px] text-slate-500 mt-0.5 truncate">
+                                                                ทีม: <span className="font-medium text-slate-600">{rep.team || '-'}</span> | 
+                                                                เขต: <span className="font-medium text-slate-600">{rep.district || '-'}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0 md:pl-4">
+                                                        <span className="bg-rose-100 text-rose-600 text-[9px] px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 shadow-sm">
+                                                            ข้อมูลซ้ำซ้อน
+                                                        </span>
+                                                        <ChevronRight className="w-4 h-4 text-slate-300 hidden md:block" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    )}
+
+                    {/* TAB 2: ข้อมูลที่ยังไม่ได้ลงปฏิทิน */}
+                    {activeTab === 'unscheduled' && (
+                        unscheduledData.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500 animate-in fade-in duration-300">
+                                <CheckCircle className="w-12 h-12 mb-3 text-emerald-300" />
+                                <h3 className="font-bold text-sm">ยอดเยี่ยม! ข้อมูลทั้งหมดลงปฏิทินแล้ว</h3>
+                                <p className="text-[10px] mt-1 text-slate-400">รายงานผลทุกรายการถูกเชื่อมโยงกับปฏิทินออกหน่วยเรียบร้อย</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-5 animate-in fade-in duration-300">
+                                <div className="flex items-center gap-2 bg-amber-50 text-amber-700 text-[10px] sm:text-xs p-3.5 rounded-xl border border-amber-200 shadow-sm">
+                                    <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                                    <span>พบรายงานที่ <strong>ยังไม่ได้นำไปสร้างในปฏิทินออกหน่วย</strong> จำนวน <strong>{unscheduledData.length}</strong> แห่ง (คลิกที่รายการเพื่อดูในฐานข้อมูล)</span>
+                                </div>
+
+                                {unscheduledData.map((item, idx) => (
+                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                            <h4 className="font-bold text-xs sm:text-sm text-slate-800 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
+                                                <span className="leading-snug">{item.location}</span>
+                                            </h4>
+                                            <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-bold w-fit">
+                                                ตกหล่น {item.count} รายการ
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col divide-y divide-slate-100">
+                                            {item.reports.map((rep, eIdx) => (
+                                                <div 
+                                                    key={eIdx} 
+                                                    onClick={() => onSelectRecord(rep.date, item.location)}
+                                                    className="p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors cursor-pointer hover:bg-amber-50/50 bg-white"
+                                                >
+                                                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 shrink-0 md:w-32 text-indigo-600">
+                                                            <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-indigo-400"></div>
+                                                            <span className="text-[11px] font-bold">
+                                                                {new Date(rep.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0 md:border-l-2 md:border-slate-100 md:pl-4">
+                                                            <span className="text-[11px] font-bold text-slate-800 truncate" title={rep.unit}>
+                                                                {rep.unit || 'ไม่ระบุหน่วย'}
+                                                            </span>
+                                                            <span className="text-[9px] text-slate-500 mt-0.5 truncate">
+                                                                ทีม: <span className="font-medium text-slate-600">{rep.team || '-'}</span> | 
+                                                                เขต: <span className="font-medium text-slate-600">{rep.district || '-'}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0 md:pl-4">
+                                                        <span className="bg-amber-100 text-amber-600 text-[9px] px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 shadow-sm">
+                                                            <CalendarDays className="w-3 h-3" /> ยังไม่ลงปฏิทิน
+                                                        </span>
+                                                        <ChevronRight className="w-4 h-4 text-slate-300 hidden md:block" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- MAIN DASHBOARD COMPONENT ---
 export default function VeterinaryDashboard() {
     const {
@@ -90,6 +346,18 @@ export default function VeterinaryDashboard() {
 
     const user = rawUser as User | null;
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
+
+    // เพิ่ม State นี้เข้าไป
+    const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState<boolean>(false);
+
+    // เพิ่มฟังก์ชันสำหรับรับค่าคลิกเพื่อไปหน้า Database
+    const handleNavigateFromDuplicate = (dateStr: string, locationStr: string) => {
+        setSearchDate(dateStr);
+        setSearchTerm(locationStr);
+        setIsFilterExpanded(true); // เปิดแถบตัวกรองให้เห็นว่ามีการค้นหาอยู่
+        setActiveTab('database');
+        setIsDuplicateModalOpen(false);
+    };
 
     // ==========================================
     // Responsive & View Mode Management
@@ -1503,6 +1771,13 @@ const handleDeleteDispatch = async (id: string) => {
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
             <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={user?.token as any} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
+            <DuplicateReportModal 
+                isOpen={isDuplicateModalOpen} 
+                onClose={() => setIsDuplicateModalOpen(false)} 
+                reports={reportData} 
+                dispatchEvents={dispatchEvents} 
+                onSelectRecord={handleNavigateFromDuplicate}
+            />
             <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears as any} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={user?.token as any} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={user?.token as any} apiBaseUrl={BASE_URL} currentUserRole={user?.role} />
@@ -1544,6 +1819,7 @@ const handleDeleteDispatch = async (id: string) => {
                 setIsNotifOpen={setIsNotifOpen}
                 markAllAsRead={markAllAsRead}
                 unreadCount={unreadCount}
+                onOpenDuplicateCheck={() => setIsDuplicateModalOpen(true)}
             />
 
             {isMobileMenuOpen && (

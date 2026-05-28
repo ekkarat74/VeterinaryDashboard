@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useDeferredValue, useCallb
 import { 
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
-    Volume2, VolumeX, FileText, LayoutDashboard, Activity, Truck, Settings, Bell, MoreHorizontal, Menu, FileDown, Table, Columns,
+    Volume2, VolumeX, FileText, LayoutDashboard, Activity, Truck, Settings, Bell, MoreHorizontal, Menu, FileDown, Table, Columns, Copy, AlertTriangle,
     User, Shield, Database, Smartphone
 } from 'lucide-react';
 
@@ -365,7 +365,7 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
     const [view, setView] = useState<'table' | 'kanban'>('table');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDistrict, setFilterDistrict] = useState('ทั้งหมด');
-    const [filterTeam, setFilterTeam] = useState('ทั้งหมด');
+    const [filterUnit, setFilterUnit] = useState('ทั้งหมด');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
@@ -373,7 +373,7 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
     return events.filter(e => {
         const matchesSearch = !searchTerm || e.location?.toLowerCase().includes(searchTerm.toLowerCase()) || e.title?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDistrict = filterDistrict === 'ทั้งหมด' || e.district === filterDistrict;
-        const matchesTeam = filterTeam === 'ทั้งหมด' || e.team === filterTeam;
+        const matchUnit = filterUnit === 'ทั้งหมด' || (e.unit || e.unitName) === filterUnit;
         const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
 
         // ดึงสถานะปัจจุบันแบบ Real-time
@@ -397,9 +397,9 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
             } else if (activeCategory === 'cat-cage') {
                 matchesCategory = !!e.title?.includes('กรงแมว');
             }
-        return matchesSearch && matchesDistrict && matchesTeam && matchesDate && matchesCategory;
+        return matchesSearch && matchesDistrict && matchUnit && matchesDate && matchesCategory;
     });
-}, [events, searchTerm, filterDistrict, filterTeam, startDate, endDate, activeCategory]);
+}, [events, searchTerm, filterDistrict, filterUnit, startDate, endDate, activeCategory]);
 
 const stats = useMemo(() => {
     let completed = 0, inProgress = 0, pending = 0, cancelled = 0;
@@ -414,11 +414,11 @@ const stats = useMemo(() => {
 }, [filteredEvents]);
 
     const districts = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.district).filter(Boolean)))], [events]);
-    const teams = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.team).filter(Boolean)))], [events]);
+    const units = useMemo(() => ['ทั้งหมด', ...Array.from(new Set(events.map(e => e.unit || e.unitName).filter(Boolean)))], [events]);
 
     const exportToCSV = () => {
-        const headers = ["วันที่", "ชื่อกิจกรรม", "สถานที่", "เขต", "ทีม", "สถานะ"];
-        const rows = filteredEvents.map(e => [e.date, e.title, e.location, e.district, e.team, getDispatchStatus(e)?.text || '']);
+        const headers = ["วันที่", "เขต", "สถานที่", "หน่วย", "สถานะ"];
+        const rows = filteredEvents.map(e => [e.date, e.district || '-', e.location, (e.unit || e.unitName || '-'), getDispatchStatus(e)?.text || '']);
         const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -460,39 +460,55 @@ const stats = useMemo(() => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                 <input type="text" placeholder="ค้นหา..." className="col-span-2 md:col-span-1 p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setSearchTerm(e.target.value)} />
                 <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterDistrict(e.target.value)}>{districts.map(d => <option key={d}>{d}</option>)}</select>
-                <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterTeam(e.target.value)}>{teams.map(t => <option key={t}>{t}</option>)}</select>
+                
+                {/* 🌟 8. เปลี่ยน Select ให้วนลูปตัวแปร units แทน teams */}
+                <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterUnit(e.target.value)}>
+                    {units.map(u => <option key={u}>{u}</option>)}
+                </select>
+                
                 <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setStartDate(e.target.value)} />
                 <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setEndDate(e.target.value)} />
             </div>
 
             {/* Views */}
-            <div className="w-full overflow-x-auto pb-6">
-                {view === 'table' ? (
-                    <div className="max-h-[420px] overflow-y-auto custom-scrollbar relative border border-slate-100 rounded-xl">
-                        <table className="w-full min-w-[600px] text-[10px] text-left">
-                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                                <tr><th className="p-3">วันที่</th><th className="p-3">กิจกรรม</th><th className="p-3">สถานที่</th><th className="p-3">ทีม</th><th className="p-3">สถานะ</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredEvents.map((e, i) => {
-                                    const st = getDispatchStatus(e);
-                                    return (
-                                        <tr key={i} className="hover:bg-slate-50">
-                                            <td className="p-3 font-mono">{e.date}</td>
-                                            <td className="p-3 font-bold text-slate-800">{e.title}</td>
-                                            <td className="p-3">{e.location}</td>
-                                            <td className="p-3">{e.team || '-'}</td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
-                                                    {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+<div className="w-full overflow-x-auto pb-6">
+    {view === 'table' ? (
+        <div className="max-h-[420px] overflow-y-auto custom-scrollbar relative border border-slate-100 rounded-xl">
+            <table className="w-full min-w-[600px] text-[10px] text-left">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                    {/* 🌟 เปลี่ยนหัวตารางจาก "กิจกรรม" เป็น "เขต" */}
+                    <tr><th className="p-3">วันที่</th><th className="p-3">เขต</th><th className="p-3">สถานที่</th><th className="p-3">หน่วย</th><th className="p-3">สถานะ</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {filteredEvents.map((e, i) => {
+                        const st = getDispatchStatus(e);
+                        return (
+                            <tr key={i} className="hover:bg-slate-50">
+                                <td className="p-3 font-mono">{e.date}</td>
+                                
+                                {/* 🌟 เปลี่ยนจากการแสดง e.title เป็น e.district เพื่อแสดงข้อมูลเขต */}
+                                <td className="p-3 font-bold text-slate-800">{e.district || '-'}</td>
+                                
+                                <td className="p-3">{e.location}</td>
+                                
+                                {/* 🌟 10. นำค่า e.unit หรือ e.unitName มาแสดงในตาราง */}
+                                <td className="p-3">
+    <span className="font-medium text-indigo-600">
+        {e.unit || e.unitName || e.title || '-'}
+    </span>
+</td>
+                                
+                                <td className="p-3">
+                                    <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
+                                        {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
+                                    </span>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
                 ) : (
                     <div className="flex gap-4 min-w-[800px] h-full">
                         {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => (
@@ -505,9 +521,9 @@ const stats = useMemo(() => {
                                     return currentStatus === statusGroup;
                                 }).map((e, i) => (
                                 <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px] shrink-0">
-                                    <p className="font-bold mb-1">{e.title}</p>
-                                    <p className="text-slate-500 text-[8px]">{e.location}</p>
-                                </div>
+    <p className="font-bold text-indigo-600 mb-0.5">{e.unit || e.unitName || e.title || 'ไม่ระบุหน่วย'}</p>
+    <p className="text-slate-700 font-medium text-[9px]">{e.location}</p>
+</div>
                             ))}
                         </div>
                     ))}
@@ -1078,6 +1094,140 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }
 };
 
 // ==========================================
+// Component: DuplicateCheckModal (ระบบตรวจสอบข้อมูลซ้ำ)
+// ==========================================
+interface DuplicateCheckModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    events: EventData[];
+    onSelectDate: (date: string) => void; // 1. เพิ่ม Prop นี้
+}
+
+const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClose, events, onSelectDate }) => { // 2. รับ onSelectDate
+    const duplicateData = useMemo(() => {
+        const locationMap = new Map<string, EventData[]>();
+        
+        events.forEach(evt => {
+            const loc = evt.location?.trim();
+            if (!loc) return;
+            const normalizedLoc = loc.toLowerCase().replace(/\s+/g, ' '); 
+            
+            if (!locationMap.has(normalizedLoc)) {
+                locationMap.set(normalizedLoc, []);
+            }
+            locationMap.get(normalizedLoc)!.push(evt);
+        });
+
+        const duplicates: { location: string, count: number, events: EventData[] }[] = [];
+        locationMap.forEach((evts, key) => {
+            if (evts.length > 1) {
+                duplicates.push({
+                    location: evts[0].location || key,
+                    count: evts.length,
+                    events: evts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                });
+            }
+        });
+        
+        return duplicates.sort((a, b) => b.count - a.count);
+    }, [events]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[6000] flex justify-center items-center bg-slate-900/50 backdrop-blur-sm transition-opacity p-4">
+            <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+                
+                {/* ... (ส่วน Header เหมือนเดิม) ... */}
+                <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-white shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-md">
+                            <Copy className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-black text-slate-800">ตรวจสอบข้อมูลซ้ำ (Duplicate Check)</h2>
+                            <p className="text-[10px] text-slate-500">แสดงรายชื่อสถานที่ที่มีการออกหน่วยหรือถูกบันทึกซ้ำกัน</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-slate-50/50">
+                    {duplicateData.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-emerald-500">
+                            <CheckCircle className="w-12 h-12 mb-3 text-emerald-300" />
+                            <h3 className="font-bold text-sm">ยอดเยี่ยม! ไม่พบข้อมูลสถานที่ซ้ำ</h3>
+                            <p className="text-[10px] mt-1 text-slate-400">ข้อมูลทั้งหมดในระบบมีความเป็นเอกลักษณ์</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-4 bg-amber-100/50 text-amber-700 text-[10px] p-3 rounded-xl border border-amber-200">
+                                <AlertTriangle className="w-4 h-4 shrink-0" />
+                                <span>พบสถานที่ที่มีการบันทึกซ้ำทั้งหมด <strong>{duplicateData.length}</strong> แห่ง</span>
+                            </div>
+
+                            {duplicateData.map((item, idx) => {
+                                const dateCounts = item.events.reduce((acc, curr) => {
+                                    acc[curr.date] = (acc[curr.date] || 0) + 1;
+                                    return acc;
+                                }, {} as Record<string, number>);
+
+                                return (
+                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                            <h4 className="font-bold text-[11px] text-slate-800 flex items-center gap-2">
+                                                <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                                                {item.location}
+                                            </h4>
+                                            <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg text-[9px] font-bold">
+                                                ซ้ำ {item.count} ครั้ง
+                                            </span>
+                                        </div>
+                                        <div className="p-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                {item.events.map((evt, eIdx) => {
+                                                    const isDateDuplicated = dateCounts[evt.date] > 1;
+
+                                                    return (
+                                                        // 3. เพิ่ม onClick, cursor-pointer และเอฟเฟกต์ hover เมื่อชี้การ์ด
+                                                        <div 
+                                                            key={eIdx} 
+                                                            onClick={() => onSelectDate(evt.date)}
+                                                            className={`text-[9px] p-2 rounded-lg border flex flex-col gap-1 transition-all cursor-pointer hover:shadow-md hover:scale-[1.02] ${isDateDuplicated ? 'border-rose-200 bg-rose-50/50 hover:border-rose-400' : 'border-slate-100 bg-slate-50/50 hover:border-indigo-400'}`}
+                                                        >
+                                                            <div className={`font-bold flex justify-between items-center ${isDateDuplicated ? 'text-rose-600' : 'text-indigo-600'}`}>
+                                                                <span className="flex items-center gap-1">
+                                                                    {new Date(evt.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                                    {isDateDuplicated && (
+                                                                        <span title="วันที่ซ้ำกันในสถานที่นี้" className="flex items-center">
+                                                                            <AlertTriangle className="w-3 h-3 text-rose-500" />
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                                <span className={`font-medium ${isDateDuplicated ? 'text-rose-400' : 'text-slate-400'}`}>{evt.time || 'ไม่ระบุเวลา'}</span>
+                                                            </div>
+                                                            <div className="text-slate-600 truncate" title={evt.title}>{evt.title || 'ไม่มีชื่อกิจกรรม'}</div>
+                                                            <div className="text-slate-400">ทีม: {evt.team || '-'}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
 
@@ -1396,6 +1546,7 @@ const DispatchCalendarDashboard: React.FC = () => {
     };
 
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState<boolean>(false);
+    const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState<boolean>(false);
     const [viewingDispatch, setViewingDispatch] = useState<EventData | null>(null);
     const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -1620,6 +1771,16 @@ const DispatchCalendarDashboard: React.FC = () => {
         return grouped;
     }, [selectedDateEvents]);
 
+    // 1. เพิ่มฟังก์ชันสำหรับรับค่าวันที่จากการคลิกที่ DuplicateCheckModal
+    const handleNavigateFromDuplicate = (dateStr: string) => {
+        playSound('pop');
+        const targetDate = new Date(dateStr);
+        setCurrentDate(targetDate);
+        setSelectedDate(targetDate);
+        setActiveMenu('calendar'); // เปลี่ยนหน้าไปยังปฏิทิน
+        setIsDuplicateModalOpen(false); // ปิด Modal
+    };
+
     return (
         <div className="flex flex-col h-screen w-full bg-[#F5F6FA] overflow-hidden font-sans">
             <style>{`
@@ -1645,8 +1806,8 @@ const DispatchCalendarDashboard: React.FC = () => {
                 <aside 
                     className={`flex-col text-white transition-all duration-300 shadow-xl z-50 fixed inset-y-0 left-0 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex w-[260px] shrink-0`}
                     style={{
-                        /* 🌟 ใส่รูปรองพื้น Sidebar ตรง url(...) และใช้ linear-gradient เคลือบสีม่วงเดิมทับให้ดูละมุน */
-                        backgroundImage: "linear-gradient(rgba(49, 32, 105, 0.85), rgba(49, 32, 105, 0.95)), url('https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=800&q=80')",
+                        /* 🌟 เปลี่ยนรูปภาพพื้นหลัง Sidebar เป็นลวดลายแมวการ์ตูน โดยยังคง linear-gradient เพื่อให้ตัวหนังสือชัดเจน */
+                        backgroundImage: "linear-gradient(rgba(49, 32, 105, 0.85), rgba(49, 32, 105, 0.95)), url('https://img.magnific.com/free-photo/cute-cat-studio_23-2150932393.jpg?semt=ais_hybrid&w=740&q=80')",
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                     }}
@@ -1790,6 +1951,12 @@ const DispatchCalendarDashboard: React.FC = () => {
                             <div className="xl:hidden pt-4 mt-4 border-t border-white/10 space-y-1.5">
                                 <div className="px-4 pb-1 text-[8px] font-bold text-indigo-300 uppercase tracking-wider">สำหรับผู้ดูแลระบบ</div>
                                 <button 
+            onClick={() => { playSound('pop'); setIsDuplicateModalOpen(true); setIsSidebarOpen(false); }} 
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-amber-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
+        >
+            <Copy className="w-4 h-4" /> ตรวจสอบข้อมูลซ้ำ
+        </button>
+                                <button 
                                     onClick={() => { playSound('pop'); setIsAddControllerOpen(true); setIsSidebarOpen(false); }} 
                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-emerald-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
                                 >
@@ -1812,6 +1979,33 @@ const DispatchCalendarDashboard: React.FC = () => {
                     </div>
 
                     <div className="p-4 shrink-0">
+                        <div className="bg-white/5 rounded-2xl p-3 mb-4 border border-white/10 flex flex-col gap-2 transition-all">
+        <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-indigo-200 flex items-center gap-2">
+                {isPlaying ? <Volume2 className="w-4 h-4 text-indigo-300" /> : <VolumeX className="w-4 h-4 text-white/40" />}
+                เสียงพื้นหลัง
+            </span>
+            <button
+                onClick={togglePlay}
+                className={`px-2 py-1 rounded-lg text-[9px] font-bold transition-colors shadow-sm border ${
+                    isPlaying 
+                    ? 'bg-indigo-500/40 text-white border-indigo-400/50' 
+                    : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
+                }`}
+                title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
+            >
+                {isPlaying ? 'ปิด' : 'เปิด'}
+            </button>
+        </div>
+        {isPlaying && (
+            <div className="px-1 mt-1 flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                <input
+                    type="range" min="0" max="1" step="0.05" value={volume} onChange={handleVolumeChange}
+                    className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-indigo-400"
+                />
+            </div>
+        )}
+    </div>
                         {/* Help Section */}
                         <div className="bg-[#44308a] rounded-2xl p-4 text-center border border-white/10 relative overflow-hidden">
                             <div className="flex justify-center gap-2 mb-3">
@@ -1834,7 +2028,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                 className="flex-1 flex flex-col overflow-hidden relative"
                 style={{
                     /* 🌟 1. ใส่รูปภาพวอลเปเปอร์ตรงนี้ (สามารถนำลิงก์รูปอื่นมาวางแทนได้) */
-                    backgroundImage: "url('https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=2000&q=80')",
+                    backgroundImage: "url('https://img.freepik.com/premium-vector/cute-cartoon-cats-adorable-kittens-with-big-eyes-pink-background_1305385-77191.jpg')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                 }}
@@ -1867,26 +2061,15 @@ const DispatchCalendarDashboard: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <RealTimeClock />
                             
-                            <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-100 px-2 py-1.5 rounded-full shadow-sm">
-                                <button
-                                    onClick={togglePlay}
-                                    className={`p-1.5 rounded-full transition-colors ${isPlaying ? 'text-indigo-600 bg-indigo-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'}`}
-                                    title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
-                                >
-                                    {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                                </button>
-                                {isPlaying && (
-                                    <input
-                                        type="range" min="0" max="1" step="0.05" value={volume} onChange={handleVolumeChange}
-                                        className="w-16 sm:w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                    />
-                                )}
-                            </div>
+                            
 
                             <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block"></div>
 
                             {canEdit && (
                                 <div className="hidden xl:flex items-center gap-2 mr-2">
+                                    <button onClick={() => { playSound('pop'); setIsDuplicateModalOpen(true); }} className="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-amber-200">
+            <Copy className="w-3.5 h-3.5"/> ข้อมูลซ้ำ
+        </button>
                                     <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-emerald-200">
                                         <UserPlus className="w-3.5 h-3.5"/> เพิ่มผู้ควบคุม
                                     </button>
@@ -2595,6 +2778,12 @@ const DispatchCalendarDashboard: React.FC = () => {
             <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <AnnouncementModal isOpen={isAnnouncementModalOpen} onClose={() => setIsAnnouncementModalOpen(false)} initialAnnouncements={announcements} onSave={handleSaveAnnouncements} />
+            <DuplicateCheckModal 
+                isOpen={isDuplicateModalOpen} 
+                onClose={() => setIsDuplicateModalOpen(false)} 
+                events={events} 
+                onSelectDate={handleNavigateFromDuplicate}
+            />
             <DispatchModal 
                 isOpen={isDispatchModalOpen} 
                 onClose={() => setIsDispatchModalOpen(false)} 
