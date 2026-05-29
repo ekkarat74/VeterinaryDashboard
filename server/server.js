@@ -607,7 +607,6 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
       { new: true }
     ).lean();
 
-    // 🌟 3. (เพิ่มใหม่) ตรวจสอบการแก้ไขสถานที่หรือวันที่ เพื่อซิงค์ไปที่ปฏิทิน (DispatchPlan)
     if (oldReport.location !== updatedReport.location || oldReport.date !== updatedReport.date) {
         const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
         await DispatchPlan.updateMany(
@@ -1040,9 +1039,54 @@ app.post('/api/custom-units', authenticateToken, authorizeRole(['Developer', 'Ma
 
 app.put('/api/custom-units/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
-    const updatedUnit = await CustomUnit.findByIdAndUpdate(req.params.id, { name: req.body.name }, { new: true });
+    const { name: newName } = req.body;
+
+    // 1. ค้นหาชื่อหน่วยงานเดิมก่อนการแก้ไข
+    const oldUnit = await CustomUnit.findById(req.params.id).lean();
+    if (!oldUnit) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+    const oldName = oldUnit.name;
+
+    // 2. อัปเดตข้อมูลหน่วยงานในคอลเลกชัน CustomUnit
+    const updatedUnit = await CustomUnit.findByIdAndUpdate(
+        req.params.id, 
+        { name: newName }, 
+        { new: true }
+    );
+
+    // 3. ถ้าชื่อหน่วยงานเปลี่ยน ให้ตามไปอัปเดตใน Report และ DispatchPlan ด้วย
+    if (oldName !== newName) {
+        const Report = mongoose.models.Report || mongoose.model('Report');
+        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+        
+        // อัปเดตในตาราง Report
+        await Report.updateMany(
+            { unit: oldName },
+            { $set: { unit: newName } }
+        );
+
+        // อัปเดตในตาราง DispatchPlan (อัปเดตฟิลด์ที่อาจจะเก็บชื่อหน่วย)
+        await DispatchPlan.updateMany(
+            { $or: [{ unit: oldName }, { unitName: oldName }, { title: oldName }, { customUnitName: oldName }] },
+            { 
+                $set: { 
+                    unit: newName, 
+                    title: newName,
+                    customUnitName: newName
+                } 
+            }
+        );
+
+        // ล้าง Cache ของ Report และ Dispatch ที่มีอยู่
+        const keys = cache.keys().filter(k => k.startsWith('reports:') || k.startsWith('dispatches:'));
+        if (keys.length > 0) cache.del(keys);
+
+        // แจ้งให้ Frontend โหลดข้อมูล Report/Dispatch ใหม่ทั้งหมด
+        io.emit('server_data_update', { type: 'SYSTEM_RESTORED' }); 
+    }
+
     cache.del('custom-units');
     io.emit('server_data_update', { type: 'CUSTOM_UNIT_UPDATED', data: updatedUnit });
+    
     res.json(updatedUnit);
   } catch (err) {
     res.status(400).json({ message: err.message });

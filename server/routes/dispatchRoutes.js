@@ -75,24 +75,20 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
         }
     });
 
-    // PUT: แก้ไขแผนออกหน่วย
     router.put('/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
         try {
-            // 🌟 1. (เพิ่มใหม่) ดึงข้อมูลแผนเดิมก่อนอัปเดต
             const oldPlan = await DispatchPlan.findById(req.params.id).lean();
             if (!oldPlan) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
             const { _id, createdBy, ...updateData } = req.body; 
             const updatedPlan = await DispatchPlan.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
-            // 🌟 2. (เพิ่มใหม่) ตรวจสอบการแก้ไขสถานที่หรือวันที่ เพื่อซิงค์ไปที่ฐานข้อมูลหลัก (Report)
             if (oldPlan.location !== updatedPlan.location || oldPlan.date !== updatedPlan.date) {
                 const Report = mongoose.models.Report || mongoose.model('Report');
                 await Report.updateMany(
                     { date: oldPlan.date, location: oldPlan.location },
                     { $set: { location: updatedPlan.location, date: updatedPlan.date, district: updatedPlan.district } }
                 );
-                // สั่งให้ Frontend โหลดข้อมูล Report ใหม่เพื่ออัปเดตหน้าจอทันที
                 io.emit('server_data_update', { type: 'SYSTEM_RESTORED' });
             }
 
@@ -105,7 +101,6 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
         }
     });
 
-    // DELETE: ลบแผนออกหน่วย
     router.delete('/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'superadmin']), async (req, res) => {
         try {
             const deletedPlan = await DispatchPlan.findByIdAndDelete(req.params.id);

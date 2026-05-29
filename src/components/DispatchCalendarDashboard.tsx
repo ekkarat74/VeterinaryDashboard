@@ -1094,132 +1094,339 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }
 };
 
 // ==========================================
-// Component: DuplicateCheckModal (ระบบตรวจสอบข้อมูลซ้ำ)
+// Component: DuplicateCheckModal (อัปเดตใหม่: เพิ่มฟิลเตอร์ วันที่, สถานที่, หน่วย)
 // ==========================================
 interface DuplicateCheckModalProps {
     isOpen: boolean;
     onClose: () => void;
-    events: EventData[];
-    onSelectDate: (date: string) => void; // 1. เพิ่ม Prop นี้
+    events: EventData[]; // Dispatch Data
+    reports: any[];      // Report Data ที่เพิ่มใหม่
+    onSelectDate: (date: string) => void; 
 }
 
-const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClose, events, onSelectDate }) => { // 2. รับ onSelectDate
-    const duplicateData = useMemo(() => {
+const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClose, events, reports, onSelectDate }) => { 
+    const [activeTab, setActiveTab] = useState<'duplicates' | 'unreported' | 'unscheduled' | 'mismatch'>('duplicates');
+    const [filterDate, setFilterDate] = useState<string>('');
+    const [filterLocation, setFilterLocation] = useState<string>('');
+    const [filterUnit, setFilterUnit] = useState<string>('ทั้งหมด');
+
+    // --- ดึงรายชื่อหน่วยทั้งหมดสำหรับ Dropdown ฟิลเตอร์ ---
+    const availableUnits = useMemo(() => {
+        const units = new Set<string>();
+        events.forEach(e => { if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); else if(e.title) units.add(e.title); });
+        reports.forEach(r => { if(r.unit) units.add(r.unit); });
+        return ['ทั้งหมด', ...Array.from(units).filter(Boolean)];
+    }, [events, reports]);
+
+    const { duplicateData, unscheduledData, unreportedData, mismatchData } = useMemo(() => {
+        const normalize = (str: any) => (str || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+
         const locationMap = new Map<string, EventData[]>();
-        
         events.forEach(evt => {
             const loc = evt.location?.trim();
             if (!loc) return;
-            const normalizedLoc = loc.toLowerCase().replace(/\s+/g, ' '); 
-            
-            if (!locationMap.has(normalizedLoc)) {
-                locationMap.set(normalizedLoc, []);
-            }
-            locationMap.get(normalizedLoc)!.push(evt);
+            const normalizedLoc = normalize(loc);
+            const key = `${evt.date}|${normalizedLoc}`;
+            if (!locationMap.has(key)) locationMap.set(key, []);
+            locationMap.get(key)!.push(evt);
         });
 
-        const duplicates: { location: string, count: number, events: EventData[] }[] = [];
-        locationMap.forEach((evts, key) => {
+        const duplicates: any[] = [];
+        const dupByLoc = new Map<string, any[]>();
+        locationMap.forEach((evts) => {
             if (evts.length > 1) {
-                duplicates.push({
-                    location: evts[0].location || key,
-                    count: evts.length,
-                    events: evts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                });
+                const loc = evts[0].location || 'ไม่ระบุ';
+                if (!dupByLoc.has(loc)) dupByLoc.set(loc, []);
+                dupByLoc.get(loc)!.push(...evts);
             }
         });
-        
-        return duplicates.sort((a, b) => b.count - a.count);
-    }, [events]);
+
+        dupByLoc.forEach((evts, loc) => {
+            duplicates.push({ location: loc, count: evts.length, events: evts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) });
+        });
+        duplicates.sort((a, b) => b.count - a.count);
+
+        if (!reports || reports.length === 0) return { duplicateData: duplicates, unscheduledData: [], unreportedData: [], mismatchData: [] };
+
+        const unschByLocation = new Map<string, any[]>();
+        const unrepByLocation = new Map<string, any[]>();
+        const mismatches: any[] = [];
+
+        reports.forEach(rep => {
+            const loc = rep.location?.trim();
+            if (!loc) return;
+            const normLoc = normalize(loc);
+
+            const matchedDispatch = events.find(d => d.date === rep.date && normalize(d.location) === normLoc);
+
+            if (!matchedDispatch) {
+                if (!unschByLocation.has(loc)) unschByLocation.set(loc, []);
+                unschByLocation.get(loc)!.push(rep);
+            } else {
+                const mismatchFields = [];
+                const repUnit = normalize(rep.unit);
+                const dispUnit = normalize(matchedDispatch.unit || matchedDispatch.unitName || matchedDispatch.title);
+                const repTeam = (rep.team || '').toString().toLowerCase().replace(/\s+/g, '');
+                const dispTeam = (matchedDispatch.team || '').toString().toLowerCase().replace(/\s+/g, '');
+
+                const isVetDisp = dispUnit.includes('สัตวแพทย์') || dispUnit.includes('สัตว์แพทย์');
+                const isVetRep = repUnit.includes('สัตวแพทย์') || repUnit.includes('สัตว์แพทย์');
+                const isSpayDisp = dispUnit.includes('ทำหมัน');
+                const isSpayRep = repUnit.includes('ทำหมัน');
+
+                const isSpayVetMatch = (isSpayDisp && isVetRep) || (isVetDisp && isSpayRep);
+
+                if (repUnit && dispUnit && !repUnit.includes(dispUnit) && !dispUnit.includes(repUnit) && !isSpayVetMatch) {
+                    mismatchFields.push('หน่วยงาน');
+                }
+                if (repTeam && dispTeam && repTeam !== dispTeam) {
+                    mismatchFields.push('ทีมปฏิบัติการ');
+                }
+
+                if (mismatchFields.length > 0) {
+                    mismatches.push({ date: rep.date, location: rep.location, mismatchFields, report: rep, dispatch: matchedDispatch });
+                }
+            }
+        });
+
+        const today = new Date().toISOString().split('T')[0];
+        events.forEach(d => {
+            if (d.date > today || d.status === 'cancelled') return;
+            const loc = d.location?.trim();
+            if (!loc) return;
+
+            const isReported = reports.some(rep => rep.date === d.date && normalize(rep.location) === normalize(loc));
+            if (!isReported) {
+                if (!unrepByLocation.has(loc)) unrepByLocation.set(loc, []);
+                unrepByLocation.get(loc)!.push(d);
+            }
+        });
+
+        const unscheduledResults = Array.from(unschByLocation.entries()).map(([loc, reps]) => ({
+            location: loc, count: reps.length, reports: reps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        })).sort((a, b) => b.count - a.count);
+
+        const unreportedResults = Array.from(unrepByLocation.entries()).map(([loc, evts]) => ({
+            location: loc, count: evts.length, events: evts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        })).sort((a, b) => b.count - a.count);
+
+        return { duplicateData: duplicates, unscheduledData: unscheduledResults, unreportedData: unreportedResults, mismatchData: mismatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
+    }, [events, reports]);
+
+    // --- Logic การกรองข้อมูลตามฟิลเตอร์ ---
+    const { fDup, fUnsch, fUnrep, fMis } = useMemo(() => {
+        const checkLoc = (loc: string) => !filterLocation || (loc || '').toLowerCase().includes(filterLocation.toLowerCase());
+        const checkDate = (date: string) => !filterDate || date === filterDate;
+        const checkUnit = (u1?: string, u2?: string) => {
+            if (filterUnit === 'ทั้งหมด') return true;
+            return (u1 === filterUnit) || (u2 === filterUnit);
+        };
+
+        const fDup = duplicateData.map(d => {
+            const eFiltered = d.events ? d.events.filter((e: any) => checkDate(e.date) && checkUnit(e.unit || e.unitName || e.title, '')) : [];
+            return { ...d, events: eFiltered, count: eFiltered.length };
+        }).filter(d => checkLoc(d.location) && d.count > 1);
+
+        const fUnsch = unscheduledData.map(d => {
+            const rFiltered = d.reports.filter((r: any) => checkDate(r.date) && checkUnit(r.unit, ''));
+            return { ...d, reports: rFiltered, count: rFiltered.length };
+        }).filter(d => checkLoc(d.location) && d.count > 0);
+
+        const fUnrep = unreportedData.map(d => {
+            const eFiltered = d.events.filter((e: any) => checkDate(e.date) && checkUnit(e.unit || e.unitName || e.title, ''));
+            return { ...d, events: eFiltered, count: eFiltered.length };
+        }).filter(d => checkLoc(d.location) && d.count > 0);
+
+        const fMis = mismatchData.filter(m =>
+            checkLoc(m.location) && checkDate(m.date) && checkUnit(m.report?.unit, m.dispatch?.unit || m.dispatch?.unitName || m.dispatch?.title)
+        );
+
+        return { fDup, fUnsch, fUnrep, fMis };
+    }, [duplicateData, unscheduledData, unreportedData, mismatchData, filterDate, filterLocation, filterUnit]);
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[6000] flex justify-center items-center bg-slate-900/50 backdrop-blur-sm transition-opacity p-4">
-            <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
                 
-                {/* ... (ส่วน Header เหมือนเดิม) ... */}
+                {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-amber-50 to-white shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white shadow-md">
                             <Copy className="w-5 h-5" />
                         </div>
                         <div>
-                            <h2 className="text-sm font-black text-slate-800">ตรวจสอบข้อมูลซ้ำ (Duplicate Check)</h2>
-                            <p className="text-[10px] text-slate-500">แสดงรายชื่อสถานที่ที่มีการออกหน่วยหรือถูกบันทึกซ้ำกัน</p>
+                            <h2 className="text-sm font-black text-slate-800">ตรวจสอบความถูกต้อง (Cross-check)</h2>
+                            <p className="text-[10px] text-slate-500">ตรวจสอบปฏิทินซ้ำซ้อน และเทียบกับข้อมูลรายงานผล</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
-                        <X className="w-5 h-5" />
+                    <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-3 bg-slate-50/80 px-4 sm:px-6 py-4 border-b border-slate-200 shrink-0 z-10">
+                    <div className="flex-1 min-w-[200px] relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input type="text" placeholder="ค้นหาสถานที่..." value={filterLocation} onChange={e => setFilterLocation(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm transition-all" />
+                    </div>
+                    <div className="w-full sm:w-[150px]">
+                        <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 text-slate-600 cursor-pointer shadow-sm transition-all" />
+                    </div>
+                    <div className="w-full sm:w-[150px]">
+                        <select value={filterUnit} onChange={e => setFilterUnit(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 text-slate-600 cursor-pointer shadow-sm transition-all">
+                            {availableUnits.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                        </select>
+                    </div>
+                    {(filterLocation || filterDate || filterUnit !== 'ทั้งหมด') && (
+                        <button onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterUnit('ทั้งหมด'); }} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded-xl text-[11px] font-bold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-sm">
+                            <X className="w-3.5 h-3.5" /> ล้าง
+                        </button>
+                    )}
+                </div>
+
+                {/* Tabs */}
+                <div className="flex bg-slate-50 border-b border-slate-200 px-4 sm:px-6 pt-3 gap-2 shrink-0 overflow-x-auto custom-scrollbar">
+                    <button onClick={() => setActiveTab('duplicates')} className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'duplicates' ? 'bg-white text-rose-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}>
+                        <Copy className="w-4 h-4 hidden sm:block" /> 1. ปฏิทินซ้ำ <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'duplicates' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'}`}>{fDup.length} แห่ง</span>
+                    </button>
+                    <button onClick={() => setActiveTab('unreported')} className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'unreported' ? 'bg-white text-emerald-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}>
+                        <Database className="w-4 h-4 hidden sm:block" /> 2. ยังไม่ลงยอด <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'unreported' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>{fUnrep.length} แห่ง</span>
+                    </button>
+                    <button onClick={() => setActiveTab('unscheduled')} className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'unscheduled' ? 'bg-white text-amber-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}>
+                        <CalendarDays className="w-4 h-4 hidden sm:block" /> 3. ไม่มีในปฏิทิน <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'unscheduled' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>{fUnsch.length} แห่ง</span>
+                    </button>
+                    <button onClick={() => setActiveTab('mismatch')} className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'mismatch' ? 'bg-white text-orange-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}>
+                        <AlertTriangle className="w-4 h-4 hidden sm:block" /> 4. ข้อมูลขัดแย้ง <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'mismatch' ? 'bg-orange-100 text-orange-700' : 'bg-slate-200 text-slate-600'}`}>{fMis.length} แห่ง</span>
                     </button>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-slate-50/50">
-                    {duplicateData.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-emerald-500">
-                            <CheckCircle className="w-12 h-12 mb-3 text-emerald-300" />
-                            <h3 className="font-bold text-sm">ยอดเยี่ยม! ไม่พบข้อมูลสถานที่ซ้ำ</h3>
-                            <p className="text-[10px] mt-1 text-slate-400">ข้อมูลทั้งหมดในระบบมีความเป็นเอกลักษณ์</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 mb-4 bg-amber-100/50 text-amber-700 text-[10px] p-3 rounded-xl border border-amber-200">
-                                <AlertTriangle className="w-4 h-4 shrink-0" />
-                                <span>พบสถานที่ที่มีการบันทึกซ้ำทั้งหมด <strong>{duplicateData.length}</strong> แห่ง</span>
-                            </div>
-
-                            {duplicateData.map((item, idx) => {
-                                const dateCounts = item.events.reduce((acc, curr) => {
-                                    acc[curr.date] = (acc[curr.date] || 0) + 1;
-                                    return acc;
-                                }, {} as Record<string, number>);
-
-                                return (
-                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                                        <div className="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                                            <h4 className="font-bold text-[11px] text-slate-800 flex items-center gap-2">
-                                                <MapPin className="w-3.5 h-3.5 text-rose-500" />
-                                                {item.location}
-                                            </h4>
-                                            <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg text-[9px] font-bold">
-                                                ซ้ำ {item.count} ครั้ง
-                                            </span>
-                                        </div>
-                                        <div className="p-3">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                {item.events.map((evt, eIdx) => {
-                                                    const isDateDuplicated = dateCounts[evt.date] > 1;
-
+                    
+                    {/* TAB 1: ปฏิทินซ้ำ */}
+                    {activeTab === 'duplicates' && (
+                        fDup.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500"><CheckCircle className="w-12 h-12 mb-3 text-emerald-300" /><h3 className="font-bold text-sm">ไม่พบปฏิทินซ้ำซ้อน</h3></div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4 bg-rose-50 text-rose-700 text-[10px] p-3 rounded-xl border border-rose-200">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                    <span>พบปฏิทินที่มี <strong>สถานที่และวันที่ตรงกัน</strong> จำนวน <strong>{fDup.length}</strong> แห่ง</span>
+                                </div>
+                                {fDup.map((item, idx) => {
+                                    const dateCounts = item.events.reduce((acc: any, curr: any) => { acc[curr.date] = (acc[curr.date] || 0) + 1; return acc; }, {});
+                                    return (
+                                        <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                            <div className="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                                <h4 className="font-bold text-[11px] text-slate-800 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-rose-500" />{item.location}</h4>
+                                                <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg text-[9px] font-bold">ซ้ำ {item.count} ครั้ง</span>
+                                            </div>
+                                            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                {item.events.map((evt: any, eIdx: number) => {
+                                                    const isDuplicated = dateCounts[evt.date] > 1;
                                                     return (
-                                                        // 3. เพิ่ม onClick, cursor-pointer และเอฟเฟกต์ hover เมื่อชี้การ์ด
-                                                        <div 
-                                                            key={eIdx} 
-                                                            onClick={() => onSelectDate(evt.date)}
-                                                            className={`text-[9px] p-2 rounded-lg border flex flex-col gap-1 transition-all cursor-pointer hover:shadow-md hover:scale-[1.02] ${isDateDuplicated ? 'border-rose-200 bg-rose-50/50 hover:border-rose-400' : 'border-slate-100 bg-slate-50/50 hover:border-indigo-400'}`}
-                                                        >
-                                                            <div className={`font-bold flex justify-between items-center ${isDateDuplicated ? 'text-rose-600' : 'text-indigo-600'}`}>
-                                                                <span className="flex items-center gap-1">
-                                                                    {new Date(evt.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                                                    {isDateDuplicated && (
-                                                                        <span title="วันที่ซ้ำกันในสถานที่นี้" className="flex items-center">
-                                                                            <AlertTriangle className="w-3 h-3 text-rose-500" />
-                                                                        </span>
-                                                                    )}
-                                                                </span>
-                                                                <span className={`font-medium ${isDateDuplicated ? 'text-rose-400' : 'text-slate-400'}`}>{evt.time || 'ไม่ระบุเวลา'}</span>
+                                                        <div key={eIdx} onClick={() => onSelectDate(evt.date)} className={`text-[9px] p-2 rounded-lg border flex flex-col gap-1 cursor-pointer hover:shadow-md ${isDuplicated ? 'border-rose-200 bg-rose-50/50' : 'border-slate-100 bg-slate-50/50'}`}>
+                                                            <div className={`font-bold flex justify-between ${isDuplicated ? 'text-rose-600' : 'text-indigo-600'}`}>
+                                                                <span>{evt.date}</span><span>{evt.time || '-'}</span>
                                                             </div>
-                                                            <div className="text-slate-600 truncate" title={evt.title}>{evt.title || 'ไม่มีชื่อกิจกรรม'}</div>
-                                                            <div className="text-slate-400">ทีม: {evt.team || '-'}</div>
+                                                            <div className="text-slate-600 truncate">{evt.title || '-'}</div>
                                                         </div>
                                                     );
                                                 })}
                                             </div>
                                         </div>
+                                    );
+                                })}
+                            </div>
+                        )
+                    )}
+
+                    {/* TAB 2: ปฏิทินที่ยังไม่ลงยอด */}
+                    {activeTab === 'unreported' && (
+                        fUnrep.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500"><CheckCircle className="w-12 h-12 mb-3 text-emerald-300" /><h3 className="font-bold text-sm">ปฏิทินทั้งหมดลงยอดครบถ้วน</h3></div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4 bg-emerald-50 text-emerald-700 text-[10px] p-3 rounded-xl border border-emerald-200">
+                                    <Database className="w-4 h-4 shrink-0" /><span>พบปฏิทิน (ที่ผ่านไปแล้ว) <strong>ยังไม่ได้บันทึกยอด</strong> จำนวน <strong>{fUnrep.length}</strong> แห่ง</span>
+                                </div>
+                                {fUnrep.map((item, idx) => (
+                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                            <h4 className="font-bold text-xs text-slate-800 flex items-center gap-2"><MapPin className="w-4 h-4 text-emerald-500" /> {item.location}</h4>
+                                        </div>
+                                        <div className="flex flex-col divide-y divide-slate-100">
+                                            {item.events.map((evt: any, eIdx: number) => (
+                                                <div key={eIdx} onClick={() => onSelectDate(evt.date)} className="p-3.5 flex justify-between gap-3 cursor-pointer hover:bg-emerald-50">
+                                                    <div className="flex gap-4"><div className="text-emerald-600 font-bold text-[11px]">{evt.date}</div><div className="text-[10px] text-slate-600">หน่วย: {evt.unit || evt.unitName || evt.title || '-'}</div></div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                ))}
+                            </div>
+                        )
+                    )}
+
+                    {/* TAB 3: ลงยอดแต่ไม่มีในปฏิทิน */}
+                    {activeTab === 'unscheduled' && (
+                        fUnsch.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500"><CheckCircle className="w-12 h-12 mb-3 text-emerald-300" /><h3 className="font-bold text-sm">ยอดเยี่ยม! ข้อมูลรายงานทั้งหมดตรงกับปฏิทิน</h3></div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4 bg-amber-50 text-amber-700 text-[10px] p-3 rounded-xl border border-amber-200">
+                                    <CalendarDays className="w-4 h-4 shrink-0" /><span>พบรายงานผลที่ <strong>ไม่มีในปฏิทินออกหน่วย</strong> จำนวน <strong>{fUnsch.length}</strong> แห่ง</span>
+                                </div>
+                                {fUnsch.map((item, idx) => (
+                                    <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                                            <h4 className="font-bold text-xs text-slate-800 flex items-center gap-2"><MapPin className="w-4 h-4 text-amber-500" /> {item.location}</h4>
+                                        </div>
+                                        <div className="flex flex-col divide-y divide-slate-100">
+                                            {item.reports.map((rep: any, eIdx: number) => (
+                                                <div key={eIdx} onClick={() => onSelectDate(rep.date)} className="p-3.5 flex justify-between gap-3 cursor-pointer hover:bg-amber-50">
+                                                    <div className="flex gap-4"><div className="text-amber-600 font-bold text-[11px]">{rep.date}</div><div className="text-[10px] text-slate-600">หน่วย: {rep.unit || '-'}</div></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    )}
+
+                    {/* TAB 4: Mismatch */}
+                    {activeTab === 'mismatch' && (
+                        fMis.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500"><CheckCircle className="w-12 h-12 mb-3 text-emerald-300" /><h3 className="font-bold text-sm">ข้อมูลตรงกันทั้งหมด</h3></div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4 bg-orange-50 text-orange-700 text-[10px] p-3 rounded-xl border border-orange-200">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" /><span>พบข้อมูล <strong>ระบุรายละเอียดขัดแย้งกัน</strong> จำนวน <strong>{fMis.length}</strong> แห่ง</span>
+                                </div>
+                                {fMis.map((item, idx) => (
+                                    <div key={idx} onClick={() => onSelectDate(item.date)} className="bg-white border border-orange-200 rounded-xl overflow-hidden shadow-sm cursor-pointer hover:bg-orange-50 transition-colors">
+                                        <div className="px-4 py-3 bg-orange-50/50 border-b border-orange-100 flex justify-between items-center">
+                                            <h4 className="font-bold text-xs text-slate-800 flex items-center gap-2"><MapPin className="w-4 h-4 text-orange-500" /> {item.date} - {item.location}</h4>
+                                            <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-[10px] font-bold">ขัดแย้ง: {item.mismatchFields.join(', ')}</span>
+                                        </div>
+                                        <div className="p-3.5 text-[11px] grid grid-cols-2 gap-4">
+                                            <div className="border-r border-orange-100 pr-4">
+                                                <div className="font-bold text-slate-500 mb-1">ฝั่งปฏิทิน (Dispatch)</div>
+                                                <div className="truncate">หน่วย: {item.dispatch.unit || item.dispatch.unitName || item.dispatch.title || '-'}</div>
+                                                <div className="truncate">ทีม: {item.dispatch.team || '-'}</div>
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-500 mb-1">ฝั่งลงยอด (Report)</div>
+                                                <div className="truncate">หน่วย: {item.report.unit || '-'}</div>
+                                                <div className="truncate">ทีม: {item.report.team || '-'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -2782,6 +2989,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                 isOpen={isDuplicateModalOpen} 
                 onClose={() => setIsDuplicateModalOpen(false)} 
                 events={events} 
+                reports={reports}
                 onSelectDate={handleNavigateFromDuplicate}
             />
             <DispatchModal 
