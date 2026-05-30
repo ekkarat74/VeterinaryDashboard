@@ -342,7 +342,7 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
   }, [allEvents]);
 
   const UNIT_OPTIONS = [
-    { value: 'sterilization', label: 'หน่วยสัตว์แพทย์ (Veterinary Unit)', icon: '🏥' },
+    { value: 'sterilization', label: 'หน่วยสัตวแพทย์ (Veterinary Unit)', icon: '🏥' },
     { value: 'spay_neuter', label: 'หน่วยทำหมัน (Spay/Neuter Unit)', icon: '✂️' },
     { value: 'microchip', label: 'หน่วยวัคซีน + ไมโครชิป', icon: '💉' },
     { value: 'governor', label: 'หน่วยผู้ว่า (Governor Unit)', icon: '👔' },
