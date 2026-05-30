@@ -526,58 +526,66 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     // แจ้งอัปเดตตารางปกติ
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
 
-    // ✅ [ส่วนที่แก้ไขและเพิ่มใหม่] ตรวจสอบและเพิ่มปฏิทินออกหน่วยอัตโนมัติแบบรัดกุม 100%
+    // ✅ [ส่วนที่แก้ไขและเพิ่มใหม่] ตรวจสอบและอัปเดตสถานะปฏิทินออกแบบ Real-time
     try {
-    const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
-    
-    const normalizedNewLoc = normalizeLocation(savedReport.location);
-    const existingOnDate = await DispatchPlan.find({ date: savedReport.date }).lean();
-    const alreadyExists = existingOnDate.some(d => normalizeLocation(d.location) === normalizedNewLoc);
-
-    if (!alreadyExists) {
-        let autoUnitType = 'other';
-        let autoColor = 'bg-slate-400';
-        const unitName = savedReport.unit || '';
+        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
         
-        if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
-        else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
-        else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
-        else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
-        else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
+        const normalizedNewLoc = normalizeLocation(savedReport.location);
+        // เอา .lean() ออก เพื่อให้ใช้ .save() อัปเดตข้อมูลได้
+        const existingOnDate = await DispatchPlan.find({ date: savedReport.date });
+        const existingDispatch = existingOnDate.find(d => normalizeLocation(d.location) === normalizedNewLoc);
 
-        const correctDistrict = getDistrictForDispatch(savedReport);
+        if (!existingDispatch) {
+            let autoUnitType = 'other';
+            let autoColor = 'bg-slate-400';
+            const unitName = savedReport.unit || '';
+            
+            if (unitName.includes('ทำหมัน')) { autoUnitType = 'spay_neuter'; autoColor = 'bg-red-500'; }
+            else if (unitName.includes('วัคซีน') || unitName.includes('ไมโครชิป')) { autoUnitType = 'microchip'; autoColor = 'bg-blue-500'; }
+            else if (unitName.includes('กรงแมว')) { autoUnitType = 'cat_cage'; autoColor = 'bg-purple-500'; }
+            else if (unitName.includes('ผู้ว่า')) { autoUnitType = 'governor'; autoColor = 'bg-orange-500'; }
+            else if (unitName.includes('สัตวแพทย์')) { autoUnitType = 'sterilization'; autoColor = 'bg-green-500'; }
 
-        const newDispatch = new DispatchPlan({
-            unitType: autoUnitType,
-            customUnitName: autoUnitType === 'other' ? unitName : '',
-            unitLetter: '',
-            unitColor: autoColor,
-            title: unitName,
-            unit: unitName,
-            date: savedReport.date,
-            time: '08:30',
-            closingTime: '12:00',
-            location: savedReport.location.trim(),
-            locationDistrict: savedReport.locationDistrict || savedReport.district || '',
-            district: correctDistrict,
-            mapLink: savedReport.mapLink || '',
-            lat: savedReport.lat || 0,
-            lng: savedReport.long || 0,
-            note: savedReport.note || '',
-            team: savedReport.team || '',
-            staff: {},
-            createdBy: req.user.username || 'Auto-System',
-            status: 'completed',
-            isVisibleToPublic: true
-        });
-        
-        const savedDispatch = await newDispatch.save();
-        io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
-        createLog(req, 'AUTO_CREATE_DISPATCH', `สร้างแผนออกหน่วยอัตโนมัติ: ${savedDispatch.location}`);
+            const correctDistrict = getDistrictForDispatch(savedReport);
+
+            const newDispatch = new DispatchPlan({
+                unitType: autoUnitType,
+                customUnitName: autoUnitType === 'other' ? unitName : '',
+                unitLetter: '',
+                unitColor: autoColor,
+                title: unitName,
+                unit: unitName,
+                date: savedReport.date,
+                time: '08:30',
+                closingTime: '12:00',
+                location: savedReport.location.trim(),
+                locationDistrict: savedReport.locationDistrict || savedReport.district || '',
+                district: correctDistrict,
+                mapLink: savedReport.mapLink || '',
+                lat: savedReport.lat || 0,
+                lng: savedReport.long || 0,
+                note: savedReport.note || '',
+                team: savedReport.team || '',
+                staff: {},
+                createdBy: req.user.username || 'Auto-System',
+                status: 'completed', // กำหนดสถานะเป็น completed ทันที
+                isVisibleToPublic: true
+            });
+            
+            const savedDispatch = await newDispatch.save();
+            io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
+            createLog(req, 'AUTO_CREATE_DISPATCH', `สร้างแผนออกหน่วยอัตโนมัติ: ${savedDispatch.location}`);
+        } else {
+            // ✅ [เพิ่มใหม่] ถ้ามีหน่วยนี้ในปฏิทินอยู่แล้ว ให้อัปเดตสถานะเป็น 'completed' อัตโนมัติ
+            if (existingDispatch.status !== 'completed') {
+                existingDispatch.status = 'completed';
+                await existingDispatch.save();
+                io.emit('server_data_update', { type: 'DISPATCH_UPDATED', data: existingDispatch });
+            }
+        }
+    } catch (dispatchErr) {
+        console.error("Auto-create dispatch failed:", dispatchErr);
     }
-} catch (dispatchErr) {
-    console.error("Auto-create dispatch failed:", dispatchErr);
-}
 
     // 🔔 สร้างและส่ง Notification เข้าระบบกระดิ่งแจ้งเตือน
     const notif = await Notification.create({

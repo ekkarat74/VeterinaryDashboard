@@ -3,7 +3,7 @@ import {
     CalendarDays, X, Plus, Clock, Users, CheckCircle, ChevronLeft, ChevronRight, Calendar, Search, Phone, MapPin,
     Unlock, LogOut, Megaphone, Edit3, ChevronUp, ChevronDown, Trash2, Save, UserPlus,
     Volume2, VolumeX, FileText, LayoutDashboard, Activity, Truck, Settings, Bell, MoreHorizontal, Menu, FileDown, Table, Columns, Copy, AlertTriangle,
-    User, Shield, Database, Smartphone
+    User, Shield, Database, Smartphone, TrendingUp, Layers
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
@@ -1491,6 +1491,14 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
         const statusCount: Record<string, number> = {
             'เสร็จสิ้น': 0, 'กำลังดำเนินงาน': 0, 'รอปฏิบัติงาน': 0, 'ยกเลิก': 0
         };
+        const monthCount: Record<string, number> = {};
+        const typeCount: Record<string, number> = {};
+        
+        // 🌟 ส่วนที่เพิ่ม: ตัวแปรสำหรับ 2 กราฟใหม่
+        const teamCount: Record<string, number> = {};
+        const dayOfWeekCount: Record<string, number> = {
+            'อาทิตย์': 0, 'จันทร์': 0, 'อังคาร': 0, 'พุธ': 0, 'พฤหัสบดี': 0, 'ศุกร์': 0, 'เสาร์': 0
+        };
 
         events.forEach(e => {
             // นับจำนวนตามหน่วยงาน
@@ -1507,14 +1515,46 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
             else if (st.includes('กำลังดำเนินงาน')) statusCount['กำลังดำเนินงาน']++;
             else if (st.includes('ยกเลิก')) statusCount['ยกเลิก']++;
             else statusCount['รอปฏิบัติงาน']++;
+
+            // นับจำนวนรายเดือน (YYYY-MM) สำหรับกราฟเส้น
+            if (e.date) {
+                const monthKey = e.date.substring(0, 7); 
+                monthCount[monthKey] = (monthCount[monthKey] || 0) + 1;
+
+                // 🌟 ส่วนที่เพิ่ม: หาวันในสัปดาห์
+                const dateObj = new Date(e.date);
+                const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+                const dayName = days[dateObj.getDay()];
+                if(dayName) dayOfWeekCount[dayName]++;
+            }
+
+            // นับตามประเภทงาน สำหรับกราฟโดนัท
+            let typeKey = 'ทั่วไป/อื่นๆ';
+            const titleStr = (e.title || '').toLowerCase();
+            if (titleStr.includes('วัคซีน') || titleStr.includes('ไมโครชิป')) typeKey = 'วัคซีน/ไมโครชิป';
+            else if (titleStr.includes('ทำหมัน')) typeKey = 'หน่วยทำหมัน';
+            else if (titleStr.includes('สัตวแพทย์')) typeKey = 'หน่วยสัตวแพทย์';
+            else if (titleStr.includes('กรงแมว')) typeKey = 'กรงแมว';
+            else if (titleStr.includes('ผู้ว่า')) typeKey = 'หน่วยผู้ว่าฯ';
+
+            typeCount[typeKey] = (typeCount[typeKey] || 0) + 1;
+
+            // 🌟 ส่วนที่เพิ่ม: นับตามทีมปฏิบัติการ
+            const team = e.team?.trim() || 'ไม่ระบุทีม';
+            teamCount[team] = (teamCount[team] || 0) + 1;
         });
 
-        // จัดเรียงและดึงเฉพาะ Top 10 มาแสดงในกราฟแท่ง
         const unitData = Object.keys(unitCount).map(k => ({ name: k, value: unitCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
         const districtData = Object.keys(districtCount).map(k => ({ name: k, value: districtCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
         const statusData = Object.keys(statusCount).map(k => ({ name: k, value: statusCount[k] }));
+        const monthData = Object.keys(monthCount).sort().map(k => ({ name: k, value: monthCount[k] }));
+        const typeData = Object.keys(typeCount).map(k => ({ name: k, value: typeCount[k] })).sort((a, b) => b.value - a.value);
+        
+        // 🌟 ส่วนที่เพิ่ม: จัดเตรียมข้อมูลให้ 2 กราฟใหม่
+        const teamData = Object.keys(teamCount).map(k => ({ name: k, value: teamCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
+        const dayOfWeekData = Object.keys(dayOfWeekCount).map(k => ({ name: k, value: dayOfWeekCount[k] }));
 
-        return { unitData, districtData, statusData, total: events.length };
+        return { unitData, districtData, statusData, monthData, typeData, teamData, dayOfWeekData, total: events.length };
     }, [events]);
 
     const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f97316', '#14b8a6'];
@@ -1553,7 +1593,41 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                     </div>
                 </div>
 
-                {/* 2. กราฟแท่ง: ปริมาณงานรายเขต */}
+                {/* 2. กราฟโดนัท: สัดส่วนประเภทกิจกรรม */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Layers className="w-4 h-4 text-purple-500"/> สัดส่วนประเภทกิจกรรม</h3>
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={stats.typeData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
+                                    {stats.typeData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 3. กราฟเส้น: แนวโน้มปริมาณงานรายเดือน */}
+                <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-500"/> แนวโน้มปริมาณงาน (รายเดือน)</h3>
+                    <div className="h-[250px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={stats.monthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <Tooltip cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }} contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, fill: '#2563eb' }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 4. กราฟแท่ง: ปริมาณงานรายเขต */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                     <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><MapPin className="w-4 h-4 text-rose-500"/> พื้นที่ให้บริการสูงสุด (Top 10 เขต)</h3>
                     <div className="h-[250px] w-full">
@@ -1573,21 +1647,38 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                     </div>
                 </div>
 
-                {/* 3. กราฟแท่ง: ปริมาณงานรายหน่วย */}
-                <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                {/* 5. กราฟแท่ง: ปริมาณงานรายหน่วย */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                     <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Users className="w-4 h-4 text-emerald-500"/> ปริมาณงานแบ่งตามหน่วย (Top 10 หน่วย)</h3>
-                    <div className="h-[300px] w-full mt-4">
+                    <div className="h-[250px] w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats.unitData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                            <BarChart data={stats.unitData} margin={{ top: 20, right: 10, left: -20, bottom: 60 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} angle={-35} textAnchor="end" />
                                 <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
+                                <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={24} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
+
+                {/* 🌟 7. (เพิ่มใหม่) กราฟแท่ง: วันที่ออกปฏิบัติงานบ่อยที่สุด */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-teal-500"/> วันที่ออกปฏิบัติงานบ่อยที่สุด</h3>
+                    <div className="h-[250px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.dayOfWeekData} margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Bar dataKey="value" fill="#14b8a6" radius={[6, 6, 0, 0]} barSize={32} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
             </div>
         </div>
     );
@@ -1607,6 +1698,13 @@ const DispatchCalendarDashboard: React.FC = () => {
     const deferredSearchTerm = useDeferredValue(searchTerm);
     const [selectedType, setSelectedType] = useState<string>('ทุกประเภท');
 
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+    const [filterDistrict, setFilterDistrict] = useState<string>('ทั้งหมด');
+    const [filterUnit, setFilterUnit] = useState<string>('ทั้งหมด');
+    const [filterStatus, setFilterStatus] = useState<string>('ทั้งหมด');
+    const [filterStartDate, setFilterStartDate] = useState<string>('');
+    const [filterEndDate, setFilterEndDate] = useState<string>('');
+
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
     const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
     const [activeMenu, setActiveMenu] = useState<'dashboard' | 'calendar' | 'activities' | 'settings' | 'reports'>('dashboard');
@@ -1620,6 +1718,30 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [volume, setVolume] = useState<number>(0.3); 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        const socket = io(BASE_URL);
+
+        socket.on('server_data_update', (payload: any) => {
+            if (payload.type === 'REPORT_ADDED') {
+                setReports(prev => [payload.data, ...prev]);
+            } else if (payload.type === 'REPORT_UPDATED') {
+                setReports(prev => prev.map(r => r._id === payload.data._id ? payload.data : r));
+            } else if (payload.type === 'REPORT_DELETED') {
+                setReports(prev => prev.filter(r => r._id !== payload.id));
+            } else if (payload.type === 'DISPATCH_ADDED') {
+                setEvents(prev => [...prev, { ...payload.data, type: 'dispatch', originalData: payload.data }]);
+            } else if (payload.type === 'DISPATCH_UPDATED') {
+                setEvents(prev => prev.map(e => e._id === payload.data._id ? { ...payload.data, type: 'dispatch', originalData: payload.data } : e));
+            } else if (payload.type === 'DISPATCH_DELETED') {
+                setEvents(prev => prev.filter(e => e._id !== payload.id));
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     const pendingActivitiesCount = useMemo(() => {
     return events.filter(e => {
@@ -1656,18 +1778,46 @@ const DispatchCalendarDashboard: React.FC = () => {
     const TIMELINE_END_HOUR = 18;
     const TIMELINE_TOTAL_MINS = (TIMELINE_END_HOUR - TIMELINE_START_HOUR) * 60;
 
+    const filterOptions = useMemo(() => {
+        const districts = new Set<string>();
+        const units = new Set<string>();
+        events.forEach(e => {
+            if (e.district) districts.add(e.district);
+            if (e.unit) units.add(e.unit);
+            else if (e.unitName) units.add(e.unitName);
+        });
+        return {
+            districts: ['ทั้งหมด', ...Array.from(districts).sort()],
+            units: ['ทั้งหมด', ...Array.from(units).sort()],
+            statuses: ['ทั้งหมด', 'รอปฏิบัติงาน', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก']
+        };
+    }, [events]);
+
+    // 🟢 3. แก้ไข displayEvents เพื่อให้รองรับฟิลเตอร์ใหม่
     const displayEvents = useMemo(() => {
         return events.filter(e => {
+            // ค้นหาข้อความ
             const matchSearch = !deferredSearchTerm || 
                 e.location?.toLowerCase().includes(deferredSearchTerm.toLowerCase()) || 
                 e.title?.toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
                 e.team?.toLowerCase().includes(deferredSearchTerm.toLowerCase());
         
+            // กรองประเภท
             const baseType = getBaseType(e.title, e.type);
             const matchType = selectedType === 'ทุกประเภท' || baseType === selectedType;
-            return matchSearch && matchType;
+
+            // ฟิลเตอร์ใหม่
+            const matchDistrict = filterDistrict === 'ทั้งหมด' || e.district === filterDistrict;
+            const matchUnit = filterUnit === 'ทั้งหมด' || (e.unit || e.unitName) === filterUnit;
+            
+            const st = getDispatchStatus(e)?.text || '';
+            const matchStatus = filterStatus === 'ทั้งหมด' || st.includes(filterStatus);
+
+            const matchDate = (!filterStartDate || e.date >= filterStartDate) && (!filterEndDate || e.date <= filterEndDate);
+
+            return matchSearch && matchType && matchDistrict && matchUnit && matchStatus && matchDate;
         });
-    }, [events, deferredSearchTerm, selectedType]);
+    }, [events, deferredSearchTerm, selectedType, filterDistrict, filterUnit, filterStatus, filterStartDate, filterEndDate]);
 
     const stats = useMemo(() => {
         const todayStr = toLocalISOString(new Date());
@@ -2587,43 +2737,70 @@ const DispatchCalendarDashboard: React.FC = () => {
                                         
                                         {/* Header & Controls */}
                                         <div className="bg-white rounded-[1.5rem] p-4 lg:p-5 shadow-sm border border-slate-100 flex flex-col gap-4">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                <div>
-                                                    <h3 className="text-base lg:text-lg font-black text-slate-800 tracking-tight">
-                                                        {selectedDate.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}
-                                                    </h3>
-                                                    <p className="text-[10px] text-slate-500 font-medium mt-1">
-                                                        มี {selectedDateEvents.length} กิจกรรม {selectedDateEvents.length > 0 && `(แสดง ${selectedDateEvents.length})`}
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100">
-                                                    <button onClick={() => { playSound('pop'); setViewMode('list'); }}
-                                                        className={`px-5 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white'}`}
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex flex-col sm:flex-row items-center gap-3">
+                                                    <div className="relative w-full flex-1">
+                                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="ค้นหางาน โลเคชัน ทีม สถานที่..." 
+                                                            value={searchTerm} 
+                                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-[10px] font-medium text-slate-700 shadow-sm" 
+                                                        />
+                                                    </div>
+                                                    {/* 🟢 4. ทำให้ปุ่ม Settings นี้สลับการเปิด/ปิด Advanced Filters */}
+                                                    <button 
+                                                        onClick={() => { playSound('pop'); setShowAdvancedFilters(!showAdvancedFilters); }}
+                                                        className={`w-full sm:w-auto px-4 py-3 border rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 text-[10px] font-bold ${showAdvancedFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
                                                     >
-                                                        <LayoutDashboard className="w-3.5 h-3.5" /> มุมมองรายการ
-                                                    </button>
-                                                    <button onClick={() => { playSound('pop'); setViewMode('timeline'); }}
-                                                        className={`px-5 py-2 text-[10px] font-bold rounded-lg transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-white'}`}
-                                                    >
-                                                        <Activity className="w-3.5 h-3.5" /> มุมมองไทม์ไลน์
+                                                        <Settings className="w-4 h-4" /> ฟิลเตอร์เพิ่มเติม
                                                     </button>
                                                 </div>
-                                            </div>
 
-                                            <div className="flex flex-col sm:flex-row items-center gap-3">
-                                                <div className="relative w-full flex-1">
-                                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="ค้นหางาน โลเคชัน ทีม สถานที่..." 
-                                                        value={searchTerm} 
-                                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-[10px] font-medium text-slate-700 shadow-sm" 
-                                                    />
-                                                </div>
-                                                <button className="w-full sm:w-auto px-4 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center justify-center">
-                                                    <Settings className="w-4 h-4" />
-                                                </button>
+                                                {/* 🟢 5. เพิ่ม Advanced Filters UI */}
+                                                {showAdvancedFilters && (
+                                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in slide-in-from-top-2">
+                                                        <div>
+                                                            <label className="block text-[9px] font-bold text-slate-500 mb-1">เขต/พื้นที่</label>
+                                                            <select value={filterDistrict} onChange={(e) => setFilterDistrict(e.target.value)} className="w-full p-2.5 bg-white rounded-lg text-[10px] border border-slate-200 outline-none focus:border-indigo-400">
+                                                                {filterOptions.districts.map(d => <option key={d} value={d}>{d}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[9px] font-bold text-slate-500 mb-1">หน่วยงาน</label>
+                                                            <select value={filterUnit} onChange={(e) => setFilterUnit(e.target.value)} className="w-full p-2.5 bg-white rounded-lg text-[10px] border border-slate-200 outline-none focus:border-indigo-400">
+                                                                {filterOptions.units.map(u => <option key={u} value={u}>{u}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[9px] font-bold text-slate-500 mb-1">สถานะ</label>
+                                                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full p-2.5 bg-white rounded-lg text-[10px] border border-slate-200 outline-none focus:border-indigo-400">
+                                                                {filterOptions.statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[9px] font-bold text-slate-500 mb-1">ตั้งแต่วันที่</label>
+                                                            <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} className="w-full p-2.5 bg-white rounded-lg text-[10px] border border-slate-200 outline-none focus:border-indigo-400" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[9px] font-bold text-slate-500 mb-1">ถึงวันที่</label>
+                                                            <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full p-2.5 bg-white rounded-lg text-[10px] border border-slate-200 outline-none focus:border-indigo-400" />
+                                                        </div>
+                                                        
+                                                        {/* ปุ่มล้างฟิลเตอร์จะโผล่มาเมื่อมีการใช้งานฟิลเตอร์ */}
+                                                        {(filterDistrict !== 'ทั้งหมด' || filterUnit !== 'ทั้งหมด' || filterStatus !== 'ทั้งหมด' || filterStartDate || filterEndDate) && (
+                                                            <div className="col-span-2 md:col-span-5 flex justify-end mt-1">
+                                                                <button 
+                                                                    onClick={() => { setFilterDistrict('ทั้งหมด'); setFilterUnit('ทั้งหมด'); setFilterStatus('ทั้งหมด'); setFilterStartDate(''); setFilterEndDate(''); }} 
+                                                                    className="text-[9px] text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1"
+                                                                >
+                                                                    <X className="w-3 h-3" /> ล้างฟิลเตอร์ทั้งหมด
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Filter Chips */}
@@ -2980,11 +3157,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                         )}
 
                         {/* ===================== หน้ารายงาน (Reports) ===================== */}
-{activeMenu === 'reports' && (
-    <div className="min-h-full h-auto pb-10">
-        <ReportsPage events={events} />
-    </div>
-)}
+                        {activeMenu === 'reports' && (
+                            <div className="min-h-full h-auto pb-10">
+                                <ReportsPage events={events} />
+                            </div>
+                        )}
                     </main>
                 </div>
             </div>
