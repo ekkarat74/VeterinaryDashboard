@@ -5,6 +5,11 @@ import {
     Volume2, VolumeX, FileText, LayoutDashboard, Activity, Truck, Settings, Bell, MoreHorizontal, Menu, FileDown, Table, Columns, Copy, AlertTriangle,
     User, Shield, Database, Smartphone
 } from 'lucide-react';
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
+    PieChart, Pie, Cell, LineChart, Line 
+} from 'recharts';
+import { io } from "socket.io-client";
 
 import DispatchModal from './modals/DispatchModal'; 
 import LoginModal from './modals/LoginModal';
@@ -1110,19 +1115,56 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
     const [filterLocation, setFilterLocation] = useState<string>('');
     const [filterUnit, setFilterUnit] = useState<string>('ทั้งหมด');
 
-    // --- ดึงรายชื่อหน่วยทั้งหมดสำหรับ Dropdown ฟิลเตอร์ ---
+    const [liveEvents, setLiveEvents] = useState<EventData[]>(events);
+    const [liveReports, setLiveReports] = useState<any[]>(reports);
+
+    // 🟢 2. ซิงค์จาก Props
+    useEffect(() => {
+        setLiveEvents(events);
+        setLiveReports(reports);
+    }, [events, reports]);
+
+    // 🟢 3. ฟัง Event Socket
+    useEffect(() => {
+        if (!isOpen) return;
+        const socket = io('https://veterinarydashboard-hwho.onrender.com');
+
+        socket.on('server_data_update', (payload: any) => {
+            if (payload.type === 'DISPATCH_ADDED') {
+                setLiveEvents(prev => [...prev, payload.data]);
+            } else if (payload.type === 'DISPATCH_UPDATED') {
+                setLiveEvents(prev => prev.map(d => d._id === payload.data._id ? payload.data : d));
+            } else if (payload.type === 'DISPATCH_DELETED') {
+                setLiveEvents(prev => prev.filter(d => d._id !== payload.id));
+            } else if (payload.type === 'REPORT_ADDED') {
+                setLiveReports(prev => [payload.data, ...prev]);
+            } else if (payload.type === 'REPORT_UPDATED') {
+                setLiveReports(prev => prev.map(r => r._id === payload.data._id ? payload.data : r));
+            } else if (payload.type === 'REPORT_DELETED') {
+                setLiveReports(prev => prev.filter(r => r._id !== payload.id));
+            }
+        });
+
+        // 🟢 แก้ไขบรรทัดนี้: ใส่ {} เพื่อบังคับให้ return type เป็น void
+        return () => {
+            socket.disconnect();
+        };
+    }, [isOpen]);
+
+    // 🟢 4. อัปเดต useMemo ให้ใช้ตัวแปร Live
     const availableUnits = useMemo(() => {
         const units = new Set<string>();
-        events.forEach(e => { if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); else if(e.title) units.add(e.title); });
-        reports.forEach(r => { if(r.unit) units.add(r.unit); });
+        liveEvents.forEach(e => { if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); else if(e.title) units.add(e.title); });
+        liveReports.forEach(r => { if(r.unit) units.add(r.unit); });
         return ['ทั้งหมด', ...Array.from(units).filter(Boolean)];
-    }, [events, reports]);
+    }, [liveEvents, liveReports]); // <-- เปลี่ยน Dependency
 
     const { duplicateData, unscheduledData, unreportedData, mismatchData } = useMemo(() => {
         const normalize = (str: any) => (str || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
 
         const locationMap = new Map<string, EventData[]>();
-        events.forEach(evt => {
+        // 🟢 เปลี่ยนมาใช้ liveEvents
+        liveEvents.forEach(evt => {
             const loc = evt.location?.trim();
             if (!loc) return;
             const normalizedLoc = normalize(loc);
@@ -1146,18 +1188,21 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
         });
         duplicates.sort((a, b) => b.count - a.count);
 
-        if (!reports || reports.length === 0) return { duplicateData: duplicates, unscheduledData: [], unreportedData: [], mismatchData: [] };
+        // 🟢 เปลี่ยนมาใช้ liveReports
+        if (!liveReports || liveReports.length === 0) return { duplicateData: duplicates, unscheduledData: [], unreportedData: [], mismatchData: [] };
 
         const unschByLocation = new Map<string, any[]>();
         const unrepByLocation = new Map<string, any[]>();
         const mismatches: any[] = [];
 
-        reports.forEach(rep => {
+        // 🟢 เปลี่ยนมาใช้ liveReports
+        liveReports.forEach(rep => {
             const loc = rep.location?.trim();
             if (!loc) return;
             const normLoc = normalize(loc);
 
-            const matchedDispatch = events.find(d => d.date === rep.date && normalize(d.location) === normLoc);
+            // 🟢 เปลี่ยนมาใช้ liveEvents
+            const matchedDispatch = liveEvents.find(d => d.date === rep.date && normalize(d.location) === normLoc);
 
             if (!matchedDispatch) {
                 if (!unschByLocation.has(loc)) unschByLocation.set(loc, []);
@@ -1190,12 +1235,14 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
         });
 
         const today = new Date().toISOString().split('T')[0];
-        events.forEach(d => {
+        // 🟢 เปลี่ยนมาใช้ liveEvents
+        liveEvents.forEach(d => {
             if (d.date > today || d.status === 'cancelled') return;
             const loc = d.location?.trim();
             if (!loc) return;
 
-            const isReported = reports.some(rep => rep.date === d.date && normalize(rep.location) === normalize(loc));
+            // 🟢 เปลี่ยนมาใช้ liveReports
+            const isReported = liveReports.some(rep => rep.date === d.date && normalize(rep.location) === normalize(loc));
             if (!isReported) {
                 if (!unrepByLocation.has(loc)) unrepByLocation.set(loc, []);
                 unrepByLocation.get(loc)!.push(d);
@@ -1211,7 +1258,7 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
         })).sort((a, b) => b.count - a.count);
 
         return { duplicateData: duplicates, unscheduledData: unscheduledResults, unreportedData: unreportedResults, mismatchData: mismatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
-    }, [events, reports]);
+    }, [liveEvents, liveReports]); // 🟢 อัปเดต Dependency ตรงนี้
 
     // --- Logic การกรองข้อมูลตามฟิลเตอร์ ---
     const { fDup, fUnsch, fUnrep, fMis } = useMemo(() => {
@@ -1435,6 +1482,118 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
 };
 
 // ==========================================
+// Component: ReportsPage (หน้าต่างรายงานและกราฟ)
+// ==========================================
+const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
+    const stats = useMemo(() => {
+        const unitCount: Record<string, number> = {};
+        const districtCount: Record<string, number> = {};
+        const statusCount: Record<string, number> = {
+            'เสร็จสิ้น': 0, 'กำลังดำเนินงาน': 0, 'รอปฏิบัติงาน': 0, 'ยกเลิก': 0
+        };
+
+        events.forEach(e => {
+            // นับจำนวนตามหน่วยงาน
+            const u = e.unit || e.unitName || e.title || 'ไม่ระบุ';
+            unitCount[u] = (unitCount[u] || 0) + 1;
+
+            // นับจำนวนตามเขตพื้นที่
+            const d = e.district || 'ไม่ระบุเขต';
+            districtCount[d] = (districtCount[d] || 0) + 1;
+
+            // นับจำนวนตามสถานะ
+            const st = getDispatchStatus(e)?.text || '';
+            if (st.includes('เสร็จสิ้น') || st.includes('สิ้นสุด')) statusCount['เสร็จสิ้น']++;
+            else if (st.includes('กำลังดำเนินงาน')) statusCount['กำลังดำเนินงาน']++;
+            else if (st.includes('ยกเลิก')) statusCount['ยกเลิก']++;
+            else statusCount['รอปฏิบัติงาน']++;
+        });
+
+        // จัดเรียงและดึงเฉพาะ Top 10 มาแสดงในกราฟแท่ง
+        const unitData = Object.keys(unitCount).map(k => ({ name: k, value: unitCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
+        const districtData = Object.keys(districtCount).map(k => ({ name: k, value: districtCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
+        const statusData = Object.keys(statusCount).map(k => ({ name: k, value: statusCount[k] }));
+
+        return { unitData, districtData, statusData, total: events.length };
+    }, [events]);
+
+    const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f97316', '#14b8a6'];
+    const STATUS_COLORS: Record<string, string> = { 'เสร็จสิ้น': '#10b981', 'กำลังดำเนินงาน': '#3b82f6', 'รอปฏิบัติงาน': '#f59e0b', 'ยกเลิก': '#f43f5e' };
+
+    return (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            {/* Header KPI */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-black text-slate-800">ภาพรวมรายงานและสถิติ</h2>
+                    <p className="text-[10px] text-slate-500 font-medium">สรุปข้อมูลการออกหน่วยสัตวแพทย์ทั้งหมดในระบบ</p>
+                </div>
+                <div className="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 text-center">
+                    <div className="text-[10px] font-bold text-indigo-500">จำนวนงานทั้งหมด</div>
+                    <div className="text-2xl font-black text-indigo-700 leading-none">{stats.total}</div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 1. กราฟวงกลม: สถานะการดำเนินงาน */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Activity className="w-4 h-4 text-indigo-500"/> สัดส่วนสถานะงาน</h3>
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie data={stats.statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                    {stats.statusData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 2. กราฟแท่ง: ปริมาณงานรายเขต */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><MapPin className="w-4 h-4 text-rose-500"/> พื้นที่ให้บริการสูงสุด (Top 10 เขต)</h3>
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.districtData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#475569', fontWeight: 'bold' }} axisLine={false} tickLine={false} width={80} />
+                                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Bar dataKey="value" fill="#f43f5e" radius={[0, 6, 6, 0]} barSize={16}>
+                                    {stats.districtData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 3. กราฟแท่ง: ปริมาณงานรายหน่วย */}
+                <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Users className="w-4 h-4 text-emerald-500"/> ปริมาณงานแบ่งตามหน่วย (Top 10 หน่วย)</h3>
+                    <div className="h-[300px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.unitData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} angle={-35} textAnchor="end" />
+                                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ==========================================
 // 3. Main Component (Standalone Page)
 // ==========================================
 
@@ -1450,7 +1609,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
     const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-    const [activeMenu, setActiveMenu] = useState<'dashboard' | 'calendar' | 'activities' | 'settings'>('dashboard');
+    const [activeMenu, setActiveMenu] = useState<'dashboard' | 'calendar' | 'activities' | 'settings' | 'reports'>('dashboard');
 
     const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(false);
     const [activeSettingsTab, setActiveSettingsTab] = useState<string>('profile');
@@ -2099,9 +2258,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                         <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
                             <Users className="w-4 h-4" /> หน่วยสัตวแพทย์
                         </button>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
-                            <FileText className="w-4 h-4" /> รายงาน
-                        </button>
+                        <button 
+    onClick={() => { playSound('switch'); setActiveMenu('reports'); }}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'reports' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
+    <FileText className={`w-4 h-4 ${activeMenu === 'reports' ? 'text-indigo-300' : ''}`} /> สถิติและกราฟ
+</button>
                         <div className="flex flex-col gap-1">
                             <button 
                                 onClick={() => { 
@@ -2817,6 +2978,13 @@ const DispatchCalendarDashboard: React.FC = () => {
                         {activeMenu === 'settings' && activeSettingsTab !== 'announcements' && (
                             <SettingsPage activeTab={activeSettingsTab} user={user} addToast={addToast} />
                         )}
+
+                        {/* ===================== หน้ารายงาน (Reports) ===================== */}
+{activeMenu === 'reports' && (
+    <div className="min-h-full h-auto pb-10">
+        <ReportsPage events={events} />
+    </div>
+)}
                     </main>
                 </div>
             </div>

@@ -70,6 +70,42 @@ interface DuplicateReportModalProps {
 const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onClose, reports, dispatchEvents, onSelectRecord }) => {
     const [activeTab, setActiveTab] = useState<'duplicates' | 'unscheduled' | 'unreported' | 'mismatch'>('duplicates');
 
+    const [liveReports, setLiveReports] = useState<any[]>(reports);
+    const [liveDispatches, setLiveDispatches] = useState<any[]>(dispatchEvents);
+
+    // 🟢 2. ซิงค์ข้อมูลเริ่มต้นจาก Props
+    useEffect(() => {
+        setLiveReports(reports);
+        setLiveDispatches(dispatchEvents);
+    }, [reports, dispatchEvents]);
+
+    // 🟢 3. เพิ่ม Socket.io Listener ทำงานเฉพาะตอนเปิด Modal
+    useEffect(() => {
+        if (!isOpen) return;
+        const socket = io('https://veterinarydashboard-hwho.onrender.com');
+
+        socket.on('server_data_update', (payload: any) => {
+            if (payload.type === 'REPORT_ADDED') {
+                setLiveReports(prev => [payload.data, ...prev]);
+            } else if (payload.type === 'REPORT_UPDATED') {
+                setLiveReports(prev => prev.map(r => r._id === payload.data._id ? payload.data : r));
+            } else if (payload.type === 'REPORT_DELETED') {
+                setLiveReports(prev => prev.filter(r => r._id !== payload.id));
+            } else if (payload.type === 'DISPATCH_ADDED') {
+                setLiveDispatches(prev => [...prev, payload.data]);
+            } else if (payload.type === 'DISPATCH_UPDATED') {
+                setLiveDispatches(prev => prev.map(d => d._id === payload.data._id ? payload.data : d));
+            } else if (payload.type === 'DISPATCH_DELETED') {
+                setLiveDispatches(prev => prev.filter(d => d._id !== payload.id));
+            }
+        });
+
+        // 🟢 แก้ไขบรรทัดนี้: ใส่ {} เพื่อบังคับให้ return type เป็น void
+        return () => {
+            socket.disconnect();
+        };
+    }, [isOpen]);
+
     // --- เพิ่ม State สำหรับฟิลเตอร์ ---
     const [filterDate, setFilterDate] = useState<string>('');
     const [filterLocation, setFilterLocation] = useState<string>('');
@@ -80,23 +116,24 @@ const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onC
     // --- ดึงรายชื่อหน่วยทั้งหมดสำหรับ Dropdown ฟิลเตอร์ ---
     const availableUnits = useMemo(() => {
         const units = new Set<string>();
-        dispatchEvents.forEach(e => { if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); else if(e.title) units.add(e.title); });
-        reports.forEach(r => { if(r.unit) units.add(r.unit); });
+        liveDispatches.forEach(e => { if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); else if(e.title) units.add(e.title); });
+        liveReports.forEach(r => { if(r.unit) units.add(r.unit); });
         return ['ทั้งหมด', ...Array.from(units).filter(Boolean)];
-    }, [dispatchEvents, reports]);
+    }, [liveDispatches, liveReports]); // <-- เปลี่ยน Dependency
 
     const availableDistricts = useMemo(() => {
         const districts = new Set<string>();
-        dispatchEvents.forEach(e => { if(e.district) districts.add(e.district); });
-        reports.forEach(r => { if(r.district) districts.add(r.district); });
+        liveDispatches.forEach(e => { if(e.district) districts.add(e.district); });
+        liveReports.forEach(r => { if(r.district) districts.add(r.district); });
         return ['ทั้งหมด', ...Array.from(districts).filter(Boolean)];
-    }, [dispatchEvents, reports]);
+    }, [liveDispatches, liveReports]); // <-- เปลี่ยน Dependency
 
     const { duplicateData, unscheduledData, unreportedData, mismatchData } = useMemo(() => {
         const normalize = (str: any) => (str || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
 
         const exactMatchMap = new Map<string, any[]>();
-        reports.forEach(rep => {
+        // 🟢 เปลี่ยนมาใช้ liveReports
+        liveReports.forEach(rep => {
             const loc = rep.location?.trim();
             if (!loc) return;
             const key = `${rep.date}|${normalize(loc)}`;
@@ -121,12 +158,14 @@ const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onC
         const unrepByLocation = new Map<string, any[]>();
         const mismatches: any[] = [];
 
-        reports.forEach(rep => {
+        // 🟢 เปลี่ยนมาใช้ liveReports
+        liveReports.forEach(rep => {
             const loc = rep.location?.trim();
             if (!loc) return;
             const normLoc = normalize(loc);
 
-            const matchedDispatch = dispatchEvents.find(d => d.date === rep.date && normalize(d.location) === normLoc);
+            // 🟢 เปลี่ยนมาใช้ liveDispatches
+            const matchedDispatch = liveDispatches.find(d => d.date === rep.date && normalize(d.location) === normLoc);
 
             if (!matchedDispatch) {
                 if (!unschByLocation.has(loc)) unschByLocation.set(loc, []);
@@ -158,13 +197,15 @@ const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onC
         });
 
         const today = new Date().toISOString().split('T')[0];
-        dispatchEvents.forEach(d => {
+        // 🟢 เปลี่ยนมาใช้ liveDispatches
+        liveDispatches.forEach(d => {
             if (d.date > today || d.status === 'cancelled') return;
             const loc = d.location?.trim();
             if (!loc) return;
             const normLoc = normalize(loc);
 
-            const isReported = reports.some(rep => rep.date === d.date && normalize(rep.location) === normLoc);
+            // 🟢 เปลี่ยนมาใช้ liveReports
+            const isReported = liveReports.some(rep => rep.date === d.date && normalize(rep.location) === normLoc);
 
             if (!isReported) {
                 if (!unrepByLocation.has(loc)) unrepByLocation.set(loc, []);
@@ -181,7 +222,7 @@ const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onC
         })).sort((a, b) => b.count - a.count);
 
         return { duplicateData: duplicateResults, unscheduledData: unscheduledResults, unreportedData: unreportedResults, mismatchData: mismatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
-    }, [reports, dispatchEvents]);
+    }, [liveReports, liveDispatches]); // 🟢 อัปเดต Dependency ตรงนี้
 
     // --- Logic การกรองข้อมูลตามฟิลเตอร์ ---
     const { fDup, fUnsch, fUnrep, fMis } = useMemo(() => {
@@ -320,7 +361,7 @@ const DuplicateReportModal: React.FC<DuplicateReportModalProps> = ({ isOpen, onC
                                                         <div className="text-rose-600 font-bold text-[11px]">{rep.date}</div>
                                                         <div className="text-[10px] text-slate-600">
                                                             เขต: {rep.district || '-'} | หน่วย: {rep.unit || '-'} | ทีม: {rep.team || '-'}
-</div>
+                                                        </div>
                                                     </div>
                                                     <ChevronRight className="w-4 h-4 text-slate-300" />
                                                 </div>

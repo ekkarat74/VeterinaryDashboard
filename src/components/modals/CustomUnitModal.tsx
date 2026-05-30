@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, Plus, Edit2, Trash2, Check, Loader2 } from 'lucide-react';
+import { io } from "socket.io-client";
 
 // 1. กำหนด Type สำหรับข้อมูลหน่วยงาน
 export interface Unit {
@@ -37,6 +38,29 @@ const CustomUnitModal: React.FC<CustomUnitModalProps> = ({
         if (isOpen) fetchUnits();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const socket = io(apiBaseUrl);
+
+        socket.on('server_data_update', (payload: any) => {
+            if (payload.type === 'CUSTOM_UNIT_ADDED') {
+                setUnits(prev => {
+                    // ป้องกันการเพิ่มข้อมูลซ้ำใน State
+                    if (!prev.find(u => u._id === payload.data._id)) return [...prev, payload.data];
+                    return prev;
+                });
+            } else if (payload.type === 'CUSTOM_UNIT_UPDATED') {
+                setUnits(prev => prev.map(u => u._id === payload.data._id ? payload.data : u));
+            } else if (payload.type === 'CUSTOM_UNIT_DELETED') {
+                setUnits(prev => prev.filter(u => u._id !== payload.id));
+            }
+        });
+        
+        return () => {
+            socket.disconnect();
+        };
+    }, [isOpen, apiBaseUrl]);
 
     const fetchUnits = async (): Promise<void> => {
         try {
