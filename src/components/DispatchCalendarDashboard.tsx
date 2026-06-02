@@ -371,6 +371,9 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDistrict, setFilterDistrict] = useState('ทั้งหมด');
     const [filterUnit, setFilterUnit] = useState('ทั้งหมด');
+
+    const [filterStatus, setFilterStatus] = useState('ทั้งหมด');
+
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
@@ -381,8 +384,18 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
         const matchUnit = filterUnit === 'ทั้งหมด' || (e.unit || e.unitName) === filterUnit;
         const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
 
-        // ดึงสถานะปัจจุบันแบบ Real-time
         const st = getDispatchStatus(e)?.text || '';
+
+        let matchStatus = true;
+        if (filterStatus !== 'ทั้งหมด') {
+            if (filterStatus === 'รอปฏิบัติงาน/เตรียมพร้อม') {
+                matchStatus = st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
+            } else if (filterStatus === 'เสร็จสิ้น') {
+                matchStatus = st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน';
+            } else {
+                matchStatus = st === filterStatus;
+            }
+        }
 
         let matchesCategory = true;
             if (activeCategory === 'pending') {
@@ -402,9 +415,9 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> =
             } else if (activeCategory === 'cat-cage') {
                 matchesCategory = !!e.title?.includes('กรงแมว');
             }
-        return matchesSearch && matchesDistrict && matchUnit && matchesDate && matchesCategory;
+        return matchesSearch && matchesDistrict && matchUnit && matchesDate && matchesCategory && matchStatus;
     });
-}, [events, searchTerm, filterDistrict, filterUnit, startDate, endDate, activeCategory]);
+}, [events, searchTerm, filterDistrict, filterUnit, startDate, endDate, activeCategory, filterStatus]);
 
 const stats = useMemo(() => {
     let completed = 0, inProgress = 0, pending = 0, cancelled = 0;
@@ -462,13 +475,18 @@ const stats = useMemo(() => {
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
                 <input type="text" placeholder="ค้นหา..." className="col-span-2 md:col-span-1 p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setSearchTerm(e.target.value)} />
                 <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterDistrict(e.target.value)}>{districts.map(d => <option key={d}>{d}</option>)}</select>
-                
-                {/* 🌟 8. เปลี่ยน Select ให้วนลูปตัวแปร units แทน teams */}
                 <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterUnit(e.target.value)}>
                     {units.map(u => <option key={u}>{u}</option>)}
+                </select>
+                <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterStatus(e.target.value)}>
+                    <option value="ทั้งหมด">ทุกสถานะ</option>
+                    <option value="รอปฏิบัติงาน/เตรียมพร้อม">รอปฏิบัติงาน / เตรียมพร้อม</option>
+                    <option value="กำลังดำเนินงาน">กำลังดำเนินงาน</option>
+                    <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+                    <option value="ยกเลิก">ยกเลิก</option>
                 </select>
                 
                 <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setStartDate(e.target.value)} />
@@ -476,44 +494,41 @@ const stats = useMemo(() => {
             </div>
 
             {/* Views */}
-<div className="w-full overflow-x-auto pb-6">
-    {view === 'table' ? (
-        <div className="max-h-[420px] overflow-y-auto custom-scrollbar relative border border-slate-100 rounded-xl">
-            <table className="w-full min-w-[600px] text-[10px] text-left">
-                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                    {/* 🌟 เปลี่ยนหัวตารางจาก "กิจกรรม" เป็น "เขต" */}
-                    <tr><th className="p-3">วันที่</th><th className="p-3">เขต</th><th className="p-3">สถานที่</th><th className="p-3">หน่วย</th><th className="p-3">สถานะ</th></tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                    {filteredEvents.map((e, i) => {
-                        const st = getDispatchStatus(e);
-                        return (
-                            <tr key={i} className="hover:bg-slate-50">
-                                <td className="p-3 font-mono">{e.date}</td>
+            <div className="w-full overflow-x-auto pb-6">
+                {view === 'table' ? (
+                    <div className="max-h-[420px] overflow-y-auto custom-scrollbar relative border border-slate-100 rounded-xl">
+                        <table className="w-full min-w-[600px] text-[10px] text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                <tr><th className="p-3">วันที่</th><th className="p-3">เขต</th><th className="p-3">สถานที่</th><th className="p-3">หน่วย</th><th className="p-3">สถานะ</th></tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredEvents.map((e, i) => {
+                                    const st = getDispatchStatus(e);
+                                    return (
+                                        <tr key={i} className="hover:bg-slate-50">
+                                            <td className="p-3 font-mono">{e.date}</td>
                                 
-                                {/* 🌟 เปลี่ยนจากการแสดง e.title เป็น e.district เพื่อแสดงข้อมูลเขต */}
-                                <td className="p-3 font-bold text-slate-800">{e.district || '-'}</td>
+                                            <td className="p-3 font-bold text-slate-800">{e.district || '-'}</td>
                                 
-                                <td className="p-3">{e.location}</td>
+                                            <td className="p-3">{e.location}</td>
                                 
-                                {/* 🌟 10. นำค่า e.unit หรือ e.unitName มาแสดงในตาราง */}
-                                <td className="p-3">
-    <span className="font-medium text-indigo-600">
-        {e.unit || e.unitName || e.title || '-'}
-    </span>
-</td>
+                                            <td className="p-3">
+                                                <span className="font-medium text-indigo-600">
+                                                    {e.unit || e.unitName || e.title || '-'}
+                                                </span>
+                                            </td>
                                 
-                                <td className="p-3">
-                                    <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
-                                        {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
-                                    </span>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
+                                            <td className="p-3">
+                                                <span className={`px-2 py-1 rounded-md font-bold text-[8px] flex items-center gap-1 w-fit border ${st?.badge || 'bg-slate-100 text-slate-600'}`}>
+                                                    {st?.icon && <st.icon className="w-3 h-3" />} {st?.text || 'เตรียมพร้อม'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 ) : (
                     <div className="flex gap-4 min-w-[800px] h-full">
                         {['เตรียมพร้อม', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก'].map(statusGroup => (
@@ -526,9 +541,9 @@ const stats = useMemo(() => {
                                     return currentStatus === statusGroup;
                                 }).map((e, i) => (
                                 <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px] shrink-0">
-    <p className="font-bold text-indigo-600 mb-0.5">{e.unit || e.unitName || e.title || 'ไม่ระบุหน่วย'}</p>
-    <p className="text-slate-700 font-medium text-[9px]">{e.location}</p>
-</div>
+                                    <p className="font-bold text-indigo-600 mb-0.5">{e.unit || e.unitName || e.title || 'ไม่ระบุหน่วย'}</p>
+                                    <p className="text-slate-700 font-medium text-[9px]">{e.location}</p>
+                                </div>
                             ))}
                         </div>
                     ))}
@@ -1115,6 +1130,8 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
     const [filterLocation, setFilterLocation] = useState<string>('');
     const [filterUnit, setFilterUnit] = useState<string>('ทั้งหมด');
 
+    const [filterDistrict, setFilterDistrict] = useState<string>('ทั้งหมด');
+
     const [liveEvents, setLiveEvents] = useState<EventData[]>(events);
     const [liveReports, setLiveReports] = useState<any[]>(reports);
 
@@ -1151,13 +1168,20 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
         };
     }, [isOpen]);
 
-    // 🟢 4. อัปเดต useMemo ให้ใช้ตัวแปร Live
     const availableUnits = useMemo(() => {
-        const units = new Set<string>();
-        liveEvents.forEach(e => { if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); else if(e.title) units.add(e.title); });
-        liveReports.forEach(r => { if(r.unit) units.add(r.unit); });
-        return ['ทั้งหมด', ...Array.from(units).filter(Boolean)];
-    }, [liveEvents, liveReports]); // <-- เปลี่ยน Dependency
+    const units = new Set<string>();
+    // --- [แก้ไข] สลับให้เช็ค e.title ก่อน ---
+    liveEvents.forEach(e => { if(e.title) units.add(e.title); else if(e.unit) units.add(e.unit); else if(e.unitName) units.add(e.unitName); });
+    liveReports.forEach(r => { if(r.unit) units.add(r.unit); });
+    return ['ทั้งหมด', ...Array.from(units).filter(Boolean)];
+}, [liveEvents, liveReports]);
+
+    const availableDistricts = useMemo(() => {
+    const districts = new Set<string>();
+    liveEvents.forEach(e => { if(e.district) districts.add(e.district); });
+    liveReports.forEach(r => { if(r.district) districts.add(r.district); });
+    return ['ทั้งหมด', ...Array.from(districts).filter(Boolean)];
+}, [liveEvents, liveReports]);
 
     const { duplicateData, unscheduledData, unreportedData, mismatchData } = useMemo(() => {
         const normalize = (str: any) => (str || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
@@ -1210,7 +1234,7 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
             } else {
                 const mismatchFields = [];
                 const repUnit = normalize(rep.unit);
-                const dispUnit = normalize(matchedDispatch.unit || matchedDispatch.unitName || matchedDispatch.title);
+                const dispUnit = normalize(matchedDispatch.title || matchedDispatch.unit || matchedDispatch.unitName);
                 const repTeam = (rep.team || '').toString().toLowerCase().replace(/\s+/g, '');
                 const dispTeam = (matchedDispatch.team || '').toString().toLowerCase().replace(/\s+/g, '');
 
@@ -1262,34 +1286,51 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
 
     // --- Logic การกรองข้อมูลตามฟิลเตอร์ ---
     const { fDup, fUnsch, fUnrep, fMis } = useMemo(() => {
-        const checkLoc = (loc: string) => !filterLocation || (loc || '').toLowerCase().includes(filterLocation.toLowerCase());
-        const checkDate = (date: string) => !filterDate || date === filterDate;
-        const checkUnit = (u1?: string, u2?: string) => {
-            if (filterUnit === 'ทั้งหมด') return true;
-            return (u1 === filterUnit) || (u2 === filterUnit);
-        };
+    const checkLoc = (loc: string) => !filterLocation || (loc || '').toLowerCase().includes(filterLocation.toLowerCase());
+    const checkDate = (date: string) => !filterDate || date === filterDate;
+    const checkUnit = (u1?: string, u2?: string) => {
+        if (filterUnit === 'ทั้งหมด') return true;
+        return (u1 === filterUnit) || (u2 === filterUnit);
+    };
+    
+    // --- [เพิ่ม] ฟังก์ชันเช็คเขต ---
+    const checkDistrict = (d1?: string, d2?: string) => {
+        if (filterDistrict === 'ทั้งหมด') return true;
+        return (d1 === filterDistrict) || (d2 === filterDistrict);
+    };
 
-        const fDup = duplicateData.map(d => {
-            const eFiltered = d.events ? d.events.filter((e: any) => checkDate(e.date) && checkUnit(e.unit || e.unitName || e.title, '')) : [];
-            return { ...d, events: eFiltered, count: eFiltered.length };
-        }).filter(d => checkLoc(d.location) && d.count > 1);
+    const fDup = duplicateData.map(d => {
+    const eFiltered = d.events ? d.events.filter((e: any) => 
+        // --- [แก้ไข] สลับให้เช็ค e.title ก่อน ---
+        checkDate(e.date) && checkUnit(e.title || e.unit || e.unitName, '') && checkDistrict(e.district, '')
+    ) : [];
+    return { ...d, events: eFiltered, count: eFiltered.length };
+}).filter(d => checkLoc(d.location) && d.count > 1);
 
-        const fUnsch = unscheduledData.map(d => {
-            const rFiltered = d.reports.filter((r: any) => checkDate(r.date) && checkUnit(r.unit, ''));
-            return { ...d, reports: rFiltered, count: rFiltered.length };
-        }).filter(d => checkLoc(d.location) && d.count > 0);
-
-        const fUnrep = unreportedData.map(d => {
-            const eFiltered = d.events.filter((e: any) => checkDate(e.date) && checkUnit(e.unit || e.unitName || e.title, ''));
-            return { ...d, events: eFiltered, count: eFiltered.length };
-        }).filter(d => checkLoc(d.location) && d.count > 0);
-
-        const fMis = mismatchData.filter(m =>
-            checkLoc(m.location) && checkDate(m.date) && checkUnit(m.report?.unit, m.dispatch?.unit || m.dispatch?.unitName || m.dispatch?.title)
+    const fUnsch = unscheduledData.map(d => {
+        const rFiltered = d.reports.filter((r: any) => 
+            checkDate(r.date) && checkUnit(r.unit, '') && checkDistrict(r.district, '') // <-- [แก้ไข] เพิ่ม checkDistrict
         );
+        return { ...d, reports: rFiltered, count: rFiltered.length };
+    }).filter(d => checkLoc(d.location) && d.count > 0);
 
-        return { fDup, fUnsch, fUnrep, fMis };
-    }, [duplicateData, unscheduledData, unreportedData, mismatchData, filterDate, filterLocation, filterUnit]);
+    const fUnrep = unreportedData.map(d => {
+    const eFiltered = d.events.filter((e: any) => 
+        // --- [แก้ไข] สลับให้เช็ค e.title ก่อน ---
+        checkDate(e.date) && checkUnit(e.title || e.unit || e.unitName, '') && checkDistrict(e.district, '')
+    );
+    return { ...d, events: eFiltered, count: eFiltered.length };
+}).filter(d => checkLoc(d.location) && d.count > 0);
+
+    const fMis = mismatchData.filter(m =>
+    checkLoc(m.location) && checkDate(m.date) && 
+    // --- [แก้ไข] สลับให้เช็ค m.dispatch?.title ก่อน ---
+    checkUnit(m.report?.unit, m.dispatch?.title || m.dispatch?.unit || m.dispatch?.unitName) &&
+    checkDistrict(m.report?.district, m.dispatch?.district) 
+);
+
+    return { fDup, fUnsch, fUnrep, fMis };
+}, [duplicateData, unscheduledData, unreportedData, mismatchData, filterDate, filterLocation, filterUnit, filterDistrict]); // <-- [แก้ไข] เพิ่ม filterDistrict ใน Dependency
 
     if (!isOpen) return null;
 
@@ -1325,11 +1366,18 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                             {availableUnits.map((u, i) => <option key={i} value={u}>{u}</option>)}
                         </select>
                     </div>
-                    {(filterLocation || filterDate || filterUnit !== 'ทั้งหมด') && (
-                        <button onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterUnit('ทั้งหมด'); }} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded-xl text-[11px] font-bold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-sm">
-                            <X className="w-3.5 h-3.5" /> ล้าง
-                        </button>
-                    )}
+                    <div className="w-full sm:w-[150px]">
+    <select value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 text-slate-600 cursor-pointer shadow-sm transition-all">
+        {availableDistricts.map((d, i) => <option key={i} value={d}>{d}</option>)}
+    </select>
+</div>
+
+{/* --- [แก้ไข] อัปเดตเงื่อนไขปุ่มล้างให้รองรับ filterDistrict --- */}
+{(filterLocation || filterDate || filterUnit !== 'ทั้งหมด' || filterDistrict !== 'ทั้งหมด') && (
+    <button onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterUnit('ทั้งหมด'); setFilterDistrict('ทั้งหมด'); }} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded-xl text-[11px] font-bold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-sm">
+        <X className="w-3.5 h-3.5" /> ล้าง
+    </button>
+)}
                 </div>
 
                 {/* Tabs */}
@@ -1377,7 +1425,9 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                                                             <div className={`font-bold flex justify-between ${isDuplicated ? 'text-rose-600' : 'text-indigo-600'}`}>
                                                                 <span>{evt.date}</span><span>{evt.time || '-'}</span>
                                                             </div>
-                                                            <div className="text-slate-600 truncate">{evt.title || '-'}</div>
+                                                            <div className="text-[10px] text-slate-600 mt-1">
+                                                                เขต: {evt.district || '-'} | หน่วย: {evt.unit || evt.unitName || evt.title || '-'} | ทีม: {evt.team || '-'}
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -1406,7 +1456,12 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                                         <div className="flex flex-col divide-y divide-slate-100">
                                             {item.events.map((evt: any, eIdx: number) => (
                                                 <div key={eIdx} onClick={() => onSelectDate(evt.date)} className="p-3.5 flex justify-between gap-3 cursor-pointer hover:bg-emerald-50">
-                                                    <div className="flex gap-4"><div className="text-emerald-600 font-bold text-[11px]">{evt.date}</div><div className="text-[10px] text-slate-600">หน่วย: {evt.unit || evt.unitName || evt.title || '-'}</div></div>
+                                                    <div className="flex gap-4">
+    <div className="text-emerald-600 font-bold text-[11px]">{evt.date}</div>
+    <div className="text-[10px] text-slate-600">
+        เขต: {evt.district || '-'} | หน่วย: {evt.unit || evt.unitName || evt.title || '-'} | ทีม: {evt.team || '-'}
+    </div>
+</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1433,7 +1488,12 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                                         <div className="flex flex-col divide-y divide-slate-100">
                                             {item.reports.map((rep: any, eIdx: number) => (
                                                 <div key={eIdx} onClick={() => onSelectDate(rep.date)} className="p-3.5 flex justify-between gap-3 cursor-pointer hover:bg-amber-50">
-                                                    <div className="flex gap-4"><div className="text-amber-600 font-bold text-[11px]">{rep.date}</div><div className="text-[10px] text-slate-600">หน่วย: {rep.unit || '-'}</div></div>
+                                                    <div className="flex gap-4">
+                                                        <div className="text-amber-600 font-bold text-[11px]">{rep.date}</div>
+                                                            <div className="text-[10px] text-slate-600">
+                                                                เขต: {rep.district || '-'} | หน่วย: {rep.unit || '-'} | ทีม: {rep.team || '-'}
+                                                            </div>
+                                                    </div>  
                                                 </div>
                                             ))}
                                         </div>
@@ -1458,16 +1518,18 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                                             <h4 className="font-bold text-xs text-slate-800 flex items-center gap-2"><MapPin className="w-4 h-4 text-orange-500" /> {item.date} - {item.location}</h4>
                                             <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-[10px] font-bold">ขัดแย้ง: {item.mismatchFields.join(', ')}</span>
                                         </div>
-                                        <div className="p-3.5 text-[11px] grid grid-cols-2 gap-4">
-                                            <div className="border-r border-orange-100 pr-4">
+                                            <div className="p-3.5 text-[11px] grid grid-cols-2 gap-4">
+                                                <div className="border-r border-orange-100 pr-4">
                                                 <div className="font-bold text-slate-500 mb-1">ฝั่งปฏิทิน (Dispatch)</div>
-                                                <div className="truncate">หน่วย: {item.dispatch.unit || item.dispatch.unitName || item.dispatch.title || '-'}</div>
-                                                <div className="truncate">ทีม: {item.dispatch.team || '-'}</div>
+                                                <div className="truncate"><span className="font-medium text-slate-400">เขต:</span> {item.dispatch.district || '-'}</div>
+                                                <div className="truncate"><span className="font-medium text-slate-400">หน่วย:</span> {item.dispatch.title || item.dispatch.unit || item.dispatch.unitName || '-'}</div>
+                                                <div className="truncate"><span className="font-medium text-slate-400">ทีม:</span> {item.dispatch.team || '-'}</div>
                                             </div>
                                             <div>
                                                 <div className="font-bold text-slate-500 mb-1">ฝั่งลงยอด (Report)</div>
-                                                <div className="truncate">หน่วย: {item.report.unit || '-'}</div>
-                                                <div className="truncate">ทีม: {item.report.team || '-'}</div>
+                                                <div className="truncate"><span className="font-medium text-slate-400">เขต:</span> {item.report.district || '-'}</div>
+                                                <div className="truncate"><span className="font-medium text-slate-400">หน่วย:</span> {item.report.unit || '-'}</div>
+                                                <div className="truncate"><span className="font-medium text-slate-400">ทีม:</span> {item.report.team || '-'}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1743,12 +1805,21 @@ const DispatchCalendarDashboard: React.FC = () => {
         };
     }, []);
 
-    const pendingActivitiesCount = useMemo(() => {
-    return events.filter(e => {
+    // 🌟 1. แทนที่ pendingActivitiesCount เดิมด้วย activitiesCounts
+const activitiesCounts = useMemo(() => {
+    let pending = 0;
+    let inProgress = 0;
+    let history = 0;
+    
+    events.forEach(e => {
         const st = getDispatchStatus(e)?.text;
-        return st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
-    }).length;
-}, [events]);
+        if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
+        else if (st === 'กำลังดำเนินงาน') inProgress++;
+        else if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน' || st === 'ยกเลิก') history++;
+    });
+    
+    return { all: events.length, pending, inProgress, history };
+}, [events]);;
 
     useEffect(() => {
         if (!audioRef.current) {
@@ -2287,7 +2358,6 @@ const DispatchCalendarDashboard: React.FC = () => {
         return grouped;
     }, [selectedDateEvents]);
 
-    // 1. เพิ่มฟังก์ชันสำหรับรับค่าวันที่จากการคลิกที่ DuplicateCheckModal
     const handleNavigateFromDuplicate = (dateStr: string) => {
         playSound('pop');
         const targetDate = new Date(dateStr);
@@ -2322,7 +2392,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                 <aside 
                     className={`flex-col text-white transition-all duration-300 shadow-xl z-50 fixed inset-y-0 left-0 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex w-[260px] shrink-0`}
                     style={{
-                        /* 🌟 เปลี่ยนรูปภาพพื้นหลัง Sidebar เป็นลวดลายแมวการ์ตูน โดยยังคง linear-gradient เพื่อให้ตัวหนังสือชัดเจน */
                         backgroundImage: "linear-gradient(rgba(49, 32, 105, 0.85), rgba(49, 32, 105, 0.95)), url('https://img.magnific.com/free-photo/cute-cat-studio_23-2150932393.jpg?semt=ais_hybrid&w=740&q=80')",
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
@@ -2362,9 +2431,9 @@ const DispatchCalendarDashboard: React.FC = () => {
                                     <Activity className={`w-4 h-4 ${activeMenu === 'activities' ? 'text-indigo-300' : ''}`} /> กิจกรรม
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {pendingActivitiesCount > 0 && (
+                                    {activitiesCounts.pending > 0 && (
                                         <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold shadow-sm">
-                                            {pendingActivitiesCount}
+                                            {activitiesCounts.pending}
                                         </span>
                                     )}
                                     {isActivitiesExpanded ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
@@ -2375,19 +2444,29 @@ const DispatchCalendarDashboard: React.FC = () => {
                             {isActivitiesExpanded && (
                                 <div className="pl-4 pr-2 py-1 space-y-1 animate-in slide-in-from-top-2 duration-200">
                                     <div className="text-[8px] font-bold text-indigo-300/70 mb-1 mt-2 px-2 uppercase tracking-wider">สถานะการดำเนินงาน</div>
+                                    <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('all'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'all' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
+                                        <span className="flex items-center gap-2"><Layers className="w-3.5 h-3.5" /> กิจกรรมทั้งหมด</span>
+                                        <span className="text-[8px] bg-white/10 px-1.5 rounded-md text-white">{activitiesCounts.all}</span>
+                                    </button>
+
                                     <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('pending'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'pending' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                                         <span className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> คำขอรอดำเนินการ</span>
-                                        {pendingActivitiesCount > 0 && <span className="text-[8px] bg-white/10 px-1.5 rounded-md text-white">{pendingActivitiesCount}</span>}
+                                        {activitiesCounts.pending > 0 && <span className="text-[8px] bg-white/10 px-1.5 rounded-md text-white">{activitiesCounts.pending}</span>}
                                     </button>
+                                    
                                     <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('in-progress'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'in-progress' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                                         <span className="flex items-center gap-2"><Activity className="w-3.5 h-3.5" /> กำลังดำเนินการ</span>
+                                        {activitiesCounts.inProgress > 0 && <span className="text-[8px] bg-white/10 px-1.5 rounded-md text-white">{activitiesCounts.inProgress}</span>}
                                     </button>
+                                    
                                     <button onClick={() => { playSound('pop'); setActiveMenu('activities'); setActiveActivityTab('history'); }} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[9px] font-bold transition-colors ${activeActivityTab === 'history' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
                                         <span className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5" /> ประวัติกิจกรรม</span>
+                                        {activitiesCounts.history > 0 && <span className="text-[8px] bg-white/10 px-1.5 rounded-md text-white">{activitiesCounts.history}</span>}
                                     </button>
 
                                     <div className="text-[8px] font-bold text-indigo-300/70 mb-1 mt-3 px-2 uppercase tracking-wider">ประเภทหน่วย</div>
                                         {[
+                                            { id: 'all', label: 'ทุกหน่วย', icon: '🏢' },
                                             { id: 'vet-unit', label: 'หน่วยสัตวแพทย์', icon: '🏥' },
                                             { id: 'spay', label: 'หน่วยทำหมัน', icon: '✂️' },
                                             { id: 'vaccine', label: 'หน่วยวัคซีน + ไมโครชิป', icon: '💉' },
@@ -2405,14 +2484,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 hover:text-white rounded-xl font-bold text-[10px] transition-all">
-                            <Users className="w-4 h-4" /> หน่วยสัตวแพทย์
-                        </button>
                         <button 
-    onClick={() => { playSound('switch'); setActiveMenu('reports'); }}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'reports' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
-    <FileText className={`w-4 h-4 ${activeMenu === 'reports' ? 'text-indigo-300' : ''}`} /> สถิติและกราฟ
-</button>
+                            onClick={() => { playSound('switch'); setActiveMenu('reports'); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-[10px] transition-all border ${activeMenu === 'reports' ? 'bg-[#44308a] text-white shadow-sm border-[#5a42b1]' : 'text-white/70 hover:bg-white/5 hover:text-white border-transparent'}`}>
+                            <FileText className={`w-4 h-4 ${activeMenu === 'reports' ? 'text-indigo-300' : ''}`} /> สถิติและกราฟ
+                        </button>
                         <div className="flex flex-col gap-1">
                             <button 
                                 onClick={() => { 
@@ -2469,11 +2545,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                             <div className="xl:hidden pt-4 mt-4 border-t border-white/10 space-y-1.5">
                                 <div className="px-4 pb-1 text-[8px] font-bold text-indigo-300 uppercase tracking-wider">สำหรับผู้ดูแลระบบ</div>
                                 <button 
-            onClick={() => { playSound('pop'); setIsDuplicateModalOpen(true); setIsSidebarOpen(false); }} 
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-amber-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
-        >
-            <Copy className="w-4 h-4" /> ตรวจสอบข้อมูลซ้ำ
-        </button>
+                                    onClick={() => { playSound('pop'); setIsDuplicateModalOpen(true); setIsSidebarOpen(false); }} 
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-amber-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
+                                >
+                                    <Copy className="w-4 h-4" /> ตรวจสอบข้อมูลซ้ำ
+                                </button>
                                 <button 
                                     onClick={() => { playSound('pop'); setIsAddControllerOpen(true); setIsSidebarOpen(false); }} 
                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-emerald-400 hover:bg-white/5 rounded-xl font-bold text-[10px] transition-all"
@@ -2498,32 +2574,32 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                     <div className="p-4 shrink-0">
                         <div className="bg-white/5 rounded-2xl p-3 mb-4 border border-white/10 flex flex-col gap-2 transition-all">
-        <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-indigo-200 flex items-center gap-2">
-                {isPlaying ? <Volume2 className="w-4 h-4 text-indigo-300" /> : <VolumeX className="w-4 h-4 text-white/40" />}
-                เสียงพื้นหลัง
-            </span>
-            <button
-                onClick={togglePlay}
-                className={`px-2 py-1 rounded-lg text-[9px] font-bold transition-colors shadow-sm border ${
-                    isPlaying 
-                    ? 'bg-indigo-500/40 text-white border-indigo-400/50' 
-                    : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
-                }`}
-                title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
-            >
-                {isPlaying ? 'ปิด' : 'เปิด'}
-            </button>
-        </div>
-        {isPlaying && (
-            <div className="px-1 mt-1 flex items-center gap-2 animate-in fade-in zoom-in duration-200">
-                <input
-                    type="range" min="0" max="1" step="0.05" value={volume} onChange={handleVolumeChange}
-                    className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-indigo-400"
-                />
-            </div>
-        )}
-    </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-indigo-200 flex items-center gap-2">
+                                    {isPlaying ? <Volume2 className="w-4 h-4 text-indigo-300" /> : <VolumeX className="w-4 h-4 text-white/40" />}
+                                    เสียงพื้นหลัง
+                                </span>
+                                <button
+                                    onClick={togglePlay}
+                                    className={`px-2 py-1 rounded-lg text-[9px] font-bold transition-colors shadow-sm border ${
+                                        isPlaying 
+                                        ? 'bg-indigo-500/40 text-white border-indigo-400/50' 
+                                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                    title={isPlaying ? "ปิดเสียง" : "เปิดเสียง"}
+                                >
+                                    {isPlaying ? 'ปิด' : 'เปิด'}
+                                </button>
+                            </div>
+                            {isPlaying && (
+                                <div className="px-1 mt-1 flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                                    <input
+                                        type="range" min="0" max="1" step="0.05" value={volume} onChange={handleVolumeChange}
+                                        className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-indigo-400"
+                                    />
+                                </div>
+                            )}
+                        </div>
                         {/* Help Section */}
                         <div className="bg-[#44308a] rounded-2xl p-4 text-center border border-white/10 relative overflow-hidden">
                             <div className="flex justify-center gap-2 mb-3">
@@ -2545,21 +2621,16 @@ const DispatchCalendarDashboard: React.FC = () => {
                 <div 
                 className="flex-1 flex flex-col overflow-hidden relative"
                 style={{
-                    /* 🌟 1. ใส่รูปภาพวอลเปเปอร์ตรงนี้ (สามารถนำลิงก์รูปอื่นมาวางแทนได้) */
                     backgroundImage: "url('https://img.freepik.com/premium-vector/cute-cartoon-cats-adorable-kittens-with-big-eyes-pink-background_1305385-77191.jpg')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                 }}
             >
-                {/* 🌟 2. เพิ่มแผ่นฟิล์ม (Overlay) โปร่งแสงและเบลอ เพื่อให้มองเห็น UI ชัดเจน */}
                 <div className="absolute inset-0 bg-[#F5F6FA]/80 backdrop-blur-sm pointer-events-none z-0"></div>
                 
                 {/* Topbar */}
-                {/* 🌟 3. เติมคลาส 'relative' ไว้ด้านหน้า เพื่อให้แถบเมนูลอยอยู่เหนือพื้นหลัง */}
-                <header className="relative h-[76px] bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between shrink-0 z-20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
-                    
+                <header className="relative h-[76px] bg-white border-b border-slate-200 px-6 sm:px-8 flex items-center justify-between shrink-0 z-20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">                   
                         <div className="flex items-center gap-3 sm:gap-4">
-        
                             {/* ปุ่มเปิด-ปิด Sidebar ที่อยู่ใน Header */}
                             <button 
                                 onClick={() => { playSound('switch'); setIsSidebarOpen(!isSidebarOpen); }}
@@ -2586,8 +2657,8 @@ const DispatchCalendarDashboard: React.FC = () => {
                             {canEdit && (
                                 <div className="hidden xl:flex items-center gap-2 mr-2">
                                     <button onClick={() => { playSound('pop'); setIsDuplicateModalOpen(true); }} className="px-3 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-amber-200">
-            <Copy className="w-3.5 h-3.5"/> ข้อมูลซ้ำ
-        </button>
+                                        <Copy className="w-3.5 h-3.5"/> ข้อมูลซ้ำ
+                                    </button>
                                     <button onClick={() => { playSound('pop'); setIsAddControllerOpen(true); }} className="px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl font-bold transition-all text-[10px] shadow-sm flex items-center gap-1.5 border border-emerald-200">
                                         <UserPlus className="w-3.5 h-3.5"/> เพิ่มผู้ควบคุม
                                     </button>
@@ -2749,7 +2820,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                             className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-[10px] font-medium text-slate-700 shadow-sm" 
                                                         />
                                                     </div>
-                                                    {/* 🟢 4. ทำให้ปุ่ม Settings นี้สลับการเปิด/ปิด Advanced Filters */}
                                                     <button 
                                                         onClick={() => { playSound('pop'); setShowAdvancedFilters(!showAdvancedFilters); }}
                                                         className={`w-full sm:w-auto px-4 py-3 border rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 text-[10px] font-bold ${showAdvancedFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
@@ -2758,7 +2828,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                     </button>
                                                 </div>
 
-                                                {/* 🟢 5. เพิ่ม Advanced Filters UI */}
                                                 {showAdvancedFilters && (
                                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in slide-in-from-top-2">
                                                         <div>
@@ -2788,7 +2857,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                                                             <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} className="w-full p-2.5 bg-white rounded-lg text-[10px] border border-slate-200 outline-none focus:border-indigo-400" />
                                                         </div>
                                                         
-                                                        {/* ปุ่มล้างฟิลเตอร์จะโผล่มาเมื่อมีการใช้งานฟิลเตอร์ */}
                                                         {(filterDistrict !== 'ทั้งหมด' || filterUnit !== 'ทั้งหมด' || filterStatus !== 'ทั้งหมด' || filterStartDate || filterEndDate) && (
                                                             <div className="col-span-2 md:col-span-5 flex justify-end mt-1">
                                                                 <button 
@@ -2828,7 +2896,6 @@ const DispatchCalendarDashboard: React.FC = () => {
                                         {/* Event Cards (ViewMode = List) */}
                                         {viewMode === 'list' && (
                                             <div className="space-y-4 pb-4 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
-                                                {/* 4. เพิ่ม max-h-[420px] และ overflow-y-auto ให้มุมมองรายการประจำวัน */}
                                                 {selectedDateEvents.length === 0 ? (
                                                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">

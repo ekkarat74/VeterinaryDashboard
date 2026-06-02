@@ -701,38 +701,41 @@ ${staffDetails}
 
     datesToSave.forEach(targetDate => {
         if (isSplitTeam) {
-            payloadsToSave.push({
-                _id: isCreatingNew ? undefined : initialData?._id, 
-                ...generalInfo, date: targetDate,
-                status: isCreatingNew ? 'auto' : generalInfo.status, 
-                unitType, customUnitName, unitLetter: 'A', unitColor, staff: staff, 
-                title: `${displayTitle} A`.trim(),
-                location: generalInfo.locationName, district: generalInfo.district, mapLink: generalInfo.mapLink,
-                lat: coordsA.lat, lng: coordsA.lng, time: generalInfo.departureTime,
-                team: staff.vets.filter(v => v).join(', ')
-            });
-            payloadsToSave.push({
-                _id: undefined, 
-                ...generalInfo, date: targetDate,
-                status: isCreatingNew ? 'auto' : generalInfo.status,
-                unitType, customUnitName, unitLetter: 'B', unitColor, staff: staff, 
-                title: `${displayTitle} B`.trim(),
-                location: generalInfo.locationNameB, district: generalInfo.districtB, mapLink: generalInfo.mapLinkB,
-                lat: coordsB.lat, lng: coordsB.lng, time: generalInfo.departureTime,
-                team: staff.vets.filter(v => v).join(', ')
-            });
-        } else {
-            payloadsToSave.push({
-                _id: isCreatingNew ? undefined : initialData?._id, 
-                ...generalInfo, date: targetDate,
-                status: isCreatingNew ? 'auto' : generalInfo.status, 
-                unitType, customUnitName, unitLetter, unitColor, staff: staff, 
-                title: `${displayTitle} ${unitLetter}`.trim(),
-                location: generalInfo.locationName, district: generalInfo.district, mapLink: generalInfo.mapLink,
-                lat: coordsA.lat, lng: coordsA.lng, time: generalInfo.departureTime,
-                team: staff.vets.filter(v => v).join(', ')
-            });
-        }
+    payloadsToSave.push({
+        _id: isCreatingNew ? undefined : initialData?._id, 
+        ...generalInfo, date: targetDate,
+        status: isCreatingNew ? 'auto' : generalInfo.status, 
+        unitType, customUnitName, unitLetter: 'A', unitColor, staff: staff, 
+        title: `${displayTitle} A`.trim(),
+        unit: `${displayTitle} A`.trim(), // <-- [เพิ่มบรรทัดนี้]
+        location: generalInfo.locationName, district: generalInfo.district, mapLink: generalInfo.mapLink,
+        lat: coordsA.lat, lng: coordsA.lng, time: generalInfo.departureTime,
+        team: staff.vets.filter(v => v).join(', ')
+    });
+    payloadsToSave.push({
+        _id: undefined, 
+        ...generalInfo, date: targetDate,
+        status: isCreatingNew ? 'auto' : generalInfo.status,
+        unitType, customUnitName, unitLetter: 'B', unitColor, staff: staff, 
+        title: `${displayTitle} B`.trim(),
+        unit: `${displayTitle} B`.trim(), // <-- [เพิ่มบรรทัดนี้]
+        location: generalInfo.locationNameB, district: generalInfo.districtB, mapLink: generalInfo.mapLinkB,
+        lat: coordsB.lat, lng: coordsB.lng, time: generalInfo.departureTime,
+        team: staff.vets.filter(v => v).join(', ')
+    });
+} else {
+    payloadsToSave.push({
+        _id: isCreatingNew ? undefined : initialData?._id, 
+        ...generalInfo, date: targetDate,
+        status: isCreatingNew ? 'auto' : generalInfo.status, 
+        unitType, customUnitName, unitLetter, unitColor, staff: staff, 
+        title: `${displayTitle} ${unitLetter}`.trim(),
+        unit: `${displayTitle} ${unitLetter}`.trim(), // <-- [เพิ่มบรรทัดนี้]
+        location: generalInfo.locationName, district: generalInfo.district, mapLink: generalInfo.mapLink,
+        lat: coordsA.lat, lng: coordsA.lng, time: generalInfo.departureTime,
+        team: staff.vets.filter(v => v).join(', ')
+    });
+}
     });
 
     const finalData = (payloadsToSave.length > 1) ? payloadsToSave : payloadsToSave[0];
