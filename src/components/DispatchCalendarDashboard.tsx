@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-    PieChart, Pie, Cell, LineChart, Line 
+    PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from 'recharts';
 import { io } from "socket.io-client";
 
@@ -1546,7 +1546,9 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
 // ==========================================
 // Component: ReportsPage (หน้าต่างรายงานและกราฟ)
 // ==========================================
-const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
+const ReportsPage: React.FC<{ events: EventData[], reports: any[] }> = ({ events, reports }) => {
+    
+    // 1. คำนวณสถิติเกี่ยวกับการออกหน่วย (Dispatch)
     const stats = useMemo(() => {
         const unitCount: Record<string, number> = {};
         const districtCount: Record<string, number> = {};
@@ -1555,8 +1557,6 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
         };
         const monthCount: Record<string, number> = {};
         const typeCount: Record<string, number> = {};
-        
-        // 🌟 ส่วนที่เพิ่ม: ตัวแปรสำหรับ 2 กราฟใหม่
         const teamCount: Record<string, number> = {};
         const dayOfWeekCount: Record<string, number> = {
             'อาทิตย์': 0, 'จันทร์': 0, 'อังคาร': 0, 'พุธ': 0, 'พฤหัสบดี': 0, 'ศุกร์': 0, 'เสาร์': 0
@@ -1583,7 +1583,7 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                 const monthKey = e.date.substring(0, 7); 
                 monthCount[monthKey] = (monthCount[monthKey] || 0) + 1;
 
-                // 🌟 ส่วนที่เพิ่ม: หาวันในสัปดาห์
+                // หาวันในสัปดาห์
                 const dateObj = new Date(e.date);
                 const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
                 const dayName = days[dateObj.getDay()];
@@ -1601,7 +1601,7 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
 
             typeCount[typeKey] = (typeCount[typeKey] || 0) + 1;
 
-            // 🌟 ส่วนที่เพิ่ม: นับตามทีมปฏิบัติการ
+            // นับตามทีมปฏิบัติการ
             const team = e.team?.trim() || 'ไม่ระบุทีม';
             teamCount[team] = (teamCount[team] || 0) + 1;
         });
@@ -1611,13 +1611,43 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
         const statusData = Object.keys(statusCount).map(k => ({ name: k, value: statusCount[k] }));
         const monthData = Object.keys(monthCount).sort().map(k => ({ name: k, value: monthCount[k] }));
         const typeData = Object.keys(typeCount).map(k => ({ name: k, value: typeCount[k] })).sort((a, b) => b.value - a.value);
-        
-        // 🌟 ส่วนที่เพิ่ม: จัดเตรียมข้อมูลให้ 2 กราฟใหม่
         const teamData = Object.keys(teamCount).map(k => ({ name: k, value: teamCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
         const dayOfWeekData = Object.keys(dayOfWeekCount).map(k => ({ name: k, value: dayOfWeekCount[k] }));
 
         return { unitData, districtData, statusData, monthData, typeData, teamData, dayOfWeekData, total: events.length };
     }, [events]);
+
+    // 2. คำนวณผลลัพธ์เชิงตัวเลข (Outcome / Impact) จากตารางรายงาน
+    const outcomeStats = useMemo(() => {
+        let totalDogs = 0;
+        let totalCats = 0;
+        const monthlyOutcome: Record<string, { name: string, dog: number, cat: number, total: number }> = {};
+
+        reports.forEach(r => {
+            // ปรับฟิลด์ dogCount / catCount ตามโครงสร้าง Database
+            const dogs = Number(r.dogCount || r.totalDog || r.dogs || r.dog || 0);
+            const cats = Number(r.catCount || r.totalCat || r.cats || r.cat || 0);
+            
+            totalDogs += dogs;
+            totalCats += cats;
+
+            if (r.date) {
+                const monthKey = r.date.substring(0, 7); // เอาแค่ YYYY-MM
+                if (!monthlyOutcome[monthKey]) {
+                    monthlyOutcome[monthKey] = { name: monthKey, dog: 0, cat: 0, total: 0 };
+                }
+                monthlyOutcome[monthKey].dog += dogs;
+                monthlyOutcome[monthKey].cat += cats;
+                monthlyOutcome[monthKey].total += (dogs + cats);
+            }
+        });
+
+        // จัดเรียงตามเดือน
+        const outcomeTrendData = Object.values(monthlyOutcome).sort((a, b) => a.name.localeCompare(b.name));
+        const totalAnimals = totalDogs + totalCats;
+
+        return { totalDogs, totalCats, totalAnimals, outcomeTrendData };
+    }, [reports]);
 
     const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f97316', '#14b8a6'];
     const STATUS_COLORS: Record<string, string> = { 'เสร็จสิ้น': '#10b981', 'กำลังดำเนินงาน': '#3b82f6', 'รอปฏิบัติงาน': '#f59e0b', 'ยกเลิก': '#f43f5e' };
@@ -1636,7 +1666,61 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Widget กราฟและสรุปยอด Outcome / Impact */}
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 shadow-md text-white relative overflow-hidden">
+                {/* องค์ประกอบตกแต่งพื้นหลัง */}
+                <div className="absolute top-[-20%] right-[-5%] p-8 opacity-10 pointer-events-none">
+                    <Activity className="w-64 h-64" />
+                </div>
+                
+                <h3 className="text-sm font-black mb-6 flex items-center gap-2 relative z-10"><CheckCircle className="w-5 h-5 text-indigo-200"/> ผลลัพธ์การให้บริการ (Outcome & Impact)</h3>
+                
+                {/* กล่องตัวเลขสรุปยอด 3 กล่อง */}
+                <div className="grid grid-cols-3 gap-4 mb-8 relative z-10">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-sm">
+                        <div className="text-[10px] font-bold text-indigo-100 mb-1">สัตว์ที่ได้รับบริการรวม</div>
+                        <div className="text-3xl lg:text-4xl font-black">{outcomeStats.totalAnimals.toLocaleString()} <span className="text-xs font-medium opacity-80">ตัว</span></div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-sm">
+                        <div className="text-[10px] font-bold text-indigo-100 mb-1 flex items-center gap-1.5">🐶 สุนัข</div>
+                        <div className="text-3xl lg:text-4xl font-black text-amber-200">{outcomeStats.totalDogs.toLocaleString()} <span className="text-xs font-medium text-white/80">ตัว</span></div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-sm">
+                        <div className="text-[10px] font-bold text-indigo-100 mb-1 flex items-center gap-1.5">🐱 แมว</div>
+                        <div className="text-3xl lg:text-4xl font-black text-rose-200">{outcomeStats.totalCats.toLocaleString()} <span className="text-xs font-medium text-white/80">ตัว</span></div>
+                    </div>
+                </div>
+
+                {/* กราฟพื้นที่ Area Chart: สุนัข/แมว รายเดือน */}
+                <div className="h-[280px] w-full bg-white/5 rounded-2xl p-4 border border-white/10 backdrop-blur-md relative z-10">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={outcomeStats.outcomeTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorDog" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#fde68a" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#fde68a" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorCat" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#fecdd3" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#fecdd3" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.7)' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.7)' }} axisLine={false} tickLine={false} />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: '#fff', fontSize: '10px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)' }} 
+                                itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                            />
+                            <Legend wrapperStyle={{ fontSize: '10px', color: '#fff' }} />
+                            <Area type="monotone" dataKey="dog" name="สุนัข" stroke="#fde68a" strokeWidth={3} fillOpacity={1} fill="url(#colorDog)" />
+                            <Area type="monotone" dataKey="cat" name="แมว" stroke="#fecdd3" strokeWidth={3} fillOpacity={1} fill="url(#colorCat)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
                 {/* 1. กราฟวงกลม: สถานะการดำเนินงาน */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                     <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Activity className="w-4 h-4 text-indigo-500"/> สัดส่วนสถานะงาน</h3>
@@ -1725,8 +1809,8 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                     </div>
                 </div>
 
-                {/* 🌟 7. (เพิ่มใหม่) กราฟแท่ง: วันที่ออกปฏิบัติงานบ่อยที่สุด */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                {/* 6. กราฟแท่ง: วันที่ออกปฏิบัติงานบ่อยที่สุด */}
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 lg:col-span-2">
                     <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-teal-500"/> วันที่ออกปฏิบัติงานบ่อยที่สุด</h3>
                     <div className="h-[250px] w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
@@ -2167,7 +2251,9 @@ const activitiesCounts = useMemo(() => {
         const fetchData = async () => {
             try {
                 const token = getCurrentToken();
-                const headers: Record<string, string> = {};
+                const headers: Record<string, string> = {
+                    'ngrok-skip-browser-warning': 'true' // เพิ่มบรรทัดนี้
+                };
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
                 const [res, reportsRes] = await Promise.all([
@@ -3226,7 +3312,7 @@ const activitiesCounts = useMemo(() => {
                         {/* ===================== หน้ารายงาน (Reports) ===================== */}
                         {activeMenu === 'reports' && (
                             <div className="min-h-full h-auto pb-10">
-                                <ReportsPage events={events} />
+                                <ReportsPage events={events} reports={reports} />
                             </div>
                         )}
                     </main>
