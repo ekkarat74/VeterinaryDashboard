@@ -30,11 +30,8 @@ const allowedOrigins = [
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: function (origin, callback) {
-      // อนุญาตทุกโดเมน (Bypass CORS) ป้องกันปัญหา Socket.io ต่อไม่ติด
-      callback(null, true);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
 });
@@ -51,11 +48,15 @@ const loginLimiter = rateLimit({
 // --- MIDDLEWARES ---
 app.use(cors({
   origin: function (origin, callback) {
-    // อนุญาตทุก Origin ให้ผ่านได้เลยเพื่อแก้ปัญหา CORS Block (ไม่มีข้อมูลเข้า)
-    callback(null, true);
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin);
+      callback(new Error('Not allowed by CORS'));
+    }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 

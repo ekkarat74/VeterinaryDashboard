@@ -824,15 +824,13 @@ const markAllAsRead = async () => {
         const fetchDispatches = async () => {
             try {
                 const token = getCurrentToken();
-                const headers: Record<string, string> = {
-                    'ngrok-skip-browser-warning': 'true'
-                };
+                const headers: Record<string, string> = {};
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
 
                 const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
-                
+            
                 if (res.ok) {
                     const data = await res.json();
                     setDispatchEvents(data);
@@ -849,7 +847,7 @@ const markAllAsRead = async () => {
             }
         };
         fetchDispatches();
-    }, [BASE_URL, setDispatchEvents, setUser, getCurrentToken, addToast, setIsLoginModalOpen]);
+    }, [BASE_URL, setDispatchEvents, setUser]);
 
     const meetingEventsOnly = useMemo(() => meetings.map((m: any) => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
@@ -1051,11 +1049,7 @@ const handleDeleteDispatch = async (id: string) => {
     const fetchData = useCallback(async () => {
         try {
             setIsInitialLoading(true);
-            const response = await fetch(`${API_URL}?limit=5000`, {
-                headers: {
-                    'ngrok-skip-browser-warning': 'true' // ป้องกัน HTML response บล็อกข้อมูล
-                }
-            });
+            const response = await fetch(`${API_URL}?limit=5000`);
             const result = await response.json();
             const dataArray = Array.isArray(result) ? result : (result.data || []);
             setReportData(dataArray);
