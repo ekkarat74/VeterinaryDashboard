@@ -9,6 +9,7 @@ import {
 export interface User {
     _id: string;
     username: string;
+    fullName?: string;
     role: string;
     status?: string;
 }
@@ -35,7 +36,7 @@ type TabType = 'info' | 'password';
 
 // --- Sub-Component: Edit User Modal ---
 const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, onUpdate, onResetPassword, currentUserRole }) => {
-    const [formData, setFormData] = useState({ username: '', role: 'user', status: 'active' });
+    const [formData, setFormData] = useState({ username: '', fullName: '', role: 'user', status: 'active' });
     const [newPassword, setNewPassword] = useState<string>('');
     const [activeTab, setActiveTab] = useState<TabType>('info');
 
@@ -43,6 +44,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
         if (user) {
             setFormData({
                 username: user.username,
+                fullName: user.fullName || '',
                 role: user.role,
                 status: user.status || 'active'
             });
@@ -74,7 +76,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
                     <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold border-2 border-slate-600 shadow-lg text-blue-400">
                         {user.username.substring(0, 2).toUpperCase()}
                     </div>
-                    <h3 className="text-lg font-bold tracking-wide">{user.username}</h3>
+                    <h3 className="text-lg font-bold tracking-wide">{user.fullName || user.username}</h3>
+                    {user.fullName && <p className="text-xs text-blue-200 mt-0.5">@{user.username}</p>}
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mt-1 rounded-full bg-slate-800/50 border border-slate-700">
                         <UserCog className="w-3.5 h-3.5 text-slate-300" />
                         <span className="text-xs text-slate-300 uppercase tracking-wider font-medium">
@@ -115,6 +118,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
                                 </div>
                             </div>
                             
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">ชื่อ-นามสกุล (Full Name)</label>
+                                <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all" 
+                                    value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} placeholder="ระบุชื่อ-นามสกุล" />
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">สิทธิ์ (Role)</label>
@@ -191,6 +200,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
 // --- Main Component: User Management Modal ---
 const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClose, token, apiBaseUrl, onToast, currentUserRole }) => {
     const [username, setUsername] = useState<string>("");
+    const [fullName, setFullName] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [role, setRole] = useState<string>("admin");
     const [userList, setUserList] = useState<User[]>([]);
@@ -213,7 +223,6 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
             const data: User[] = await res.json();
             setUserList(data);
         } else {
-            // เพิ่มการแจ้ง Error ตรงนี้
             const errData = await res.json().catch(() => ({}));
             if(onToast) onToast('error', errData.message || "ไม่สามารถดึงข้อมูลผู้ใช้งานได้ (เซสชันอาจหมดอายุ)");
         }
@@ -234,10 +243,10 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ username, password, role })
+                body: JSON.stringify({ username, fullName, password, role })
             });
             if (res.ok) {
-                setUsername(""); setPassword(""); fetchUsers();
+                setUsername(""); setFullName(""); setPassword(""); fetchUsers();
                 if(onToast) onToast('success', 'สร้างบัญชีผู้ใช้สำเร็จ');
             } else {
                 const data = await res.json();
@@ -315,7 +324,8 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
     };
 
     const filteredUsers = userList.filter(u => {
-        return u.username?.toLowerCase().includes(searchTerm?.toLowerCase() || '');
+        return u.username?.toLowerCase().includes(searchTerm?.toLowerCase() || '') ||
+               u.fullName?.toLowerCase().includes(searchTerm?.toLowerCase() || '');
     });
 
     // Helper: Badge Style
@@ -360,7 +370,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                     </button>
                 </div>
 
-                {/* Content Wrapper - scrolls vertically on mobile, uses split layout on md+ */}
+                {/* Content Wrapper */}
                 <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden bg-slate-50/50 relative">
                     
                     {/* Left: Create Form (Sidebar) */}
@@ -375,6 +385,11 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">ชื่อผู้ใช้ (Username)</label>
                                     <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
                                         value={username} onChange={e=>setUsername(e.target.value)} required placeholder="ระบุชื่อผู้ใช้" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">ชื่อ-นามสกุล (Full Name)</label>
+                                    <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
+                                        value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="ระบุชื่อ-นามสกุล" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">รหัสผ่าน (Password)</label>
@@ -424,7 +439,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
                                     <input 
                                         type="text" 
-                                        placeholder="ค้นหาชื่อผู้ใช้..." 
+                                        placeholder="ค้นหาชื่อผู้ใช้หรือชื่อจริง..." 
                                         className="w-full pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none shadow-sm transition-all"
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
@@ -436,13 +451,14 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                             </div>
                         </div>
                         
-                        {/* Table Container - Added overflow-x-auto for mobile */}
+                        {/* Table Container */}
                         <div className="flex-1 overflow-y-auto overflow-x-auto bg-white border border-slate-200 rounded-2xl shadow-sm">
-                            <table className="w-full text-sm text-left border-collapse min-w-[550px]">
+                            <table className="w-full text-sm text-left border-collapse min-w-[650px]">
                                 <thead className="bg-slate-50/80 text-slate-500 font-semibold text-xs uppercase sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200">
                                     <tr>
                                         <th className="p-3 md:p-4 w-16 md:w-20 text-center font-medium">รูปโปรไฟล์</th>
-                                        <th className="p-3 md:p-4 font-medium">ชื่อผู้ใช้งาน (Username)</th>
+                                        <th className="p-3 md:p-4 font-medium">บัญชี (Username)</th>
+                                        <th className="p-3 md:p-4 font-medium">ชื่อ-นามสกุล</th>
                                         <th className="p-3 md:p-4 font-medium w-36 md:w-40 text-center">ระดับสิทธิ์ (Role)</th>
                                         <th className="p-3 md:p-4 text-right font-medium w-28 md:w-32">จัดการ</th>
                                     </tr>
@@ -450,7 +466,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                 <tbody className="divide-y divide-slate-100">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={4} className="p-12 text-center">
+                                            <td colSpan={5} className="p-12 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
                                                     <RotateCw className="w-6 h-6 animate-spin text-blue-500" />
                                                     <span className="text-sm font-medium">กำลังโหลดข้อมูล...</span>
@@ -459,7 +475,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                         </tr>
                                     ) : filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="p-12 text-center">
+                                            <td colSpan={5} className="p-12 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-2 text-slate-400">
                                                     <Users className="w-8 h-8 opacity-20" />
                                                     <span className="text-sm">ไม่พบข้อมูลผู้ใช้งาน</span>
@@ -475,6 +491,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                                     </div>
                                                 </td>
                                                 <td className="p-3 md:p-4 font-semibold text-slate-700">{u.username}</td>
+                                                <td className="p-3 md:p-4 text-slate-600">{u.fullName || '-'}</td>
                                                 <td className="p-3 md:p-4 text-center">
                                                     <div className="relative inline-block w-full">
                                                     {(u.role === 'Developer' && currentUserRole !== 'Developer') ? (

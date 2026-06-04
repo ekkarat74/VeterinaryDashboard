@@ -578,6 +578,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
     const [editingUser, setEditingUser] = useState<any | null>(null);
 
     const [formUsername, setFormUsername] = useState('');
+    const [formFullName, setFormFullName] = useState('');
     const [formPassword, setFormPassword] = useState('');
     const [formRole, setFormRole] = useState('user');
     const [formStatus, setFormStatus] = useState('active');
@@ -669,7 +670,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
         const isEdit = !!editingUser;
         const url = isEdit ? `${BASE_URL}/api/users/${editingUser._id}` : `${BASE_URL}/api/users`;
         
-        const payload: any = { username: formUsername, role: formRole, status: formStatus };
+        const payload: any = { username: formUsername, fullName: formFullName, role: formRole, status: formStatus }; // <--- เพิ่ม fullName
         if (!isEdit) payload.password = formPassword;
 
         try {
@@ -895,6 +896,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                     <button onClick={() => {
                                         setEditingUser(null);
                                         setFormUsername('');
+                                        setFormFullName('');
                                         setFormPassword('');
                                         setFormRole('user');
                                         setFormStatus('active');
@@ -921,6 +923,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                                 <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ชื่อผู้ใช้งาน (Username)</label>
                                                 <input type="text" required value={formUsername} onChange={e => setFormUsername(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ตั้งชื่อผู้ใช้งาน" />
                                             </div>
+                                            <div>
+        <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ชื่อ-นามสกุล (Full Name)</label>
+        <input type="text" value={formFullName} onChange={e => setFormFullName(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ระบุชื่อ-นามสกุล" />
+    </div>
                                             {!editingUser && (
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-600 mb-1.5">รหัสผ่าน</label>
@@ -959,9 +965,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-[10px]">
                                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-                                            <tr>
-                                                <th className="p-4 uppercase tracking-wider">บัญชีผู้ใช้งาน</th>
-                                                <th className="p-4 uppercase tracking-wider">สิทธิ์เข้าถึง</th>
+    <tr>
+        <th className="p-4 uppercase tracking-wider">บัญชีผู้ใช้งาน</th>
+        <th className="p-4 uppercase tracking-wider">ชื่อ-นามสกุล</th> {/* <--- เพิ่มบรรทัดนี้ */}
+        <th className="p-4 uppercase tracking-wider">สิทธิ์เข้าถึง</th>
                                                 <th className="p-4 uppercase tracking-wider">สถานะบัญชี</th>
                                                 <th className="p-4 uppercase tracking-wider">เข้าสู่ระบบล่าสุด</th>
                                                 <th className="p-4 text-center uppercase tracking-wider">จัดการ</th>
@@ -981,6 +988,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                                             </div>
                                                             {u.username}
                                                         </td>
+                                                        <td className="p-4 text-slate-600">{u.fullName || '-'}</td>
                                                         <td className="p-4 text-slate-600 font-medium">
                                                             <span className="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{u.role}</span>
                                                         </td>
@@ -996,6 +1004,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                                                 <button onClick={() => {
                                                                     setEditingUser(u);
                                                                     setFormUsername(u.username);
+                                                                    setFormFullName(u.fullName || '');
                                                                     setFormRole(u.role);
                                                                     setFormStatus(u.status);
                                                                     setShowUserForm(true);
@@ -2727,7 +2736,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                             </button>
                             <div>
                                 <h2 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                                    สวัสดี, {user ? user.username : 'ผู้เยี่ยมชม'} 👋
+                                    สวัสดี, {user ? (user.fullName || user.username) : 'ผู้เยี่ยมชม'} 👋
                                 </h2>
                                 <p className="text-[10px] text-slate-500 font-medium mt-0.5">ยินดีต้อนรับสู่ระบบปฏิทินออกหน่วยสัตวแพทย์เคลื่อนที่</p>
                             </div>
@@ -2761,7 +2770,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                                         <Users className="w-4 h-4 text-indigo-600" />
                                     </div>
                                     <div className="hidden md:block">
-                                        <div className="text-[10px] font-bold text-slate-700 leading-tight">{user.username}</div>
+                                        <div className="text-[10px] font-bold text-slate-700 leading-tight">{user.fullName || user.username}</div>
                                         <div className="text-[8px] text-slate-400 font-medium">{user.role}</div>
                                     </div>
                                     <button onClick={handleLogout} className="ml-2 p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">

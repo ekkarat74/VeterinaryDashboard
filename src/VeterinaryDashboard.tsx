@@ -1969,32 +1969,28 @@ const handleDeleteDispatch = async (id: string) => {
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <Suspense fallback={<div className="hidden">Loading...</div>}>
-    <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem as any} onToast={addToast} />
-    <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak as any} onToast={addToast} breeds={breeds} colors={colors}/>
-    {/* แก้ไข token ตรงนี้ */}
-    <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
-    <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
-    <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
-</Suspense>
+                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem as any} onToast={addToast} />
+                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak as any} onToast={addToast} breeds={breeds} colors={colors}/>
+                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
+                <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
+                <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
+            </Suspense>
 
-<CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={allUnits} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
-{/* แก้ไข token ตรงนี้ */}
-<BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={getCurrentToken()} apiBaseUrl={BASE_URL} />
-<ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
-<LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
-{/* แก้ไข token ตรงนี้ */}
-<UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
-<DuplicateReportModal 
-    isOpen={isDuplicateModalOpen} 
-    onClose={() => setIsDuplicateModalOpen(false)} 
-    reports={reportData} 
-    dispatchEvents={dispatchEvents} 
-    onSelectRecord={handleNavigateFromDuplicate}
-/>
-<ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears as any} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
-{/* แก้ไข token ตรงนี้ */}
-<ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
-<ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} currentUserRole={user?.role} />
+            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={allUnits} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
+            <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={getCurrentToken()} apiBaseUrl={BASE_URL} />
+            <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
+            <DuplicateReportModal 
+                isOpen={isDuplicateModalOpen} 
+                onClose={() => setIsDuplicateModalOpen(false)} 
+                reports={reportData} 
+                dispatchEvents={dispatchEvents} 
+                onSelectRecord={handleNavigateFromDuplicate}
+            />
+            <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears as any} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
+            <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
+            <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} currentUserRole={user?.role} />
             <DispatchModal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} onToast={addToast} onSave={handleSaveDispatchEvent as any} onDelete={handleDeleteDispatch} initialData={viewingDispatch as any} />
             <MeetingCalendarDashboard isOpen={isMeetingCalendarOpen} onClose={() => setIsMeetingCalendarOpen(false)} events={meetingEventsOnly} onOpenForm={openMeetingForm} onEventClick={handleCalendarEventClick} />
             <MeetingModal isOpen={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} onSave={handleSaveMeeting as any} onDelete={handleDeleteMeeting} initialData={viewingMeeting as any} onToast={addToast} />

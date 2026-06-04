@@ -79,6 +79,7 @@ mongoose.connect(MONGO_URI, {
 // 1. User Schema
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
+  fullName: { type: String },
   password: { type: String, required: true },
   role: { type: String, enum: ['Developer', 'MagaAdmin', 'executive', 'admin', 'user'], default: 'user' },
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
@@ -295,15 +296,15 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
     User.findByIdAndUpdate(user._id, { lastLogin: new Date() }).catch(console.error);
 
-    req.user = { username: user.username, role: user.role };
-    createLog(req, 'LOGIN', 'เข้าสู่ระบบสำเร็จ');
+    req.user = { username: user.username, fullName: user.fullName, role: user.role }; // <--- เพิ่ม fullName
+  createLog(req, 'LOGIN', 'เข้าสู่ระบบสำเร็จ');
 
     const token = jwt.sign(
-      { _id: user._id, username: user.username, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-    res.json({ token, role: user.role, username: user.username });
+    { _id: user._id, username: user.username, fullName: user.fullName, role: user.role }, // <--- เพิ่ม fullName
+    JWT_SECRET,
+    { expiresIn: '8h' }
+  );
+  res.json({ token, role: user.role, username: user.username, fullName: user.fullName });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -359,7 +360,7 @@ app.delete('/api/logs', authenticateToken, authorizeRole(['Developer', 'MagaAdmi
 // =======================
 app.post('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { username, password, role, fullName } = req.body;
 
     if (req.user.role === 'MagaAdmin' && role === 'Developer') {
       return res.status(403).json({ message: "MagaAdmin ไม่สามารถสร้างบัญชีระดับผู้พัฒนาได้" });
@@ -367,7 +368,7 @@ app.post('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const newUser = new User({ username, password: hashedPassword, role });
+    const newUser = new User({ username, password: hashedPassword, role, fullName }); // <--- เพิ่ม fullName
     await newUser.save();
 
     createLog(req, 'CREATE_USER', `สร้างผู้ใช้ใหม่: ${username} (${role})`);
@@ -388,7 +389,7 @@ app.get('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin'
 
 app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
   try {
-    const { username, role, status } = req.body;
+    const { username, role, status, fullName } = req.body;
     const targetUser = await User.findById(req.params.id);
     if (!targetUser) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
 
@@ -401,6 +402,7 @@ app.put('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'MagaAd
     }
 
     if (username !== undefined) targetUser.username = username;
+    if (fullName !== undefined) targetUser.fullName = fullName;
     if (role !== undefined) targetUser.role = role;
     if (status !== undefined) targetUser.status = status;
 
