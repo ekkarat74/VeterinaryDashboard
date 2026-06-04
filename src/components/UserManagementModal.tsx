@@ -204,22 +204,26 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
     }, [isOpen]);
 
     const fetchUsers = async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch(`${apiBaseUrl}/api/users`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data: User[] = await res.json();
-                setUserList(data);
-            }
-        } catch (error) {
-            console.error(error);
-            if(onToast) onToast('error', "ไม่สามารถดึงข้อมูลผู้ใช้งานได้");
-        } finally {
-            setIsLoading(false);
+    try {
+        setIsLoading(true);
+        const res = await fetch(`${apiBaseUrl}/api/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data: User[] = await res.json();
+            setUserList(data);
+        } else {
+            // เพิ่มการแจ้ง Error ตรงนี้
+            const errData = await res.json().catch(() => ({}));
+            if(onToast) onToast('error', errData.message || "ไม่สามารถดึงข้อมูลผู้ใช้งานได้ (เซสชันอาจหมดอายุ)");
         }
-    };
+    } catch (error) {
+        console.error(error);
+        if(onToast) onToast('error', "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

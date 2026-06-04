@@ -560,10 +560,11 @@ const stats = useMemo(() => {
 interface SettingsPageProps {
     activeTab: string;
     user: User | null;
+    token: string; 
     addToast: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, addToast }) => {
     // --- State: ตั้งค่าโปรไฟล์ ---
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -610,7 +611,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ oldPassword, newPassword })
             });
@@ -639,7 +640,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }
         setIsLoadingUsers(true);
         try {
             const res = await fetch(`${BASE_URL}/api/users`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
                 const data = await res.json();
@@ -676,7 +677,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, addToast }
                 method: isEdit ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(payload)
             });
@@ -3303,7 +3304,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                         {/* ===================== หน้าตั้งค่า (Settings) ===================== */}
                         {activeMenu === 'settings' && activeSettingsTab !== 'announcements' && (
-                            <SettingsPage activeTab={activeSettingsTab} user={user} addToast={addToast} />
+                            <SettingsPage activeTab={activeSettingsTab} user={user} token={getCurrentToken()} addToast={addToast} />
                         )}
 
                         {/* ===================== หน้ารายงาน (Reports) ===================== */}
