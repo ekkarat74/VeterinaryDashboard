@@ -151,6 +151,15 @@ const getDispatchStatus = (evt: EventData): { text: string, badge: string, icon?
     if (evt.status === 'postponed') return { text: 'เลื่อน', badge: 'bg-orange-100 text-orange-700 border-orange-200', icon: Clock };
     if (evt.status === 'completed') return { text: 'เสร็จสิ้น (Manual)', badge: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle };
 
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = toLocalISOString(tomorrow);
+
+    if (evt.date === tomorrowStr) {
+        return { text: 'ออกหน่วยวันพรุ่งนี้', badge: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck };
+    }
+    // ------------------------------------------------
+
     const closeTime = evt.closingTime || '16:00'; 
     const now = new Date();
     const start = new Date(`${evt.date}T${evt.time}:00`);
@@ -385,17 +394,17 @@ const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string, onN
         const matchesDate = (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
 
         const st = getDispatchStatus(e)?.text || '';
-
-        let matchStatus = true;
-        if (filterStatus !== 'ทั้งหมด') {
-            if (filterStatus === 'รอปฏิบัติงาน/เตรียมพร้อม') {
-                matchStatus = st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน';
-            } else if (filterStatus === 'เสร็จสิ้น') {
-                matchStatus = st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน';
-            } else {
-                matchStatus = st === filterStatus;
-            }
-        }
+let matchStatus = true;
+if (filterStatus !== 'ทั้งหมด') {
+    if (filterStatus === 'รอปฏิบัติงาน/เตรียมพร้อม') {
+        // อัปเดตให้รวม "ออกหน่วยวันพรุ่งนี้" เข้ามาในกลุ่มรอปฏิบัติงานด้วย
+        matchStatus = st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน' || st === 'ออกหน่วยวันพรุ่งนี้';
+    } else if (filterStatus === 'เสร็จสิ้น') {
+        matchStatus = st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน';
+    } else {
+        matchStatus = st === filterStatus;
+    }
+}
 
         let matchesCategory = true;
             if (activeCategory === 'pending') {
@@ -425,7 +434,8 @@ const stats = useMemo(() => {
         const st = getDispatchStatus(e)?.text;
         if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน') completed++;
         else if (st === 'กำลังดำเนินงาน') inProgress++;
-        else if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
+        // อัปเดตเพิ่มตระกูลรอดำเนินการให้บวกสถานะวันพรุ่งนี้เข้าไปด้วย
+        else if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน' || st === 'ออกหน่วยวันพรุ่งนี้') pending++;
         else if (st === 'ยกเลิก') cancelled++;
     });
     return { total: filteredEvents.length, completed, inProgress, pending, cancelled };
@@ -482,12 +492,13 @@ const stats = useMemo(() => {
                     {units.map(u => <option key={u}>{u}</option>)}
                 </select>
                 <select className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setFilterStatus(e.target.value)}>
-                    <option value="ทั้งหมด">ทุกสถานะ</option>
-                    <option value="รอปฏิบัติงาน/เตรียมพร้อม">รอปฏิบัติงาน / เตรียมพร้อม</option>
-                    <option value="กำลังดำเนินงาน">กำลังดำเนินงาน</option>
-                    <option value="เสร็จสิ้น">เสร็จสิ้น</option>
-                    <option value="ยกเลิก">ยกเลิก</option>
-                </select>
+    <option value="ทั้งหมด">ทุกสถานะ</option>
+    <option value="รอปฏิบัติงาน/เตรียมพร้อม">รอปฏิบัติงาน / เตรียมพร้อม</option>
+    <option value="ออกหน่วยวันพรุ่งนี้">ออกหน่วยวันพรุ่งนี้</option> {/* เพิ่มตัวเลือกนี้ */}
+    <option value="กำลังดำเนินงาน">กำลังดำเนินงาน</option>
+    <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+    <option value="ยกเลิก">ยกเลิก</option>
+</select>
                 
                 <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setStartDate(e.target.value)} />
                 <input type="date" className="p-2.5 bg-slate-50 rounded-xl text-[10px] border border-slate-200" onChange={(e) => setEndDate(e.target.value)} />
@@ -535,11 +546,12 @@ const stats = useMemo(() => {
                             <div key={statusGroup} className="flex-1 bg-slate-50 rounded-2xl p-3 flex flex-col gap-3 max-h-[420px] overflow-y-auto custom-scrollbar border border-slate-100">
                                 <h4 className="font-bold text-slate-700 text-[10px] px-1 sticky top-0 bg-slate-50 py-1 z-10">{statusGroup} ({filteredEvents.filter(e => getDispatchStatus(e)?.text === statusGroup).length})</h4>
                                 {filteredEvents.filter(e => {
-                                    const currentStatus = getDispatchStatus(e)?.text || '';
-                                    if (statusGroup === 'เตรียมพร้อม') return currentStatus === 'เตรียมพร้อม' || currentStatus === 'รอปฏิบัติงาน';
-                                    if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
-                                    return currentStatus === statusGroup;
-                                }).map((e, i) => (
+    const currentStatus = getDispatchStatus(e)?.text || '';
+    // อัปเดตให้คอลัมน์เตรียมพร้อมแสดงงานของวันพรุ่งนี้ด้วย
+    if (statusGroup === 'เตรียมพร้อม') return currentStatus === 'เตรียมพร้อม' || currentStatus === 'รอปฏิบัติงาน' || currentStatus === 'ออกหน่วยวันพรุ่งนี้';
+    if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
+    return currentStatus === statusGroup;
+}).map((e, i) => (
                                 <div key={i} onClick={() => onNavigateToEvent?.(e.date, e._id)} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px] shrink-0 cursor-pointer hover:border-indigo-300 transition-colors">
                                     <p className="font-bold text-indigo-600 mb-0.5">{e.unit || e.unitName || e.title || 'ไม่ระบุหน่วย'}</p>
                                     <p className="text-slate-700 font-medium text-[9px]">{e.location}</p>
@@ -924,9 +936,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                                 <input type="text" required value={formUsername} onChange={e => setFormUsername(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ตั้งชื่อผู้ใช้งาน" />
                                             </div>
                                             <div>
-        <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ชื่อ-นามสกุล (Full Name)</label>
-        <input type="text" value={formFullName} onChange={e => setFormFullName(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ระบุชื่อ-นามสกุล" />
-    </div>
+                                                <label className="block text-[10px] font-bold text-slate-600 mb-1.5">ชื่อ-นามสกุล (Full Name)</label>
+                                                <input type="text" value={formFullName} onChange={e => setFormFullName(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-[10px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400" placeholder="ระบุชื่อ-นามสกุล" />
+                                            </div>
                                             {!editingUser && (
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-600 mb-1.5">รหัสผ่าน</label>
@@ -965,10 +977,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-[10px]">
                                         <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-    <tr>
-        <th className="p-4 uppercase tracking-wider">บัญชีผู้ใช้งาน</th>
-        <th className="p-4 uppercase tracking-wider">ชื่อ-นามสกุล</th> {/* <--- เพิ่มบรรทัดนี้ */}
-        <th className="p-4 uppercase tracking-wider">สิทธิ์เข้าถึง</th>
+                                            <tr>
+                                                <th className="p-4 uppercase tracking-wider">บัญชีผู้ใช้งาน</th>
+                                                <th className="p-4 uppercase tracking-wider">ชื่อ-นามสกุล</th>
+                                                <th className="p-4 uppercase tracking-wider">สิทธิ์เข้าถึง</th>
                                                 <th className="p-4 uppercase tracking-wider">สถานะบัญชี</th>
                                                 <th className="p-4 uppercase tracking-wider">เข้าสู่ระบบล่าสุด</th>
                                                 <th className="p-4 text-center uppercase tracking-wider">จัดการ</th>
@@ -1124,7 +1136,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ activeTab, user, token, add
 };
 
 // ==========================================
-// Component: DuplicateCheckModal (อัปเดตใหม่: เพิ่มฟิลเตอร์ วันที่, สถานที่, หน่วย)
+// Component: DuplicateCheckModal
 // ==========================================
 interface DuplicateCheckModalProps {
     isOpen: boolean;
@@ -1904,19 +1916,20 @@ const DispatchCalendarDashboard: React.FC = () => {
     }, []);
 
     const activitiesCounts = useMemo(() => {
-        let pending = 0;
-        let inProgress = 0;
-        let history = 0;
-    
-        events.forEach(e => {
-            const st = getDispatchStatus(e)?.text;
-            if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
-            else if (st === 'กำลังดำเนินงาน') inProgress++;
-            else if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน' || st === 'ยกเลิก') history++;
-        });
-    
-        return { all: events.length, pending, inProgress, history };
-    }, [events]);;
+    let pending = 0;
+    let inProgress = 0;
+    let history = 0;
+
+    events.forEach(e => {
+        const st = getDispatchStatus(e)?.text;
+        // อัปเดตตัวแปร pending ให้รับนับสถานะวันพรุ่งนี้ด้วย
+        if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน' || st === 'ออกหน่วยวันพรุ่งนี้') pending++;
+        else if (st === 'กำลังดำเนินงาน') inProgress++;
+        else if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน' || st === 'ยกเลิก') history++;
+    });
+
+    return { all: events.length, pending, inProgress, history };
+}, [events]);
 
     useEffect(() => {
         if (!audioRef.current) {
@@ -1947,19 +1960,20 @@ const DispatchCalendarDashboard: React.FC = () => {
     const TIMELINE_TOTAL_MINS = (TIMELINE_END_HOUR - TIMELINE_START_HOUR) * 60;
 
     const filterOptions = useMemo(() => {
-        const districts = new Set<string>();
-        const units = new Set<string>();
-        events.forEach(e => {
-            if (e.district) districts.add(e.district);
-            if (e.unit) units.add(e.unit);
-            else if (e.unitName) units.add(e.unitName);
-        });
-        return {
-            districts: ['ทั้งหมด', ...Array.from(districts).sort()],
-            units: ['ทั้งหมด', ...Array.from(units).sort()],
-            statuses: ['ทั้งหมด', 'รอปฏิบัติงาน', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก']
-        };
-    }, [events]);
+    const districts = new Set<string>();
+    const units = new Set<string>();
+    events.forEach(e => {
+        if (e.district) districts.add(e.district);
+        if (e.unit) units.add(e.unit);
+        else if (e.unitName) units.add(e.unitName);
+    });
+    return {
+        districts: ['ทั้งหมด', ...Array.from(districts).sort()],
+        units: ['ทั้งหมด', ...Array.from(units).sort()],
+        // อัปเดตเพิ่ม 'ออกหน่วยวันพรุ่งนี้' เข้าไปในสิทธิ์ของตัวเลือกสถานะ
+        statuses: ['ทั้งหมด', 'รอปฏิบัติงาน', 'ออกหน่วยวันพรุ่งนี้', 'กำลังดำเนินงาน', 'เสร็จสิ้น', 'ยกเลิก']
+    };
+}, [events]);
 
     const displayEvents = useMemo(() => {
         return events.filter(e => {

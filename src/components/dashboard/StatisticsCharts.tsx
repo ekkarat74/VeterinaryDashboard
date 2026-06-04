@@ -13,6 +13,7 @@ interface TrendData {
     sterilize?: number;
     medical?: number;
     register?: number;
+    microchip?: number;
     growthRates?: Record<string, number>; 
     [key: string]: any;
 }
@@ -76,7 +77,7 @@ const calculateTrendWithGrowth = (data: TrendData[]): TrendData[] => {
         const growthRates: Record<string, number> = {};
         if (index > 0) {
             const prev = data[index - 1];
-            const keysToCompare = ['total', 'vaccine', 'sterilize', 'medical', 'register'];
+            const keysToCompare = ['total', 'vaccine', 'microchip', 'sterilize', 'medical', 'register'];
             
             keysToCompare.forEach(key => {
                 const currentVal = current[key] || 0;
@@ -282,7 +283,8 @@ const StatisticsCharts: React.FC<StatisticsChartsProps> = ({
                             <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px' }} />
                             
                             <Area isAnimationActive={false} yAxisId="left" type="monotone" dataKey="total" fill="url(#colorTotal)" stroke="#6366f1" strokeWidth={2} name="ยอดรวมทั้งหมด" />
-                            <Bar isAnimationActive={false} yAxisId="left" dataKey="vaccine" fill="#38bdf8" barSize={12} radius={[4,4,0,0]} name="วัคซีน + ไมโครชิป" />
+                            <Bar isAnimationActive={false} yAxisId="left" dataKey="vaccine" fill="#38bdf8" barSize={12} radius={[4,4,0,0]} name="ฉีดวัคซีน" />
+                            <Bar isAnimationActive={false} yAxisId="left" dataKey="microchip" fill="#c084fc" barSize={12} radius={[4,4,0,0]} name="ฝังไมโครชิป" />
                             <Bar isAnimationActive={false} yAxisId="left" dataKey="sterilize" fill="#fb923c" barSize={12} radius={[4,4,0,0]} name="ทำหมัน" />
                             <Bar isAnimationActive={false} yAxisId="left" dataKey="medical" fill="#f472b6" barSize={12} radius={[4,4,0,0]} name="รักษาสัตว์" />
                             <Line isAnimationActive={false} yAxisId="right" type="monotone" dataKey="register" stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} name="ขึ้นทะเบียน" />

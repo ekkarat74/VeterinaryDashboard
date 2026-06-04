@@ -707,7 +707,7 @@ ${staffDetails}
         status: isCreatingNew ? 'auto' : generalInfo.status, 
         unitType, customUnitName, unitLetter: 'A', unitColor, staff: staff, 
         title: `${displayTitle} A`.trim(),
-        unit: `${displayTitle} A`.trim(), // <-- [เพิ่มบรรทัดนี้]
+        unit: `${displayTitle} A`.trim(),
         location: generalInfo.locationName, district: generalInfo.district, mapLink: generalInfo.mapLink,
         lat: coordsA.lat, lng: coordsA.lng, time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
@@ -718,24 +718,24 @@ ${staffDetails}
         status: isCreatingNew ? 'auto' : generalInfo.status,
         unitType, customUnitName, unitLetter: 'B', unitColor, staff: staff, 
         title: `${displayTitle} B`.trim(),
-        unit: `${displayTitle} B`.trim(), // <-- [เพิ่มบรรทัดนี้]
+        unit: `${displayTitle} B`.trim(),
         location: generalInfo.locationNameB, district: generalInfo.districtB, mapLink: generalInfo.mapLinkB,
         lat: coordsB.lat, lng: coordsB.lng, time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
     });
-} else {
+  } else {
     payloadsToSave.push({
         _id: isCreatingNew ? undefined : initialData?._id, 
         ...generalInfo, date: targetDate,
         status: isCreatingNew ? 'auto' : generalInfo.status, 
         unitType, customUnitName, unitLetter, unitColor, staff: staff, 
         title: `${displayTitle} ${unitLetter}`.trim(),
-        unit: `${displayTitle} ${unitLetter}`.trim(), // <-- [เพิ่มบรรทัดนี้]
+        unit: `${displayTitle} ${unitLetter}`.trim(),
         location: generalInfo.locationName, district: generalInfo.district, mapLink: generalInfo.mapLink,
         lat: coordsA.lat, lng: coordsA.lng, time: generalInfo.departureTime,
         team: staff.vets.filter(v => v).join(', ')
     });
-}
+  }
     });
 
     const finalData = (payloadsToSave.length > 1) ? payloadsToSave : payloadsToSave[0];
@@ -1091,10 +1091,20 @@ ${staffDetails}
                         <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <input 
                           type="text" placeholder="http://googleusercontent.com/maps..." 
-                          className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                          className={`w-full pl-8 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all ${generalInfo.mapLink ? 'pr-14' : 'pr-3'}`}
                           value={generalInfo.mapLink} 
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, mapLink: e.target.value })} 
                         />
+                        {generalInfo.mapLink && (
+                          <a
+                            href={generalInfo.mapLink.startsWith('http') ? generalInfo.mapLink : `https://${generalInfo.mapLink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2 py-1 rounded-md font-bold transition-colors z-10"
+                          >
+                            เปิด
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1177,10 +1187,20 @@ ${staffDetails}
                             <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                             <input 
                               type="text" placeholder="http://googleusercontent.com/maps..." 
-                              className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                              className={`w-full pl-8 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all ${generalInfo.mapLinkB ? 'pr-14' : 'pr-3'}`}
                               value={generalInfo.mapLinkB} 
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralInfo({ ...generalInfo, mapLinkB: e.target.value })} 
                             />
+                            {generalInfo.mapLinkB && (
+                              <a
+                                href={generalInfo.mapLinkB.startsWith('http') ? generalInfo.mapLinkB : `https://${generalInfo.mapLinkB}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2 py-1 rounded-md font-bold transition-colors z-10"
+                              >
+                                เปิด
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -938,11 +938,21 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <input
                       type="url"
                       placeholder="https://maps.google.com/..."
-                      className={`${inputClass} pl-10`}
+                      className={`${inputClass} pl-10 ${formData.mapLink ? 'pr-16' : ''}`}
                       value={formData.mapLink}
                       onChange={e => setFormData({ ...formData, mapLink: e.target.value })}
                       disabled={isSubmitting}
                     />
+                    {formData.mapLink && (
+                      <a
+                        href={formData.mapLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-blue-100 text-blue-600 hover:bg-blue-200 px-2 py-1.5 rounded-md font-bold transition-colors z-10"
+                      >
+                        เปิดลิงก์
+                      </a>
+                    )}
                   </div>
                 </div>
 
