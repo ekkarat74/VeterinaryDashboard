@@ -366,7 +366,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ isOpen, onClose, 
     );
 };
 
-const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string }> = ({ events, activeCategory = 'all' }) => {
+const ActivityPage: React.FC<{ events: EventData[], activeCategory?: string, onNavigateToEvent?: (dateStr: string, eventId?: string) => void }> = ({ events, activeCategory = 'all', onNavigateToEvent }) => {
     const [view, setView] = useState<'table' | 'kanban'>('table');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDistrict, setFilterDistrict] = useState('ทั้งหมด');
@@ -505,7 +505,7 @@ const stats = useMemo(() => {
                                 {filteredEvents.map((e, i) => {
                                     const st = getDispatchStatus(e);
                                     return (
-                                        <tr key={i} className="hover:bg-slate-50">
+                                        <tr key={i} className="hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => onNavigateToEvent?.(e.date, e._id)}>
                                             <td className="p-3 font-mono">{e.date}</td>
                                 
                                             <td className="p-3 font-bold text-slate-800">{e.district || '-'}</td>
@@ -540,7 +540,7 @@ const stats = useMemo(() => {
                                     if (statusGroup === 'เสร็จสิ้น') return currentStatus === 'เสร็จสิ้น (Manual)' || currentStatus === 'สิ้นสุดปฏิบัติงาน';
                                     return currentStatus === statusGroup;
                                 }).map((e, i) => (
-                                <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px] shrink-0">
+                                <div key={i} onClick={() => onNavigateToEvent?.(e.date, e._id)} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-[10px] shrink-0 cursor-pointer hover:border-indigo-300 transition-colors">
                                     <p className="font-bold text-indigo-600 mb-0.5">{e.unit || e.unitName || e.title || 'ไม่ระบุหน่วย'}</p>
                                     <p className="text-slate-700 font-medium text-[9px]">{e.location}</p>
                                 </div>
@@ -1125,7 +1125,7 @@ interface DuplicateCheckModalProps {
 }
 
 const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClose, events, reports, onSelectDate }) => { 
-    const [activeTab, setActiveTab] = useState<'duplicates' | 'unreported' | 'unscheduled' | 'mismatch'>('duplicates');
+    const [activeTab, setActiveTab] = useState<'duplicates' | 'unreported' | 'unscheduled' | 'mismatch' | 'no-map'>('duplicates');
     const [filterDate, setFilterDate] = useState<string>('');
     const [filterLocation, setFilterLocation] = useState<string>('');
     const [filterUnit, setFilterUnit] = useState<string>('ทั้งหมด');
@@ -1183,12 +1183,19 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
     return ['ทั้งหมด', ...Array.from(districts).filter(Boolean)];
 }, [liveEvents, liveReports]);
 
-    const { duplicateData, unscheduledData, unreportedData, mismatchData } = useMemo(() => {
+    const { duplicateData, unscheduledData, unreportedData, mismatchData, noMapData } = useMemo(() => {
         const normalize = (str: any) => (str || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
 
         const locationMap = new Map<string, EventData[]>();
+        const noMaps: any[] = []; // <-- [แก้ไข] ย้ายมาประกาศด้านบนสุด
+
         // 🟢 เปลี่ยนมาใช้ liveEvents
         liveEvents.forEach(evt => {
+            // --- [แก้ไข] ย้ายการเช็ค Map มาไว้ลูปแรก เพื่อให้ทำงานแม้ไม่มีข้อมูล Reports ---
+            if (!evt.mapLink && !(evt.lat && evt.lng) && evt.status !== 'cancelled') {
+                noMaps.push(evt);
+            }
+
             const loc = evt.location?.trim();
             if (!loc) return;
             const normalizedLoc = normalize(loc);
@@ -1213,7 +1220,16 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
         duplicates.sort((a, b) => b.count - a.count);
 
         // 🟢 เปลี่ยนมาใช้ liveReports
-        if (!liveReports || liveReports.length === 0) return { duplicateData: duplicates, unscheduledData: [], unreportedData: [], mismatchData: [] };
+        if (!liveReports || liveReports.length === 0) {
+            // <-- [แก้ไข] คืนค่า noMapData ออกไปด้วยในกรณีที่ไม่มี Reports (แก้ Error undefined)
+            return { 
+                duplicateData: duplicates, 
+                unscheduledData: [], 
+                unreportedData: [], 
+                mismatchData: [],
+                noMapData: noMaps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            };
+        }
 
         const unschByLocation = new Map<string, any[]>();
         const unrepByLocation = new Map<string, any[]>();
@@ -1259,8 +1275,10 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
         });
 
         const today = new Date().toISOString().split('T')[0];
+
         // 🟢 เปลี่ยนมาใช้ liveEvents
         liveEvents.forEach(d => {
+            // (เอาบล็อกที่เคยเช็ค noMaps ตรงนี้ออก เพราะย้ายไปด้านบนสุดแล้ว)
             if (d.date > today || d.status === 'cancelled') return;
             const loc = d.location?.trim();
             if (!loc) return;
@@ -1281,11 +1299,17 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
             location: loc, count: evts.length, events: evts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         })).sort((a, b) => b.count - a.count);
 
-        return { duplicateData: duplicates, unscheduledData: unscheduledResults, unreportedData: unreportedResults, mismatchData: mismatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) };
-    }, [liveEvents, liveReports]); // 🟢 อัปเดต Dependency ตรงนี้
+        return { 
+            duplicateData: duplicates, 
+            unscheduledData: unscheduledResults, 
+            unreportedData: unreportedResults, 
+            mismatchData: mismatches.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+            noMapData: noMaps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        };
+    }, [liveEvents, liveReports]);
 
     // --- Logic การกรองข้อมูลตามฟิลเตอร์ ---
-    const { fDup, fUnsch, fUnrep, fMis } = useMemo(() => {
+    const { fDup, fUnsch, fUnrep, fMis, fNoMap } = useMemo(() => {
     const checkLoc = (loc: string) => !filterLocation || (loc || '').toLowerCase().includes(filterLocation.toLowerCase());
     const checkDate = (date: string) => !filterDate || date === filterDate;
     const checkUnit = (u1?: string, u2?: string) => {
@@ -1316,7 +1340,6 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
 
     const fUnrep = unreportedData.map(d => {
     const eFiltered = d.events.filter((e: any) => 
-        // --- [แก้ไข] สลับให้เช็ค e.title ก่อน ---
         checkDate(e.date) && checkUnit(e.title || e.unit || e.unitName, '') && checkDistrict(e.district, '')
     );
     return { ...d, events: eFiltered, count: eFiltered.length };
@@ -1324,13 +1347,17 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
 
     const fMis = mismatchData.filter(m =>
     checkLoc(m.location) && checkDate(m.date) && 
-    // --- [แก้ไข] สลับให้เช็ค m.dispatch?.title ก่อน ---
     checkUnit(m.report?.unit, m.dispatch?.title || m.dispatch?.unit || m.dispatch?.unitName) &&
     checkDistrict(m.report?.district, m.dispatch?.district) 
 );
 
-    return { fDup, fUnsch, fUnrep, fMis };
-}, [duplicateData, unscheduledData, unreportedData, mismatchData, filterDate, filterLocation, filterUnit, filterDistrict]); // <-- [แก้ไข] เพิ่ม filterDistrict ใน Dependency
+    const fNoMap = (noMapData || []).filter((e: any) => 
+        checkLoc(e.location) && checkDate(e.date) && 
+        checkUnit(e.title || e.unit || e.unitName, '') && checkDistrict(e.district, '')
+    );
+
+    return { fDup, fUnsch, fUnrep, fMis, fNoMap };
+}, [duplicateData, unscheduledData, unreportedData, mismatchData, noMapData, filterDate, filterLocation, filterUnit, filterDistrict]); // <-- [แก้ไข] เพิ่ม noMapData ใน Dependency
 
     if (!isOpen) return null;
 
@@ -1367,17 +1394,16 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                         </select>
                     </div>
                     <div className="w-full sm:w-[150px]">
-    <select value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 text-slate-600 cursor-pointer shadow-sm transition-all">
-        {availableDistricts.map((d, i) => <option key={i} value={d}>{d}</option>)}
-    </select>
-</div>
+                        <select value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 text-slate-600 cursor-pointer shadow-sm transition-all">
+                            {availableDistricts.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                        </select>
+                    </div>
 
-{/* --- [แก้ไข] อัปเดตเงื่อนไขปุ่มล้างให้รองรับ filterDistrict --- */}
-{(filterLocation || filterDate || filterUnit !== 'ทั้งหมด' || filterDistrict !== 'ทั้งหมด') && (
-    <button onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterUnit('ทั้งหมด'); setFilterDistrict('ทั้งหมด'); }} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded-xl text-[11px] font-bold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-sm">
-        <X className="w-3.5 h-3.5" /> ล้าง
-    </button>
-)}
+                    {(filterLocation || filterDate || filterUnit !== 'ทั้งหมด' || filterDistrict !== 'ทั้งหมด') && (
+                        <button onClick={() => { setFilterLocation(''); setFilterDate(''); setFilterUnit('ทั้งหมด'); setFilterDistrict('ทั้งหมด'); }} className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded-xl text-[11px] font-bold transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-sm">
+                            <X className="w-3.5 h-3.5" /> ล้าง
+                        </button>
+                    )}
                 </div>
 
                 {/* Tabs */}
@@ -1393,6 +1419,9 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                     </button>
                     <button onClick={() => setActiveTab('mismatch')} className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'mismatch' ? 'bg-white text-orange-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}>
                         <AlertTriangle className="w-4 h-4 hidden sm:block" /> 4. ข้อมูลขัดแย้ง <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'mismatch' ? 'bg-orange-100 text-orange-700' : 'bg-slate-200 text-slate-600'}`}>{fMis.length} แห่ง</span>
+                    </button>
+                    <button onClick={() => setActiveTab('no-map')} className={`px-4 py-2.5 text-[11px] font-bold rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'no-map' ? 'bg-white text-purple-600 border border-slate-200 border-b-0 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.02)] relative top-[1px]' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}>
+                        <MapPin className="w-4 h-4 hidden sm:block" /> 5. ไม่มีลิงก์ Map <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === 'no-map' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'}`}>{fNoMap.length} แห่ง</span>
                     </button>
                 </div>
 
@@ -1457,11 +1486,11 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                                             {item.events.map((evt: any, eIdx: number) => (
                                                 <div key={eIdx} onClick={() => onSelectDate(evt.date)} className="p-3.5 flex justify-between gap-3 cursor-pointer hover:bg-emerald-50">
                                                     <div className="flex gap-4">
-    <div className="text-emerald-600 font-bold text-[11px]">{evt.date}</div>
-    <div className="text-[10px] text-slate-600">
-        เขต: {evt.district || '-'} | หน่วย: {evt.unit || evt.unitName || evt.title || '-'} | ทีม: {evt.team || '-'}
-    </div>
-</div>
+                                                        <div className="text-emerald-600 font-bold text-[11px]">{evt.date}</div>
+                                                            <div className="text-[10px] text-slate-600">
+                                                                เขต: {evt.district || '-'} | หน่วย: {evt.unit || evt.unitName || evt.title || '-'} | ทีม: {evt.team || '-'}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1537,6 +1566,34 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
                             </div>
                         )
                     )}
+                    {activeTab === 'no-map' && (
+                        fNoMap.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-emerald-500"><CheckCircle className="w-12 h-12 mb-3 text-emerald-300" /><h3 className="font-bold text-sm">ข้อมูลแผนที่และพิกัดครบถ้วนทั้งหมด</h3></div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4 bg-purple-50 text-purple-700 text-[10px] p-3 rounded-xl border border-purple-200">
+                                    <MapPin className="w-4 h-4 shrink-0" /><span>พบปฏิทินที่ <strong>ไม่มีลิงก์ Google Map หรือพิกัด</strong> จำนวน <strong>{fNoMap.length}</strong> แห่ง</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {fNoMap.map((evt: any, idx: number) => (
+                                        <div key={idx} onClick={() => onSelectDate(evt.date)} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-purple-300 hover:bg-purple-50/30 hover:shadow-md transition-all flex flex-col gap-2">
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-purple-600 font-bold text-[11px]">{evt.date}</span>
+                                                <span className="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md font-bold">ไม่มีพิกัด</span>
+                                            </div>
+                                            <h4 className="font-bold text-[11px] text-slate-800 flex items-start gap-1.5 mt-1">
+                                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                                <span className="line-clamp-2">{evt.location || 'ไม่ระบุสถานที่'}</span>
+                                            </h4>
+                                            <div className="text-[10px] text-slate-500 mt-auto pt-3 border-t border-slate-100/80">
+                                                เขต: {evt.district || '-'} | หน่วย: {evt.unit || evt.unitName || evt.title || '-'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    )}
                 </div>
             </div>
         </div>
@@ -1546,7 +1603,22 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({ isOpen, onClo
 // ==========================================
 // Component: ReportsPage (หน้าต่างรายงานและกราฟ)
 // ==========================================
-const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
+const ReportsPage: React.FC<{ events: EventData[], reports: any[] }> = ({ events, reports }) => {
+    const outcomeStats = useMemo(() => {
+        let dogTotal = 0;
+        let catTotal = 0;
+        
+        (reports || []).forEach(r => {
+            const d = r.details?.dog || {};
+            const c = r.details?.cat || {};
+            const toNum = (val: any) => parseInt(val, 10) || 0;
+            
+            dogTotal += (toNum(d.vaccine) + toNum(d.maleSterilize) + toNum(d.femaleSterilize) + toNum(d.microchip) + toNum(d.register) + toNum(d.medical));
+            catTotal += (toNum(c.vaccine) + toNum(c.maleSterilize) + toNum(c.femaleSterilize) + toNum(c.microchip) + toNum(c.register) + toNum(c.medical));
+        });
+        
+        return { dogTotal, catTotal };
+    }, [reports]);
     const stats = useMemo(() => {
         const unitCount: Record<string, number> = {};
         const districtCount: Record<string, number> = {};
@@ -1555,8 +1627,6 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
         };
         const monthCount: Record<string, number> = {};
         const typeCount: Record<string, number> = {};
-        
-        // 🌟 ส่วนที่เพิ่ม: ตัวแปรสำหรับ 2 กราฟใหม่
         const teamCount: Record<string, number> = {};
         const dayOfWeekCount: Record<string, number> = {
             'อาทิตย์': 0, 'จันทร์': 0, 'อังคาร': 0, 'พุธ': 0, 'พฤหัสบดี': 0, 'ศุกร์': 0, 'เสาร์': 0
@@ -1600,8 +1670,6 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
             else if (titleStr.includes('ผู้ว่า')) typeKey = 'หน่วยผู้ว่าฯ';
 
             typeCount[typeKey] = (typeCount[typeKey] || 0) + 1;
-
-            // 🌟 ส่วนที่เพิ่ม: นับตามทีมปฏิบัติการ
             const team = e.team?.trim() || 'ไม่ระบุทีม';
             teamCount[team] = (teamCount[team] || 0) + 1;
         });
@@ -1611,8 +1679,6 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
         const statusData = Object.keys(statusCount).map(k => ({ name: k, value: statusCount[k] }));
         const monthData = Object.keys(monthCount).sort().map(k => ({ name: k, value: monthCount[k] }));
         const typeData = Object.keys(typeCount).map(k => ({ name: k, value: typeCount[k] })).sort((a, b) => b.value - a.value);
-        
-        // 🌟 ส่วนที่เพิ่ม: จัดเตรียมข้อมูลให้ 2 กราฟใหม่
         const teamData = Object.keys(teamCount).map(k => ({ name: k, value: teamCount[k] })).sort((a, b) => b.value - a.value).slice(0, 10);
         const dayOfWeekData = Object.keys(dayOfWeekCount).map(k => ({ name: k, value: dayOfWeekCount[k] }));
 
@@ -1625,14 +1691,37 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
     return (
         <div className="flex flex-col gap-6 animate-in fade-in duration-300">
             {/* Header KPI */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
                 <div>
                     <h2 className="text-lg font-black text-slate-800">ภาพรวมรายงานและสถิติ</h2>
                     <p className="text-[10px] text-slate-500 font-medium">สรุปข้อมูลการออกหน่วยสัตวแพทย์ทั้งหมดในระบบ</p>
                 </div>
-                <div className="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 text-center">
-                    <div className="text-[10px] font-bold text-indigo-500">จำนวนงานทั้งหมด</div>
-                    <div className="text-2xl font-black text-indigo-700 leading-none">{stats.total}</div>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="bg-indigo-50 px-6 py-3.5 rounded-2xl border border-indigo-100 text-center min-w-[140px] flex flex-col justify-center shadow-sm">
+                        <div className="text-[10px] font-bold text-indigo-500 mb-1">จำนวนงานทั้งหมด</div>
+                        <div className="text-3xl font-black text-indigo-700 leading-none">{stats.total}</div>
+                    </div>
+                    
+                    <div className="bg-blue-50 px-5 py-3.5 rounded-2xl border border-blue-100 min-w-[160px] flex items-center gap-4 shadow-sm">
+                        <div className="text-3xl drop-shadow-sm">🐶</div>
+                        <div className="text-right flex-1">
+                            <div className="text-[10px] font-bold text-blue-500 mb-1">ให้บริการสุนัข</div>
+                            <div className="text-xl font-black text-blue-700 leading-none">
+                                {outcomeStats.dogTotal.toLocaleString()} <span className="text-[10px]">ตัว</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-rose-50 px-5 py-3.5 rounded-2xl border border-rose-100 min-w-[160px] flex items-center gap-4 shadow-sm">
+                        <div className="text-3xl drop-shadow-sm">🐱</div>
+                        <div className="text-right flex-1">
+                            <div className="text-[10px] font-bold text-rose-500 mb-1">ให้บริการแมว</div>
+                            <div className="text-xl font-black text-rose-700 leading-none">
+                                {outcomeStats.catTotal.toLocaleString()} <span className="text-[10px]">ตัว</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1725,7 +1814,6 @@ const ReportsPage: React.FC<{ events: EventData[] }> = ({ events }) => {
                     </div>
                 </div>
 
-                {/* 🌟 7. (เพิ่มใหม่) กราฟแท่ง: วันที่ออกปฏิบัติงานบ่อยที่สุด */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                     <h3 className="text-xs font-black text-slate-800 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-teal-500"/> วันที่ออกปฏิบัติงานบ่อยที่สุด</h3>
                     <div className="h-[250px] w-full mt-4">
@@ -1805,21 +1893,20 @@ const DispatchCalendarDashboard: React.FC = () => {
         };
     }, []);
 
-    // 🌟 1. แทนที่ pendingActivitiesCount เดิมด้วย activitiesCounts
-const activitiesCounts = useMemo(() => {
-    let pending = 0;
-    let inProgress = 0;
-    let history = 0;
+    const activitiesCounts = useMemo(() => {
+        let pending = 0;
+        let inProgress = 0;
+        let history = 0;
     
-    events.forEach(e => {
-        const st = getDispatchStatus(e)?.text;
-        if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
-        else if (st === 'กำลังดำเนินงาน') inProgress++;
-        else if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน' || st === 'ยกเลิก') history++;
-    });
+        events.forEach(e => {
+            const st = getDispatchStatus(e)?.text;
+            if (st === 'เตรียมพร้อม' || st === 'รอปฏิบัติงาน') pending++;
+            else if (st === 'กำลังดำเนินงาน') inProgress++;
+            else if (st === 'เสร็จสิ้น (Manual)' || st === 'สิ้นสุดปฏิบัติงาน' || st === 'ยกเลิก') history++;
+        });
     
-    return { all: events.length, pending, inProgress, history };
-}, [events]);;
+        return { all: events.length, pending, inProgress, history };
+    }, [events]);;
 
     useEffect(() => {
         if (!audioRef.current) {
@@ -1864,7 +1951,6 @@ const activitiesCounts = useMemo(() => {
         };
     }, [events]);
 
-    // 🟢 3. แก้ไข displayEvents เพื่อให้รองรับฟิลเตอร์ใหม่
     const displayEvents = useMemo(() => {
         return events.filter(e => {
             // ค้นหาข้อความ
@@ -2363,8 +2449,8 @@ const activitiesCounts = useMemo(() => {
         const targetDate = new Date(dateStr);
         setCurrentDate(targetDate);
         setSelectedDate(targetDate);
-        setActiveMenu('calendar'); // เปลี่ยนหน้าไปยังปฏิทิน
-        setIsDuplicateModalOpen(false); // ปิด Modal
+        setActiveMenu('calendar');
+        setIsDuplicateModalOpen(false);
     };
 
     return (
@@ -2383,11 +2469,11 @@ const activitiesCounts = useMemo(() => {
 
             <div className="flex flex-1 overflow-hidden relative">
                 {isSidebarOpen && (
-        <div 
-            className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" 
-            onClick={() => setIsSidebarOpen(false)} 
-        />
-    )}
+                    <div 
+                        className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" 
+                        onClick={() => setIsSidebarOpen(false)} 
+                />
+                )}
                 {/* ================= Sidebar (Left) ================= */}
                 <aside 
                     className={`flex-col text-white transition-all duration-300 shadow-xl z-50 fixed inset-y-0 left-0 lg:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex w-[260px] shrink-0`}
@@ -2525,7 +2611,6 @@ const activitiesCounts = useMemo(() => {
                                                     setActiveMenu('settings'); 
                                                     setActiveSettingsTab(item.id); 
 
-                                                    // ถ้าเลือก "ตั้งค่าประกาศ" ให้เปิด Modal ทันที และซ่อน Sidebar ถ้าใช้มือถืออยู่
                                                     if (item.id === 'announcements') {
                                                         setIsAnnouncementModalOpen(true);
                                                         if (window.innerWidth < 1024) setIsSidebarOpen(false);
@@ -2650,8 +2735,6 @@ const activitiesCounts = useMemo(() => {
                         <div className="flex items-center gap-4">
                             <RealTimeClock />
                             
-                            
-
                             <div className="w-px h-8 bg-slate-200 mx-1 hidden sm:block"></div>
 
                             {canEdit && (
@@ -3226,7 +3309,7 @@ const activitiesCounts = useMemo(() => {
                         {/* ===================== หน้ารายงาน (Reports) ===================== */}
                         {activeMenu === 'reports' && (
                             <div className="min-h-full h-auto pb-10">
-                                <ReportsPage events={events} />
+                                <ReportsPage events={events} reports={reports} />
                             </div>
                         )}
                     </main>

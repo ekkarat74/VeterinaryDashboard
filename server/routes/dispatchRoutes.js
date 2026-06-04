@@ -48,7 +48,6 @@ module.exports = function(io, authenticateToken, authorizeRole, createLog) {
         }
     });
 
-    // POST: สร้างแผนออกหน่วยใหม่
     router.post('/', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'superadmin', 'admin']), async (req, res) => {
         try {
             // เช็คว่า Payload ที่ส่งมาเป็น Array (หลายวัน/หลายทีม) หรือไม่

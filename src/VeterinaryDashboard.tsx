@@ -1,9 +1,13 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays,
-    Megaphone, Edit3, Plus, GripVertical, Save, Bell, LayoutList, Columns,ChevronRight,
-    Copy, AlertTriangle, MapPin, CheckCircle // <-- เพิ่มบรรทัดนี้
+    Bell, LayoutList, Columns, ChevronRight, Copy, AlertTriangle, MapPin, CheckCircle
 } from 'lucide-react';
+import { 
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+    Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer 
+} from 'recharts';
+import { TrendingUp } from 'lucide-react';
 import { io } from "socket.io-client";
 
 import useDashboardState from './hooks/useDashboardState'; 
@@ -56,8 +60,50 @@ const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 const API_URL = `${BASE_URL}/api/reports`;
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
+const AnimalOutcomeAreaChart = ({ data }: { data: any[] }) => {
+    return (
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col h-full">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-indigo-500"/>
+                        ผลลัพธ์เชิงตัวเลข (Outcome / Impact)
+                    </h3>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                        แนวโน้มจำนวนสัตว์ที่ได้รับบริการสะสม (สุนัข และ แมว)
+                    </p>
+                </div>
+            </div>
+            <div className="flex-1 w-full min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorDog" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorCat" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <RechartsTooltip contentStyle={{ fontSize: '12px', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        <RechartsLegend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', marginTop: '10px' }} />
+                        
+                        <Area type="monotone" dataKey="dogTotal" name="สุนัข (ตัว)" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorDog)" activeDot={{ r: 6 }} />
+                        <Area type="monotone" dataKey="catTotal" name="แมว (ตัว)" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorCat)" activeDot={{ r: 6 }} />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+};
+
 // ==========================================
-// Component: DuplicateReportModal (อัปเดตใหม่: เพิ่มฟิลเตอร์ วันที่, สถานที่, หน่วย)
+// Component: DuplicateReportModal
 // ==========================================
 interface DuplicateReportModalProps {
     isOpen: boolean;
@@ -854,30 +900,30 @@ const markAllAsRead = async () => {
     })), [meetings]);
 
     const handleSaveDispatchEvent = async (payload: any) => {
-    try {
-        const method = payload._id ? 'PUT' : 'POST';
-        const url = payload._id ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
-        const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
-            body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-            addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
-            setIsDispatchModalOpen(false);
-        } else if (res.status === 401 || res.status === 403) {
-            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-            setUser(null);
-            localStorage.removeItem('vet_user');
-            setIsLoginModalOpen(true);
-        } else {
-            const err = await res.json();
-            addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
+        try {
+            const method = payload._id ? 'PUT' : 'POST';
+            const url = payload._id ? `${BASE_URL}/api/dispatches/${payload._id}` : `${BASE_URL}/api/dispatches`;
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
+                setIsDispatchModalOpen(false);
+            } else if (res.status === 401 || res.status === 403) {
+                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
+                setUser(null);
+                localStorage.removeItem('vet_user');
+                setIsLoginModalOpen(true);
+            } else {
+                const err = await res.json();
+                addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
+            }
+        } catch (error) {
+            addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
         }
-    } catch (error) {
-        addToast('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    }
-};
+    };
 
 const handleDeleteDispatch = async (id: string) => {
     if (!window.confirm('ยืนยันลบแผนงานนี้?')) return;
@@ -1711,39 +1757,45 @@ const handleDeleteDispatch = async (id: string) => {
     }, [filteredData, freqMonthlyOffset, freqDailyOffset, chartBaseYear, chartBaseMonth, allUnits]); // อย่าลืมเพิ่ม allUnits ใน Dependency Array
 
     const trendData = useMemo(() => {
-        const baseYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
-        const baseMonth = String(chartBaseMonth) === 'ทั้งหมด' ? (new Date().getMonth() + 1) : Number(chartBaseMonth);
+    const baseYear = String(chartBaseYear) === 'ทั้งหมด' ? new Date().getFullYear() : Number(chartBaseYear);
+    const baseMonth = String(chartBaseMonth) === 'ทั้งหมด' ? (new Date().getMonth() + 1) : Number(chartBaseMonth);
 
-        const dataMap = filteredData.reduce((acc: any, curr) => {
-            const month = curr.date.substring(0, 7);
-            const toNum = (val: any) => parseInt(val, 10) || 0;
-            
-            if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 };
-            
-            acc[month].count += 1;
-            acc[month].vaccine += toNum(curr.stats?.vaccine);
-            acc[month].sterilize += toNum(curr.stats?.sterilize);
-            acc[month].register += toNum(curr.stats?.register);
-            acc[month].microchip += toNum(curr.stats?.microchip);
-            acc[month].medical += toNum(curr.stats?.medical);
-            acc[month].total += (toNum(curr.stats?.vaccine) + toNum(curr.stats?.sterilize) + toNum(curr.stats?.register) + toNum(curr.stats?.microchip) + toNum(curr.stats?.medical));
-            
-            return acc;
-        }, {});
+    const dataMap = filteredData.reduce((acc: any, curr) => {
+        const month = curr.date.substring(0, 7);
+        const toNum = (val: any) => parseInt(val, 10) || 0;
+        
+        if (!acc[month]) acc[month] = { name: month, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0, dogTotal: 0, catTotal: 0 };
+        
+        acc[month].count += 1;
+        acc[month].vaccine += toNum(curr.stats?.vaccine);
+        acc[month].sterilize += toNum(curr.stats?.sterilize);
+        acc[month].register += toNum(curr.stats?.register);
+        acc[month].microchip += toNum(curr.stats?.microchip);
+        acc[month].medical += toNum(curr.stats?.medical);
+        acc[month].total += (toNum(curr.stats?.vaccine) + toNum(curr.stats?.sterilize) + toNum(curr.stats?.register) + toNum(curr.stats?.microchip) + toNum(curr.stats?.medical));
+        
+        const d = curr.details?.dog || {};
+        const c = curr.details?.cat || {};
+        acc[month].dogTotal += (toNum(d.vaccine) + toNum(d.maleSterilize) + toNum(d.femaleSterilize) + toNum(d.microchip) + toNum(d.register) + toNum(d.medical));
+        acc[month].catTotal += (toNum(c.vaccine) + toNum(c.maleSterilize) + toNum(c.femaleSterilize) + toNum(c.microchip) + toNum(c.register) + toNum(c.medical));
+        // -------------------------------------------
+        
+        return acc;
+    }, {});
 
-        const last10Months = [];
-        for (let i = 9 + trendOffset; i >= trendOffset; i--) {
-            const d = new Date(baseYear as number, (baseMonth as number) - 1, 1); 
-            d.setMonth(d.getMonth() - i);
-            
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const monthStr = `${year}-${month}`; 
-            
-            last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0 });
-        }
-        return last10Months;
-    }, [filteredData, trendOffset, chartBaseYear, chartBaseMonth]);
+    const last10Months = [];
+    for (let i = 9 + trendOffset; i >= trendOffset; i--) {
+        const d = new Date(baseYear as number, (baseMonth as number) - 1, 1); 
+        d.setMonth(d.getMonth() - i);
+        
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const monthStr = `${year}-${month}`; 
+        
+        last10Months.push(dataMap[monthStr] || { name: monthStr, count: 0, vaccine: 0, sterilize: 0, register: 0, microchip: 0, medical: 0, total: 0, dogTotal: 0, catTotal: 0 });
+    }
+    return last10Months;
+}, [filteredData, trendOffset, chartBaseYear, chartBaseMonth]);
 
     const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map((item: any) => item.date ? item.date.split('-')[0] : null).filter((y: any) => y !== null))].sort().reverse(), [outbreakData]);
 
@@ -2086,7 +2138,6 @@ const handleDeleteDispatch = async (id: string) => {
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2">
-                                    {/* เพิ่มปุ่มสลับมุมมอง */}
                                     <div className="flex bg-slate-100 p-1 rounded-lg">
                                         <button 
                                             onClick={() => setDisplayMode('list')} 
@@ -2170,6 +2221,42 @@ const handleDeleteDispatch = async (id: string) => {
                                 {activeTab === 'overview' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
                                         <KPISection totals={totals} unitStats={unitStats as any[]} />
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                                            {/* ฝั่งซ้าย: Summary Cards สำหรับผู้บริหาร */}
+                                            <div className="lg:col-span-1 flex flex-col gap-4">
+                                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-6 text-white shadow-sm flex items-center justify-between h-full hover:shadow-md transition-shadow">
+                                                    <div>
+                                                        <p className="text-blue-100 text-xs font-bold mb-1">ยอดให้บริการสุนัขสะสม</p>
+                                                        <h3 className="text-4xl font-black tracking-tight">
+                                                            {(totals?.dog?.vaccine || 0) + (totals?.dog?.sterilize || 0) + (totals?.dog?.register || 0) + (totals?.dog?.microchip || 0) + (totals?.dog?.medical || 0)} 
+                                                                <span className="text-sm font-medium ml-2 opacity-80">ตัว</span>
+                                                        </h3>
+                                                    </div>
+                                                    <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-2xl shadow-inner shrink-0">
+                                                        🐶
+                                                    </div>
+                                                </div>
+                                                <div className="bg-gradient-to-br from-rose-400 to-rose-500 rounded-3xl p-6 text-white shadow-sm flex items-center justify-between h-full hover:shadow-md transition-shadow">
+                                                    <div>
+                                                        <p className="text-rose-100 text-xs font-bold mb-1">ยอดให้บริการแมวสะสม</p>
+                                                        <h3 className="text-4xl font-black tracking-tight">
+                                                            {(totals?.cat?.vaccine || 0) + (totals?.cat?.sterilize || 0) + (totals?.cat?.register || 0) + (totals?.cat?.microchip || 0) + (totals?.cat?.medical || 0)} 
+                                                            <span className="text-sm font-medium ml-2 opacity-80">ตัว</span>
+                                                        </h3>
+                                                    </div>
+                                                    <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-2xl shadow-inner shrink-0">
+                                                        🐱
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* ฝั่งขวา: Area Chart แสดงแนวโน้ม */}
+                                            <div className="lg:col-span-2">
+                                                <AnimalOutcomeAreaChart data={trendData} />
+                                            </div>
+                                        </div>
+        
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
                                             <div className="lg:col-span-5 flex flex-col gap-8">
@@ -2243,7 +2330,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             onEdit={openEditModal} 
                                             onDelete={handleDeleteData} 
                                             onViewImage={setViewImage} 
-                                            displayMode={displayMode} // <--- ส่งค่า Prop ให้ Component รับไปสลับการแสดงผล
+                                            displayMode={displayMode} 
                                         />
                                     </div>
                                 )}
@@ -2263,7 +2350,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             onEdit={openEditOutbreakModal} 
                                             onDelete={handleDeleteOutbreak} 
                                             canEdit={canEdit} 
-                                            displayMode={displayMode} // <--- ส่งค่า Prop ให้ Component รับไปสลับการแสดงผล
+                                            displayMode={displayMode}
                                         />
                                     </div>
                                 )}

@@ -148,7 +148,7 @@ const outbreakSchema = new mongoose.Schema({
     age: { type: String, default: "" },
     vaccineHistory: { type: String, default: "" }
   },
-  createdBy: { type: String, default: 'System' }, // ✅ 2. เพิ่มฟิลด์ผู้บันทึกข้อมูล
+  createdBy: { type: String, default: 'System' },
   updatedBy: { type: String }
 }, { timestamps: true });
 outbreakSchema.index({ date: -1, district: 1 });
@@ -269,7 +269,7 @@ const invalidateOutbreakCache = () => {
 };
 
 // ==========================================
-// [เพิ่มใหม่] 1. Schema สำหรับระบบแจ้งเตือน (Notification)
+// Notification
 // ==========================================
 const notificationSchema = new mongoose.Schema({
   title: String,
@@ -526,12 +526,10 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     // แจ้งอัปเดตตารางปกติ
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
 
-    // ✅ [ส่วนที่แก้ไขและเพิ่มใหม่] ตรวจสอบและอัปเดตสถานะปฏิทินออกแบบ Real-time
     try {
         const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
         
         const normalizedNewLoc = normalizeLocation(savedReport.location);
-        // เอา .lean() ออก เพื่อให้ใช้ .save() อัปเดตข้อมูลได้
         const existingOnDate = await DispatchPlan.find({ date: savedReport.date });
         const existingDispatch = existingOnDate.find(d => normalizeLocation(d.location) === normalizedNewLoc);
 
@@ -576,7 +574,6 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
             io.emit('server_data_update', { type: 'DISPATCH_ADDED', data: savedDispatch });
             createLog(req, 'AUTO_CREATE_DISPATCH', `สร้างแผนออกหน่วยอัตโนมัติ: ${savedDispatch.location}`);
         } else {
-            // ✅ [เพิ่มใหม่] ถ้ามีหน่วยนี้ในปฏิทินอยู่แล้ว ให้อัปเดตสถานะเป็น 'completed' อัตโนมัติ
             if (existingDispatch.status !== 'completed') {
                 existingDispatch.status = 'completed';
                 await existingDispatch.save();
@@ -587,7 +584,6 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
         console.error("Auto-create dispatch failed:", dispatchErr);
     }
 
-    // 🔔 สร้างและส่ง Notification เข้าระบบกระดิ่งแจ้งเตือน
     const notif = await Notification.create({
       title: '📝 มีรายงานผลปฏิบัติงานใหม่',
       message: `สถานที่: ${savedReport.location} (เขต${savedReport.district || '-'})`,
@@ -705,7 +701,6 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
     createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak);
     invalidateOutbreakCache();
 
-    // [เพิ่มใหม่] สร้าง Notification
     const notif = await Notification.create({
       title: '🚨 แจ้งเตือนด่วน: พบจุดเสี่ยงโรคระบาดใหม่!',
       message: `สถานที่: ${savedOutbreak.location} เขต${savedOutbreak.district}`,
@@ -713,9 +708,8 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
       linkId: savedOutbreak._id
     });
     
-    // [แก้ไข] แจ้งเตือนไปที่ Frontend
     io.emit('server_data_update', { type: 'OUTBREAK_ADDED', data: savedOutbreak });
-    io.emit('server_notification', notif); // ยิงแจ้งเตือนเข้าระบบกระดิ่ง
+    io.emit('server_notification', notif);
 
     res.status(201).json(savedOutbreak);
   } catch (err) {
@@ -880,7 +874,6 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
     const CHUNK_SIZE = 500;
     let totalInserted = 0;
     
-    // 📌 เตรียม Model สำหรับสร้างลงปฏิทิน
     const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
     const dispatchPlansToInsert = [];
 
@@ -889,7 +882,6 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
       const inserted = await Report.insertMany(chunk, { ordered: false });
       totalInserted += inserted.length;
       
-      // 📌 สร้างปฏิทินออกหน่วยอัตโนมัติสำหรับข้อมูลที่เพิ่ง Import เข้ามา
       for (const rep of chunk) {
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const locRegex = new RegExp(`^\\s*${escapeRegex(rep.location.trim())}\\s*$`, 'i');
@@ -1366,8 +1358,6 @@ const syncHistoricalReportsToDispatch = async () => {
   try {
     console.log("⏳ [Auto-Sync] Checking and deduplicating Dispatch Calendar...");
     const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
-    
-    // --- STEP 1: ลบ dispatch ที่ซ้ำกันออกก่อน (เก็บไว้แค่อันที่ดีที่สุด) ---
     const allDispatches = await DispatchPlan.find().lean();
     
     // Group by date + normalized location
@@ -1477,7 +1467,6 @@ const syncHistoricalReportsToDispatch = async () => {
   }
 };
 
-// เพิ่ม endpoint ใหม่ใน server.js
 app.post('/api/system/dedup-dispatches', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         await syncHistoricalReportsToDispatch();
@@ -1488,12 +1477,10 @@ app.post('/api/system/dedup-dispatches', authenticateToken, authorizeRole(['Deve
     }
 });
 
-// เพิ่ม endpoint นี้ใน server.js — force dedup แบบ aggressive
 app.delete('/api/system/force-dedup-dispatches', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
     try {
         const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
         
-        // ดึงทุก dispatch มา group ด้วย date + normalized location
         const all = await DispatchPlan.find().sort({ createdAt: 1 }).lean(); // เรียงจากเก่าไปใหม่
         
         const seen = new Map(); // key = "date__normalizedLocation"
