@@ -2730,7 +2730,7 @@ const DispatchCalendarDashboard: React.FC = () => {
                 <div 
                 className="flex-1 flex flex-col overflow-hidden relative"
                 style={{
-                    backgroundImage: "url('https://img.freepik.com/premium-vector/cute-cartoon-cats-adorable-kittens-with-big-eyes-pink-background_1305385-77191.jpg')",
+                    backgroundImage: "url('https://github.com/ekkarat74/VeterinaryDashboard/blob/main/ChatGPT%20Image%20BG.png?raw=true')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                 }}
