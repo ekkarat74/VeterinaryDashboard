@@ -80,22 +80,12 @@ mongoose.connect(MONGO_URI, {
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   fullName: { type: String },
-  phone: { type: String, required: true, unique: true }, // เพิ่มฟิลด์เบอร์โทร
   password: { type: String, required: true },
   role: { type: String, enum: ['Developer', 'MagaAdmin', 'executive', 'admin', 'user'], default: 'user' },
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   lastLogin: { type: Date }
 });
 const User = mongoose.model('User', userSchema);
-
-const otpSchema = new mongoose.Schema({
-  phone: { type: String, required: true },
-  otp: { type: String, required: true },
-  expiresAt: { type: Date, required: true }
-});
-// ลบข้อมูลอัตโนมัติเมื่อหมดเวลา
-otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-const OtpModel = mongoose.model('Otp', otpSchema);
 
 // 2. Report Schema
 const reportSchema = new mongoose.Schema({
@@ -1551,68 +1541,6 @@ app.delete('/api/system/force-dedup-dispatches', authenticateToken, authorizeRol
         console.error("Force dedup error:", err);
         res.status(500).json({ message: err.message });
     }
-});
-
-// [เพิ่มใหม่] Endpoint ขอ OTP
-app.post('/api/users/request-otp', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ message: "กรุณาระบุเบอร์โทรศัพท์" });
-
-    // เช็คว่าเบอร์นี้ถูกใช้ไปหรือยัง
-    const existingUser = await User.findOne({ phone }).lean();
-    if (existingUser) return res.status(400).json({ message: "เบอร์โทรศัพท์นี้ลงทะเบียนในระบบแล้ว" });
-
-    // สุ่มรหัส 6 หลัก และตั้งเวลาหมดอายุ 5 นาที
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); 
-
-    await OtpModel.findOneAndUpdate(
-      { phone },
-      { otp, expiresAt },
-      { upsert: true, new: true }
-    );
-
-    // TODO: นำ API ส่ง SMS ของผู้ให้บริการมาใส่ตรงนี้
-    console.log(`[SMS MOCK] รหัส OTP ของคุณคือ: ${otp} (สำหรับเบอร์ ${phone})`);
-
-    res.json({ message: "ระบบได้ส่ง OTP ไปยังเบอร์โทรศัพท์แล้ว (ดูรหัสผ่าน Console)" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// [แก้ไข] Endpoint สร้าง User
-app.post('/api/users', authenticateToken, authorizeRole(['Developer', 'MagaAdmin']), async (req, res) => {
-  try {
-    const { username, password, role, fullName, phone, otp } = req.body;
-
-    if (req.user.role === 'MagaAdmin' && role === 'Developer') {
-      return res.status(403).json({ message: "MagaAdmin ไม่สามารถสร้างบัญชีระดับผู้พัฒนาได้" });
-    }
-
-    // ตรวจสอบความถูกต้องของ OTP
-    if (!phone || !otp) return res.status(400).json({ message: "กรุณาระบุเบอร์โทรและรหัส OTP" });
-    
-    const validOtp = await OtpModel.findOne({ phone, otp, expiresAt: { $gt: new Date() } });
-    if (!validOtp) {
-        return res.status(400).json({ message: "รหัส OTP ไม่ถูกต้องหรือหมดอายุแล้ว" });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    // เพิ่ม phone เข้าไปตอนสร้าง
-    const newUser = new User({ username, password: hashedPassword, role, fullName, phone }); 
-    await newUser.save();
-
-    // ลบ OTP ที่ใช้แล้วทิ้ง
-    await OtpModel.deleteOne({ _id: validOtp._id });
-
-    createLog(req, 'CREATE_USER', `สร้างผู้ใช้ใหม่: ${username} (${role})`);
-    res.status(201).json({ message: "สร้างผู้ใช้งานสำเร็จ" });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
 });
 
 server.listen(PORT, () => {
