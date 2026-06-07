@@ -10,6 +10,7 @@ export interface User {
     _id: string;
     username: string;
     fullName?: string;
+    phone?: string; // [แก้ไข] เพิ่ม phone
     role: string;
     status?: string;
 }
@@ -201,6 +202,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
 const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClose, token, apiBaseUrl, onToast, currentUserRole }) => {
     const [username, setUsername] = useState<string>("");
     const [fullName, setFullName] = useState<string>("");
+    const [phone, setPhone] = useState<string>(""); // [เพิ่ม] state เบอร์โทร
+    const [otp, setOtp] = useState<string>(""); // [เพิ่ม] state OTP
+    const [isOtpSent, setIsOtpSent] = useState<boolean>(false); // [เพิ่ม] เช็คสถานะการส่ง OTP
+    const [countdown, setCountdown] = useState<number>(0); // [เพิ่ม] เวลานับถอยหลัง OTP
     const [password, setPassword] = useState<string>("");
     const [role, setRole] = useState<string>("admin");
     const [userList, setUserList] = useState<User[]>([]);
@@ -234,8 +239,56 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
     }
 };
 
+    // [เพิ่ม] Effect นับเวลาถอยหลัง 60 วินาทีให้กดขอ OTP ใหม่ได้
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout>; // <--- [แก้ไขตรงนี้] เปลี่ยนจาก NodeJS.Timeout
+        if (countdown > 0) {
+            timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [countdown]);
+
+    // [เพิ่ม] ฟังก์ชันยิง API ไปขอ OTP
+    const handleRequestOtp = async () => {
+        if (!phone || phone.length < 9) {
+            if(onToast) onToast('warning', 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+            return;
+        }
+        try {
+            const res = await fetch(`${apiBaseUrl}/api/users/request-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ phone })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setIsOtpSent(true);
+                setCountdown(60); // เริ่มนับ 60 วิ
+                if(onToast) onToast('success', data.message);
+            } else {
+                if(onToast) onToast('error', data.message || 'ขอ OTP ไม่สำเร็จ');
+            }
+        } catch (err) {
+            if(onToast) onToast('error', 'เชื่อมต่อระบบล้มเหลว');
+        }
+    };
+
+    // [แก้ไข] ฟังก์ชันเดิม ปรับเพื่อส่ง phone และ otp ไปด้วย
     const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        if (!isOtpSent) {
+            if(onToast) onToast('warning', 'กรุณาขอรหัส OTP ก่อนดำเนินการ');
+            return;
+        }
+        if (!otp) {
+            if(onToast) onToast('warning', 'กรุณากรอกรหัส OTP');
+            return;
+        }
+
         try {
             const res = await fetch(`${apiBaseUrl}/api/users`, {
                 method: 'POST',
@@ -243,10 +296,13 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ username, fullName, password, role })
+                body: JSON.stringify({ username, fullName, phone, otp, password, role }) // ส่งไปเพิ่ม
             });
             if (res.ok) {
-                setUsername(""); setFullName(""); setPassword(""); fetchUsers();
+                // เคลียร์ค่า Form
+                setUsername(""); setFullName(""); setPhone(""); setOtp(""); setPassword(""); 
+                setIsOtpSent(false); setCountdown(0);
+                fetchUsers();
                 if(onToast) onToast('success', 'สร้างบัญชีผู้ใช้สำเร็จ');
             } else {
                 const data = await res.json();
@@ -391,6 +447,30 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                     <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
                                         value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="ระบุชื่อ-นามสกุล" />
                                 </div>
+                                
+                                {/* --- [เพิ่ม] ส่วนกรอกเบอร์โทรและ OTP --- */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">เบอร์โทรศัพท์ (ยืนยัน OTP)</label>
+                                    <div className="flex gap-2">
+                                        <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
+                                            value={phone} onChange={e=>setPhone(e.target.value)} required placeholder="08X-XXX-XXXX" disabled={isOtpSent && countdown > 0} />
+                                        
+                                        <button type="button" onClick={handleRequestOtp} disabled={countdown > 0}
+                                            className={`px-3 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-colors ${countdown > 0 ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                                            {countdown > 0 ? `รอ ${countdown}s` : (isOtpSent ? 'ขอ OTP ใหม่' : 'รับ OTP')}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {isOtpSent && (
+                                    <div className="animate-in fade-in zoom-in-95 duration-200">
+                                        <label className="block text-xs font-semibold text-blue-600 mb-1.5 ml-1">รหัส OTP 6 หลัก</label>
+                                        <input className="w-full p-3 md:p-2.5 border border-blue-200 rounded-xl bg-blue-50 focus:bg-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 outline-none text-sm font-mono tracking-widest text-center transition-all" 
+                                            value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g, '').substring(0, 6))} required placeholder="------" maxLength={6} />
+                                    </div>
+                                )}
+                                {/* --------------------------------------- */}
+
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 ml-1">รหัสผ่าน (Password)</label>
                                     <input className="w-full p-3 md:p-2.5 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all" 
@@ -410,7 +490,10 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
                                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"/>
                                     </div>
                                 </div>
-                                <button type="submit" className="w-full py-3.5 md:py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-sm shadow-lg shadow-slate-900/20 transition-all flex items-center justify-center gap-2 mt-4">
+                                
+                                <button type="submit" disabled={!isOtpSent} 
+                                    className={`w-full py-3.5 md:py-3 rounded-xl font-semibold text-sm shadow-lg transition-all flex items-center justify-center gap-2 mt-4 
+                                    ${!isOtpSent ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'}`}>
                                     <CheckCircle className="w-4 h-4"/> สร้างบัญชีผู้ใช้
                                 </button>
                             </form>
