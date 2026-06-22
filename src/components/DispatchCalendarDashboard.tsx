@@ -16,6 +16,7 @@ import LoginModal from './modals/LoginModal';
 import ToastContainer from '../path/to/ToastContainer'; 
 
 import { playSound } from '../utils/soundUtils';
+import useAuthSession from '../hooks/useAuthSession';
 
 // ==========================================
 // 0. Interfaces
@@ -1864,6 +1865,31 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [events, setEvents] = useState<EventData[]>([]);
     const [reports, setReports] = useState<any[]>([]);
     const [user, setUser] = useState<User | null>(null);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+    const [toasts, setToasts] = useState<Toast[]>([]);
+
+    const addToast = useCallback((type: 'success' | 'error' | 'info' | 'warning', message: string) => {
+        const id = Date.now();
+        setToasts(prev => [...prev, { id, type, message }]);
+        window.setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    }, []);
+
+    const removeToast = useCallback((id: number | string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
+
+    const {
+        getCurrentToken,
+        isLoginRequired,
+        login: establishSession,
+        logout: clearSession
+    } = useAuthSession<User>({
+        user,
+        setUser,
+        setLoginOpen: setIsLoginModalOpen,
+        onForbidden: () => addToast('warning', 'คุณไม่มีสิทธิ์ดำเนินการนี้')
+    });
+
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [searchTerm, setSearchTerm] = useState<string>('');
@@ -2210,7 +2236,6 @@ const DispatchCalendarDashboard: React.FC = () => {
         }
     };
     
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
     const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState<boolean>(false);
     const [announcements, setAnnouncements] = useState<Announcement[]>([
         { id: 1, icon: '💉', text: 'บริการฉีดวัคซีนสัตว์เลี้ยง ฟรี! ทุกวันอังคาร-ศุกร์', isActive: true },
@@ -2227,17 +2252,13 @@ const DispatchCalendarDashboard: React.FC = () => {
 
     const handleLogin = (userData: User) => {
         playSound('success');
-        setUser(userData);
-        localStorage.setItem('vet_user', JSON.stringify(userData));
-        setIsLoginModalOpen(false);
-        addToast('success', 'เข้าสู่ระบบสำเร็จ');
+        establishSession(userData);
     };
 
     const handleLogout = () => {
         if (window.confirm("ยืนยันการออกจากระบบ?")) {
             playSound('switch');
-            setUser(null);
-            localStorage.removeItem('vet_user');
+            clearSession();
             addToast('info', 'ออกจากระบบแล้ว');
         }
     };
@@ -2245,33 +2266,9 @@ const DispatchCalendarDashboard: React.FC = () => {
     const [isDispatchModalOpen, setIsDispatchModalOpen] = useState<boolean>(false);
     const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState<boolean>(false);
     const [viewingDispatch, setViewingDispatch] = useState<EventData | null>(null);
-    const [toasts, setToasts] = useState<Toast[]>([]);
-
-    const addToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
-        const id = Date.now();
-        setToasts(prev => [...prev, { id, type, message }]);
-        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-    };
-    const removeToast = (id: number | string) => setToasts(prev => prev.filter(t => t.id !== id));
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem('vet_user');
-        if (storedUser) setUser(JSON.parse(storedUser));
-    }, []);
     
     const canEdit = user && ['Developer', 'MagaAdmin', 'admin'].includes(user.role);
     const canViewHidden = user && ['Developer', 'MagaAdmin', 'admin', 'executive'].includes(user.role);
-
-    const getCurrentToken = useCallback(() => {
-        try {
-            const storedUser = localStorage.getItem('vet_user');
-            if (storedUser) {
-                const parsed = JSON.parse(storedUser);
-                return parsed?.token || user?.token || '';
-            }
-        } catch (e) { console.error('Error parsing token', e); }
-        return user?.token || '';
-    }, [user?.token]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -2289,11 +2286,10 @@ const DispatchCalendarDashboard: React.FC = () => {
                     const data: EventData[] = await res.json();
                     const filtered = canViewHidden ? data : data.filter(d => d.isVisibleToPublic !== false);
                     setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
-                } else if (res.status === 401 || res.status === 403) {
-                    addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                    setUser(null);
-                    localStorage.removeItem('vet_user');
-                    setIsLoginModalOpen(true);
+                } else if (res.status === 401) {
+                    // useAuthSession opens the required login screen.
+                } else if (res.status === 403) {
+                    // useAuthSession reports insufficient permission without logging out.
                 }
 
                 if (reportsRes.ok) {
@@ -2348,9 +2344,11 @@ const DispatchCalendarDashboard: React.FC = () => {
                     setEvents(filtered.map(d => ({ ...d, type: 'dispatch', originalData: d })));
                 }
                 return true;
-            } else if (res.status === 401 || res.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์");
-                setUser(null); localStorage.removeItem('vet_user'); setIsLoginModalOpen(true);
+            } else if (res.status === 401) {
+                // useAuthSession opens the required login screen.
+                return false;
+            } else if (res.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
                 return false;
             } else {
                 const err = await res.json();
@@ -3501,7 +3499,14 @@ const DispatchCalendarDashboard: React.FC = () => {
             )}
 
             {/* Other Modals */}
-            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => { if (!isLoginRequired) setIsLoginModalOpen(false); }}
+                onLogin={handleLogin}
+                apiBaseUrl={BASE_URL}
+                onToast={addToast}
+                isDismissible={!isLoginRequired}
+            />
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <AnnouncementModal isOpen={isAnnouncementModalOpen} onClose={() => setIsAnnouncementModalOpen(false)} initialAnnouncements={announcements} onSave={handleSaveAnnouncements} />
             <DuplicateCheckModal 

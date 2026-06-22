@@ -244,7 +244,7 @@ const authenticateToken = (req, res, next) => {
   if (!token) return res.sendStatus(401);
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    if (err) return res.status(401).json({ message: "Token ไม่ถูกต้องหรือหมดอายุ" });
     req.user = user;
     next();
   });

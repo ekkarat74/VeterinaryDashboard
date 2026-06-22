@@ -11,9 +11,10 @@ interface LoginModalProps {
     apiBaseUrl: string;
     // กำหนด Type ให้ onToast (ทำให้เป็น Optional เผื่อไม่ได้ส่งค่ามา)
     onToast?: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+    isDismissible?: boolean;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, apiBaseUrl, onToast, isDismissible = true }) => {
     const [username, setUsername] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -48,16 +49,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, apiBa
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[5000] flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100000] flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative overflow-hidden border border-white/50">
                 
                 {/* Close Button */}
-                <button 
-                    onClick={onClose}
-                    className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors z-20"
-                >
-                    <X className="w-5 h-5" />
-                </button>
+                {isDismissible && (
+                    <button
+                        onClick={onClose}
+                        className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors z-20"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                )}
 
                 {/* Abstract Background Decoration (Medical/Clean Theme) */}
                 <div className="absolute -top-24 -right-24 w-72 h-72 bg-teal-100 rounded-full blur-[80px] opacity-60 pointer-events-none"></div>

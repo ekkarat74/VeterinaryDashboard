@@ -41,6 +41,7 @@ const CustomUnitModal = lazy(() => import('./components/modals/CustomUnitModal')
 const BreedModal = lazy(() => import('./components/modals/BreedModal'));
 const ColorModal = lazy(() => import('./components/modals/ColorModal'));
 import { parseReportCSV, parseOutbreakCSV, generateMockDataRecords } from './utils/dataProcessors';
+import useAuthSession from './hooks/useAuthSession';
 const DogCatComparisonChart = lazy(() => import('./components/dashboard/DogCatComparisonChart'));
 const YearOverYearChart = lazy(() => import('./components/dashboard/YearOverYearChart'))
 import ComprehensiveAllInOneChart from './components/dashboard/ComprehensiveAllInOneChart';
@@ -589,18 +590,17 @@ export default function VeterinaryDashboard() {
         return () => window.removeEventListener('resize', handleResize);
     }, [user, isReadOnlyMode]);
 
-    const getCurrentToken = useCallback(() => {
-        try {
-            const storedUser = localStorage.getItem('vet_user');
-            if (storedUser) {
-                const parsed = JSON.parse(storedUser);
-                return parsed?.token || user?.token || '';
-            }
-        } catch (e) {
-        console.error('Error parsing token', e);
-        }
-        return user?.token || '';
-    }, [user]);
+    const {
+        getCurrentToken,
+        isLoginRequired,
+        login: establishSession,
+        logout: clearSession
+    } = useAuthSession<User>({
+        user,
+        setUser,
+        setLoginOpen: setIsLoginModalOpen,
+        onForbidden: () => addToast('warning', 'คุณไม่มีสิทธิ์ดำเนินการนี้')
+    });
 
     const [breeds, setBreeds] = useState<any[]>([]);
     const [colors, setColors] = useState<any[]>([]);
@@ -707,11 +707,10 @@ const markAllAsRead = async () => {
             });
             if (response.ok) {
                 addToast('success', "✅ ส่งคำสั่งอัปเดตระบบไปยังผู้ใช้ทั้งหมดแล้ว");
-            } else if (response.status === 401 || response.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (response.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (response.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 addToast('error', "❌ ไม่สามารถส่งคำสั่งได้ (อาจไม่มีสิทธิ์)");
             }
@@ -737,11 +736,10 @@ const markAllAsRead = async () => {
                         (setMeetings as any)((prev: any[]) => prev.map((m: any) => m._id === updated._id ? updated : m));
                 }
                 setIsMeetingModalOpen(false);
-            } else if (res.status === 401 || res.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (res.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (res.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 addToast('error', 'บันทึกไม่สำเร็จ');
             }
@@ -759,11 +757,10 @@ const markAllAsRead = async () => {
             if (res.ok) {
                 addToast('success', 'ลบการประชุมเรียบร้อย');
                 (setMeetings as any)((prev: any[]) => prev.filter((m: any) => m._id !== id));
-            } else if (res.status === 401 || res.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (res.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (res.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 addToast('error', 'ลบไม่สำเร็จ');
             }
@@ -783,11 +780,10 @@ const markAllAsRead = async () => {
                 addToast('success', "✅ แก้ไขข้อมูลจุดเสี่ยงสำเร็จ");
                 setEditingOutbreak(null);
                 setIsOutbreakModalOpen(false);
-            } else if (response.status === 401 || response.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (response.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (response.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 addToast('error', "❌ แก้ไขไม่สำเร็จ");
             }
@@ -806,11 +802,10 @@ const markAllAsRead = async () => {
             if (response.ok) { 
                 addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว"); 
                 setIsOutbreakModalOpen(false);
-            } else if (response.status === 401 || response.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (response.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (response.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else { 
                 addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้"); 
             }
@@ -826,11 +821,10 @@ const markAllAsRead = async () => {
                 });
                 if (response.ok) { 
                     addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว"); 
-                } else if (response.status === 401 || response.status === 403) {
-                    addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                    setUser(null);
-                    localStorage.removeItem('vet_user');
-                    setIsLoginModalOpen(true);
+                } else if (response.status === 401) {
+                    // useAuthSession opens the required login screen.
+                } else if (response.status === 403) {
+                    // useAuthSession reports insufficient permission without logging out.
                 } else { 
                     addToast('error', "❌ ไม่สามารถลบข้อมูลได้"); 
                 }
@@ -855,11 +849,10 @@ const markAllAsRead = async () => {
                 fetchData(); 
                 setIsClearDataModalOpen(false);
                 alert(`✅ ${result.message}`);
-            } else if (response.status === 401 || response.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (response.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (response.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
             }
@@ -880,11 +873,10 @@ const markAllAsRead = async () => {
                 if (res.ok) {
                     const data = await res.json();
                     setDispatchEvents(data);
-                } else if (res.status === 401 || res.status === 403) {
-                    addToast('error', "❌ เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-                    setUser(null);
-                    localStorage.removeItem('vet_user');
-                    setIsLoginModalOpen(true);
+                } else if (res.status === 401) {
+                    // useAuthSession opens the required login screen.
+                } else if (res.status === 403) {
+                    // useAuthSession reports insufficient permission without logging out.
                 } else {
                     console.error("Fetch Dispatches Error:", res.status);
                 }
@@ -911,11 +903,10 @@ const markAllAsRead = async () => {
             if (res.ok) {
                 addToast('success', payload._id ? 'แก้ไขแผนงานเรียบร้อย' : 'บันทึกแผนงานเรียบร้อย');
                 setIsDispatchModalOpen(false);
-            } else if (res.status === 401 || res.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (res.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (res.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 const err = await res.json();
                 addToast('error', `บันทึกไม่สำเร็จ: ${err.message}`);
@@ -935,11 +926,10 @@ const handleDeleteDispatch = async (id: string) => {
         if (res.ok) {
             addToast('success', 'ลบแผนงานเรียบร้อย');
             setIsDispatchModalOpen(false);
-        } else if (res.status === 401 || res.status === 403) {
-            addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-            setUser(null);
-            localStorage.removeItem('vet_user');
-            setIsLoginModalOpen(true);
+        } else if (res.status === 401) {
+            // useAuthSession opens the required login screen.
+        } else if (res.status === 403) {
+            // useAuthSession reports insufficient permission without logging out.
         } else {
             addToast('error', 'ลบไม่สำเร็จ');
         }
@@ -1017,23 +1007,15 @@ const handleDeleteDispatch = async (id: string) => {
         reader.readAsText(file);
     };
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem('vet_user');
-        if (storedUser) { setUser(JSON.parse(storedUser)); }
-    }, [setUser]);
-
-    const handleLogin = useCallback((userData: any) => {
-        setUser(userData);
-        localStorage.setItem('vet_user', JSON.stringify(userData));
-        setIsLoginModalOpen(false);
-    }, [setUser, setIsLoginModalOpen]);
+    const handleLogin = useCallback((userData: User) => {
+        establishSession(userData);
+    }, [establishSession]);
 
     const handleLogout = useCallback(() => {
         if(window.confirm("ยืนยันการออกจากระบบ?")) {
-            setUser(null);
-            localStorage.removeItem('vet_user');
+            clearSession();
         }
-    }, [setUser]);
+    }, [clearSession]);
 
     useEffect(() => {
         const fetchTabsConfig = async () => {
@@ -1281,11 +1263,10 @@ const handleDeleteDispatch = async (id: string) => {
             if (response.ok) { 
                 addToast('success', "✅ บันทึกข้อมูลสำเร็จ!"); 
                 setIsModalOpen(false);
-            } else if (response.status === 401 || response.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (response.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (response.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else { 
                 addToast('error', "❌ บันทึกไม่สำเร็จ (เกิดข้อผิดพลาดจากเซิร์ฟเวอร์)"); 
             }
@@ -1303,11 +1284,10 @@ const handleDeleteDispatch = async (id: string) => {
                 addToast('success', "✅ แก้ไขข้อมูลสำเร็จ!");
                 setEditingItem(null);
                 setIsModalOpen(false);
-            } else if (response.status === 401 || response.status === 403) {
-                addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                setUser(null);
-                localStorage.removeItem('vet_user');
-                setIsLoginModalOpen(true);
+            } else if (response.status === 401) {
+                // useAuthSession opens the required login screen.
+            } else if (response.status === 403) {
+                // useAuthSession reports insufficient permission without logging out.
             } else {
                 addToast('error', "❌ แก้ไขไม่สำเร็จ (อาจเกิดข้อผิดพลาดจากเซิร์ฟเวอร์)");
             }
@@ -1323,11 +1303,10 @@ const handleDeleteDispatch = async (id: string) => {
                 });
                 if (response.ok) { 
                     addToast('success', "✅ ลบข้อมูลสำเร็จ"); 
-                } else if (response.status === 401 || response.status === 403) {
-                    addToast('error', "❌ เซสชันหมดอายุ หรือไม่มีสิทธิ์ กรุณาเข้าสู่ระบบใหม่");
-                    setUser(null);
-                    localStorage.removeItem('vet_user');
-                    setIsLoginModalOpen(true);
+                } else if (response.status === 401) {
+                    // useAuthSession opens the required login screen.
+                } else if (response.status === 403) {
+                    // useAuthSession reports insufficient permission without logging out.
                 } else { 
                     addToast('error', "❌ ลบไม่สำเร็จ (อาจเกิดข้อผิดพลาดจากเซิร์ฟเวอร์)"); 
                 }
@@ -1979,7 +1958,14 @@ const handleDeleteDispatch = async (id: string) => {
             <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={allUnits} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={getCurrentToken()} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
-            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} apiBaseUrl={BASE_URL} onToast={addToast} />
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => { if (!isLoginRequired) setIsLoginModalOpen(false); }}
+                onLogin={handleLogin}
+                apiBaseUrl={BASE_URL}
+                onToast={addToast}
+                isDismissible={!isLoginRequired}
+            />
             <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
             <DuplicateReportModal 
                 isOpen={isDuplicateModalOpen} 
