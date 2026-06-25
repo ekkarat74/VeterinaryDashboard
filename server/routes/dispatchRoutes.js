@@ -31,6 +31,8 @@ const dispatchPlanSchema = new mongoose.Schema({
     status: { type: String, default: 'auto' }
 }, { timestamps: true });
 
+dispatchPlanSchema.index({ date: -1 });
+
 const DispatchPlan = mongoose.model('DispatchPlan', dispatchPlanSchema);
 
 // ==========================================

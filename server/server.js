@@ -36,7 +36,8 @@ const io = new Server(server, {
   }
 });
 
-const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
+const CACHE_TTL_SECONDS = Number.parseInt(process.env.CACHE_TTL_SECONDS || '300', 10) || 300;
+const cache = new NodeCache({ stdTTL: CACHE_TTL_SECONDS, checkperiod: 120 });
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -65,9 +66,18 @@ app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    uptime: process.uptime(),
+    mongoReadyState: mongoose.connection.readyState
+  });
+});
+
 // --- DATABASE CONNECTION ---
 mongoose.connect(MONGO_URI, {
   maxPoolSize: 10,
+  minPoolSize: 1,
   serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
 })
@@ -113,6 +123,9 @@ const reportSchema = new mongoose.Schema({
   createdBy: { type: String, default: 'System' },
   updatedBy: { type: String }
 }, { timestamps: true });
+reportSchema.index({ date: -1 });
+reportSchema.index({ unit: 1, date: -1 });
+reportSchema.index({ district: 1, date: -1 });
 reportSchema.index({ date: -1, district: 1, unit: 1 });
 reportSchema.index({ location: 'text', subdistrict: 'text', district: 'text' });
 const Report = mongoose.model('Report', reportSchema);
