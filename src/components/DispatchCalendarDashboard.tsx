@@ -2279,7 +2279,7 @@ const DispatchCalendarDashboard: React.FC = () => {
 
                 const [res, reportsRes] = await Promise.all([
                     fetch(`${BASE_URL}/api/dispatches`, { headers }),
-                    fetch(`${BASE_URL}/api/reports?limit=5000`, { headers })
+                    fetch(`${BASE_URL}/api/reports?limit=5000&includePagination=false`, { headers })
                 ]);
                 
                 if (res.ok) {

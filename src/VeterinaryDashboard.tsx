@@ -570,6 +570,7 @@ export default function VeterinaryDashboard() {
     // ==========================================
     const [isMobile, setIsMobile] = useState(false);
     const [displayMode, setDisplayMode] = useState<'table' | 'list'>('table');
+    const [isMapReady, setIsMapReady] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
@@ -589,6 +590,29 @@ export default function VeterinaryDashboard() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [user, isReadOnlyMode]);
+
+    useEffect(() => {
+        if (isInitialLoading || activeTab !== 'overview' || isMapReady) return;
+
+        const win = window as any;
+        let timeoutId: number | undefined;
+        let idleId: number | undefined;
+
+        if (typeof win.requestIdleCallback === 'function') {
+            idleId = win.requestIdleCallback(() => setIsMapReady(true), { timeout: 1500 });
+        } else {
+            timeoutId = window.setTimeout(() => setIsMapReady(true), 700);
+        }
+
+        return () => {
+            if (idleId !== undefined && typeof win.cancelIdleCallback === 'function') {
+                win.cancelIdleCallback(idleId);
+            }
+            if (timeoutId !== undefined) {
+                window.clearTimeout(timeoutId);
+            }
+        };
+    }, [isInitialLoading, activeTab, isMapReady]);
 
     const {
         getCurrentToken,
@@ -2272,13 +2296,19 @@ const handleDeleteDispatch = async (id: string) => {
             
                                             <div className="lg:col-span-7 flex flex-col gap-8">
                                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex-1 relative z-0">
-                                                    <LeafletMap 
-                                                        data={mapDisplayData}
-                                                        outbreaks={filteredOutbreaks as any[]} 
-                                                        onEdit={openEditModal} 
-                                                        onEditOutbreak={openEditOutbreakModal} 
-                                                        canEdit={canEdit}
-                                                    />
+                                                    {isMapReady ? (
+                                                        <LeafletMap
+                                                            data={mapDisplayData}
+                                                            outbreaks={filteredOutbreaks as any[]}
+                                                            onEdit={openEditModal}
+                                                            onEditOutbreak={openEditOutbreakModal}
+                                                            canEdit={canEdit}
+                                                        />
+                                                    ) : (
+                                                        <div className="min-h-[460px] h-full flex items-center justify-center rounded-lg bg-slate-50 border border-slate-100 text-slate-400 text-xs font-semibold">
+                                                            กำลังโหลดแผนที่...
+                                                        </div>
+                                                    )}
                                                 </div>
                 
                                                 <div className="h-full">

@@ -100,6 +100,7 @@ const reportSchema = new mongoose.Schema({
   long: { type: Number, default: 0 },
   mapLink: { type: String, default: "" },
   imageUrl: { type: String, default: "" },
+  hasImage: { type: Boolean, default: false },
   note: { type: String, default: "" },
   stats: {
     vaccine: { type: Number, default: 0 },
@@ -267,6 +268,41 @@ const invalidateReportCache = () => {
 const invalidateOutbreakCache = () => {
   const keys = cache.keys().filter(k => k.startsWith('outbreaks:'));
   if (keys.length > 0) cache.del(keys);
+};
+
+const withReportImageFlag = (report = {}) => {
+  const normalized = { ...report };
+  if (Object.prototype.hasOwnProperty.call(normalized, 'imageUrl')) {
+    normalized.hasImage = Boolean(normalized.imageUrl);
+  }
+  return normalized;
+};
+
+const backfillReportImageFlags = async () => {
+  try {
+    const result = await Report.updateMany(
+      { hasImage: { $exists: false } },
+      [
+        {
+          $set: {
+            hasImage: {
+              $gt: [
+                { $strLenBytes: { $ifNull: ['$imageUrl', ''] } },
+                0
+              ]
+            }
+          }
+        }
+      ]
+    );
+
+    if (result.modifiedCount > 0) {
+      invalidateReportCache();
+      console.log(`Backfilled report image flags: ${result.modifiedCount}`);
+    }
+  } catch (err) {
+    console.error("Backfill report image flags failed:", err);
+  }
 };
 
 // ==========================================
@@ -492,48 +528,13 @@ app.get('/api/reports', async (req, res) => {
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 5000);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const reportFields = '_id date location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt';
-    const reportsQuery = includeImages
-      ? Report.find(query)
-          .select(`${reportFields} imageUrl`)
-          .sort({ date: -1 })
-          .skip(skip)
-          .limit(limitNumber)
-          .lean()
-      : Report.aggregate([
-          { $match: query },
-          { $sort: { date: -1 } },
-          { $skip: skip },
-          { $limit: limitNumber },
-          {
-            $project: {
-              _id: 1,
-              date: 1,
-              location: 1,
-              locationDistrict: 1,
-              district: 1,
-              subdistrict: 1,
-              unit: 1,
-              team: 1,
-              lat: 1,
-              long: 1,
-              mapLink: 1,
-              note: 1,
-              stats: 1,
-              details: 1,
-              createdBy: 1,
-              updatedBy: 1,
-              createdAt: 1,
-              updatedAt: 1,
-              hasImage: {
-                $gt: [
-                  { $strLenBytes: { $ifNull: ['$imageUrl', ''] } },
-                  0
-                ]
-              }
-            }
-          }
-        ]);
+    const reportFields = '_id date location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt hasImage';
+    const reportsQuery = Report.find(query)
+      .select(includeImages ? `${reportFields} imageUrl` : reportFields)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limitNumber)
+      .lean();
 
     const [reports, totalRecords] = await Promise.all([
       reportsQuery,
@@ -572,7 +573,7 @@ app.get('/api/reports/:id/image', async (req, res) => {
 
 app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
-    const newReport = new Report({ ...req.body, createdBy: req.user.username });
+    const newReport = new Report({ ...withReportImageFlag(req.body), createdBy: req.user.username });
     const savedReport = await newReport.save();
 
     createLog(req, 'CREATE_REPORT', `เพิ่มข้อมูลปฏิบัติงาน: ${savedReport.location}`, savedReport);
@@ -660,9 +661,10 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
     if (!oldReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
     // 2. อัปเดตข้อมูลใหม่
+    const updatePayload = withReportImageFlag(req.body);
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedBy: req.user.username },
+      { ...updatePayload, updatedBy: req.user.username },
       { new: true }
     ).lean();
 
@@ -842,7 +844,7 @@ app.post('/api/system/restore', authenticateToken, authorizeRole(['Developer', '
 
     await Report.deleteMany({}, { session });
     await Outbreak.deleteMany({}, { session });
-    if (reports.length > 0) await Report.insertMany(reports, { session });
+    if (reports.length > 0) await Report.insertMany(reports.map(withReportImageFlag), { session });
     if (outbreaks.length > 0) await Outbreak.insertMany(outbreaks, { session });
 
     await session.commitTransaction();
@@ -924,7 +926,7 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
     const reports = req.body;
     if (!Array.isArray(reports)) return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
 
-    const reportsWithUser = reports.map(report => ({ ...report, createdBy: req.user.username }));
+    const reportsWithUser = reports.map(report => ({ ...withReportImageFlag(report), createdBy: req.user.username }));
 
     const CHUNK_SIZE = 500;
     let totalInserted = 0;
@@ -1598,5 +1600,6 @@ app.delete('/api/system/force-dedup-dispatches', authenticateToken, authorizeRol
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  backfillReportImageFlags();
   syncHistoricalReportsToDispatch();
 });
