@@ -16,7 +16,7 @@ interface MainDataTableProps {
     onClearAll?: () => void;
     onEdit: (item: DataItem) => void;
     onDelete: (id: string) => void;
-    onViewImage: (url: string) => void;
+    onViewImage: (item: DataItem) => void;
     displayMode?: 'list' | 'table';
 }
 
@@ -173,6 +173,8 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
 
     const formatNumber = (num?: number | string | null): string => 
         num ? Number(num).toLocaleString() : '0';
+
+    const recordHasImage = (item: DataItem): boolean => Boolean(item.imageUrl || item.hasImage);
 
     const getPageNumbers = (): (number | string)[] => {
         if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -421,10 +423,19 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                                 )}
                                             </div>
                                         </div>
-                                        {item.imageUrl ? (
-                                            <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden border border-gray-100">
-                                                <img src={item.imageUrl} alt="preview" onClick={() => onViewImage(item.imageUrl!)} className="w-full h-full object-cover cursor-pointer" />
-                                            </div>
+                                        {recordHasImage(item) ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => onViewImage(item)}
+                                                className="w-16 h-16 shrink-0 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center text-gray-400"
+                                                title="ดูรูปภาพ"
+                                            >
+                                                {item.imageUrl ? (
+                                                    <img src={item.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <ImageIcon className="w-5 h-5" />
+                                                )}
+                                            </button>
                                         ) : (
                                             <div className="w-16 h-16 shrink-0 rounded-lg bg-gray-50 border border-gray-100 dashed flex items-center justify-center text-gray-300">
                                                 <ImageIcon className="w-5 h-5" />
@@ -541,14 +552,24 @@ const MainDataTable: React.FC<MainDataTableProps> = ({
                                     </td>
 
                                     <td className="px-6 py-4 align-middle">
-                                        {item.imageUrl ? (
+                                        {recordHasImage(item) ? (
                                             <div className="relative w-14 h-14 mx-auto group-hover:scale-105 transition-transform duration-300">
-                                                <img 
-                                                    src={item.imageUrl} 
-                                                    alt="preview" 
-                                                    onClick={() => onViewImage(item.imageUrl!)}
-                                                    className="w-full h-full object-cover rounded-xl border border-gray-200 cursor-pointer shadow-sm hover:shadow-md" 
-                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onViewImage(item)}
+                                                    className="w-full h-full rounded-xl border border-gray-200 bg-gray-50 text-gray-400 flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md overflow-hidden"
+                                                    title="ดูรูปภาพ"
+                                                >
+                                                    {item.imageUrl ? (
+                                                        <img
+                                                            src={item.imageUrl}
+                                                            alt="preview"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <ImageIcon className="w-5 h-5" />
+                                                    )}
+                                                </button>
                                             </div>
                                         ) : (
                                             <div className="w-14 h-14 mx-auto rounded-xl bg-gray-50 border border-gray-200 dashed flex items-center justify-center text-gray-300">

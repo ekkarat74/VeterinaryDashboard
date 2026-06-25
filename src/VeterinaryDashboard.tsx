@@ -663,12 +663,15 @@ const markAllAsRead = async () => {
     useEffect(() => {
     const fetchBreedsAndColors = async () => {
       try {
-        const resB = await fetch(`${BASE_URL}/api/breeds`);
+        const [resB, resC] = await Promise.all([
+          fetch(`${BASE_URL}/api/breeds`),
+          fetch(`${BASE_URL}/api/colors`)
+        ]);
+
         if (resB.ok) {
            setBreeds(await resB.json());
         }
-        
-        const resC = await fetch(`${BASE_URL}/api/colors`);
+
         if (resC.ok) {
            setColors(await resC.json());
         }
@@ -885,7 +888,7 @@ const markAllAsRead = async () => {
             }
         };
         fetchDispatches();
-    }, [BASE_URL, setDispatchEvents, setUser]);
+    }, [BASE_URL, setDispatchEvents, getCurrentToken]);
 
     const meetingEventsOnly = useMemo(() => meetings.map((m: any) => ({
         date: m.date, time: m.startTime, location: m.title, team: 'Online/Room', note: m.link, type: 'meeting', _id: m._id, originalData: m
@@ -937,30 +940,6 @@ const handleDeleteDispatch = async (id: string) => {
         addToast('error', 'ลบไม่สำเร็จ');
     }
 };
-
-    useEffect(() => {
-        const fetchDispatches = async () => {
-            try {
-                const token = getCurrentToken();
-                const headers: Record<string, string> = {};
-                if (token) {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
-                const res = await fetch(`${BASE_URL}/api/dispatches`, { headers });
-                
-                if (res.ok) {
-                    const data = await res.json();
-                    setDispatchEvents(data);
-                } else {
-                    console.error("Fetch Dispatches Error:", res.status);
-                }
-            } catch (error) {
-                console.error("Fetch Dispatches Error", error);
-            }
-        };
-        fetchDispatches();
-    }, [BASE_URL, setDispatchEvents]);
 
     const handleOutbreakFileUpload = (e: any) => {
         const file = e.target.files[0];
@@ -1077,7 +1056,7 @@ const handleDeleteDispatch = async (id: string) => {
     const fetchData = useCallback(async () => {
         try {
             setIsInitialLoading(true);
-            const response = await fetch(`${API_URL}?limit=5000`);
+            const response = await fetch(`${API_URL}?limit=5000&includePagination=false`);
             const result = await response.json();
             const dataArray = Array.isArray(result) ? result : (result.data || []);
             setReportData(dataArray);
@@ -1380,8 +1359,50 @@ const handleDeleteDispatch = async (id: string) => {
         reader.readAsText(file);
     };
 
+    const fetchReportImage = useCallback(async (item: any) => {
+        if (!item || item.imageUrl || !item.hasImage) return item;
+
+        const id = item._id || item.id;
+        if (!id) return item;
+
+        try {
+            const response = await fetch(`${API_URL}/${id}/image`);
+            if (!response.ok) throw new Error(`Fetch image failed: ${response.status}`);
+
+            const result = await response.json();
+            const imageUrl = result?.imageUrl || '';
+            const hydratedItem = { ...item, imageUrl, hasImage: Boolean(imageUrl) };
+
+            if (imageUrl) {
+                setReportData((prev: any[]) => prev.map((report: any) => {
+                    const reportId = report._id || report.id;
+                    return reportId === id ? { ...report, imageUrl, hasImage: true } : report;
+                }));
+            }
+
+            return hydratedItem;
+        } catch (error) {
+            console.error("Fetch Report Image Error:", error);
+            addToast('error', 'ไม่สามารถโหลดรูปภาพได้');
+            return item;
+        }
+    }, [setReportData, addToast]);
+
+    const handleViewReportImage = useCallback(async (item: any) => {
+        const hydratedItem = await fetchReportImage(item);
+        if (hydratedItem?.imageUrl) {
+            setViewImage(hydratedItem.imageUrl);
+        } else {
+            addToast('info', 'ไม่พบรูปภาพสำหรับรายการนี้');
+        }
+    }, [fetchReportImage, setViewImage, addToast]);
+
     const openAddModal = useCallback(() => { setEditingItem(null); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
-    const openEditModal = useCallback((item: any) => { setEditingItem(item); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
+    const openEditModal = useCallback(async (item: any) => {
+        const hydratedItem = await fetchReportImage(item);
+        setEditingItem(hydratedItem);
+        setIsModalOpen(true);
+    }, [fetchReportImage, setEditingItem, setIsModalOpen]);
     const handleOpenCsvOutbreak = useCallback(() => { setCsvMode('outbreak'); setIsCsvModalOpen(true); }, [setCsvMode, setIsCsvModalOpen]);
     const handleOpenCsvReport = useCallback(() => { setCsvMode('report'); setIsCsvModalOpen(true); }, [setCsvMode, setIsCsvModalOpen]);
 
@@ -2314,7 +2335,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             onClearAll={handleClearAllData} 
                                             onEdit={openEditModal} 
                                             onDelete={handleDeleteData} 
-                                            onViewImage={setViewImage} 
+                                            onViewImage={handleViewReportImage}
                                             displayMode={displayMode} 
                                         />
                                     </div>

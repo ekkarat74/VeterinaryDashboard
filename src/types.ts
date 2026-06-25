@@ -36,6 +36,7 @@ export interface DataItem {
     lat?: number | string;
     long?: number | string;
     imageUrl?: string | null;
+    hasImage?: boolean;
     stats?: ItemStats;
     details?: ItemDetails; 
     createdBy?: string;

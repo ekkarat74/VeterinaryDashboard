@@ -14,6 +14,7 @@ export interface ReportItem {
     lat?: number | string;
     long?: number | string;
     imageUrl?: string;
+    hasImage?: boolean;
     stats?: any;
     details?: any;
     [key: string]: any;

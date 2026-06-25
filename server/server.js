@@ -464,6 +464,8 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
 app.get('/api/reports', async (req, res) => {
   try {
     const { search, year, month, unit, district, startDate, endDate, page = 1, limit = 50 } = req.query;
+    const includeImages = req.query.includeImages === 'true' || req.query.includeImages === '1';
+    const includePagination = req.query.includePagination !== 'false';
 
     const cacheKey = `reports:${JSON.stringify(req.query)}`;
     const cached = cache.get(cacheKey);
@@ -486,32 +488,83 @@ app.get('/api/reports', async (req, res) => {
     if (unit && unit !== 'ทั้งหมด') query.unit = unit;
     if (district && district !== 'ทั้งหมด') query.district = district;
 
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 5000);
     const skip = (pageNumber - 1) * limitNumber;
 
+    const reportFields = '_id date location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt';
+    const reportsQuery = includeImages
+      ? Report.find(query)
+          .select(`${reportFields} imageUrl`)
+          .sort({ date: -1 })
+          .skip(skip)
+          .limit(limitNumber)
+          .lean()
+      : Report.aggregate([
+          { $match: query },
+          { $sort: { date: -1 } },
+          { $skip: skip },
+          { $limit: limitNumber },
+          {
+            $project: {
+              _id: 1,
+              date: 1,
+              location: 1,
+              locationDistrict: 1,
+              district: 1,
+              subdistrict: 1,
+              unit: 1,
+              team: 1,
+              lat: 1,
+              long: 1,
+              mapLink: 1,
+              note: 1,
+              stats: 1,
+              details: 1,
+              createdBy: 1,
+              updatedBy: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              hasImage: {
+                $gt: [
+                  { $strLenBytes: { $ifNull: ['$imageUrl', ''] } },
+                  0
+                ]
+              }
+            }
+          }
+        ]);
+
     const [reports, totalRecords] = await Promise.all([
-      Report.find(query)
-        .select('_id date location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy imageUrl') // <-- เพิ่ม locationDistrict เข้าไปใน select
-        .sort({ date: -1 })
-        .skip(skip)
-        .limit(limitNumber)
-        .lean(),
-      Report.countDocuments(query)
+      reportsQuery,
+      includePagination ? Report.countDocuments(query) : Promise.resolve(null)
     ]);
 
     const result = {
-      data: reports,
-      pagination: {
+      data: reports
+    };
+
+    if (includePagination) {
+      result.pagination = {
         totalRecords,
         totalPages: Math.ceil(totalRecords / limitNumber),
         currentPage: pageNumber,
         limit: limitNumber
-      }
-    };
+      };
+    }
 
     cache.set(cacheKey, result);
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/reports/:id/image', async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id).select('imageUrl').lean();
+    if (!report) return res.status(404).json({ message: "ไม่พบข้อมูล" });
+    res.json({ imageUrl: report.imageUrl || "" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
