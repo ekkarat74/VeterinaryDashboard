@@ -161,97 +161,153 @@ interface StaffInputGroupProps {
   expectedRole?: 'vet' | 'general';
 }
 
+// 🌟 ส่วนที่แก้ไข: เพิ่มการจัดการสถานะ (State) เพื่อสลับระหว่าง Select และ Input text
 const StaffInputGroup: React.FC<StaffInputGroupProps> = ({ 
   roleKey, label, staffList, onAdd, onRemove, onChange, icon: Icon, 
   savedStaffList = [], conflictNames = [], allSelectedStaff = [], busyStaff = [], expectedRole 
-}) => (
-  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:border-indigo-300 hover:shadow-md transition-all duration-200 group/card">
-    <div className="bg-slate-50/80 px-3 py-2.5 border-b border-slate-100 flex justify-between items-center group-hover/card:bg-indigo-50/30 transition-colors">
-      <div className="flex items-center gap-2">
-        {Icon && <Icon className="w-3.5 h-3.5 text-indigo-500" />}
-        <label className="text-xs font-bold text-slate-700">{label}</label>
+}) => {
+  const [customModes, setCustomModes] = useState<boolean[]>(staffList.map(() => false));
+
+  useEffect(() => {
+    setCustomModes(prev => {
+      const newModes = [...prev];
+      while (newModes.length < staffList.length) newModes.push(false);
+      return newModes.slice(0, staffList.length);
+    });
+  }, [staffList.length]);
+
+  const handleAddNormal = () => {
+    onAdd(roleKey);
+    setCustomModes(prev => [...prev, false]);
+  };
+
+  const handleAddCustom = () => {
+    onAdd(roleKey);
+    setCustomModes(prev => [...prev, true]);
+  };
+
+  const handleRemoveItem = (idx: number) => {
+    onRemove(roleKey, idx);
+    setCustomModes(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:border-indigo-300 hover:shadow-md transition-all duration-200 group/card">
+      <div className="bg-slate-50/80 px-3 py-2.5 border-b border-slate-100 flex justify-between items-center group-hover/card:bg-indigo-50/30 transition-colors">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="w-3.5 h-3.5 text-indigo-500" />}
+          <label className="text-xs font-bold text-slate-700">{label}</label>
+        </div>
+        <span className="text-[10px] font-bold text-indigo-500 bg-indigo-100/50 px-2 py-0.5 rounded-full">
+          {staffList.length} คน
+        </span>
       </div>
-      <span className="text-[10px] font-bold text-indigo-500 bg-indigo-100/50 px-2 py-0.5 rounded-full">
-        {staffList.length} คน
-      </span>
-    </div>
-    
-    <div className="p-3 space-y-2">
-      {staffList.map((person, idx) => {
-        const isConflicting = person && conflictNames.includes(person);
+      
+      <div className="p-3 space-y-2">
+        {staffList.map((person, idx) => {
+          const isConflicting = person && conflictNames.includes(person);
+          const isCustom = customModes[idx]; // เช็คว่าเป็นโหมดพิมพ์เองหรือไม่
 
-        return (
-          <div key={idx} className="flex flex-col gap-1">
-            <div className="flex gap-1.5 items-center">
-              <div className="relative flex-1">
-                <select 
-                  className={`w-full pl-2.5 pr-6 py-1.5 text-xs rounded-lg outline-none transition-all appearance-none cursor-pointer
-                    ${isConflicting 
-                      ? 'border-rose-300 bg-rose-50 text-rose-700 focus:ring-2 focus:ring-rose-500' 
-                      : 'bg-white border border-slate-200 text-slate-700 focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300'
-                    }`}
-                  value={person || ""}
-                  onChange={(e) => onChange(roleKey, idx, e.target.value)}
-                >
-                  <option value="" disabled className="text-slate-400">-- เลือกรายชื่อ --</option>
-                  {savedStaffList
-                    .filter(staffMember => {
-                        // แก้ไขตรงนี้: ถ้าข้อมูลเก่าไม่มีฟิลด์ role ให้ยึดค่าเริ่มต้นเป็น 'general'
-                        const currentRole = staffMember.role || 'general';
-                        return !expectedRole || currentRole === expectedRole;
-                    })
-                    .map((staffMember, i) => {
-                      const isAlreadySelected = allSelectedStaff.includes(staffMember.name) && staffMember.name !== person;
-                      const isBusy = busyStaff.includes(staffMember.name); 
-                      
-                      if (isAlreadySelected) return null;
+          return (
+            <div key={idx} className="flex flex-col gap-1">
+              <div className="flex gap-1.5 items-center">
+                <div className="relative flex-1">
+                  {/* 🌟 แสดงสลับระหว่าง Input หรือ Select */}
+                  {isCustom ? (
+                    <input
+                      type="text"
+                      placeholder="พิมพ์ชื่อทีมงานที่ไม่ได้อยู่ในระบบ..."
+                      className={`w-full pl-2.5 pr-2 py-1.5 text-xs rounded-lg outline-none transition-all
+                        ${isConflicting 
+                          ? 'border-rose-300 bg-rose-50 text-rose-700 focus:ring-2 focus:ring-rose-500' 
+                          : 'bg-white border border-slate-200 text-slate-700 focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300'
+                        }`}
+                      value={person || ""}
+                      onChange={(e) => onChange(roleKey, idx, e.target.value)}
+                    />
+                  ) : (
+                    <select 
+                      className={`w-full pl-2.5 pr-6 py-1.5 text-xs rounded-lg outline-none transition-all appearance-none cursor-pointer
+                        ${isConflicting 
+                          ? 'border-rose-300 bg-rose-50 text-rose-700 focus:ring-2 focus:ring-rose-500' 
+                          : 'bg-white border border-slate-200 text-slate-700 focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300'
+                        }`}
+                      value={person || ""}
+                      onChange={(e) => onChange(roleKey, idx, e.target.value)}
+                    >
+                      <option value="" disabled className="text-slate-400">-- เลือกรายชื่อ --</option>
+                      {savedStaffList
+                        .filter(staffMember => {
+                            const currentRole = staffMember.role || 'general';
+                            return !expectedRole || currentRole === expectedRole;
+                        })
+                        .map((staffMember, i) => {
+                          const isAlreadySelected = allSelectedStaff.includes(staffMember.name) && staffMember.name !== person;
+                          const isBusy = busyStaff.includes(staffMember.name); 
+                          
+                          if (isAlreadySelected) return null;
 
-                      return (
-                        <option 
-                            key={i} 
-                            value={staffMember.name}
-                            className={isBusy ? 'text-slate-300' : ''}
-                        >
-                            {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
-                        </option>
-                      );
-                  })}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
-                  <ChevronDown className={`w-3 h-3 ${isConflicting ? 'text-rose-500' : ''}`} />
+                          return (
+                            <option 
+                                key={i} 
+                                value={staffMember.name}
+                                className={isBusy ? 'text-slate-300' : ''}
+                            >
+                                {staffMember.name} {isBusy ? '(ติดงาน)' : ''}
+                            </option>
+                          );
+                      })}
+                    </select>
+                  )}
+                  
+                  {!isCustom && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-slate-400">
+                      <ChevronDown className={`w-3 h-3 ${isConflicting ? 'text-rose-500' : ''}`} />
+                    </div>
+                  )}
                 </div>
+                {staffList.length > 1 && (
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemoveItem(idx)} 
+                    className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors shrink-0"
+                    title="ลบรายชื่อ"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              {staffList.length > 1 && (
-                <button 
-                  type="button" 
-                  onClick={() => onRemove(roleKey, idx)} 
-                  className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors shrink-0"
-                  title="ลบรายชื่อ"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+              
+              {isConflicting && (
+                <span className="text-[10px] font-medium text-rose-500 flex items-center gap-1 pl-1">
+                  ⚠️ มีคิวงานอื่นในช่วงเวลานี้
+                </span>
               )}
             </div>
-            
-            {isConflicting && (
-              <span className="text-[10px] font-medium text-rose-500 flex items-center gap-1 pl-1">
-                ⚠️ มีคิวงานอื่นในช่วงเวลานี้
-              </span>
-            )}
-          </div>
-        );
-      })}
-      
-      <button 
-        type="button" 
-        onClick={() => onAdd(roleKey)} 
-        className="w-full py-1.5 mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-lg border border-indigo-200 border-dashed transition-colors"
-      >
-        <Plus className="w-3 h-3" /> เพิ่มรายชื่อ
-      </button>
+          );
+        })}
+        
+        {/* 🌟 ปุ่มเพิ่มรายชื่อ 2 รูปแบบ แบบมีในระบบ และ เพิ่มใหม่(พิมพ์) */}
+        <div className="flex gap-2 mt-1.5">
+          <button 
+            type="button" 
+            onClick={handleAddNormal} 
+            className="flex-1 py-1.5 flex items-center justify-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-lg border border-indigo-200 border-dashed transition-colors"
+          >
+            <Plus className="w-3 h-3" /> เลือกรายชื่อ
+          </button>
+          <button 
+            type="button" 
+            onClick={handleAddCustom} 
+            className="flex-1 py-1.5 flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg border border-emerald-200 border-dashed transition-colors"
+          >
+            <Plus className="w-3 h-3" /> รายชื่อใหม่ (พิมพ์)
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ==========================================
 // 3. Main Component: DispatchModal
@@ -642,6 +698,35 @@ ${staffDetails}
   const handleSaveLocal = async (isSaveAndContinue = false) => {
     const isCreatingNew = !initialData || isCopyMode;
 
+    const allStaffInForm = Object.entries(staff).flatMap(([roleKey, names]) =>
+      (names as string[]).map((name: string) => ({ 
+        name: name.trim(), 
+        role: roleKey === 'vets' ? 'vet' : 'general' 
+      }))
+    ).filter(s => s.name !== '');
+
+    const existingNames = savedStaffList.map(s => s.name);
+    
+    // คัดเฉพาะชื่อที่ไม่ได้อยู่ใน savedStaffList
+    const newStaffToSave = allStaffInForm.filter(s => !existingNames.includes(s.name));
+    
+    // กรองชื่อซ้ำกันเอง (Unique) เผื่อพิมพ์ชื่อเดียวกันหลายหน้าที่
+    const uniqueNewStaff = Array.from(new Map(newStaffToSave.map(item => [item.name, item])).values());
+
+    if (uniqueNewStaff.length > 0) {
+      try {
+        await Promise.all(uniqueNewStaff.map(s =>
+          fetch(`${BASE_URL}/api/staffs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
+            body: JSON.stringify({ name: s.name, role: s.role })
+          })
+        ));
+      } catch (e) {
+        console.error("Error saving new staff:", e);
+      }
+    }
+    
     const datesToSave = (isCreatingNew && generalInfo.endDate && generalInfo.endDate > generalInfo.date)
         ? getDatesInRange(generalInfo.date, generalInfo.endDate)
         : [generalInfo.date];
