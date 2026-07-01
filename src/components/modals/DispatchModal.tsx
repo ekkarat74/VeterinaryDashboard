@@ -444,6 +444,13 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
     vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
   });
 
+  // State สำหรับแยกรายชื่อทีม B
+  const [staffB, setStaffB] = useState<StaffState>({
+    controllers: [''], 
+    vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], 
+    vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] 
+  });
+
   const [isCopyMode, setIsCopyMode] = useState<boolean>(false);
   const [savedControllers, setSavedControllers] = useState<StaffMember[]>([]);
   
@@ -564,10 +571,11 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
         departureTime: '07:30', closingTime: '12:00', note: '',
         controllerName: '', controllerPhone: '',
         status: 'auto'
-      });
-      setStaff({ controllers: [''], vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
-      
-      setIsDirty(false);
+    });
+    setStaff({ controllers: [''], vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
+    setStaffB({ controllers: [''], vets: ['', ''], registration: [''], prep_catch: [''], prep_shave: [''], prep_lift: [''], vaccine_staff: [''], tattoo: [''], surgery_assist: [''], drivers: [''], assistants: [''] });
+    
+    setIsDirty(false);
       isLoadedRef.current = false;
       setTimeout(() => { isLoadedRef.current = true; }, 300);
     } else {
@@ -616,6 +624,71 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
     setStaff({ ...staff, [role]: newRoleList });
   };
 
+  // --- Handlers สำหรับทีม B ---
+  const handleStaffChangeB = (role: keyof StaffState, index: number, value: string) => {
+    const newRoleList = [...staffB[role]];
+    newRoleList[index] = value;
+    setStaffB({ ...staffB, [role]: newRoleList });
+    if (conflictNames.includes(value) || conflictNames.length > 0) setConflictNames([]);
+  };
+
+  const addStaffFieldB = (role: keyof StaffState) => {
+    playSound('pop');
+    setStaffB({ ...staffB, [role]: [...staffB[role], ''] });
+  };
+
+  const removeStaffFieldB = (role: keyof StaffState, index: number) => {
+    playSound('pop');
+    const newRoleList = [...staffB[role]];
+    newRoleList.splice(index, 1);
+    setStaffB({ ...staffB, [role]: newRoleList });
+  };
+
+  const allSelectedStaffB = Object.values(staffB).flat().filter(name => name && name.trim() !== '');
+
+  const commonPropsB = { 
+    onAdd: addStaffFieldB, 
+    onRemove: removeStaffFieldB, 
+    onChange: handleStaffChangeB, 
+    savedStaffList: savedStaffList, 
+    conflictNames: conflictNames,
+    allSelectedStaff: allSelectedStaffB,
+    busyStaff: busyStaff 
+  };
+
+  // --- Helper สำหรับแสดงชุดฟอร์มรายชื่อ ---
+  const renderStaffInputs = (currentStaff: StaffState, currentCommonProps: any, title?: string, bgClass?: string) => (
+    <div className={`p-4 rounded-xl border ${bgClass || 'border-transparent'}`}>
+      {title && <div className="text-sm font-bold text-slate-800 mb-4">{title}</div>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StaffInputGroup expectedRole="vet" roleKey="vets" label="สัตวแพทย์" icon={UserPlus} staffList={currentStaff.vets} {...currentCommonProps} />
+        <StaffInputGroup expectedRole="general" roleKey="drivers" label="คนขับรถ" icon={Activity} staffList={currentStaff.drivers} {...currentCommonProps} />
+        
+        {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( 
+          <>
+            {(unitType === 'sterilization' || unitType === 'spay_neuter') && ( 
+              <StaffInputGroup expectedRole="general" roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={currentStaff.registration} {...currentCommonProps} />
+            )}
+            <StaffInputGroup expectedRole="general" roleKey="prep_catch" label="จับ/วางยา" staffList={currentStaff.prep_catch} {...currentCommonProps} />
+            <StaffInputGroup expectedRole="general" roleKey="prep_shave" label="โกนขน" staffList={currentStaff.prep_shave} {...currentCommonProps} />
+            <StaffInputGroup expectedRole="general" roleKey="prep_lift" label="ยกสัตว์" staffList={currentStaff.prep_lift} {...currentCommonProps} />
+            <StaffInputGroup expectedRole="general" roleKey="vaccine_staff" label="ฉีดวัคซีน" staffList={currentStaff.vaccine_staff} {...currentCommonProps} />
+            
+            {unitType === 'cat_cage' && (
+              <StaffInputGroup expectedRole="general" roleKey="tattoo" label="สักตัว" staffList={currentStaff.tattoo} {...currentCommonProps} />
+            )}
+            
+            <StaffInputGroup expectedRole="general" roleKey="surgery_assist" label="ผู้ช่วยผ่าตัด" staffList={currentStaff.surgery_assist} {...currentCommonProps} />
+          </>
+        )}
+
+        {(unitType !== 'sterilization' && unitType !== 'cat_cage' && unitType !== 'spay_neuter') && (
+          <StaffInputGroup expectedRole="general" roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={currentStaff.assistants} {...currentCommonProps} />
+        )}
+      </div>
+    </div>
+  );
+
   if (!isOpen) return null;
 
   const handleSendLine = () => { 
@@ -652,28 +725,24 @@ const DispatchModal: React.FC<DispatchModalProps> = ({
     
     let staffDetails = "";
     const controllerDisplay = [generalInfo.controllerName, generalInfo.controllerPhone].filter(Boolean).join(' โทร. ') || '-';
-    const commonStaff = `👮‍♂️ ผู้ควบคุมออกหน่วย: ${controllerDisplay}\n👨‍⚕️ สัตวแพทย์: ${formatStaffList(staff.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(staff.drivers)}`;
+    
+    const buildStaffDetails = (s: StaffState, prefix: string = '') => {
+        const commonStaff = `👮‍♂️ ผู้ควบคุมออกหน่วย: ${controllerDisplay}\n👨‍⚕️ สัตวแพทย์: ${formatStaffList(s.vets)}\n🚐 พนักงานขับรถ: ${formatStaffList(s.drivers)}`;
+        if (unitType === 'sterilization'|| unitType === 'spay_neuter') {
+          return `${prefix}${commonStaff}\n📝 ลงทะเบียน: ${formatStaffList(s.registration)}\n🐕 จับ/วางยา: ${formatStaffList(s.prep_catch)}\n✂️ โกนขน: ${formatStaffList(s.prep_shave)}\n💪 ยกสัตว์: ${formatStaffList(s.prep_lift)}\n💉 วัคซีน: ${formatStaffList(s.vaccine_staff)}\n🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(s.surgery_assist)}`;
+        } else if (unitType === 'cat_cage') {
+          return `${prefix}${commonStaff}\n🐕 จับ/วางยา: ${formatStaffList(s.prep_catch)}\n✂️ โกนขน: ${formatStaffList(s.prep_shave)}\n💪 ยกสัตว์: ${formatStaffList(s.prep_lift)}\n💉 วัคซีน: ${formatStaffList(s.vaccine_staff)}\n✒️ สักตัว: ${formatStaffList(s.tattoo)}\n🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(s.surgery_assist)}`;
+        } else if (unitType === 'microchip') {
+          return `${prefix}${commonStaff}\n🙋 ผู้ช่วย: ${formatStaffList(s.assistants)}`;
+        } else {
+          return `${prefix}${commonStaff}\n🙋 เจ้าหน้าที่: ${formatStaffList(s.assistants)}`;
+        }
+    };
 
-    if (unitType === 'sterilization'|| unitType === 'spay_neuter') {
-      staffDetails = `${commonStaff}
-📝 ลงทะเบียน: ${formatStaffList(staff.registration)}
-🐕 จับ/วางยา: ${formatStaffList(staff.prep_catch)}
-✂️ โกนขน: ${formatStaffList(staff.prep_shave)}
-💪 ยกสัตว์: ${formatStaffList(staff.prep_lift)}
-💉 วัคซีน: ${formatStaffList(staff.vaccine_staff)}
-🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}`;
-    } else if (unitType === 'cat_cage') {
-      staffDetails = `${commonStaff}
-🐕 จับ/วางยา: ${formatStaffList(staff.prep_catch)}
-✂️ โกนขน: ${formatStaffList(staff.prep_shave)}
-💪 ยกสัตว์: ${formatStaffList(staff.prep_lift)}
-💉 วัคซีน: ${formatStaffList(staff.vaccine_staff)}
-✒️ สักตัว: ${formatStaffList(staff.tattoo)}
-🔪 ผู้ช่วยผ่าตัด: ${formatStaffList(staff.surgery_assist)}`;
-    } else if (unitType === 'microchip') {
-      staffDetails = `${commonStaff}\n🙋 ผู้ช่วย: ${formatStaffList(staff.assistants)}`;
+    if (isSplitTeam) {
+        staffDetails = buildStaffDetails(staff, '📌 [ทีม A]\n') + '\n\n' + buildStaffDetails(staffB, '📌 [ทีม B]\n');
     } else {
-       staffDetails = `${commonStaff}\n🙋 เจ้าหน้าที่: ${formatStaffList(staff.assistants)}`;
+        staffDetails = buildStaffDetails(staff);
     }
 
     const message = `📢 *แจ้งเตือนการออกหน่วย*
@@ -698,12 +767,14 @@ ${staffDetails}
   const handleSaveLocal = async (isSaveAndContinue = false) => {
     const isCreatingNew = !initialData || isCopyMode;
 
-    const allStaffInForm = Object.entries(staff).flatMap(([roleKey, names]) =>
-      (names as string[]).map((name: string) => ({ 
-        name: name.trim(), 
-        role: roleKey === 'vets' ? 'vet' : 'general' 
-      }))
-    ).filter(s => s.name !== '');
+    const allStaffInForm = [
+        ...Object.entries(staff).flatMap(([roleKey, names]) =>
+          (names as string[]).map((name: string) => ({ name: name.trim(), role: roleKey === 'vets' ? 'vet' : 'general' }))
+        ),
+        ...(isSplitTeam ? Object.entries(staffB).flatMap(([roleKey, names]) =>
+          (names as string[]).map((name: string) => ({ name: name.trim(), role: roleKey === 'vets' ? 'vet' : 'general' }))
+        ) : [])
+    ].filter(s => s.name !== '');
 
     const existingNames = savedStaffList.map(s => s.name);
     
@@ -801,12 +872,12 @@ ${staffDetails}
         _id: undefined, 
         ...generalInfo, date: targetDate,
         status: isCreatingNew ? 'auto' : generalInfo.status,
-        unitType, customUnitName, unitLetter: 'B', unitColor, staff: staff, 
+        unitType, customUnitName, unitLetter: 'B', unitColor, staff: staffB, 
         title: `${displayTitle} B`.trim(),
         unit: `${displayTitle} B`.trim(),
         location: generalInfo.locationNameB, district: generalInfo.districtB, mapLink: generalInfo.mapLinkB,
         lat: coordsB.lat, lng: coordsB.lng, time: generalInfo.departureTime,
-        team: staff.vets.filter(v => v).join(', ')
+        team: staffB.vets.filter(v => v).join(', ')
     });
   } else {
     payloadsToSave.push({
@@ -918,8 +989,12 @@ ${staffDetails}
                     <select 
                       value={unitType} 
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                        setUnitType(e.target.value);
-                        if(e.target.value !== 'cat_cage') setIsSplitTeam(false);
+                        const val = e.target.value;
+                        setUnitType(val);
+                        // อนุญาตให้หน่วยสัตวแพทย์, หน่วยทำหมัน และหน่วยกรงแมว สามารถแยกทีม A, B ได้
+                        if (val !== 'cat_cage' && val !== 'spay_neuter' && val !== 'sterilization') {
+                          setIsSplitTeam(false);
+                        }
                       }}
                       className="w-full pl-3 pr-8 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-colors appearance-none cursor-pointer"
                     >
@@ -940,19 +1015,19 @@ ${staffDetails}
                     />
                   )}
 
-                  {(!initialData && unitType === 'cat_cage') && (
-                      <div className="mt-3 flex items-start gap-2 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 hover:bg-indigo-50 transition-colors cursor-pointer" onClick={() => setIsSplitTeam(!isSplitTeam)}>
-                          <input 
-                              type="checkbox" 
-                              checked={isSplitTeam} 
-                              readOnly
-                              className="w-3.5 h-3.5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer pointer-events-none"
-                          />
-                          <div className="flex-1">
-                              <p className="text-xs font-bold text-indigo-800 leading-tight">ออกหน่วย 2 สถานที่ (ทีม A และ B)</p>
-                              <p className="text-[10px] text-indigo-600/80 mt-0.5">ใช้งานร่วมกับทีมงานชุดเดียวกัน</p>
-                          </div>
+                  {(!initialData && (unitType === 'cat_cage' || unitType === 'spay_neuter' || unitType === 'sterilization')) && (
+                    <div className="mt-3 flex items-start gap-2 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 hover:bg-indigo-50 transition-colors cursor-pointer" onClick={() => setIsSplitTeam(!isSplitTeam)}>
+                      <input 
+                        type="checkbox" 
+                        checked={isSplitTeam} 
+                        readOnly
+                        className="w-3.5 h-3.5 mt-0.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer pointer-events-none"
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-indigo-800 leading-tight">ออกหน่วย 2 สถานที่ (ทีม A และ B)</p>
+                        <p className="text-[10px] text-indigo-600/80 mt-0.5">กรอกสถานที่ 2 แห่งในฟอร์มเดียว (จัดการรายชื่อทีมรวมกัน)</p>
                       </div>
+                    </div>
                   )}
                 </div>
 
@@ -1360,33 +1435,14 @@ ${staffDetails}
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* เปลี่ยนแปลง Props ตรงนี้ทั้งหมด */}
-              <StaffInputGroup expectedRole="vet" roleKey="vets" label="สัตวแพทย์" icon={UserPlus} staffList={staff.vets} {...commonProps} />
-              <StaffInputGroup expectedRole="general" roleKey="drivers" label="คนขับรถ" icon={Activity} staffList={staff.drivers} {...commonProps} />
-              
-              {(unitType === 'sterilization' || unitType === 'cat_cage' || unitType === 'spay_neuter') && ( 
-                <>
-                  {(unitType === 'sterilization' || unitType === 'spay_neuter') && ( 
-                    <StaffInputGroup expectedRole="general" roleKey="registration" label="ลงทะเบียน" icon={FileText} staffList={staff.registration} {...commonProps} />
-                  )}
-                  <StaffInputGroup expectedRole="general" roleKey="prep_catch" label="จับ/วางยา" staffList={staff.prep_catch} {...commonProps} />
-                  <StaffInputGroup expectedRole="general" roleKey="prep_shave" label="โกนขน" staffList={staff.prep_shave} {...commonProps} />
-                  <StaffInputGroup expectedRole="general" roleKey="prep_lift" label="ยกสัตว์" staffList={staff.prep_lift} {...commonProps} />
-                  <StaffInputGroup expectedRole="general" roleKey="vaccine_staff" label="ฉีดวัคซีน" staffList={staff.vaccine_staff} {...commonProps} />
-                  
-                  {unitType === 'cat_cage' && (
-                    <StaffInputGroup expectedRole="general" roleKey="tattoo" label="สักตัว" staffList={staff.tattoo} {...commonProps} />
-                  )}
-                  
-                  <StaffInputGroup expectedRole="general" roleKey="surgery_assist" label="ผู้ช่วยผ่าตัด" staffList={staff.surgery_assist} {...commonProps} />
-                </>
-              )}
-
-              {(unitType !== 'sterilization' && unitType !== 'cat_cage' && unitType !== 'spay_neuter') && (
-                <StaffInputGroup expectedRole="general" roleKey="assistants" label="ผู้ช่วย/จนท." icon={Users} staffList={staff.assistants} {...commonProps} />
-              )}
+            {isSplitTeam ? (
+            <div className="space-y-6">
+              {renderStaffInputs(staff, commonProps, '📍 ทีม A (Team A)', 'bg-indigo-50/40 border-indigo-100')}
+              {renderStaffInputs(staffB, commonPropsB, '📍 ทีม B (Team B)', 'bg-rose-50/40 border-rose-100')}
             </div>
+          ) : (
+            renderStaffInputs(staff, commonProps)
+          )}
           </div>
 
           </div>
