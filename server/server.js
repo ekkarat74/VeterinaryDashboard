@@ -18,6 +18,17 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/vet_db';
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
 
+const BANGKOK_VET_CLINIC_NAMES = [
+  'คลินิกสัตวแพทย์ กทม.1 สี่พระยา',
+  'คลินิกสัตวแพทย์ กทม.2 มีนบุรี',
+  'คลินิกสัตวแพทย์ กทม.3 วัดธาตุทอง',
+  'คลินิกสัตวแพทย์ กทม.4 บางเขน',
+  'คลินิกสัตวแพทย์ กทม.5 วัดหงส์รัตนาราม',
+  'คลินิกสัตวแพทย์ กทม.6 ช่วง นุชเนตร',
+  'คลินิกสัตวแพทย์ กทม.7 บางกอกน้อย',
+  'คลินิกกลุ่มควบคุมโรคพิษสุนัขบ้า ถ.มิตรไมตรี'
+];
+
 // Allowed Origins (Frontend URLs)
 const allowedOrigins = [
   "http://localhost:3000",
@@ -100,6 +111,16 @@ const User = mongoose.model('User', userSchema);
 // 2. Report Schema
 const reportSchema = new mongoose.Schema({
   date: { type: String, required: true },
+  operationType: {
+    type: String,
+    enum: ['mobile', 'clinic'],
+    default: 'mobile'
+  },
+  clinicName: {
+    type: String,
+    default: '',
+    trim: true
+  },
   location: String,
   locationDistrict: String,
   district: String,
@@ -128,6 +149,7 @@ reportSchema.index({ unit: 1, date: -1 });
 reportSchema.index({ district: 1, date: -1 });
 reportSchema.index({ date: -1, district: 1, unit: 1 });
 reportSchema.index({ location: 'text', subdistrict: 'text', district: 'text' });
+reportSchema.index({ operationType: 1, clinicName: 1, date: -1 });
 const Report = mongoose.model('Report', reportSchema);
 
 // 3. Outbreak Schema
@@ -289,6 +311,12 @@ const withReportImageFlag = (report = {}) => {
     normalized.hasImage = Boolean(normalized.imageUrl);
   }
   return normalized;
+};
+
+const isClinicReport = (report = {}) => {
+  const clinicName = String(report.clinicName || '').trim();
+  const location = String(report.location || '').trim();
+  return report.operationType === 'clinic' || Boolean(clinicName) || BANGKOK_VET_CLINIC_NAMES.includes(location);
 };
 
 const backfillReportImageFlags = async () => {
@@ -512,7 +540,7 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
 // =======================
 app.get('/api/reports', async (req, res) => {
   try {
-    const { search, year, month, unit, district, startDate, endDate, page = 1, limit = 50 } = req.query;
+    const { search, year, month, unit, district, operationType, clinicName, startDate, endDate, page = 1, limit = 50 } = req.query;
     const includeImages = req.query.includeImages === 'true' || req.query.includeImages === '1';
     const includePagination = req.query.includePagination !== 'false';
 
@@ -536,12 +564,14 @@ app.get('/api/reports', async (req, res) => {
 
     if (unit && unit !== 'ทั้งหมด') query.unit = unit;
     if (district && district !== 'ทั้งหมด') query.district = district;
+    if (operationType && operationType !== 'ทั้งหมด') query.operationType = operationType;
+    if (clinicName && clinicName !== 'ทั้งหมด') query.clinicName = clinicName;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 5000);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const reportFields = '_id date location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt hasImage';
+    const reportFields = '_id date operationType clinicName location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt hasImage';
     const reportsQuery = Report.find(query)
       .select(includeImages ? `${reportFields} imageUrl` : reportFields)
       .sort({ date: -1 })
@@ -595,7 +625,8 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
     // แจ้งอัปเดตตารางปกติ
     io.emit('server_data_update', { type: 'REPORT_ADDED', data: savedReport });
 
-    try {
+    if (!isClinicReport(savedReport)) {
+      try {
         const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
         
         const normalizedNewLoc = normalizeLocation(savedReport.location);
@@ -634,7 +665,7 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
                 note: savedReport.note || '',
                 team: savedReport.team || '',
                 staff: {},
-                createdBy: req.user.username || 'Auto-System',
+                createdBy: 'Auto-System',
                 status: 'completed', // กำหนดสถานะเป็น completed ทันที
                 isVisibleToPublic: true
             });
@@ -649,8 +680,9 @@ app.post('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaAdm
                 io.emit('server_data_update', { type: 'DISPATCH_UPDATED', data: existingDispatch });
             }
         }
-    } catch (dispatchErr) {
+      } catch (dispatchErr) {
         console.error("Auto-create dispatch failed:", dispatchErr);
+      }
     }
 
     const notif = await Notification.create({
@@ -673,22 +705,48 @@ app.put('/api/reports/:id', authenticateToken, authorizeRole(['Developer', 'Maga
     const oldReport = await Report.findById(req.params.id).lean();
     if (!oldReport) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
-    // 2. อัปเดตข้อมูลใหม่
-    const updatePayload = withReportImageFlag(req.body);
+    // 2. อัปเดตข้อมูลใหม่ พร้อมคงค่าประเภทเดิมกรณี Frontend รุ่นเก่าไม่ได้ส่งมา
+    const updatePayload = withReportImageFlag({
+      ...req.body,
+      operationType: req.body.operationType ?? oldReport.operationType ?? 'mobile',
+      clinicName: req.body.clinicName ?? oldReport.clinicName ?? ''
+    });
     const updatedReport = await Report.findByIdAndUpdate(
       req.params.id,
       { ...updatePayload, updatedBy: req.user.username },
-      { new: true }
+      { new: true, runValidators: true }
     ).lean();
 
-    if (oldReport.location !== updatedReport.location || oldReport.date !== updatedReport.date) {
-        const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
-        await DispatchPlan.updateMany(
-            { date: oldReport.date, location: oldReport.location },
-            { $set: { location: updatedReport.location, date: updatedReport.date, district: updatedReport.district } }
-        );
-        // สั่งให้ Frontend รีเฟรชข้อมูลล่าสุด
+    const DispatchPlan = mongoose.models.DispatchPlan || mongoose.model('DispatchPlan');
+
+    if (isClinicReport(updatedReport)) {
+      const deleteResult = await DispatchPlan.deleteMany({
+        createdBy: { $in: ['Auto-System', 'Auto-Sync-System'] },
+        $or: [
+          { date: oldReport.date, location: oldReport.location },
+          { date: updatedReport.date, location: updatedReport.location }
+        ]
+      });
+
+      if (deleteResult.deletedCount > 0) {
         io.emit('server_data_update', { type: 'SYSTEM_RESTORED' });
+      }
+    } else if (oldReport.location !== updatedReport.location || oldReport.date !== updatedReport.date) {
+      await DispatchPlan.updateMany(
+        { date: oldReport.date, location: oldReport.location },
+        {
+          $set: {
+            location: updatedReport.location,
+            date: updatedReport.date,
+            locationDistrict: updatedReport.locationDistrict || updatedReport.district || '',
+            district: updatedReport.district,
+            mapLink: updatedReport.mapLink || '',
+            lat: updatedReport.lat || 0,
+            lng: updatedReport.long || 0
+          }
+        }
+      );
+      io.emit('server_data_update', { type: 'SYSTEM_RESTORED' });
     }
 
     // 4. บันทึกลง Log แบบมี Before / After
@@ -953,6 +1011,8 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
       totalInserted += inserted.length;
       
       for (const rep of chunk) {
+            if (isClinicReport(rep) || !rep.location || !rep.date) continue;
+
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const locRegex = new RegExp(`^\\s*${escapeRegex(rep.location.trim())}\\s*$`, 'i');
             const existingDispatch = await DispatchPlan.findOne({ date: rep.date, location: locRegex });
@@ -983,7 +1043,7 @@ app.post('/api/reports/bulk', authenticateToken, authorizeRole(['Developer', 'Ma
                     note: rep.note || '',
                     team: rep.team || '',
                     staff: {}, 
-                    createdBy: req.user.username || 'Auto-System',
+                    createdBy: 'Auto-System',
                     status: 'completed', 
                     isVisibleToPublic: true
                 });
@@ -1477,7 +1537,7 @@ const syncHistoricalReportsToDispatch = async () => {
     let addedCount = 0;
 
     for (const report of reports) {
-        if (!report.date || !report.location) continue;
+        if (isClinicReport(report) || !report.date || !report.location) continue;
         
         const normalizedLoc = normalizeLocation(report.location);
         
@@ -1611,8 +1671,44 @@ app.delete('/api/system/force-dedup-dispatches', authenticateToken, authorizeRol
     }
 });
 
-server.listen(PORT, () => {
+const backfillReportOperationTypes = async () => {
+  try {
+    const result = await Report.updateMany(
+      { operationType: { $exists: false } },
+      [
+        {
+          $set: {
+            operationType: {
+              $cond: [
+                { $in: ['$location', BANGKOK_VET_CLINIC_NAMES] },
+                'clinic',
+                'mobile'
+              ]
+            },
+            clinicName: {
+              $cond: [
+                { $in: ['$location', BANGKOK_VET_CLINIC_NAMES] },
+                '$location',
+                ''
+              ]
+            }
+          }
+        }
+      ]
+    );
+
+    if (result.modifiedCount > 0) {
+      invalidateReportCache();
+      console.log(`Backfilled report operation types: ${result.modifiedCount}`);
+    }
+  } catch (err) {
+    console.error('Backfill report operation types failed:', err);
+  }
+};
+
+server.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  backfillReportImageFlags();
-  syncHistoricalReportsToDispatch();
+  await backfillReportImageFlags();
+  await backfillReportOperationTypes();
+  await syncHistoricalReportsToDispatch();
 });

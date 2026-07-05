@@ -61,6 +61,17 @@ const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 const API_URL = `${BASE_URL}/api/reports`;
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
+const BANGKOK_VET_CLINIC_NAMES = [
+    'คลินิกสัตวแพทย์ กทม.1 สี่พระยา',
+    'คลินิกสัตวแพทย์ กทม.2 มีนบุรี',
+    'คลินิกสัตวแพทย์ กทม.3 วัดธาตุทอง',
+    'คลินิกสัตวแพทย์ กทม.4 บางเขน',
+    'คลินิกสัตวแพทย์ กทม.5 วัดหงส์รัตนาราม',
+    'คลินิกสัตวแพทย์ กทม.6 ช่วง นุชเนตร',
+    'คลินิกสัตวแพทย์ กทม.7 บางกอกน้อย',
+    'คลินิกกลุ่มควบคุมโรคพิษสุนัขบ้า ถ.มิตรไมตรี'
+];
+
 const AnimalOutcomeAreaChart = ({ data }: { data: any[] }) => {
     return (
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col h-full">
@@ -556,6 +567,7 @@ export default function VeterinaryDashboard() {
     const user = rawUser as User | null;
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
     const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState<boolean>(false);
+    const [selectedClinic, setSelectedClinic] = useState<string>('ทั้งหมด');
 
     const handleNavigateFromDuplicate = (dateStr: string, locationStr: string) => {
         setSearchDate(dateStr);
@@ -1250,7 +1262,13 @@ const handleDeleteDispatch = async (id: string) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` },
                 body: JSON.stringify({
-                    date: newRecord.date, location: newRecord.location, lat: parseFloat(newRecord.lat), long: parseFloat(newRecord.long), locationDistrict: newRecord.locationDistrict,
+                    date: newRecord.date,
+                    location: newRecord.location,
+                    operationType: newRecord.operationType || 'mobile',
+                    clinicName: newRecord.clinicName || '',
+                    lat: parseFloat(newRecord.lat),
+                    long: parseFloat(newRecord.long),
+                    locationDistrict: newRecord.locationDistrict,
                     district: newRecord.district, subdistrict: newRecord.subdistrict, unit: newRecord.unit, team: newRecord.team, imageUrl: newRecord.imageUrl, mapLink: newRecord.mapLink,
                     note: newRecord.note,
                     stats: {
@@ -1434,7 +1452,13 @@ const handleDeleteDispatch = async (id: string) => {
     const editMeetingFromList = useCallback((m: any) => { setViewingMeeting(m); setIsMeetingListOpen(false); setIsMeetingModalOpen(true); }, [setViewingMeeting, setIsMeetingListOpen, setIsMeetingModalOpen]);
 
     const handleClearFilters = useCallback(() => {
-        setSearchTerm(''); setSelectedYear('ทั้งหมด'); setSelectedMonth('ทั้งหมด'); setSelectedUnit('ทั้งหมด'); setSelectedDistrict('ทั้งหมด'); setSearchDate('');
+        setSearchTerm('');
+        setSelectedYear('ทั้งหมด');
+        setSelectedMonth('ทั้งหมด');
+        setSelectedUnit('ทั้งหมด');
+        setSelectedDistrict('ทั้งหมด');
+        setSelectedClinic('ทั้งหมด');
+        setSearchDate('');
     }, [setSearchTerm, setSelectedYear, setSelectedMonth, setSelectedUnit, setSelectedDistrict, setSearchDate]);
 
     const handleRestoreSuccess = useCallback(() => { window.location.reload(); }, []);
@@ -1456,6 +1480,7 @@ const handleDeleteDispatch = async (id: string) => {
         const isMonthAll = deferredMonth === 'ทั้งหมด';
         const isUnitAll = deferredUnit === 'ทั้งหมด';
         const isDistrictAll = deferredDistrict === 'ทั้งหมด';
+        const isClinicAll = selectedClinic === 'ทั้งหมด';
 
         return deferredReportData.filter(item => {
             try {
@@ -1463,19 +1488,24 @@ const handleDeleteDispatch = async (id: string) => {
 
                 if (searchDate) {
                     if (item.date !== searchDate) return false;
-                } 
-                else if (!isYearAll || !isMonthAll) {
+                } else if (!isYearAll || !isMonthAll) {
                     if (!item.date) return false;
                     const dateParts = String(item.date).split('-');
                     if (dateParts.length < 2) return false;
-                    
+
                     if (!isYearAll && dateParts[0] !== String(deferredYear)) return false;
                     if (!isMonthAll && parseInt(dateParts[1], 10) !== parseInt(deferredMonth, 10)) return false;
                 }
 
                 const itemUnit = item.unit ? String(item.unit).trim() : '';
                 const itemDistrict = item.district ? String(item.district).trim() : '';
+                const itemClinic = item.clinicName
+                    ? String(item.clinicName).trim()
+                    : BANGKOK_VET_CLINIC_NAMES.includes(String(item.location || '').trim())
+                        ? String(item.location).trim()
+                        : '';
 
+                if (!isClinicAll && itemClinic !== selectedClinic) return false;
                 if (!isUnitAll && itemUnit !== String(deferredUnit).trim()) return false;
                 if (!isDistrictAll && itemDistrict !== String(deferredDistrict).trim()) return false;
 
@@ -1484,25 +1514,38 @@ const handleDeleteDispatch = async (id: string) => {
                     const itemDistrictLower = itemDistrict.toLowerCase();
                     const itemSubdistrict = item.subdistrict ? String(item.subdistrict).toLowerCase() : '';
                     const itemUnitLower = itemUnit.toLowerCase();
+                    const itemClinicLower = itemClinic.toLowerCase();
                     const itemTeam = item.team ? String(item.team).toLowerCase() : '';
-                    const itemDetails = item.details ? JSON.stringify(item.details).toLowerCase() : ''; 
+                    const itemDetails = item.details ? JSON.stringify(item.details).toLowerCase() : '';
 
-                    if (!itemLocation.includes(lowerSearch) && 
-                        !itemDistrictLower.includes(lowerSearch) && 
+                    if (
+                        !itemLocation.includes(lowerSearch) &&
+                        !itemDistrictLower.includes(lowerSearch) &&
                         !itemSubdistrict.includes(lowerSearch) &&
                         !itemUnitLower.includes(lowerSearch) &&
+                        !itemClinicLower.includes(lowerSearch) &&
                         !itemTeam.includes(lowerSearch) &&
-                        !itemDetails.includes(lowerSearch)) {
+                        !itemDetails.includes(lowerSearch)
+                    ) {
                         return false;
                     }
                 }
                 return true;
             } catch (error) {
                 console.error("Filter Error:", error);
-                return false; 
+                return false;
             }
         });
-    }, [deferredReportData, deferredYear, deferredMonth, deferredUnit, deferredDistrict, deferredSearchTerm, searchDate]);
+    }, [
+        deferredReportData,
+        deferredYear,
+        deferredMonth,
+        deferredUnit,
+        deferredDistrict,
+        deferredSearchTerm,
+        searchDate,
+        selectedClinic
+    ]);
 
     const handleCsvFileChange = useCallback((e: any) => {
         if (csvMode === 'outbreak') handleOutbreakFileUpload(e);
@@ -1993,7 +2036,15 @@ const handleDeleteDispatch = async (id: string) => {
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <Suspense fallback={<div className="hidden">Loading...</div>}>
-                <AddDataModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddNewData} onUpdate={handleUpdateData} initialData={editingItem as any} onToast={addToast} />
+                <AddDataModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={handleAddNewData}
+                    onUpdate={handleUpdateData}
+                    initialData={editingItem as any}
+                    onToast={addToast}
+                    clinicNames={BANGKOK_VET_CLINIC_NAMES}
+                />
                 <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak as any} onToast={addToast} breeds={breeds} colors={colors}/>
                 <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
                 <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
@@ -2154,7 +2205,10 @@ const handleDeleteDispatch = async (id: string) => {
                                         </button>
                                     </div>
                                     
-                                    {(!isFilterExpanded && (searchTerm || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด')) && (
+                                    {(!isFilterExpanded && (
+                                        searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' ||
+                                        selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด' || selectedClinic !== 'ทั้งหมด'
+                                    )) && (
                                         <div className="flex flex-wrap gap-2 items-center animate-in fade-in duration-300">
                                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">กำลังกรอง:</span>
                                             {searchTerm && <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-indigo-100">{searchTerm}</span>}
@@ -2163,6 +2217,7 @@ const handleDeleteDispatch = async (id: string) => {
                                             {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth as string) - 1]}</span>}
                                             {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
                                             {selectedDistrict !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-orange-100">{selectedDistrict}</span>}
+                                            {selectedClinic !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-violet-50 text-violet-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-violet-100">{selectedClinic}</span>}
                                         </div>
                                     )}
                                 </div>
@@ -2183,7 +2238,7 @@ const handleDeleteDispatch = async (id: string) => {
                                         </button>
                                     </div>
 
-                                    {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด') && (
+                                    {(searchTerm || searchDate || selectedYear !== 'ทั้งหมด' || selectedMonth !== 'ทั้งหมด' || selectedUnit !== 'ทั้งหมด' || selectedDistrict !== 'ทั้งหมด' || selectedClinic !== 'ทั้งหมด') && (
                                         <button 
                                             onClick={handleClearFilters} 
                                             className="text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors font-bold border border-transparent hover:border-rose-100"
@@ -2195,7 +2250,7 @@ const handleDeleteDispatch = async (id: string) => {
                             </div>
 
                             {isFilterExpanded && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mt-4 animate-in slide-in-from-top-2 fade-in duration-300">
                                     <div className="relative">
                                         <label className="block text-[10px] font-bold text-slate-500 mb-1">ค้นหา (สถานที่/รายละเอียด)</label>
                                         <div className="relative">
@@ -2234,6 +2289,13 @@ const handleDeleteDispatch = async (id: string) => {
                                         <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
                                             <option value="ทั้งหมด">-- เลือกเขต --</option>
                                             {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">คลินิกสัตวแพทย์</label>
+                                        <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedClinic} onChange={(e) => setSelectedClinic(e.target.value)}>
+                                            <option value="ทั้งหมด">-- ทุกคลินิก/ออกหน่วย --</option>
+                                            {BANGKOK_VET_CLINIC_NAMES.map((clinic) => <option key={clinic} value={clinic}>{clinic}</option>)}
                                         </select>
                                     </div>
                                 </div>

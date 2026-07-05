@@ -31,6 +31,8 @@ interface Breakdown {
 
 interface FormDataState {
   date: string;
+  operationType: 'mobile' | 'clinic';
+  clinicName: string;
   location: string;
   locationDistrict: string;
   district: string;
@@ -73,6 +75,7 @@ interface AddDataModalProps {
   onSave: (payload: any) => Promise<void>;
   onUpdate: (id: string, payload: any) => Promise<void>;
   initialData?: any;
+  clinicNames?: string[];
   onToast?: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
@@ -82,6 +85,8 @@ interface AddDataModalProps {
 
 const defaultFormData: FormDataState = {
   date: new Date().toISOString().split('T')[0],
+  operationType: 'mobile',
+  clinicName: '',
   location: '',
   locationDistrict: BANGKOK_DISTRICTS[0] || '',
   district: BANGKOK_DISTRICTS[0] || '',
@@ -163,8 +168,8 @@ const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<str
 // 4. Component
 // ==============================
 
-const AddDataModal: React.FC<AddDataModalProps> = ({ 
-  isOpen, onClose, onSave, onUpdate, initialData, onToast 
+const AddDataModal: React.FC<AddDataModalProps> = ({
+  isOpen, onClose, onSave, onUpdate, initialData, clinicNames = [], onToast
 }) => {
   // --- States ---
   const [formData, setFormData] = useState<FormDataState>(defaultFormData);
@@ -289,6 +294,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
         ...initialData,
         locationDistrict: loadedLocationDistrict, 
         district: loadedDistrict,
+        operationType: initialData.operationType === 'clinic' ? 'clinic' : 'mobile',
+        clinicName: initialData.clinicName || '',
+        location: initialData.location || initialData.clinicName || '',
         subdistrict: initialData.subdistrict || '',
         unit: unitExists ? initialData.unit : 'หน่วยอื่น ๆ',
         otherUnit: !unitExists ? initialData.unit : ''
@@ -301,7 +309,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   }, [isOpen, initialData, customUnitsObj]);
 
   useEffect(() => {
-    if (isOpen && initialData && allDispatches.length > 0) {
+    if (isOpen && initialData && initialData.operationType !== 'clinic' && allDispatches.length > 0) {
       const query = (initialData.location || '').toLowerCase().trim();
       if (!query) return;
 
@@ -322,9 +330,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   }, [isOpen, initialData, allDispatches]);
 
   const dispatchesOnSelectedDate = useMemo(() => {
-    if (!formData.date || !allDispatches.length) return [];
+    if (formData.operationType === 'clinic' || !formData.date || !allDispatches.length) return [];
     return allDispatches.filter(d => d.date && d.date.startsWith(formData.date));
-  }, [allDispatches, formData.date]);
+  }, [allDispatches, formData.date, formData.operationType]);
 
   const handleUseDispatchData = (dispatch: any) => {
     let newLat = dispatch.lat || formData.lat;
@@ -364,6 +372,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
   };
 
   const handleSearchLocation = () => {
+    if (formData.operationType === 'clinic') return;
     if (!formData.location.trim()) return;
     const query = formData.location.toLowerCase();
 
@@ -450,6 +459,11 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (formData.operationType === 'clinic' && !formData.clinicName) {
+      if (onToast) onToast('warning', 'กรุณาเลือกคลินิกสัตวแพทย์');
+      return;
+    }
+
     if (coordInput.trim()) {
       const parts = coordInput.split(',');
       const latVal = parseFloat(parts[0]?.trim());
@@ -500,6 +514,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
 
     const payload = {
       ...formData,
+      operationType: formData.operationType,
+      clinicName: formData.operationType === 'clinic' ? formData.clinicName : '',
+      location: formData.operationType === 'clinic' ? formData.clinicName : formData.location,
       unit: finalUnit,
       district: formData.unit === 'หน่วยกรงแมว' ? formData.district : formData.locationDistrict,
       stats: totals,
@@ -607,6 +624,54 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   />
                 </div>
 
+                {/* รูปแบบการปฏิบัติงาน */}
+                <div className="md:col-span-3">
+                  <label className={labelClass}>รูปแบบการให้บริการ</label>
+                  <select
+                    className={inputClass}
+                    value={formData.operationType}
+                    onChange={(e) => {
+                      const operationType = e.target.value as 'mobile' | 'clinic';
+                      setFormData(prev => ({
+                        ...prev,
+                        operationType,
+                        clinicName: operationType === 'clinic' ? prev.clinicName : '',
+                        location: operationType === 'clinic'
+                          ? prev.clinicName
+                          : prev.operationType === 'clinic'
+                            ? ''
+                            : prev.location
+                      }));
+                      setFoundDispatch(null);
+                      setShowLocationDropdown(false);
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <option value="mobile">ออกหน่วยเคลื่อนที่</option>
+                    <option value="clinic">ให้บริการประจำคลินิก</option>
+                  </select>
+                </div>
+
+                {formData.operationType === 'clinic' && (
+                  <div className="md:col-span-6">
+                    <label className={labelClass}>คลินิกสัตวแพทย์</label>
+                    <select
+                      required
+                      className={inputClass}
+                      value={formData.clinicName}
+                      onChange={(e) => {
+                        const clinicName = e.target.value;
+                        setFormData(prev => ({ ...prev, clinicName, location: clinicName }));
+                        setFoundDispatch(null);
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">-- เลือกคลินิก --</option>
+                      {clinicNames.map(clinic => <option key={clinic} value={clinic}>{clinic}</option>)}
+                    </select>
+                  </div>
+                )}
+
                 {/* หน่วยกิจกรรม */}
                 <div className="md:col-span-4">
                   <div className="flex justify-between items-center mb-1.5">
@@ -687,9 +752,10 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="ระบุสถานที่/จุดบริการ"
+                      placeholder={formData.operationType === 'clinic' ? 'เลือกคลินิกจากรายการด้านบน' : 'ระบุสถานที่/จุดบริการ'}
                       className={inputClass}
                       value={formData.location}
+                      readOnly={formData.operationType === 'clinic'}
                       onChange={e => {
                         const val = e.target.value;
                         setFormData({ ...formData, location: val });
@@ -728,16 +794,16 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <button
                       type="button"
                       onClick={handleSearchLocation}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || formData.operationType === 'clinic'}
                       className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0 disabled:opacity-50"
-                      title="ค้นหาข้อมูลจากแผนออกหน่วย"
+                      title={formData.operationType === 'clinic' ? 'ข้อมูลคลินิกไม่ใช้แผนออกหน่วย' : 'ค้นหาข้อมูลจากแผนออกหน่วย'}
                     >
                       <Search className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Dropdown Autocomplete */}
-                  {showLocationDropdown && locationSuggestions.length > 0 && (
+                  {formData.operationType === 'mobile' && showLocationDropdown && locationSuggestions.length > 0 && (
                     <div className="absolute z-[60] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
                       {locationSuggestions.map((item, idx) => (
                         <div
@@ -1034,7 +1100,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
             </div>
 
             {/* กล่องแสดงรายละเอียด Dispatch */}
-            {foundDispatch && (
+            {formData.operationType === 'mobile' && foundDispatch && (
               <div className="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 shadow-sm animate-in fade-in duration-300">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-xs font-bold text-indigo-800 flex items-center gap-2">
