@@ -52,6 +52,7 @@ interface SidebarProps {
     onOpenMeetingCalendar: () => void;
     onOpenAddOutbreak: () => void;
     onOpenAddData: () => void;
+    onOpenClinicData: () => void;
     onNotifyUpdate: () => void;
     onOpenCustomUnits: () => void;
     onClearData: () => void;
@@ -130,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     user, canAdd, isSystemDeveloper, isSystemMenuOpen, setIsSystemMenuOpen, isDevOrSuper,
     onLogin, onLogout, onChangePassword, onOpenLog, onOpenUserMgmt,
     onOpenBackup, onOpenCsvOutbreak, onOpenCsvReport, onGenerateMock,
-    onOpenMeetingList, onOpenMeetingCalendar, onOpenAddOutbreak, onOpenAddData,
+    onOpenMeetingList, onOpenMeetingCalendar, onOpenAddOutbreak, onOpenAddData, onOpenClinicData,
     onNotifyUpdate, onOpenCustomUnits, onClearData, onOpenBreedMgmt, onOpenColorMgmt,
     onOpenDuplicateCheck,
     onOpenThemeSettings = () => alert("กำลังพัฒนาระบบเปลี่ยนสีธีม..."),
@@ -231,7 +232,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex-1 overflow-y-auto overflow-x-hidden px-3.5 py-4 space-y-1.5 scrollbar-hide">
                     
                     {renderSectionHeader('แดชบอร์ด')}
-                    {checkTabVisibility('overview') && <NavItem icon={Activity} label="ภาพรวมสถิติออกหน่วย" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('overview') && <NavItem icon={Activity} label="แดชบอร์ดออกหน่วย" isActive={activeTab === 'overview'} onClick={() => handleAction(() => setActiveTab('overview'))} isCollapsed={isCollapsed} activeColor="indigo" />}
+                    {checkTabVisibility('clinic') && <NavItem icon={Building2} label="แดชบอร์ดคลินิก" isActive={activeTab === 'clinic'} onClick={() => handleAction(() => setActiveTab('clinic'))} isCollapsed={isCollapsed} activeColor="emerald" />}
                     {checkTabVisibility('database') && <NavItem icon={Database} label="ฐานข้อมูลออกหน่วย" isActive={activeTab === 'database'} onClick={() => handleAction(() => setActiveTab('database'))} isCollapsed={isCollapsed} activeColor="emerald" />}
                     {checkTabVisibility('outbreak') && <NavItem icon={Siren} label="จุดเสี่ยงโรคพิษสุนัขบ้า" isActive={activeTab === 'outbreak'} onClick={() => handleAction(() => setActiveTab('outbreak'))} isCollapsed={isCollapsed} activeColor="rose" />}
                     {checkTabVisibility('calendar') && <NavItem icon={CalendarDays} label="ปฏิทินออกหน่วย" isActive={false} onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} isCollapsed={isCollapsed} activeColor="indigo" />}
@@ -271,6 +273,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                     <div className="space-y-2.5">
                                                         {[
                                                             { id: 'sa_overview', label: 'ภาพรวมออกหน่วย' },
+                                                            { id: 'sa_clinic', label: 'แดชบอร์ดคลินิก' },
                                                             { id: 'sa_database', label: 'ฐานข้อมูลออกหน่วย' },
                                                             { id: 'sa_outbreak', label: 'จุดเสี่ยงโรค' },
                                                             { id: 'sa_calendar', label: 'ปฏิทินออกหน่วย' }
@@ -291,6 +294,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                     <div className="space-y-2.5">
                                                         {[
                                                             { id: 'public_overview', label: 'ภาพรวมออกหน่วย' },
+                                                            { id: 'public_clinic', label: 'แดชบอร์ดคลินิก' },
                                                             { id: 'public_database', label: 'ฐานข้อมูลออกหน่วย' },
                                                             { id: 'public_outbreak', label: 'จุดเสี่ยงโรค' },
                                                             { id: 'public_calendar', label: 'ปฏิทินออกหน่วย' }
@@ -381,10 +385,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <AlertTriangle className="w-[18px] h-[18px] shrink-0" />
                             {!isCollapsed && <span>แจ้งโรคระบาด</span>}
                         </button>
-                        <button onClick={() => handleAction(onOpenAddData)} title="เพิ่มข้อมูลบริการ" 
+                        <button onClick={() => handleAction(onOpenAddData)} title="บันทึกผลปฏิบัติงานใหม่" 
                             className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-11 h-11 p-0 rounded-[14px]' : 'w-full px-4 py-2.5 rounded-xl'} font-semibold text-xs bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-600/30 transition-all duration-300 shadow-sm`}>
                             <Plus className="w-[18px] h-[18px] shrink-0" />
-                            {!isCollapsed && <span>เพิ่มข้อมูลบริการ</span>}
+                            {!isCollapsed && <span>บันทึกผลปฏิบัติงานใหม่</span>}
+                        </button>
+                        <button onClick={() => handleAction(onOpenClinicData)} title="บันทึกผลให้บริการประจำคลินิก" 
+                            className={`group flex items-center justify-center gap-2 ${isCollapsed ? 'w-11 h-11 p-0 rounded-[14px]' : 'w-full px-4 py-2.5 rounded-xl'} font-semibold text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-all duration-300 border border-emerald-200/70 hover:border-transparent shadow-sm hover:shadow-md hover:shadow-emerald-500/30`}>
+                            <Building2 className="w-[18px] h-[18px] shrink-0" />
+                            {!isCollapsed && <span>บันทึกผลให้บริการประจำคลินิก</span>}
                         </button>
                     </div>
                 )}

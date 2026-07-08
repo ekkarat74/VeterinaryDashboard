@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { 
     Activity, Database, X, Search, Trash2, Siren, List, ChevronUp, ChevronDown, Unlock, LogOut, CalendarDays,
-    Bell, LayoutList, Columns, ChevronRight, Copy, AlertTriangle, MapPin, CheckCircle
+    Bell, LayoutList, Columns, ChevronRight, Copy, AlertTriangle, MapPin, CheckCircle, Building2, Plus
 } from 'lucide-react';
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, 
-    Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer 
+    Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer,
+    BarChart, Bar
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { io } from "socket.io-client";
@@ -57,20 +58,213 @@ export interface User {
     [key: string]: any;
 }
 
+interface ClinicDashboardRow {
+    name: string;
+    district: string;
+    subdistrict: string;
+    mapLink: string;
+    count: number;
+    vaccine: number;
+    sterilize: number;
+    register: number;
+    microchip: number;
+    medical: number;
+    total: number;
+}
+
+type ClinicComparisonMetric = 'total' | 'vaccine' | 'sterilize' | 'register' | 'microchip' | 'medical';
+
+const CLINIC_COMPARISON_METRICS: Array<{
+    key: ClinicComparisonMetric;
+    label: string;
+    shortLabel: string;
+    color: string;
+}> = [
+    { key: 'total', label: 'ยอดบริการรวม', shortLabel: 'รวม', color: '#059669' },
+    { key: 'vaccine', label: 'ฉีดวัคซีน', shortLabel: 'วัคซีน', color: '#2563eb' },
+    { key: 'sterilize', label: 'ผ่าตัดทำหมัน', shortLabel: 'ทำหมัน', color: '#ea580c' },
+    { key: 'register', label: 'จดทะเบียน', shortLabel: 'ทะเบียน', color: '#16a34a' },
+    { key: 'microchip', label: 'ฝังไมโครชิป', shortLabel: 'ไมโครชิป', color: '#7c3aed' },
+    { key: 'medical', label: 'รักษาสัตว์', shortLabel: 'รักษา', color: '#e11d48' }
+];
+
+const getClinicShortName = (name: string) => {
+    if (name === 'คลินิกกลุ่มควบคุมโรคพิษสุนัขบ้า ถ.มิตรไมตรี') {
+        return 'กลุ่มควบคุมโรคพิษสุนัขบ้า';
+    }
+    return name.replace(/^คลินิกสัตวแพทย์\s*/, '');
+};
+
+const ClinicComparisonChart = ({ rows }: { rows: ClinicDashboardRow[] }) => {
+    const [metric, setMetric] = useState<ClinicComparisonMetric>('total');
+
+    const metricConfig = CLINIC_COMPARISON_METRICS.find(item => item.key === metric)
+        || CLINIC_COMPARISON_METRICS[0];
+
+    const chartData = useMemo(() => {
+        return rows
+            .map(row => ({
+                fullName: row.name,
+                shortName: getClinicShortName(row.name),
+                value: Number(row[metric] || 0)
+            }))
+            .sort((a, b) => b.value - a.value || a.shortName.localeCompare(b.shortName, 'th'));
+    }, [rows, metric]);
+
+    const hasData = chartData.some(item => item.value > 0);
+    const topClinic = chartData[0];
+
+    return (
+        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100">
+            <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">
+                <div>
+                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-emerald-600" />
+                        กราฟเปรียบเทียบผลให้บริการรายคลินิก
+                    </h3>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                        เปรียบเทียบทั้ง 8 คลินิกตามช่วงเวลาและตัวกรองที่เลือกด้านบน
+                    </p>
+                    {hasData && topClinic && (
+                        <p className="text-[10px] text-emerald-700 font-bold mt-2">
+                            สูงสุด: {topClinic.fullName} ({topClinic.value.toLocaleString('th-TH')} ครั้ง/ตัว)
+                        </p>
+                    )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                    {CLINIC_COMPARISON_METRICS.map(item => (
+                        <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setMetric(item.key)}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${
+                                metric === item.key
+                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                                    : 'bg-white border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-700'
+                            }`}
+                        >
+                            {item.shortLabel}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="w-full min-h-[430px]">
+                {hasData ? (
+                    <ResponsiveContainer width="100%" height={430}>
+                        <BarChart
+                            data={chartData}
+                            layout="vertical"
+                            margin={{ top: 8, right: 35, left: 10, bottom: 8 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                            <XAxis
+                                type="number"
+                                allowDecimals={false}
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 10, fill: '#64748b' }}
+                            />
+                            <YAxis
+                                type="category"
+                                dataKey="shortName"
+                                width={175}
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 10, fill: '#475569', fontWeight: 700 }}
+                            />
+                            <RechartsTooltip
+                                cursor={{ fill: '#f8fafc' }}
+                                contentStyle={{
+                                    fontSize: '11px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 10px 25px -10px rgba(15, 23, 42, 0.25)'
+                                }}
+                                labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName ?? label}
+                                formatter={(value: any) => [
+                                    `${Number(value || 0).toLocaleString('th-TH')} ครั้ง/ตัว`,
+                                    metricConfig.label
+                                ]}
+                            />
+                            <Bar
+                                dataKey="value"
+                                name={metricConfig.label}
+                                fill={metricConfig.color}
+                                radius={[0, 8, 8, 0]}
+                                maxBarSize={30}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="min-h-[430px] flex flex-col items-center justify-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center px-6">
+                        <Building2 className="w-10 h-10 text-slate-300 mb-3" />
+                        <p className="text-xs font-black text-slate-500">ยังไม่มีข้อมูลสำหรับสร้างกราฟ</p>
+                        <p className="text-[10px] text-slate-400 mt-1">ลองเปลี่ยนช่วงวันที่ คลินิก หรือเงื่อนไขตัวกรองด้านบน</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 const API_URL = `${BASE_URL}/api/reports`;
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
-const BANGKOK_VET_CLINIC_NAMES = [
-    'คลินิกสัตวแพทย์ กทม.1 สี่พระยา',
-    'คลินิกสัตวแพทย์ กทม.2 มีนบุรี',
-    'คลินิกสัตวแพทย์ กทม.3 วัดธาตุทอง',
-    'คลินิกสัตวแพทย์ กทม.4 บางเขน',
-    'คลินิกสัตวแพทย์ กทม.5 วัดหงส์รัตนาราม',
-    'คลินิกสัตวแพทย์ กทม.6 ช่วง นุชเนตร',
-    'คลินิกสัตวแพทย์ กทม.7 บางกอกน้อย',
-    'คลินิกกลุ่มควบคุมโรคพิษสุนัขบ้า ถ.มิตรไมตรี'
-];
+const BANGKOK_VET_CLINICS = [
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.1 สี่พระยา',
+        district: 'บางรัก',
+        subdistrict: 'สี่พระยา',
+        mapLink: 'https://maps.app.goo.gl/nE7akyZLA7oBNPx79'
+    },
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.2 มีนบุรี',
+        district: 'มีนบุรี',
+        subdistrict: 'มีนบุรี',
+        mapLink: 'https://maps.app.goo.gl/i9ALubM8bhfhrmnYA'
+    },
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.3 วัดธาตุทอง',
+        district: 'วัฒนา',
+        subdistrict: 'พระโขนง',
+        mapLink: 'https://maps.app.goo.gl/ZSPFwUvs2aEe9daP8'
+    },
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.4 บางเขน',
+        district: 'จตุจักร',
+        subdistrict: 'ลาดยาว',
+        mapLink: 'https://maps.app.goo.gl/ob8QJxPAFafMpPb88'
+    },
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.5 วัดหงส์รัตนาราม',
+        district: 'บางกอกใหญ่',
+        subdistrict: 'วัดอรุณ',
+        mapLink: 'https://maps.app.goo.gl/5CCNT3hqWG7bYoty8'
+    },
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.6 ช่วง นุชเนตร',
+        district: 'จอมทอง',
+        subdistrict: 'บางค้อ',
+        mapLink: 'https://maps.app.goo.gl/Z1SBbEDCaBjJUkV36'
+    },
+    {
+        name: 'คลินิกสัตวแพทย์ กทม.7 บางกอกน้อย',
+        district: 'บางกอกน้อย',
+        subdistrict: 'บางขุนศรี',
+        mapLink: 'https://maps.app.goo.gl/nzuwmBW5Bf31dopf8'
+    },
+    {
+        name: 'คลินิกกลุ่มควบคุมโรคพิษสุนัขบ้า ถ.มิตรไมตรี',
+        district: 'ดินแดง',
+        subdistrict: 'ดินแดง',
+        mapLink: 'https://maps.app.goo.gl/uZTzUSKLY8Y1Jvpy8'
+    }
+] as const;
+
+const BANGKOK_VET_CLINIC_NAMES: string[] = BANGKOK_VET_CLINICS.map(clinic => clinic.name);
 
 const AnimalOutcomeAreaChart = ({ data }: { data: any[] }) => {
     return (
@@ -568,6 +762,16 @@ export default function VeterinaryDashboard() {
     const isReadOnlyMode = new URLSearchParams(window.location.search).get('mode') === 'view';
     const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState<boolean>(false);
     const [selectedClinic, setSelectedClinic] = useState<string>('ทั้งหมด');
+    const [newReportMode, setNewReportMode] = useState<'mobile' | 'clinic'>('mobile');
+    const isClinicDashboard = activeTab === 'clinic';
+
+    useEffect(() => {
+        if (activeTab === 'clinic') {
+            setSelectedUnit('ทั้งหมด');
+        } else if (activeTab === 'overview' || activeTab === 'database') {
+            setSelectedClinic('ทั้งหมด');
+        }
+    }, [activeTab, setSelectedUnit]);
 
     const handleNavigateFromDuplicate = (dateStr: string, locationStr: string) => {
         setSearchDate(dateStr);
@@ -1083,6 +1287,7 @@ const handleDeleteDispatch = async (id: string) => {
 
         if (!checkTabVisibility(activeTab)) {
             if (checkTabVisibility('overview')) setActiveTab('overview');
+            else if (checkTabVisibility('clinic')) setActiveTab('clinic');
             else if (checkTabVisibility('outbreak')) setActiveTab('outbreak');
             else if (checkTabVisibility('database')) setActiveTab('database');
             else if (checkTabVisibility('calendar')) setActiveTab('calendar');
@@ -1439,9 +1644,22 @@ const handleDeleteDispatch = async (id: string) => {
         }
     }, [fetchReportImage, setViewImage, addToast]);
 
-    const openAddModal = useCallback(() => { setEditingItem(null); setIsModalOpen(true); }, [setEditingItem, setIsModalOpen]);
+    const openAddModal = useCallback(() => {
+        setNewReportMode('mobile');
+        setEditingItem(null);
+        setIsModalOpen(true);
+    }, [setEditingItem, setIsModalOpen]);
+
+    const openClinicModal = useCallback(() => {
+        setActiveTab('clinic');
+        setNewReportMode('clinic');
+        setEditingItem(null);
+        setIsModalOpen(true);
+    }, [setActiveTab, setEditingItem, setIsModalOpen]);
+
     const openEditModal = useCallback(async (item: any) => {
         const hydratedItem = await fetchReportImage(item);
+        setNewReportMode(hydratedItem?.operationType === 'clinic' ? 'clinic' : 'mobile');
         setEditingItem(hydratedItem);
         setIsModalOpen(true);
     }, [fetchReportImage, setEditingItem, setIsModalOpen]);
@@ -1504,6 +1722,10 @@ const handleDeleteDispatch = async (id: string) => {
                     : BANGKOK_VET_CLINIC_NAMES.includes(String(item.location || '').trim())
                         ? String(item.location).trim()
                         : '';
+                const isClinicRecord = item.operationType === 'clinic' || Boolean(itemClinic);
+
+                if (activeTab === 'clinic' && !isClinicRecord) return false;
+                if ((activeTab === 'overview' || activeTab === 'database') && isClinicRecord) return false;
 
                 if (!isClinicAll && itemClinic !== selectedClinic) return false;
                 if (!isUnitAll && itemUnit !== String(deferredUnit).trim()) return false;
@@ -1544,8 +1766,64 @@ const handleDeleteDispatch = async (id: string) => {
         deferredDistrict,
         deferredSearchTerm,
         searchDate,
-        selectedClinic
+        selectedClinic,
+        activeTab
     ]);
+
+    const clinicDashboardRows = useMemo(() => {
+        const toNum = (value: any) => Number.parseInt(String(value ?? 0), 10) || 0;
+        const rowMap = new Map<string, ClinicDashboardRow>(
+            BANGKOK_VET_CLINICS.map(clinic => [clinic.name, {
+                ...clinic,
+                count: 0,
+                vaccine: 0,
+                sterilize: 0,
+                register: 0,
+                microchip: 0,
+                medical: 0,
+                total: 0
+            }])
+        );
+
+        filteredData.forEach((report: any) => {
+            const clinicName = String(report?.clinicName || report?.location || '').trim();
+            if (!clinicName) return;
+
+            const current = rowMap.get(clinicName) || {
+                name: clinicName,
+                district: String(report?.district || report?.locationDistrict || ''),
+                subdistrict: String(report?.subdistrict || ''),
+                mapLink: String(report?.mapLink || ''),
+                count: 0,
+                vaccine: 0,
+                sterilize: 0,
+                register: 0,
+                microchip: 0,
+                medical: 0,
+                total: 0
+            };
+
+            const vaccine = toNum(report?.stats?.vaccine);
+            const sterilize = toNum(report?.stats?.sterilize);
+            const register = toNum(report?.stats?.register);
+            const microchip = toNum(report?.stats?.microchip);
+            const medical = toNum(report?.stats?.medical);
+
+            current.count += 1;
+            current.vaccine += vaccine;
+            current.sterilize += sterilize;
+            current.register += register;
+            current.microchip += microchip;
+            current.medical += medical;
+            current.total += vaccine + sterilize + register + microchip + medical;
+            rowMap.set(clinicName, current);
+        });
+
+        return Array.from(rowMap.values()).sort((a, b) => {
+            if (b.total !== a.total) return b.total - a.total;
+            return a.name.localeCompare(b.name, 'th');
+        });
+    }, [filteredData]);
 
     const handleCsvFileChange = useCallback((e: any) => {
         if (csvMode === 'outbreak') handleOutbreakFileUpload(e);
@@ -1685,6 +1963,8 @@ const handleDeleteDispatch = async (id: string) => {
             ].filter(item => item.value > 0).sort((a, b) => b.value - a.value)
         };
     }, [filteredData]);
+
+    const clinicGrandTotal = totals.vaccine + totals.sterilize + totals.register + totals.microchip + totals.medical;
 
     const { rankingNestedStats, rankingUnitStats } = useMemo(() => {
         const unitDict: any = {};
@@ -2042,6 +2322,7 @@ const handleDeleteDispatch = async (id: string) => {
                     onSave={handleAddNewData}
                     onUpdate={handleUpdateData}
                     initialData={editingItem as any}
+                    defaultOperationType={newReportMode}
                     onToast={addToast}
                     clinicNames={BANGKOK_VET_CLINIC_NAMES}
                 />
@@ -2098,6 +2379,7 @@ const handleDeleteDispatch = async (id: string) => {
                 onOpenMeetingCalendar={() => setIsMeetingCalendarOpen(true)}
                 onOpenAddOutbreak={openAddOutbreakModal} 
                 onOpenAddData={openAddModal}
+                onOpenClinicData={openClinicModal}
                 onOpenBreedMgmt={() => setIsBreedModalOpen(true)}
                 onOpenColorMgmt={() => setIsColorModalOpen(true)}
                 isMagaAdmin={isMagaAdmin}
@@ -2177,19 +2459,31 @@ const handleDeleteDispatch = async (id: string) => {
         </div>
 
                 <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8 custom-scrollbar">
-                    <div className="bg-gradient-to-r from-[#6B4BFA] to-indigo-500 rounded-2xl p-6 mb-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center gap-5 relative overflow-hidden">
+                    <div className={`${isClinicDashboard ? 'bg-gradient-to-r from-emerald-600 to-teal-500' : 'bg-gradient-to-r from-[#6B4BFA] to-indigo-500'} rounded-2xl p-6 mb-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center gap-5 relative overflow-hidden`}>
                         <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl"></div>
     
                         <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm shrink-0 border border-white/20 shadow-inner">
-                            <Activity className="w-8 h-8 text-white" />
+                            {isClinicDashboard ? <Building2 className="w-8 h-8 text-white" /> : <Activity className="w-8 h-8 text-white" />}
                         </div>
-                        <div className="relative z-10">
-                            <h1 className="text-2xl font-bold mb-1">ระบบรายงานและจัดการข้อมูลสัตวแพทย์เคลื่อนที่</h1>
-                            <p className="text-indigo-100 text-sm max-w-2xl leading-relaxed">
-                                ระบบสำหรับเจ้าหน้าที่เพื่อบันทึก ติดตาม และประมวลผลข้อมูลการให้บริการสัตวแพทย์เคลื่อนที่ 
-                                ครอบคลุมการฉีดวัคซีน ทำหมัน ฝังไมโครชิป และเฝ้าระวังจุดเสี่ยงโรคพิษสุนัขบ้าในพื้นที่กรุงเทพมหานคร
+                        <div className="relative z-10 flex-1">
+                            <h1 className="text-2xl font-bold mb-1">
+                                {isClinicDashboard ? 'แดชบอร์ดผลให้บริการประจำคลินิกสัตวแพทย์' : 'ระบบรายงานและจัดการข้อมูลสัตวแพทย์เคลื่อนที่'}
+                            </h1>
+                            <p className={`${isClinicDashboard ? 'text-emerald-50' : 'text-indigo-100'} text-sm max-w-3xl leading-relaxed`}>
+                                {isClinicDashboard
+                                    ? 'สรุปยอดการให้บริการของคลินิกสัตวแพทย์กรุงเทพมหานครทั้ง 8 แห่ง พร้อมติดตามจำนวนรายการและผลการให้บริการแยกรายคลินิก'
+                                    : 'ระบบสำหรับเจ้าหน้าที่เพื่อบันทึก ติดตาม และประมวลผลข้อมูลการให้บริการสัตวแพทย์เคลื่อนที่ ครอบคลุมการฉีดวัคซีน ทำหมัน ฝังไมโครชิป และเฝ้าระวังจุดเสี่ยงโรคพิษสุนัขบ้าในพื้นที่กรุงเทพมหานคร'}
                             </p>
                         </div>
+                        {isClinicDashboard && canAdd && (
+                            <button
+                                type="button"
+                                onClick={openClinicModal}
+                                className="relative z-10 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-700 text-xs font-black shadow-lg hover:bg-emerald-50 transition-colors shrink-0"
+                            >
+                                <Plus className="w-4 h-4" /> บันทึกผลให้บริการ
+                            </button>
+                        )}
                     </div>
 
                     {activeTab !== 'outbreak' && (
@@ -2198,7 +2492,7 @@ const handleDeleteDispatch = async (id: string) => {
                                 <div className="flex flex-col gap-2">
                                     <div className="flex items-center gap-3">
                                         <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg">
-                                            <Search className="w-5 h-5 text-indigo-500" /> ค้นหาและกรองข้อมูล
+                                            <Search className="w-5 h-5 text-indigo-500" /> {isClinicDashboard ? 'ค้นหาและกรองข้อมูลคลินิก' : 'ค้นหาและกรองข้อมูล'}
                                         </h3>
                                         <button onClick={() => setIsFilterExpanded(!isFilterExpanded)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors shadow-sm border border-transparent hover:border-slate-200" title={isFilterExpanded ? "ยุบตัวกรอง" : "ขยายตัวกรอง"}>
                                             {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -2215,9 +2509,9 @@ const handleDeleteDispatch = async (id: string) => {
                                             {searchDate && <span className="inline-flex items-center gap-1 bg-pink-50 text-pink-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-pink-100">วันที่: {searchDate}</span>}
                                             {selectedYear !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">ปี {parseInt(selectedYear as string) + 543}</span>}
                                             {selectedMonth !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-blue-100">{THAI_MONTHS[parseInt(selectedMonth as string) - 1]}</span>}
-                                            {selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
+                                            {!isClinicDashboard && selectedUnit !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-emerald-100">{selectedUnit}</span>}
                                             {selectedDistrict !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-orange-100">{selectedDistrict}</span>}
-                                            {selectedClinic !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-violet-50 text-violet-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-violet-100">{selectedClinic}</span>}
+                                            {isClinicDashboard && selectedClinic !== 'ทั้งหมด' && <span className="inline-flex items-center gap-1 bg-violet-50 text-violet-600 text-[10px] px-2.5 py-1 rounded-md font-bold border border-violet-100">{selectedClinic}</span>}
                                         </div>
                                     )}
                                 </div>
@@ -2277,13 +2571,15 @@ const handleDeleteDispatch = async (id: string) => {
                                             {THAI_MONTHS.map((m, i) => <option key={i} value={String(i + 1).padStart(2, '0')}>{m}</option>)}
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
-                                        <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
-                                            <option value="ทั้งหมด">-- เลือกหน่วยงาน --</option>
-                                            {allUnits.map((u, i) => <option key={i} value={u}>{u}</option>)}
-                                        </select>
-                                    </div>
+                                    {!isClinicDashboard && (
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-500 mb-1">หน่วยงาน (Unit)</label>
+                                            <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}>
+                                                <option value="ทั้งหมด">-- เลือกหน่วยงาน --</option>
+                                                {allUnits.map((u, i) => <option key={i} value={u}>{u}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-500 mb-1">เขต (District)</label>
                                         <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)}>
@@ -2291,13 +2587,15 @@ const handleDeleteDispatch = async (id: string) => {
                                             {BANGKOK_DISTRICTS.map((d, i) => <option key={i} value={d}>{d}</option>)}
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">คลินิกสัตวแพทย์</label>
-                                        <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedClinic} onChange={(e) => setSelectedClinic(e.target.value)}>
-                                            <option value="ทั้งหมด">-- ทุกคลินิก/ออกหน่วย --</option>
-                                            {BANGKOK_VET_CLINIC_NAMES.map((clinic) => <option key={clinic} value={clinic}>{clinic}</option>)}
-                                        </select>
-                                    </div>
+                                    {isClinicDashboard && (
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-500 mb-1">คลินิกสัตวแพทย์</label>
+                                            <select className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={selectedClinic} onChange={(e) => setSelectedClinic(e.target.value)}>
+                                                <option value="ทั้งหมด">-- ทุกคลินิก --</option>
+                                                {BANGKOK_VET_CLINIC_NAMES.map((clinic) => <option key={clinic} value={clinic}>{clinic}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -2419,6 +2717,141 @@ const handleDeleteDispatch = async (id: string) => {
                                     </div>
                                 )}
 
+                                {activeTab === 'clinic' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                                            {[
+                                                { label: 'รายการบันทึก', value: filteredData.length, icon: '🗂️', tone: 'from-slate-700 to-slate-800' },
+                                                { label: 'ฉีดวัคซีน', value: totals.vaccine, icon: '💉', tone: 'from-blue-500 to-blue-600' },
+                                                { label: 'ผ่าตัดทำหมัน', value: totals.sterilize, icon: '✂️', tone: 'from-orange-500 to-orange-600' },
+                                                { label: 'จดทะเบียน', value: totals.register, icon: '📄', tone: 'from-emerald-500 to-emerald-600' },
+                                                { label: 'ฝังไมโครชิป', value: totals.microchip, icon: '🔖', tone: 'from-violet-500 to-violet-600' },
+                                                { label: 'รักษาสัตว์', value: totals.medical, icon: '🩺', tone: 'from-rose-500 to-rose-600' }
+                                            ].map(card => (
+                                                <div key={card.label} className={`bg-gradient-to-br ${card.tone} rounded-2xl p-4 text-white shadow-sm min-h-[120px] flex flex-col justify-between`}>
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <span className="text-[11px] font-bold text-white/80">{card.label}</span>
+                                                        <span className="text-xl">{card.icon}</span>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-3xl font-black tracking-tight">{Number(card.value || 0).toLocaleString('th-TH')}</div>
+                                                        <div className="text-[10px] text-white/70 mt-0.5">{card.label === 'รายการบันทึก' ? 'รายการ' : 'ครั้ง/ตัว'}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                                            <div className="xl:col-span-2">
+                                                <AnimalOutcomeAreaChart data={trendData} />
+                                            </div>
+                                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
+                                                        <Building2 className="w-6 h-6" />
+                                                    </div>
+                                                    <p className="text-xs font-black text-slate-800">ภาพรวมคลินิกสัตวแพทย์</p>
+                                                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">สรุปยอดบริการจากข้อมูลที่ผ่านตัวกรองปัจจุบัน</p>
+                                                </div>
+                                                <div className="mt-6 space-y-3">
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-slate-500">คลินิกที่มีรายการ</span>
+                                                        <span className="font-black text-emerald-700">{clinicDashboardRows.filter(row => row.count > 0).length} / {BANGKOK_VET_CLINICS.length} แห่ง</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="text-slate-500">ผลให้บริการรวม</span>
+                                                        <span className="font-black text-slate-800">{clinicGrandTotal.toLocaleString('th-TH')}</span>
+                                                    </div>
+                                                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full bg-emerald-500 transition-all"
+                                                            style={{ width: `${Math.min(100, (clinicDashboardRows.filter(row => row.count > 0).length / BANGKOK_VET_CLINICS.length) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <ClinicComparisonChart rows={clinicDashboardRows} />
+
+                                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                            <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div>
+                                                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                                                        <Building2 className="w-5 h-5 text-emerald-600" /> สรุปผลแยกรายคลินิก
+                                                    </h3>
+                                                    <p className="text-[10px] text-slate-500 mt-1">เรียงตามยอดให้บริการรวมจากมากไปน้อย</p>
+                                                </div>
+                                                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-3 py-1.5">
+                                                    ยอดรวม {clinicGrandTotal.toLocaleString('th-TH')}
+                                                </span>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full min-w-[1050px] text-left">
+                                                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+                                                        <tr>
+                                                            <th className="px-4 py-3 font-black">คลินิกสัตวแพทย์</th>
+                                                            <th className="px-3 py-3 font-black">เขต / แขวง</th>
+                                                            <th className="px-3 py-3 font-black text-center">รายการ</th>
+                                                            <th className="px-3 py-3 font-black text-right">วัคซีน</th>
+                                                            <th className="px-3 py-3 font-black text-right">ทำหมัน</th>
+                                                            <th className="px-3 py-3 font-black text-right">ทะเบียน</th>
+                                                            <th className="px-3 py-3 font-black text-right">ไมโครชิป</th>
+                                                            <th className="px-3 py-3 font-black text-right">รักษา</th>
+                                                            <th className="px-4 py-3 font-black text-right">รวม</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {clinicDashboardRows.map(row => (
+                                                            <tr key={row.name} className="hover:bg-emerald-50/30 transition-colors">
+                                                                <td className="px-4 py-3">
+                                                                    <div className="text-xs font-bold text-slate-800">{row.name}</div>
+                                                                    {row.mapLink && (
+                                                                        <a href={row.mapLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline mt-0.5 inline-flex items-center gap-1">
+                                                                            <MapPin className="w-3 h-3" /> เปิดแผนที่
+                                                                        </a>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-3 py-3 text-[11px] text-slate-600">เขต{row.district || '-'}<br/><span className="text-slate-400">แขวง{row.subdistrict || '-'}</span></td>
+                                                                <td className="px-3 py-3 text-center"><span className={`inline-flex min-w-8 justify-center rounded-full px-2 py-1 text-[10px] font-black ${row.count > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>{row.count}</span></td>
+                                                                <td className="px-3 py-3 text-right text-xs font-bold text-blue-600">{row.vaccine.toLocaleString('th-TH')}</td>
+                                                                <td className="px-3 py-3 text-right text-xs font-bold text-orange-600">{row.sterilize.toLocaleString('th-TH')}</td>
+                                                                <td className="px-3 py-3 text-right text-xs font-bold text-emerald-600">{row.register.toLocaleString('th-TH')}</td>
+                                                                <td className="px-3 py-3 text-right text-xs font-bold text-violet-600">{row.microchip.toLocaleString('th-TH')}</td>
+                                                                <td className="px-3 py-3 text-right text-xs font-bold text-rose-600">{row.medical.toLocaleString('th-TH')}</td>
+                                                                <td className="px-4 py-3 text-right text-sm font-black text-slate-800">{row.total.toLocaleString('th-TH')}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="text-sm font-black text-slate-800">รายการบันทึกผลให้บริการประจำคลินิก</h3>
+                                                    <p className="text-[10px] text-slate-500 mt-1">ข้อมูลในตารางจะเปลี่ยนตามตัวกรองด้านบน</p>
+                                                </div>
+                                                {canAdd && (
+                                                    <button type="button" onClick={openClinicModal} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black shadow-sm transition-colors">
+                                                        <Plus className="w-4 h-4" /> เพิ่มข้อมูลคลินิก
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <MainDataTable
+                                                data={filteredData as any}
+                                                canEdit={canEdit}
+                                                onClearAll={handleClearAllData}
+                                                onEdit={openEditModal}
+                                                onDelete={handleDeleteData}
+                                                onViewImage={handleViewReportImage}
+                                                displayMode={displayMode}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 {activeTab === 'database' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1600px] mx-auto">
                                         <MainDataTable 
@@ -2477,6 +2910,14 @@ const handleDeleteDispatch = async (id: string) => {
                             >
                                 <Activity className="w-5 h-5 mb-1" />
                                 <span className="text-[8px]">ภาพรวมออกหน่วยเคลื่อนที่</span>
+                            </button>
+                        )}
+                        {checkMobileTabVisibility('clinic') && (
+                            <button onClick={() => setActiveTab('clinic')}
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all ${activeTab === 'clinic' ? 'text-emerald-700 font-bold bg-emerald-50 scale-105' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <Building2 className="w-5 h-5 mb-1" />
+                                <span className="text-[8px]">แดชบอร์ดคลินิก</span>
                             </button>
                         )}
                         {checkMobileTabVisibility('database') && (

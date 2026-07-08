@@ -1097,7 +1097,15 @@ app.get('/api/settings/tabs', async (req, res) => {
     if (cached) return res.json(cached);
 
     let setting = await SystemSetting.findOne({ key: 'tabsConfig' }).lean();
-    const result = setting ? setting.value : { overview: true, outbreak: true, database: true };
+    const defaultTabsConfig = {
+      overview: true,
+      clinic: true,
+      outbreak: true,
+      database: true,
+      sa_clinic: true,
+      public_clinic: false
+    };
+    const result = { ...defaultTabsConfig, ...(setting?.value || {}) };
     cache.set('settings:tabs', result, 300);
     res.json(result);
   } catch (err) {

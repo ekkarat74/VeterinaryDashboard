@@ -45,6 +45,15 @@ interface FormDataState {
   note: string;
 }
 
+interface ClinicLocationData {
+  name: string;
+  district: string;
+  subdistrict: string;
+  lat: number;
+  long: number;
+  mapLink: string;
+}
+
 interface CustomUnit {
   _id: string;
   name: string;
@@ -75,9 +84,78 @@ interface AddDataModalProps {
   onSave: (payload: any) => Promise<void>;
   onUpdate: (id: string, payload: any) => Promise<void>;
   initialData?: any;
+  defaultOperationType?: 'mobile' | 'clinic';
   clinicNames?: string[];
   onToast?: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
+
+// ข้อมูลประจำคลินิก ใช้เติมเขต แขวง พิกัด และลิงก์แผนที่อัตโนมัติ
+const BANGKOK_VET_CLINICS: ClinicLocationData[] = [
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.1 สี่พระยา',
+    district: 'บางรัก',
+    subdistrict: 'สี่พระยา',
+    lat: 13.73123145527365,
+    long: 100.52346788889835,
+    mapLink: 'https://maps.app.goo.gl/nE7akyZLA7oBNPx79'
+  },
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.2 มีนบุรี',
+    district: 'มีนบุรี',
+    subdistrict: 'มีนบุรี',
+    lat: 13.813540044888143,
+    long: 100.73061002578322,
+    mapLink: 'https://maps.app.goo.gl/i9ALubM8bhfhrmnYA'
+  },
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.3 วัดธาตุทอง',
+    district: 'วัฒนา',
+    subdistrict: 'พระโขนง',
+    lat: 13.720076779000388,
+    long: 100.58563157305117,
+    mapLink: 'https://maps.app.goo.gl/ZSPFwUvs2aEe9daP8'
+  },
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.4 บางเขน',
+    district: 'จตุจักร',
+    subdistrict: 'ลาดยาว',
+    lat: 13.858887208436283,
+    long: 100.57976127788561,
+    mapLink: 'https://maps.app.goo.gl/ob8QJxPAFafMpPb88'
+  },
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.5 วัดหงส์รัตนาราม',
+    district: 'บางกอกใหญ่',
+    subdistrict: 'วัดอรุณ',
+    lat: 13.739860243911131,
+    long: 100.48881251344673,
+    mapLink: 'https://maps.app.goo.gl/5CCNT3hqWG7bYoty8'
+  },
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.6 ช่วง นุชเนตร',
+    district: 'จอมทอง',
+    subdistrict: 'บางค้อ',
+    lat: 13.705527935614645,
+    long: 100.4681956557746,
+    mapLink: 'https://maps.app.goo.gl/Z1SBbEDCaBjJUkV36'
+  },
+  {
+    name: 'คลินิกสัตวแพทย์ กทม.7 บางกอกน้อย',
+    district: 'บางกอกน้อย',
+    subdistrict: 'บางขุนศรี',
+    lat: 13.761933768972547,
+    long: 100.47166562690558,
+    mapLink: 'https://maps.app.goo.gl/nzuwmBW5Bf31dopf8'
+  },
+  {
+    name: 'คลินิกกลุ่มควบคุมโรคพิษสุนัขบ้า ถ.มิตรไมตรี',
+    district: 'ดินแดง',
+    subdistrict: 'ดินแดง',
+    lat: 13.77078444151616,
+    long: 100.55262614217162,
+    mapLink: 'https://maps.app.goo.gl/uZTzUSKLY8Y1Jvpy8'
+  }
+];
 
 // ==============================
 // 2. ค่าเริ่มต้น (Default Values)
@@ -169,7 +247,8 @@ const compressImage = (file: File, targetKB = 100, maxWidth = 1200): Promise<str
 // ==============================
 
 const AddDataModal: React.FC<AddDataModalProps> = ({
-  isOpen, onClose, onSave, onUpdate, initialData, clinicNames = [], onToast
+  isOpen, onClose, onSave, onUpdate, initialData,
+  defaultOperationType = 'mobile', clinicNames = [], onToast
 }) => {
   // --- States ---
   const [formData, setFormData] = useState<FormDataState>(defaultFormData);
@@ -218,6 +297,12 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     return [...new Set([...baseUnits, ...dbUnits]), 'หน่วยอื่น ๆ'];
   }, [customUnitsObj]);
 
+  const clinicOptions = useMemo(() => {
+    const canonicalNames = BANGKOK_VET_CLINICS.map(clinic => clinic.name);
+    const additionalNames = clinicNames.filter(name => !canonicalNames.includes(name));
+    return [...canonicalNames, ...additionalNames];
+  }, [clinicNames]);
+
   const fetchData = async () => {
     try {
       const [unitsRes, dispatchRes, reportsRes] = await Promise.all([
@@ -246,6 +331,26 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     if (isOpen) {
       fetchData();
       setIsSubmitting(false);
+
+      // ตอนเพิ่มข้อมูลใหม่ ให้กำหนดโหมดจากปุ่มที่ผู้ใช้กดใน Sidebar ทันที
+      if (!initialData) {
+        const isClinicMode = defaultOperationType === 'clinic';
+        setFormData({
+          ...defaultFormData,
+          operationType: defaultOperationType,
+          clinicName: '',
+          location: '',
+          locationDistrict: isClinicMode ? '' : defaultFormData.locationDistrict,
+          district: isClinicMode ? '' : defaultFormData.district,
+          subdistrict: '',
+          unit: isClinicMode ? '' : defaultFormData.unit,
+          otherUnit: '',
+          lat: '',
+          long: '',
+          mapLink: ''
+        });
+        setCoordInput('');
+      }
     } else {
       setFormData(defaultFormData);
       setBreakdown(defaultBreakdown);
@@ -264,7 +369,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       setShowLocationDistrictDropdown(false);
       setPastLocations([]);
     }
-  }, [isOpen]);
+  }, [isOpen, initialData, defaultOperationType]);
 
   useEffect(() => {
     const fetchReportsForDate = async () => {
@@ -307,6 +412,33 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       setImagePreview(initialData.imageUrl || null);
     }
   }, [isOpen, initialData, customUnitsObj]);
+
+  useEffect(() => {
+    if (!isOpen || formData.operationType !== 'clinic' || !formData.clinicName) return;
+
+    const clinic = BANGKOK_VET_CLINICS.find(item => item.name === formData.clinicName);
+    if (!clinic) return;
+
+    const lat = String(clinic.lat);
+    const long = String(clinic.long);
+
+    setFormData(prev => ({
+      ...prev,
+      clinicName: clinic.name,
+      location: clinic.name,
+      locationDistrict: clinic.district,
+      district: clinic.district,
+      subdistrict: clinic.subdistrict,
+      unit: '',
+      otherUnit: '',
+      lat,
+      long,
+      mapLink: clinic.mapLink
+    }));
+    setCoordInput(`${lat}, ${long}`);
+    setFoundDispatch(null);
+    setShowLocationDropdown(false);
+  }, [isOpen, formData.operationType, formData.clinicName, customUnitsObj]);
 
   useEffect(() => {
     if (isOpen && initialData && initialData.operationType !== 'clinic' && allDispatches.length > 0) {
@@ -506,7 +638,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       }
     }
 
-    const finalUnit = formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit;
+    const finalUnit = formData.operationType === 'clinic'
+      ? ''
+      : (formData.unit === 'หน่วยอื่น ๆ' ? formData.otherUnit : formData.unit);
     let latNum = parseFloat(String(formData.lat));
     let lngNum = parseFloat(String(formData.long));
     latNum = isNaN(latNum) ? 0 : latNum;
@@ -518,7 +652,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
       clinicName: formData.operationType === 'clinic' ? formData.clinicName : '',
       location: formData.operationType === 'clinic' ? formData.clinicName : formData.location,
       unit: finalUnit,
-      district: formData.unit === 'หน่วยกรงแมว' ? formData.district : formData.locationDistrict,
+      district: formData.operationType === 'clinic'
+        ? formData.locationDistrict
+        : (formData.unit === 'หน่วยกรงแมว' ? formData.district : formData.locationDistrict),
       stats: totals,
       details: breakdown,
       lat: latNum,
@@ -527,7 +663,7 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
     };
 
     try {
-      if (formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim()) {
+      if (formData.operationType === 'mobile' && formData.unit === 'หน่วยอื่น ๆ' && formData.otherUnit.trim()) {
         try {
           const newUnitName = formData.otherUnit.trim();
           const unitExists = allUnitOptions.includes(newUnitName);
@@ -592,7 +728,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
               {initialData ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </div>
             <h3 className="text-lg font-bold text-slate-800">
-              {initialData ? 'แก้ไขข้อมูลปฏิบัติงาน' : 'บันทึกผลปฏิบัติงานใหม่'}
+              {initialData
+                ? (formData.operationType === 'clinic' ? 'แก้ไขข้อมูลให้บริการประจำคลินิก' : 'แก้ไขข้อมูลปฏิบัติงาน')
+                : (defaultOperationType === 'clinic' ? 'บันทึกผลให้บริการประจำคลินิก' : 'บันทึกผลปฏิบัติงานใหม่')}
             </h3>
           </div>
           <button onClick={onClose} disabled={isSubmitting} className="p-2 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50">
@@ -624,32 +762,59 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                   />
                 </div>
 
-                {/* รูปแบบการปฏิบัติงาน */}
+                {/* รูปแบบการปฏิบัติงาน: แยกตามปุ่มใน Sidebar ตอนเพิ่มข้อมูลใหม่ */}
                 <div className="md:col-span-3">
                   <label className={labelClass}>รูปแบบการให้บริการ</label>
-                  <select
-                    className={inputClass}
-                    value={formData.operationType}
-                    onChange={(e) => {
-                      const operationType = e.target.value as 'mobile' | 'clinic';
-                      setFormData(prev => ({
-                        ...prev,
-                        operationType,
-                        clinicName: operationType === 'clinic' ? prev.clinicName : '',
-                        location: operationType === 'clinic'
-                          ? prev.clinicName
-                          : prev.operationType === 'clinic'
+                  {initialData ? (
+                    <select
+                      className={inputClass}
+                      value={formData.operationType}
+                      onChange={(e) => {
+                        const operationType = e.target.value as 'mobile' | 'clinic';
+                        setFormData(prev => ({
+                          ...prev,
+                          operationType,
+                          clinicName: operationType === 'clinic' ? prev.clinicName : '',
+                          location: operationType === 'clinic'
+                            ? prev.clinicName
+                            : prev.operationType === 'clinic'
+                              ? ''
+                              : prev.location,
+                          locationDistrict: operationType === 'mobile' && prev.operationType === 'clinic'
+                            ? (BANGKOK_DISTRICTS[0] || '')
+                            : prev.locationDistrict,
+                          district: operationType === 'mobile' && prev.operationType === 'clinic'
+                            ? (BANGKOK_DISTRICTS[0] || '')
+                            : prev.district,
+                          subdistrict: operationType === 'mobile' && prev.operationType === 'clinic'
                             ? ''
-                            : prev.location
-                      }));
-                      setFoundDispatch(null);
-                      setShowLocationDropdown(false);
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    <option value="mobile">ออกหน่วยเคลื่อนที่</option>
-                    <option value="clinic">ให้บริการประจำคลินิก</option>
-                  </select>
+                            : prev.subdistrict,
+                          unit: operationType === 'clinic'
+                            ? ''
+                            : (prev.unit || UNIT_TYPES[0] || ''),
+                          otherUnit: operationType === 'clinic' ? '' : prev.otherUnit,
+                          lat: operationType === 'mobile' && prev.operationType === 'clinic' ? '' : prev.lat,
+                          long: operationType === 'mobile' && prev.operationType === 'clinic' ? '' : prev.long,
+                          mapLink: operationType === 'mobile' && prev.operationType === 'clinic' ? '' : prev.mapLink
+                        }));
+                        if (operationType === 'mobile') setCoordInput('');
+                        setFoundDispatch(null);
+                        setShowLocationDropdown(false);
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <option value="mobile">ออกหน่วยเคลื่อนที่</option>
+                      <option value="clinic">ให้บริการประจำคลินิก</option>
+                    </select>
+                  ) : (
+                    <div className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold border ${
+                      defaultOperationType === 'clinic'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                    }`}>
+                      {defaultOperationType === 'clinic' ? 'ให้บริการประจำคลินิก' : 'ออกหน่วยเคลื่อนที่'}
+                    </div>
+                  )}
                 </div>
 
                 {formData.operationType === 'clinic' && (
@@ -661,17 +826,30 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                       value={formData.clinicName}
                       onChange={(e) => {
                         const clinicName = e.target.value;
-                        setFormData(prev => ({ ...prev, clinicName, location: clinicName }));
+                        setFormData(prev => ({
+                          ...prev,
+                          clinicName,
+                          location: clinicName,
+                          locationDistrict: clinicName ? prev.locationDistrict : '',
+                          district: clinicName ? prev.district : '',
+                          subdistrict: clinicName ? prev.subdistrict : '',
+                          lat: clinicName ? prev.lat : '',
+                          long: clinicName ? prev.long : '',
+                          mapLink: clinicName ? prev.mapLink : ''
+                        }));
+                        if (!clinicName) setCoordInput('');
                         setFoundDispatch(null);
                       }}
                       disabled={isSubmitting}
                     >
                       <option value="">-- เลือกคลินิก --</option>
-                      {clinicNames.map(clinic => <option key={clinic} value={clinic}>{clinic}</option>)}
+                      {clinicOptions.map(clinic => <option key={clinic} value={clinic}>{clinic}</option>)}
                     </select>
                   </div>
                 )}
 
+                {formData.operationType === 'mobile' && (
+                  <>
                 {/* หน่วยกิจกรรม */}
                 <div className="md:col-span-4">
                   <div className="flex justify-between items-center mb-1.5">
@@ -752,10 +930,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder={formData.operationType === 'clinic' ? 'เลือกคลินิกจากรายการด้านบน' : 'ระบุสถานที่/จุดบริการ'}
+                      placeholder="ระบุสถานที่/จุดบริการ"
                       className={inputClass}
                       value={formData.location}
-                      readOnly={formData.operationType === 'clinic'}
                       onChange={e => {
                         const val = e.target.value;
                         setFormData({ ...formData, location: val });
@@ -794,9 +971,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <button
                       type="button"
                       onClick={handleSearchLocation}
-                      disabled={isSubmitting || formData.operationType === 'clinic'}
+                      disabled={isSubmitting}
                       className="px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-colors flex items-center justify-center shrink-0 disabled:opacity-50"
-                      title={formData.operationType === 'clinic' ? 'ข้อมูลคลินิกไม่ใช้แผนออกหน่วย' : 'ค้นหาข้อมูลจากแผนออกหน่วย'}
+                      title="ค้นหาข้อมูลจากแผนออกหน่วย"
                     >
                       <Search className="w-4 h-4" />
                     </button>
@@ -868,66 +1045,88 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     </div>
                   )}
                 </div>
+                  </>
+                )}
 
-                {/* เขต (ที่ตั้งสถานที่)*/}
+                {/* เขต */}
                 <div className="md:col-span-4">
-                  <label className={labelClass}>เขต (ที่ตั้งสถานที่)</label>
-                  <div className="relative">
+                  <label className={labelClass}>เขต</label>
+                  {formData.operationType === 'clinic' ? (
                     <input
                       type="text"
-                      className={inputClass}
-                      placeholder="พิมพ์เพื่อค้นหาเขตที่ตั้ง..."
+                      className={`${inputClass} bg-slate-50 text-slate-600`}
                       value={formData.locationDistrict}
-                      onChange={e => {
-                        setFormData({ ...formData, locationDistrict: e.target.value, subdistrict: '' });
-                        setShowLocationDistrictDropdown(true);
-                      }}
-                      onFocus={() => setShowLocationDistrictDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowLocationDistrictDropdown(false), 200)}
-                      disabled={isSubmitting}
+                      placeholder="เลือกคลินิกเพื่อแสดงเขต"
+                      readOnly
                     />
-                    {showLocationDistrictDropdown && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
-                        {BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).length > 0 ? (
-                          BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).map(d => (
-                            <div
-                              key={d}
-                              className="px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                setFormData({ ...formData, locationDistrict: d, subdistrict: '' });
-                                setShowLocationDistrictDropdown(false);
-                              }}
-                            >
-                              {d}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-[11px] text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="พิมพ์เพื่อค้นหาเขตที่ตั้ง..."
+                        value={formData.locationDistrict}
+                        onChange={e => {
+                          setFormData({ ...formData, locationDistrict: e.target.value, subdistrict: '' });
+                          setShowLocationDistrictDropdown(true);
+                        }}
+                        onFocus={() => setShowLocationDistrictDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowLocationDistrictDropdown(false), 200)}
+                        disabled={isSubmitting}
+                      />
+                      {showLocationDistrictDropdown && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                          {BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).length > 0 ? (
+                            BANGKOK_DISTRICTS.filter(d => d.includes(formData.locationDistrict || '')).map(d => (
+                              <div
+                                key={d}
+                                className="px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({ ...formData, locationDistrict: d, subdistrict: '' });
+                                  setShowLocationDistrictDropdown(false);
+                                }}
+                              >
+                                {d}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-[11px] text-slate-400 text-center">ไม่พบข้อมูลเขต</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* แขวง (ที่ตั้งสถานที่) */}
+                {/* แขวง */}
                 <div className="md:col-span-4">
                   <label className={labelClass}>แขวง</label>
-                  <select
-                    className={inputClass}
-                    value={formData.subdistrict}
-                    onChange={e => setFormData({ ...formData, subdistrict: e.target.value })}
-                    disabled={isSubmitting}
-                  >
-                    <option value="">-- เลือกแขวง --</option>
-                    {getSubdistricts(formData.locationDistrict).map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                  {formData.operationType === 'clinic' ? (
+                    <input
+                      type="text"
+                      className={`${inputClass} bg-slate-50 text-slate-600`}
+                      value={formData.subdistrict}
+                      placeholder="เลือกคลินิกเพื่อแสดงแขวง"
+                      readOnly
+                    />
+                  ) : (
+                    <select
+                      className={inputClass}
+                      value={formData.subdistrict}
+                      onChange={e => setFormData({ ...formData, subdistrict: e.target.value })}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">-- เลือกแขวง --</option>
+                      {getSubdistricts(formData.locationDistrict).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 {/* เขต (เขตที่ไปปฏิบัติงาน) - แสดงเฉพาะเมื่อเลือก "หน่วยกรงแมว" */}
-                {formData.unit === 'หน่วยกรงแมว' && (
+                {formData.operationType === 'mobile' && formData.unit === 'หน่วยกรงแมว' && (
                   <div className="md:col-span-4 animate-in fade-in zoom-in duration-300">
                     <label className={labelClass}>เขต (เขตที่ไป)</label>
                     <div className="relative">
@@ -977,8 +1176,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <input
                       type="text"
                       placeholder="13.xxx, 100.xxx"
-                      className={`${inputClass} pl-10`}
+                      className={`${inputClass} pl-10 ${formData.operationType === 'clinic' ? 'bg-slate-50 text-slate-600' : ''}`}
                       value={coordInput}
+                      readOnly={formData.operationType === 'clinic'}
                       disabled={isSubmitting}
                       onChange={e => {
                         const val = e.target.value;
@@ -1004,8 +1204,9 @@ const AddDataModal: React.FC<AddDataModalProps> = ({
                     <input
                       type="url"
                       placeholder="https://maps.google.com/..."
-                      className={`${inputClass} pl-10 ${formData.mapLink ? 'pr-16' : ''}`}
+                      className={`${inputClass} pl-10 ${formData.mapLink ? 'pr-16' : ''} ${formData.operationType === 'clinic' ? 'bg-slate-50 text-slate-600' : ''}`}
                       value={formData.mapLink}
+                      readOnly={formData.operationType === 'clinic'}
                       onChange={e => setFormData({ ...formData, mapLink: e.target.value })}
                       disabled={isSubmitting}
                     />
