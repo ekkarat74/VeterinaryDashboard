@@ -145,9 +145,12 @@ const reportSchema = new mongoose.Schema({
   updatedBy: { type: String }
 }, { timestamps: true });
 reportSchema.index({ date: -1 });
+reportSchema.index({ date: -1, _id: -1 });
 reportSchema.index({ unit: 1, date: -1 });
 reportSchema.index({ district: 1, date: -1 });
 reportSchema.index({ date: -1, district: 1, unit: 1 });
+reportSchema.index({ operationType: 1, date: -1, _id: -1 });
+reportSchema.index({ clinicName: 1, date: -1, _id: -1 });
 reportSchema.index({ location: 'text', subdistrict: 'text', district: 'text' });
 reportSchema.index({ operationType: 1, clinicName: 1, date: -1 });
 const Report = mongoose.model('Report', reportSchema);
@@ -538,28 +541,93 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['Developer', 'Mag
 // =======================
 // C. REPORTS (with Cache)
 // =======================
+const REPORT_FIELDS = '_id date operationType clinicName location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt hasImage';
+
+const buildStableCacheKey = (prefix, query = {}) => {
+  const ordered = Object.keys(query)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = query[key];
+      return acc;
+    }, {});
+
+  return `${prefix}:${JSON.stringify(ordered)}`;
+};
+
+const buildReportDateFilter = ({ startDate, endDate, year, month }) => {
+  const isYearAll = !year || year === 'ทั้งหมด';
+  const isMonthAll = !month || month === 'ทั้งหมด';
+
+  if (startDate || endDate) {
+    const dateFilter = {};
+    if (startDate) dateFilter.$gte = String(startDate);
+    if (endDate) dateFilter.$lte = String(endDate);
+    return dateFilter;
+  }
+
+  if (!isYearAll) {
+    const y = String(year);
+
+    if (!isMonthAll) {
+      const m = String(month).padStart(2, '0');
+      return {
+        $gte: `${y}-${m}-01`,
+        $lte: `${y}-${m}-31`
+      };
+    }
+
+    return {
+      $gte: `${y}-01-01`,
+      $lte: `${y}-12-31`
+    };
+  }
+
+  if (!isMonthAll) {
+    const m = String(month).padStart(2, '0');
+
+    // กรณีเลือกเฉพาะเดือนแต่ไม่เลือกปี ยังจำเป็นต้องใช้ regex
+    return {
+      $regex: `^\d{4}-${m}`
+    };
+  }
+
+  return null;
+};
+
 app.get('/api/reports', async (req, res) => {
   try {
-    const { search, year, month, unit, district, operationType, clinicName, startDate, endDate, page = 1, limit = 50 } = req.query;
+    const {
+      search,
+      year,
+      month,
+      unit,
+      district,
+      operationType,
+      clinicName,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 50
+    } = req.query;
+
     const includeImages = req.query.includeImages === 'true' || req.query.includeImages === '1';
     const includePagination = req.query.includePagination !== 'false';
 
-    const cacheKey = `reports:${JSON.stringify(req.query)}`;
+    res.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=300');
+
+    const cacheKey = buildStableCacheKey('reports', req.query);
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
 
-    let query = {};
+    const query = {};
 
     if (search) {
-      query.$text = { $search: search };
+      query.$text = { $search: String(search).trim() };
     }
 
-    if (startDate && endDate) {
-      query.date = { $gte: startDate, $lte: endDate };
-    } else if ((year && year !== 'ทั้งหมด') || (month && month !== 'ทั้งหมด')) {
-      const y = (year && year !== 'ทั้งหมด') ? year : '\\d{4}';
-      const m = (month && month !== 'ทั้งหมด') ? month : '\\d{2}';
-      query.date = { $regex: `^${y}-${m}` };
+    const dateFilter = buildReportDateFilter({ startDate, endDate, year, month });
+    if (dateFilter) {
+      query.date = dateFilter;
     }
 
     if (unit && unit !== 'ทั้งหมด') query.unit = unit;
@@ -571,17 +639,19 @@ app.get('/api/reports', async (req, res) => {
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 5000);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const reportFields = '_id date operationType clinicName location locationDistrict district subdistrict unit team lat long mapLink note stats details createdBy updatedBy createdAt updatedAt hasImage';
     const reportsQuery = Report.find(query)
-      .select(includeImages ? `${reportFields} imageUrl` : reportFields)
-      .sort({ date: -1 })
+      .select(includeImages ? `${REPORT_FIELDS} imageUrl` : REPORT_FIELDS)
+      .sort({ date: -1, _id: -1 })
       .skip(skip)
       .limit(limitNumber)
-      .lean();
+      .lean()
+      .maxTimeMS(10000);
 
     const [reports, totalRecords] = await Promise.all([
       reportsQuery,
-      includePagination ? Report.countDocuments(query) : Promise.resolve(null)
+      includePagination
+        ? Report.countDocuments(query).maxTimeMS(10000)
+        : Promise.resolve(null)
     ]);
 
     const result = {

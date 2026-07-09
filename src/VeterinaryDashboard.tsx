@@ -6,7 +6,7 @@ import {
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, 
     Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer,
-    BarChart, Bar
+    BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { io } from "socket.io-client";
@@ -211,6 +211,50 @@ const ClinicComparisonChart = ({ rows }: { rows: ClinicDashboardRow[] }) => {
 
 const BASE_URL = 'https://veterinarydashboard-hwho.onrender.com';
 const API_URL = `${BASE_URL}/api/reports`;
+const REPORT_FAST_LIMIT = 1000;
+const REPORT_FULL_LIMIT = 5000;
+const REPORT_CACHE_KEY = 'vet-dashboard:reports:v3';
+const REPORT_CACHE_MAX_AGE = 5 * 60 * 1000; // 5 นาที
+
+const parseReportsPayload = (result: any) => {
+    return Array.isArray(result) ? result : (result?.data || []);
+};
+
+const readReportsCache = () => {
+    try {
+        const raw = sessionStorage.getItem(REPORT_CACHE_KEY);
+        if (!raw) return null;
+
+        const cached = JSON.parse(raw);
+        if (!Array.isArray(cached?.data)) return null;
+
+        return cached as { savedAt: number; data: any[] };
+    } catch {
+        return null;
+    }
+};
+
+const saveReportsCache = (data: any[]) => {
+    try {
+        sessionStorage.setItem(
+            REPORT_CACHE_KEY,
+            JSON.stringify({
+                savedAt: Date.now(),
+                data
+            })
+        );
+    } catch {
+        // ถ้า storage เต็ม ให้ข้าม ไม่ให้ระบบพัง
+    }
+};
+
+const clearReportsCache = () => {
+    try {
+        sessionStorage.removeItem(REPORT_CACHE_KEY);
+    } catch {
+        // ignore
+    }
+};
 const THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
 const BANGKOK_VET_CLINICS = [
@@ -265,6 +309,156 @@ const BANGKOK_VET_CLINICS = [
 ] as const;
 
 const BANGKOK_VET_CLINIC_NAMES: string[] = BANGKOK_VET_CLINICS.map(clinic => clinic.name);
+
+const CLINIC_PIE_COLORS = [
+    '#059669',
+    '#2563eb',
+    '#ea580c',
+    '#16a34a',
+    '#7c3aed',
+    '#e11d48',
+    '#0891b2',
+    '#ca8a04'
+];
+
+const ClinicOverviewPieChart = ({
+    rows,
+    grandTotal
+}: {
+    rows: ClinicDashboardRow[];
+    grandTotal: number;
+}) => {
+    const chartData = useMemo(() => {
+        return rows
+            .filter(row => Number(row.total || 0) > 0)
+            .map(row => ({
+                name: getClinicShortName(row.name),
+                fullName: row.name,
+                value: Number(row.total || 0),
+                count: Number(row.count || 0)
+            }))
+            .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, 'th'));
+    }, [rows]);
+
+    const activeClinicCount = rows.filter(row => row.count > 0).length;
+    const hasData = chartData.length > 0;
+
+    return (
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col h-full">
+            <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-emerald-600" />
+                        ภาพรวมคลินิกสัตวแพทย์
+                    </h3>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                        สัดส่วนยอดบริการรวมแยกตามคลินิก จากตัวกรองปัจจุบัน
+                    </p>
+                </div>
+
+                <div className="text-right shrink-0">
+                    <p className="text-[10px] text-slate-400 font-bold">คลินิกที่มีรายการ</p>
+                    <p className="text-sm font-black text-emerald-700">
+                        {activeClinicCount} / {BANGKOK_VET_CLINICS.length} แห่ง
+                    </p>
+                </div>
+            </div>
+
+            {hasData ? (
+                <>
+                    <div className="relative h-[260px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={chartData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={58}
+                                    outerRadius={92}
+                                    paddingAngle={2}
+                                    minAngle={4}
+                                    labelLine={false}
+                                    label={({ name, percent }: any) => {
+                                        const pct = Number(percent || 0) * 100;
+                                        return pct >= 8 ? `${name} ${pct.toFixed(0)}%` : '';
+                                    }}
+                                >
+                                    {chartData.map((entry, index) => (
+                                        <Cell
+                                            key={`clinic-pie-${entry.fullName}`}
+                                            fill={CLINIC_PIE_COLORS[index % CLINIC_PIE_COLORS.length]}
+                                        />
+                                    ))}
+                                </Pie>
+
+                                <RechartsTooltip
+                                    contentStyle={{
+                                        fontSize: '11px',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e2e8f0',
+                                        boxShadow: '0 10px 25px -10px rgba(15, 23, 42, 0.25)'
+                                    }}
+                                    formatter={(value: any, _name: any, props: any) => [
+                                        `${Number(value || 0).toLocaleString('th-TH')} ครั้ง/ตัว`,
+                                        props?.payload?.fullName || 'คลินิก'
+                                    ]}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+
+                        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span className="text-[10px] font-bold text-slate-400">ยอดบริการรวม</span>
+                            <span className="text-2xl font-black text-slate-800">
+                                {grandTotal.toLocaleString('th-TH')}
+                            </span>
+                            <span className="text-[10px] text-slate-400">ครั้ง/ตัว</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+                        {chartData.map((item, index) => {
+                            const percent = grandTotal > 0 ? (item.value / grandTotal) * 100 : 0;
+
+                            return (
+                                <div key={item.fullName} className="flex items-center justify-between gap-3 text-[10px]">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span
+                                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: CLINIC_PIE_COLORS[index % CLINIC_PIE_COLORS.length] }}
+                                        />
+                                        <span className="font-bold text-slate-600 truncate">
+                                            {item.name}
+                                        </span>
+                                    </div>
+
+                                    <div className="text-right shrink-0">
+                                        <span className="font-black text-slate-800">
+                                            {item.value.toLocaleString('th-TH')}
+                                        </span>
+                                        <span className="text-slate-400 ml-1">
+                                            ({percent.toFixed(1)}%)
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </>
+            ) : (
+                <div className="flex-1 min-h-[260px] flex flex-col items-center justify-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center px-6">
+                    <Building2 className="w-10 h-10 text-slate-300 mb-3" />
+                    <p className="text-xs font-black text-slate-500">ยังไม่มีข้อมูลสำหรับสร้างกราฟวงกลม</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                        ลองเปลี่ยนช่วงวันที่ คลินิก หรือเงื่อนไขตัวกรองด้านบน
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 const AnimalOutcomeAreaChart = ({ data }: { data: any[] }) => {
     return (
@@ -900,29 +1094,49 @@ const markAllAsRead = async () => {
     }
 };
 
-    useEffect(() => {
-    const fetchBreedsAndColors = async () => {
-      try {
-        const [resB, resC] = await Promise.all([
-          fetch(`${BASE_URL}/api/breeds`),
-          fetch(`${BASE_URL}/api/colors`)
-        ]);
-
-        if (resB.ok) {
-           setBreeds(await resB.json());
-        }
-
-        if (resC.ok) {
-           setColors(await resC.json());
-        }
-      } catch (err) { console.error("Error fetching breeds/colors", err); }
-    };
-    fetchBreedsAndColors();
-  }, [BASE_URL]);
-
     const [isCustomUnitModalOpen, setIsCustomUnitModalOpen] = useState(false);
     const [isBreedModalOpen, setIsBreedModalOpen] = useState(false);
     const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+
+    useEffect(() => {
+        const shouldLoad =
+            isModalOpen ||
+            isOutbreakModalOpen ||
+            isBreedModalOpen ||
+            isColorModalOpen;
+
+        if (!shouldLoad) return;
+        if (breeds.length > 0 && colors.length > 0) return;
+
+        const fetchBreedsAndColors = async () => {
+            try {
+                const [resB, resC] = await Promise.all([
+                    fetch(`${BASE_URL}/api/breeds`),
+                    fetch(`${BASE_URL}/api/colors`)
+                ]);
+
+                if (resB.ok) {
+                    setBreeds(await resB.json());
+                }
+
+                if (resC.ok) {
+                    setColors(await resC.json());
+                }
+            } catch (err) {
+                console.error("Error fetching breeds/colors", err);
+            }
+        };
+
+        fetchBreedsAndColors();
+    }, [
+        BASE_URL,
+        isModalOpen,
+        isOutbreakModalOpen,
+        isBreedModalOpen,
+        isColorModalOpen,
+        breeds.length,
+        colors.length
+    ]);
 
     // จัดการสิทธิ์การแสดงผลใหม่
     const isSystemDeveloper = user?.role === 'Developer';
@@ -1089,7 +1303,8 @@ const markAllAsRead = async () => {
             });
             const result = await response.json();
             if (response.ok) {
-                fetchData(); 
+                clearReportsCache();
+                fetchData({ preferCache: false, silent: true });
                 setIsClearDataModalOpen(false);
                 alert(`✅ ${result.message}`);
             } else if (response.status === 401) {
@@ -1294,22 +1509,88 @@ const handleDeleteDispatch = async (id: string) => {
         }
     }, [user, tabsConfig, activeTab, setActiveTab]);
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (options?: { preferCache?: boolean; silent?: boolean }) => {
+        const preferCache = options?.preferCache ?? true;
+        const silent = options?.silent ?? false;
+
+        let hasDisplayedData = false;
+
         try {
-            setIsInitialLoading(true);
-            const response = await fetch(`${API_URL}?limit=5000&includePagination=false`);
-            const result = await response.json();
-            const dataArray = Array.isArray(result) ? result : (result.data || []);
-            setReportData(dataArray);
+            if (!silent) {
+                setIsInitialLoading(true);
+            }
+
+            const cached = preferCache ? readReportsCache() : null;
+
+            if (cached?.data?.length) {
+                setReportData(cached.data);
+                hasDisplayedData = true;
+
+                if (!silent) {
+                    setIsInitialLoading(false);
+                }
+
+                const cacheAge = Date.now() - cached.savedAt;
+                if (cacheAge < REPORT_CACHE_MAX_AGE) {
+                    return;
+                }
+            }
+
+            if (!hasDisplayedData) {
+                const fastResponse = await fetch(
+                    `${API_URL}?limit=${REPORT_FAST_LIMIT}&includePagination=false`,
+                    {
+                        headers: { Accept: 'application/json' }
+                    }
+                );
+
+                if (!fastResponse.ok) {
+                    throw new Error(`Fast fetch failed: ${fastResponse.status}`);
+                }
+
+                const fastResult = await fastResponse.json();
+                const fastData = parseReportsPayload(fastResult);
+
+                setReportData(fastData);
+                hasDisplayedData = true;
+
+                if (!silent) {
+                    setIsInitialLoading(false);
+                }
+            }
+
+            const fullResponse = await fetch(
+                `${API_URL}?limit=${REPORT_FULL_LIMIT}&includePagination=false`,
+                {
+                    headers: { Accept: 'application/json' }
+                }
+            );
+
+            if (!fullResponse.ok) {
+                throw new Error(`Full fetch failed: ${fullResponse.status}`);
+            }
+
+            const fullResult = await fullResponse.json();
+            const fullData = parseReportsPayload(fullResult);
+
+            setReportData(fullData);
+            saveReportsCache(fullData);
         } catch (error) {
             console.error("Fetch Reports Error:", error);
-            setReportData([]);
-        } finally {
-            setIsInitialLoading(false);
-        }
-    }, [API_URL, setReportData, setIsInitialLoading]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+            if (!hasDisplayedData) {
+                setReportData([]);
+            }
+        } finally {
+            if (!silent) {
+                setIsInitialLoading(false);
+            }
+        }
+    }, [setReportData, setIsInitialLoading]);
+
+    useEffect(() => {
+        fetchData({ preferCache: true });
+    }, [fetchData]);
 
     useEffect(() => {
         const socket = io(BASE_URL);
@@ -1324,17 +1605,21 @@ const handleDeleteDispatch = async (id: string) => {
 
             switch (payload.type) {
                 case 'REPORT_ADDED':
+                    clearReportsCache();
                     updateReport((prev: any[]) => [payload.data, ...prev]);
                     addToast('info', `📝 มีข้อมูลใหม่เข้ามา: ${payload.data.location}`);
                     break;
                 case 'REPORT_UPDATED':
+                    clearReportsCache();
                     updateReport((prev: any[]) => prev.map((item: any) => item._id === payload.data._id ? payload.data : item));
                     addToast('info', `✏️ มีการแก้ไขข้อมูล: ${payload.data.location}`);
                     break;
                 case 'REPORT_DELETED':
+                    clearReportsCache();
                     updateReport((prev: any[]) => prev.filter((item: any) => item._id !== payload.id));
                     break;
                 case 'REPORTS_CLEARED':
+                    clearReportsCache();
                     updateReport([]);
                     addToast('error', '⚠️ ข้อมูลทั้งหมดถูกล้างโดยผู้ดูแลระบบ');
                     break;
@@ -1350,7 +1635,8 @@ const handleDeleteDispatch = async (id: string) => {
                     addToast('info', `📝 แก้ไขจุดเสี่ยงระบาด: ${payload.data.location}`);
                     break;
                 case 'SYSTEM_RESTORED':
-                    fetchData();
+                    clearReportsCache();
+                    fetchData({ preferCache: false, silent: true });
                     break;
                 case 'MEETING_ADDED':
                     updateMeetings((prev: any[]) => [...prev, payload.data]);
@@ -1364,7 +1650,8 @@ const handleDeleteDispatch = async (id: string) => {
                     addToast('info', `📝 แก้ไขนัดหมายประชุม: ${payload.data.title}`);
                     break;
                 case 'REPORTS_IMPORTED':
-                    fetchData();
+                    clearReportsCache();
+                    fetchData({ preferCache: false, silent: true });
                     addToast('success', `📥 มีการนำเข้าข้อมูลชุดใหญ่จำนวน ${payload.count} รายการ`);
                     break;
                 case 'DISPATCH_ADDED':
@@ -2316,20 +2603,61 @@ const handleDeleteDispatch = async (id: string) => {
 
             <ToastContainer toasts={toasts} removeToast={removeToast} />
             <Suspense fallback={<div className="hidden">Loading...</div>}>
-                <AddDataModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    onSave={handleAddNewData}
-                    onUpdate={handleUpdateData}
-                    initialData={editingItem as any}
-                    defaultOperationType={newReportMode}
-                    onToast={addToast}
-                    clinicNames={BANGKOK_VET_CLINIC_NAMES}
-                />
-                <AddOutbreakModal isOpen={isOutbreakModalOpen} onClose={() => setIsOutbreakModalOpen(false)} onSave={handleAddOutbreak} onUpdate={handleUpdateOutbreak} initialData={editingOutbreak as any} onToast={addToast} breeds={breeds} colors={colors}/>
-                <CustomUnitModal isOpen={isCustomUnitModalOpen} onClose={() => setIsCustomUnitModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
-                <BreedModal isOpen={isBreedModalOpen} onClose={() => setIsBreedModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
-                <ColorModal isOpen={isColorModalOpen} onClose={() => setIsColorModalOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
+                {isModalOpen && (
+                    <AddDataModal
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        onSave={handleAddNewData}
+                        onUpdate={handleUpdateData}
+                        initialData={editingItem as any}
+                        defaultOperationType={newReportMode}
+                        onToast={addToast}
+                        clinicNames={BANGKOK_VET_CLINIC_NAMES}
+                    />
+                )}
+
+                {isOutbreakModalOpen && (
+                    <AddOutbreakModal
+                        isOpen={isOutbreakModalOpen}
+                        onClose={() => setIsOutbreakModalOpen(false)}
+                        onSave={handleAddOutbreak}
+                        onUpdate={handleUpdateOutbreak}
+                        initialData={editingOutbreak as any}
+                        onToast={addToast}
+                        breeds={breeds}
+                        colors={colors}
+                    />
+                )}
+
+                {isCustomUnitModalOpen && (
+                    <CustomUnitModal
+                        isOpen={isCustomUnitModalOpen}
+                        onClose={() => setIsCustomUnitModalOpen(false)}
+                        apiBaseUrl={BASE_URL}
+                        token={getCurrentToken()}
+                        onToast={addToast}
+                    />
+                )}
+
+                {isBreedModalOpen && (
+                    <BreedModal
+                        isOpen={isBreedModalOpen}
+                        onClose={() => setIsBreedModalOpen(false)}
+                        apiBaseUrl={BASE_URL}
+                        token={getCurrentToken()}
+                        onToast={addToast}
+                    />
+                )}
+
+                {isColorModalOpen && (
+                    <ColorModal
+                        isOpen={isColorModalOpen}
+                        onClose={() => setIsColorModalOpen(false)}
+                        apiBaseUrl={BASE_URL}
+                        token={getCurrentToken()}
+                        onToast={addToast}
+                    />
+                )}
             </Suspense>
 
             <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={allUnits} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
@@ -2344,13 +2672,15 @@ const handleDeleteDispatch = async (id: string) => {
                 isDismissible={!isLoginRequired}
             />
             <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} onToast={addToast} currentUserRole={user?.role}/>
-            <DuplicateReportModal 
-                isOpen={isDuplicateModalOpen} 
-                onClose={() => setIsDuplicateModalOpen(false)} 
-                reports={reportData} 
-                dispatchEvents={dispatchEvents} 
-                onSelectRecord={handleNavigateFromDuplicate}
-            />
+            {isDuplicateModalOpen && (
+                <DuplicateReportModal 
+                    isOpen={isDuplicateModalOpen} 
+                    onClose={() => setIsDuplicateModalOpen(false)} 
+                    reports={reportData} 
+                    dispatchEvents={dispatchEvents} 
+                    onSelectRecord={handleNavigateFromDuplicate}
+                />
+            )}
             <ClearDataModal isOpen={isClearDataModalOpen} onClose={() => setIsClearDataModalOpen(false)} onConfirm={executeClearAllData} availableYears={availableYears as any} units={UNIT_TYPES} thaiMonths={THAI_MONTHS}/>
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} apiBaseUrl={BASE_URL} token={getCurrentToken()} onToast={addToast} />
             <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} token={getCurrentToken()} apiBaseUrl={BASE_URL} currentUserRole={user?.role} />
@@ -2745,31 +3075,10 @@ const handleDeleteDispatch = async (id: string) => {
                                             <div className="xl:col-span-2">
                                                 <AnimalOutcomeAreaChart data={trendData} />
                                             </div>
-                                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
-                                                <div>
-                                                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
-                                                        <Building2 className="w-6 h-6" />
-                                                    </div>
-                                                    <p className="text-xs font-black text-slate-800">ภาพรวมคลินิกสัตวแพทย์</p>
-                                                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">สรุปยอดบริการจากข้อมูลที่ผ่านตัวกรองปัจจุบัน</p>
-                                                </div>
-                                                <div className="mt-6 space-y-3">
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <span className="text-slate-500">คลินิกที่มีรายการ</span>
-                                                        <span className="font-black text-emerald-700">{clinicDashboardRows.filter(row => row.count > 0).length} / {BANGKOK_VET_CLINICS.length} แห่ง</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <span className="text-slate-500">ผลให้บริการรวม</span>
-                                                        <span className="font-black text-slate-800">{clinicGrandTotal.toLocaleString('th-TH')}</span>
-                                                    </div>
-                                                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                                                        <div
-                                                            className="h-full rounded-full bg-emerald-500 transition-all"
-                                                            style={{ width: `${Math.min(100, (clinicDashboardRows.filter(row => row.count > 0).length / BANGKOK_VET_CLINICS.length) * 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <ClinicOverviewPieChart
+                                                rows={clinicDashboardRows}
+                                                grandTotal={clinicGrandTotal}
+                                            />
                                         </div>
 
                                         <ClinicComparisonChart rows={clinicDashboardRows} />
