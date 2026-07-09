@@ -2070,9 +2070,15 @@ const handleDeleteDispatch = async (id: string) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
 
-    const availableYears = useMemo(() => {
+    const availableYears = useMemo<string[]>(() => {
         if (!Array.isArray(reportData)) return [];
-        return [...new Set(reportData.map(item => item.date ? item.date.split('-')[0] : null).filter(y => y))].sort().reverse();
+
+        const years = reportData
+            .map((item: any) => String(item?.date || '').split('-')[0])
+            .filter((year: string) => /^\d{4}$/.test(year));
+
+        return Array.from(new Set<string>(years))
+            .sort((a, b) => Number(b) - Number(a));
     }, [reportData]);
 
     const filteredData = useMemo(() => {
@@ -2529,20 +2535,73 @@ const handleDeleteDispatch = async (id: string) => {
     return last10Months;
 }, [filteredData, trendOffset, chartBaseYear, chartBaseMonth]);
 
-    const availableOutbreakYears = useMemo(() => [...new Set(outbreakData.map((item: any) => item.date ? item.date.split('-')[0] : null).filter((y: any) => y !== null))].sort().reverse(), [outbreakData]);
+    const getOutbreakYear = useCallback((item: any) => {
+        const rawDate = item?.date;
+        if (!rawDate) return '';
+
+        if (rawDate instanceof Date) {
+            return String(rawDate.getFullYear());
+        }
+
+        const dateText = String(rawDate).trim();
+        const match = dateText.match(/^(\d{4})/);
+        if (match) return match[1];
+
+        const parsedDate = new Date(dateText);
+        if (!Number.isNaN(parsedDate.getTime())) {
+            return String(parsedDate.getFullYear());
+        }
+
+        return '';
+    }, []);
+
+    const availableOutbreakYears = useMemo<string[]>(() => {
+        const years = (Array.isArray(outbreakData) ? outbreakData : [])
+            .map((item: any) => getOutbreakYear(item))
+            .filter((year: string) => /^\d{4}$/.test(year));
+
+        return Array.from(new Set<string>(years))
+            .sort((a, b) => Number(b) - Number(a));
+    }, [outbreakData, getOutbreakYear]);
 
     const visibleOutbreakYears = useMemo(() => {
-        return availableOutbreakYears.filter((year: any) => tabsConfig?.[`outbreak_year_${year}`] !== false);
+        const years = availableOutbreakYears.filter(
+            (year: any) => tabsConfig?.[`outbreak_year_${year}`] !== false
+        );
+
+        // กันกรณีปีของจุดเสี่ยงถูกซ่อนไว้ทั้งหมดในตั้งค่าแท็บ ทำให้ UI เหมือนไม่มีข้อมูล
+        return years.length > 0 ? years : availableOutbreakYears;
     }, [availableOutbreakYears, tabsConfig]);
 
-    const filteredOutbreaks = useMemo(() => {
-        const allowedData = outbreakData.filter((item: any) => {
-            const y = item.date ? item.date.split('-')[0] : null;
-            return y && visibleOutbreakYears.includes(y);
-        });
+    useEffect(() => {
+        if (
+            outbreakFilterYear !== 'ทั้งหมด' &&
+            !availableOutbreakYears.includes(outbreakFilterYear as any)
+        ) {
+            setOutbreakFilterYear('ทั้งหมด');
+        }
+    }, [outbreakFilterYear, availableOutbreakYears, setOutbreakFilterYear]);
 
-        return outbreakFilterYear === 'ทั้งหมด' ? allowedData : allowedData.filter((item: any) => item.date && item.date.startsWith(outbreakFilterYear));
-    }, [outbreakData, outbreakFilterYear, visibleOutbreakYears]);
+    const filteredOutbreaks = useMemo(() => {
+        const data = Array.isArray(outbreakData) ? outbreakData : [];
+
+        return data.filter((item: any) => {
+            const year = getOutbreakYear(item);
+
+            // ถ้าวันที่อ่านปีไม่ได้ อย่าเพิ่งซ่อนข้อมูล ให้แสดงไว้ก่อนเพื่อให้ผู้ใช้แก้ไขได้
+            if (!year) return true;
+
+            const yearIsVisible =
+                visibleOutbreakYears.length === 0 ||
+                visibleOutbreakYears.includes(year as any);
+
+            const yearMatches =
+                outbreakFilterYear === 'ทั้งหมด' ||
+                year === outbreakFilterYear;
+
+            return yearIsVisible && yearMatches;
+        });
+    }, [outbreakData, outbreakFilterYear, visibleOutbreakYears, getOutbreakYear]);
     const outbreakStats = useMemo(() => {
         const total = filteredOutbreaks.length;
         const grouped = filteredOutbreaks.reduce((acc: any, curr: any) => { acc[curr.district] = (acc[curr.district] || 0) + 1; return acc; }, {});
@@ -2588,9 +2647,17 @@ const handleDeleteDispatch = async (id: string) => {
     }, [filteredOutbreaks]);
     
     const outbreakYearlyTrend = useMemo(() => {
-        const stats = outbreakData.reduce((acc: any, curr: any) => { if (!curr.date) return acc; const year = curr.date.split('-')[0]; acc[year] = (acc[year] || 0) + 1; return acc; }, {});
-        return Object.keys(stats).sort().map(year => ({ name: year, count: stats[year] }));
-    }, [outbreakData]);
+        const stats = (Array.isArray(outbreakData) ? outbreakData : []).reduce((acc: any, curr: any) => {
+            const year = getOutbreakYear(curr);
+            if (!year) return acc;
+            acc[year] = (acc[year] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.keys(stats)
+            .sort((a, b) => Number(a) - Number(b))
+            .map(year => ({ name: year, count: stats[year] }));
+    }, [outbreakData, getOutbreakYear]);
 
     const outbreakPieData = useMemo(() => {
         const grouped = filteredOutbreaks.reduce((acc: any, curr: any) => {
@@ -2758,7 +2825,17 @@ const handleDeleteDispatch = async (id: string) => {
                 )}
             </Suspense>
 
-            <CsvActionModal isOpen={isCsvModalOpen} onClose={() => setIsCsvModalOpen(false)} onFileChange={handleCsvFileChange} onExport={handleCsvExport} availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears} thaiMonths={THAI_MONTHS} units={allUnits} districts={BANGKOK_DISTRICTS} csvMode={csvMode}/>
+            <CsvActionModal
+                isOpen={isCsvModalOpen}
+                onClose={() => setIsCsvModalOpen(false)}
+                onFileChange={handleCsvFileChange}
+                onExport={handleCsvExport}
+                availableYears={csvMode === 'outbreak' ? availableOutbreakYears : availableYears}
+                thaiMonths={THAI_MONTHS}
+                units={allUnits}
+                districts={BANGKOK_DISTRICTS}
+                csvMode={csvMode}
+            />
             <BackupSystemModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} onRestoreSuccess={handleRestoreSuccess} token={getCurrentToken()} apiBaseUrl={BASE_URL} />
             <ImagePreviewModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
             <LoginModal
@@ -3345,10 +3422,10 @@ const handleDeleteDispatch = async (id: string) => {
                         )}
                         {checkMobileTabVisibility('calendar') && (
                             <button onClick={() => window.open('/DispatchCalendarDashboard', '_blank')} 
-                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all text-slate-500 hover:bg-slate-50`}
+                                className={`flex flex-col items-center justify-center w-full py-2 rounded-xl transition-all text-[8px] text-slate-500 hover:bg-slate-50`}
                             >
                                 <CalendarDays className="w-5 h-5 mb-1" />
-                                <span className="text-[8px]">ปฏิทินออกหน่วยเคลื่อนที่</span>
+                                ปฏิทินออกหน่วยเคลื่อนที่
                             </button>
                         )}
                     </div>

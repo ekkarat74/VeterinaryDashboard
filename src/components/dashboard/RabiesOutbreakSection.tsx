@@ -225,6 +225,32 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
         );
     }
 
+    if (outbreakData.length > 0 && filteredOutbreaks.length === 0) {
+        return (
+            <div className="mt-8 mb-16 bg-white rounded-3xl border border-amber-200 p-10 text-center shadow-sm">
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
+                    <Filter className="w-7 h-7 text-amber-500" />
+                </div>
+
+                <h3 className="text-base font-black text-slate-800">
+                    มีข้อมูลจุดเสี่ยงแล้ว แต่ถูกตัวกรองซ่อนไว้
+                </h3>
+
+                <p className="text-xs text-slate-500 mt-2">
+                    พบข้อมูลทั้งหมด {outbreakData.length.toLocaleString('th-TH')} รายการ แต่ไม่ตรงกับปีหรือตัวกรองที่เลือกอยู่
+                </p>
+
+                <button
+                    type="button"
+                    onClick={() => setFilterYear('ทั้งหมด')}
+                    className="mt-5 px-5 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-black hover:bg-rose-700 transition-colors"
+                >
+                    แสดงข้อมูลสะสมทั้งหมด
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-8 mb-16 font-sans">
             
