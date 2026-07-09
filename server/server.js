@@ -863,6 +863,23 @@ app.delete('/api/reports', authenticateToken, authorizeRole(['Developer', 'MagaA
   }
 });
 
+const normalizeOutbreakPayload = (payload = {}, rowNo = null) => {
+  const lat = Number(payload.lat ?? payload.latitude);
+  const long = Number(payload.long ?? payload.lng ?? payload.longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(long) || lat === 0 || long === 0) {
+    const err = new Error(`${rowNo ? `แถวที่ ${rowNo}: ` : ''}กรุณาระบุพิกัด Lat/Long ให้ถูกต้อง`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return {
+    ...payload,
+    lat,
+    long
+  };
+};
+
 // =======================
 // D. OUTBREAKS (with Cache)
 // =======================
@@ -894,7 +911,8 @@ app.get('/api/outbreaks', async (req, res) => {
 
 app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaAdmin', 'admin', 'user']), async (req, res) => {
   try {
-    const newOutbreak = new Outbreak({ ...req.body, createdBy: req.user.username });
+    const payload = normalizeOutbreakPayload(req.body);
+    const newOutbreak = new Outbreak({ ...payload, createdBy: req.user.username });
     const savedOutbreak = await newOutbreak.save();
     createLog(req, 'CREATE_OUTBREAK', `แจ้งเหตุโรคระบาด: ${savedOutbreak.location}`, savedOutbreak);
     invalidateOutbreakCache();
@@ -911,7 +929,7 @@ app.post('/api/outbreaks', authenticateToken, authorizeRole(['Developer', 'MagaA
 
     res.status(201).json(savedOutbreak);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(err.statusCode || 400).json({ message: err.message });
   }
 });
 
@@ -922,9 +940,10 @@ app.put('/api/outbreaks/:id', authenticateToken, authorizeRole(['Developer', 'Ma
     if (!oldOutbreak) return res.status(404).json({ message: "ไม่พบข้อมูล" });
 
     // 2. อัปเดตข้อมูลใหม่
+    const payload = normalizeOutbreakPayload(req.body);
     const updatedOutbreak = await Outbreak.findByIdAndUpdate(
-      req.params.id, 
-      { ...req.body, updatedBy: req.user.username }, 
+      req.params.id,
+      { ...payload, updatedBy: req.user.username },
       { new: true }
     ).lean();
 
@@ -1141,14 +1160,18 @@ app.post('/api/outbreaks/bulk', authenticateToken, authorizeRole(['Developer', '
     const outbreaks = req.body;
     if (!Array.isArray(outbreaks)) return res.status(400).json({ message: "ข้อมูลต้องอยู่ในรูปแบบ Array" });
 
-    const insertedOutbreaks = await Outbreak.insertMany(outbreaks, { ordered: false });
+    const normalizedOutbreaks = outbreaks.map((item, index) =>
+      normalizeOutbreakPayload(item, index + 1)
+    );
+
+    const insertedOutbreaks = await Outbreak.insertMany(normalizedOutbreaks, { ordered: false });
     createLog(req, 'BULK_IMPORT_OUTBREAKS', `นำเข้าจุดระบาดจำนวน ${insertedOutbreaks.length} รายการ`);
     invalidateOutbreakCache();
 
     io.emit('server_data_update', { type: 'OUTBREAKS_IMPORTED', count: insertedOutbreaks.length });
     res.status(201).json({ message: "นำเข้าข้อมูลสำเร็จ", count: insertedOutbreaks.length });
   } catch (err) {
-    res.status(400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
+    res.status(err.statusCode || 400).json({ message: "เกิดข้อผิดพลาด: " + err.message });
   }
 });
 

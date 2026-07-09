@@ -1226,47 +1226,135 @@ const markAllAsRead = async () => {
         }
     };
 
+    const normalizeOutbreakPayload = (data: any) => {
+        const lat = Number(data.lat ?? data.latitude ?? 0);
+        const long = Number(data.long ?? data.lng ?? data.longitude ?? 0);
+
+        return {
+            ...data,
+            lat,
+            long
+        };
+    };
+
+    const isValidCoordinate = (lat: number, long: number) => {
+        return Number.isFinite(lat) && Number.isFinite(long) && lat !== 0 && long !== 0;
+    };
+
+    const fetchOutbreaksNow = useCallback(async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/api/outbreaks?ts=${Date.now()}`, {
+                cache: 'no-store'
+            });
+
+            const result = await response.json().catch(() => []);
+            if (!response.ok) {
+                throw new Error(result?.message || 'โหลดข้อมูลจุดเสี่ยงไม่สำเร็จ');
+            }
+
+            const dataArray = Array.isArray(result) ? result : (result?.data || []);
+            setOutbreakData(dataArray);
+            return dataArray;
+        } catch (error) {
+            console.error("Fetch Outbreaks Error:", error);
+            setOutbreakData([]);
+            return [];
+        }
+    }, [setOutbreakData]);
+
+    const upsertOutbreak = useCallback((item: any) => {
+        if (!item?._id) return;
+
+        setOutbreakData((prev: any[]) => {
+            const next = [
+                item,
+                ...prev.filter((oldItem: any) => oldItem._id !== item._id)
+            ];
+
+            return next.sort((a: any, b: any) =>
+                String(b.date || '').localeCompare(String(a.date || ''))
+            );
+        });
+    }, [setOutbreakData]);
+
     const handleUpdateOutbreak = async (id: string, updatedData: any) => {
         try {
+            const payload = normalizeOutbreakPayload(updatedData);
+
+            if (!isValidCoordinate(payload.lat, payload.long)) {
+                addToast('error', '❌ กรุณาระบุพิกัด Lat/Long ให้ถูกต้องก่อนบันทึก');
+                return;
+            }
+
             const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` }, // เปลี่ยนมาใช้ getCurrentToken()
-                body: JSON.stringify(updatedData)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getCurrentToken()}`
+                },
+                body: JSON.stringify(payload)
             });
+
+            const result = await response.json().catch(() => null);
+
             if (response.ok) {
+                upsertOutbreak(result);
+                await fetchOutbreaksNow();
+
                 addToast('success', "✅ แก้ไขข้อมูลจุดเสี่ยงสำเร็จ");
                 setEditingOutbreak(null);
                 setIsOutbreakModalOpen(false);
             } else if (response.status === 401) {
-                // useAuthSession opens the required login screen.
+                addToast('error', "กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
             } else if (response.status === 403) {
-                // useAuthSession reports insufficient permission without logging out.
+                addToast('error', "ไม่มีสิทธิ์แก้ไขข้อมูลจุดเสี่ยง");
             } else {
-                addToast('error', "❌ แก้ไขไม่สำเร็จ");
+                addToast('error', result?.message || "❌ แก้ไขไม่สำเร็จ");
             }
         } catch (error) {
+            console.error(error);
             addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
         }
     };
 
     const handleAddOutbreak = async (data: any) => {
         try {
+            const payload = normalizeOutbreakPayload(data);
+
+            if (!isValidCoordinate(payload.lat, payload.long)) {
+                addToast('error', '❌ กรุณาระบุพิกัด Lat/Long ให้ถูกต้องก่อนบันทึก');
+                return;
+            }
+
             const response = await fetch(`${BASE_URL}/api/outbreaks`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCurrentToken()}` }, // เปลี่ยนมาใช้ getCurrentToken()
-                body: JSON.stringify(data)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getCurrentToken()}`
+                },
+                body: JSON.stringify(payload)
             });
-            if (response.ok) { 
-                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว"); 
+
+            const result = await response.json().catch(() => null);
+
+            if (response.ok) {
+                upsertOutbreak(result);
+                await fetchOutbreaksNow();
+
+                addToast('success', "🚨 บันทึกจุดเสี่ยงเรียบร้อยแล้ว");
                 setIsOutbreakModalOpen(false);
+                setEditingOutbreak(null);
             } else if (response.status === 401) {
-                // useAuthSession opens the required login screen.
+                addToast('error', "กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
             } else if (response.status === 403) {
-                // useAuthSession reports insufficient permission without logging out.
-            } else { 
-                addToast('error', "❌ ไม่สามารถบันทึกข้อมูลได้"); 
+                addToast('error', "ไม่มีสิทธิ์บันทึกข้อมูลจุดเสี่ยง");
+            } else {
+                addToast('error', result?.message || "❌ ไม่สามารถบันทึกข้อมูลได้");
             }
-        } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+        } catch (error) {
+            console.error(error);
+            addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        }
     };
 
     const handleDeleteOutbreak = async (id: string) => {
@@ -1274,18 +1362,29 @@ const markAllAsRead = async () => {
             try {
                 const response = await fetch(`${BASE_URL}/api/outbreaks/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${getCurrentToken()}` }
+                    headers: {
+                        'Authorization': `Bearer ${getCurrentToken()}`
+                    }
                 });
-                if (response.ok) { 
-                    addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว"); 
+
+                const result = await response.json().catch(() => null);
+
+                if (response.ok) {
+                    setOutbreakData((prev: any[]) => prev.filter((item: any) => item._id !== id));
+                    await fetchOutbreaksNow();
+
+                    addToast('success', "✅ ลบจุดแจ้งเหตุเรียบร้อยแล้ว");
                 } else if (response.status === 401) {
-                    // useAuthSession opens the required login screen.
+                    addToast('error', "กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
                 } else if (response.status === 403) {
-                    // useAuthSession reports insufficient permission without logging out.
-                } else { 
-                    addToast('error', "❌ ไม่สามารถลบข้อมูลได้"); 
+                    addToast('error', "ไม่มีสิทธิ์ลบข้อมูลจุดเสี่ยง");
+                } else {
+                    addToast('error', result?.message || "❌ ไม่สามารถลบข้อมูลได้");
                 }
-            } catch (error) { addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+            } catch (error) {
+                console.error(error);
+                addToast('error', "⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            }
         }
     };
 
@@ -1624,7 +1723,13 @@ const handleDeleteDispatch = async (id: string) => {
                     addToast('error', '⚠️ ข้อมูลทั้งหมดถูกล้างโดยผู้ดูแลระบบ');
                     break;
                 case 'OUTBREAK_ADDED':
-                    updateOutbreak((prev: any[]) => [payload.data, ...prev]);
+                    updateOutbreak((prev: any[]) => {
+                        if (!payload.data?._id) return prev;
+                        return [
+                            payload.data,
+                            ...prev.filter((item: any) => item._id !== payload.data._id)
+                        ];
+                    });
                     addToast('error', `🚨 แจ้งเตือน: พบจุดเสี่ยงโรคระบาดใหม่!`);
                     break;
                 case 'OUTBREAK_DELETED':
@@ -1633,6 +1738,10 @@ const handleDeleteDispatch = async (id: string) => {
                 case 'OUTBREAK_UPDATED':
                     updateOutbreak((prev: any[]) => prev.map((item: any) => item._id === payload.data._id ? payload.data : item));
                     addToast('info', `📝 แก้ไขจุดเสี่ยงระบาด: ${payload.data.location}`);
+                    break;
+                case 'OUTBREAKS_IMPORTED':
+                    fetchOutbreaksNow();
+                    addToast('success', `📥 มีการนำเข้าจุดเสี่ยงจำนวน ${payload.count} รายการ`);
                     break;
                 case 'SYSTEM_RESTORED':
                     clearReportsCache();
@@ -1701,7 +1810,7 @@ const handleDeleteDispatch = async (id: string) => {
             addToast(notif.type || 'info', notif.title);
         });
         return () => { socket.disconnect(); };
-    }, [BASE_URL]);
+    }, [BASE_URL, fetchOutbreaksNow]);
 
     useEffect(() => {
         const fetchMeetings = async () => {
@@ -1727,19 +1836,8 @@ const handleDeleteDispatch = async (id: string) => {
     };
 
     useEffect(() => {
-        const fetchOutbreaks = async () => {
-            try {
-                const response = await fetch(`${BASE_URL}/api/outbreaks`);
-                const result = await response.json();
-                const dataArray = Array.isArray(result) ? result : (result.data || []);
-                setOutbreakData(dataArray);
-            } catch (error) {
-                console.error("Fetch Outbreaks Error:", error);
-                setOutbreakData([]);
-            }
-        };
-        fetchOutbreaks();
-    }, [BASE_URL, setOutbreakData]);
+        fetchOutbreaksNow();
+    }, [fetchOutbreaksNow]);
 
     const toggleOutbreakVisibility = (id: string) => {
         setHiddenOutbreakIds((prev: string[]) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);

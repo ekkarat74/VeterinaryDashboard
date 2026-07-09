@@ -207,7 +207,23 @@ const RabiesOutbreakSection: React.FC<RabiesOutbreakSectionProps> = ({
         return { monthlyData: monthly, ownershipData: ownership };
     }, [filteredOutbreaks]);
 
-    if (outbreakData.length === 0) return null;
+    if (outbreakData.length === 0) {
+        return (
+            <div className="mt-8 mb-16 bg-white rounded-3xl border border-dashed border-slate-200 p-10 text-center shadow-sm">
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center mb-4">
+                    <Siren className="w-7 h-7 text-rose-500" />
+                </div>
+
+                <h3 className="text-base font-black text-slate-800">
+                    ยังไม่มีข้อมูลจุดเสี่ยงโรคพิษสุนัขบ้า
+                </h3>
+
+                <p className="text-xs text-slate-500 mt-2">
+                    เมื่อเพิ่มข้อมูลจุดเสี่ยงหรือ Import CSV สำเร็จ รายการจะแสดงในหน้านี้ทันที
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700 mt-8 mb-16 font-sans">
