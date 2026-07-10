@@ -203,10 +203,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                         
                         <div className="flex flex-col min-w-0 pr-2">
                             <h1 className="text-xs font-bold text-slate-800 tracking-tight leading-tight mb-0.5 break-words">
-                                ระบบรายงานออกหน่วยสัตวแพทย์เคลื่อนที่
+                                ระบบสำนักงานสัตวแพทย์สาธารณสุข
                             </h1>
                             <p className="text-[9px] font-medium text-slate-500 uppercase tracking-widest leading-none">
-                                Mobile Veterinary Unit Reporting System
+                                Public Health Veterinary Office System
                             </p>
                         </div>
                     </div>
