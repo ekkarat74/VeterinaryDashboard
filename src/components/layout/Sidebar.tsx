@@ -194,7 +194,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className={`flex items-center gap-3.5 overflow-hidden flex-1 min-w-0 transition-opacity duration-300 ${isCollapsed ? 'hidden' : 'flex'}`}>
                         <div className="relative shrink-0">
                             <img 
-                                src="https://github.com/ekkarat74/VeterinaryDashboard/blob/main/images.jpg?raw=true" 
+                                src="https://img1.pic.in.th/images/LOGO49be9f8730bf13de.jpg" 
                                 alt="Logo" 
                                 className="w-11 h-11 object-cover rounded-xl border border-slate-100 shrink-0 shadow-sm" 
                             />
